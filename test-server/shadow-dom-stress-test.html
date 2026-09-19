@@ -482,7 +482,7 @@
 
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
-      import { DataExtractor } from '@amplitude/plugin-autocapture-browser';
+      import { armSelectorConfig } from './helpers/selector-config.js';
 
       window.amplitude = amplitude;
 
@@ -915,14 +915,6 @@
         };
       }
 
-      if (shadowOn) {
-        new DataExtractor({}).updateSelectorConfig({
-          enabled: true,
-          shadowDomEnabled: true,
-          maxShadowDomDepth: depth,
-        });
-      }
-
       const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'shadow-dom-stress-key';
 
       amplitude
@@ -939,8 +931,17 @@
           },
           logLevel: 0,
         })
-        .promise.then(() => {
+        .promise.then(async () => {
           amplitude.add(installEventLogger());
+          // Arm piercing on this instance's selector runtime; with fetchRemoteConfig false
+          // nothing later overrides it.
+          if (shadowOn) {
+            await armSelectorConfig(amplitude, {
+              enabled: true,
+              shadowDomEnabled: true,
+              maxShadowDomDepth: depth,
+            });
+          }
           document.getElementById('status').textContent = shadowOn
             ? `initialized-shadow (depth ${depth})`
             : 'initialized';

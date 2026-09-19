@@ -162,6 +162,32 @@ export interface IRemoteConfigClient {
   updateConfigs(): void;
 }
 
+/**
+ * Copy a config payload before handing it to a subscriber.
+ *
+ * Deliveries are plain JSON, and consumers are free to normalize what they are
+ * handed in place — `translateRemoteConfigToLocal` rewrites every
+ * `{ enabled: true, ... }` node into the local option shape by deleting
+ * `enabled`. Sharing one object across subscribers makes those edits visible to
+ * every later subscriber of the same fetch, and to the copy this client writes
+ * to storage after the fan-out. Both are silent: a subscriber that keys off
+ * `enabled` (autocapture's element-selector engine) then sees a payload that
+ * never had it, and the cached copy stays that way for later page loads.
+ *
+ * Falls back to the original object when the payload cannot be cloned, which
+ * keeps delivery working at the cost of the isolation.
+ */
+function cloneConfig(config: RemoteConfig | null): RemoteConfig | null {
+  if (config === null) {
+    return null;
+  }
+  try {
+    return JSON.parse(JSON.stringify(config)) as RemoteConfig;
+  } catch {
+    return config;
+  }
+}
+
 export class RemoteConfigClient implements IRemoteConfigClient {
   static readonly CONFIG_GROUP = 'browser';
 
@@ -241,10 +267,28 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     }
 
     const result = await this.getOrCreateFetchPromise();
-    void this.storage.setConfig(result);
+    this.persistConfig(result);
     this.callbackInfos.forEach((callbackInfo) => {
       this.sendCallback(callbackInfo, result, 'remote');
     });
+  }
+
+  /**
+   * Write a fetch result to storage, unless the fetch failed.
+   *
+   * {@link fetch} resolves with a `null` config once every attempt has failed
+   * (timeout, network error, non-retryable status). Caching that erases the last
+   * good copy, so the next page load has no cache to fall back on while the
+   * remote fetch is in flight — and stays on default behavior for the whole page
+   * view if that fetch fails too. Keeping the previous copy makes a failed fetch
+   * a no-op instead.
+   */
+  persistConfig(remoteConfigInfo: RemoteConfigInfo) {
+    if (remoteConfigInfo.remoteConfig === null) {
+      this.logger.debug('Remote config client skipping storage update: Fetch returned no config');
+      return;
+    }
+    void this.storage.setConfig(remoteConfigInfo);
   }
 
   /**
@@ -292,7 +336,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     const remotePromise = this.getOrCreateFetchPromise().then((result) => {
       this.logger.debug(`Remote config client subscription all mode fetched from remote: ${JSON.stringify(result)}`);
       this.sendCallback(callbackInfo, result, 'remote');
-      void this.storage.setConfig(result);
+      this.persistConfig(result);
     });
 
     const cachePromise = this.storage.fetchConfig().then((result) => {
@@ -333,7 +377,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
 
       this.logger.debug('Remote config client subscription wait for remote mode returns from remote.');
       this.sendCallback(callbackInfo, result, 'remote');
-      void this.storage.setConfig(result);
+      this.persistConfig(result);
     } catch (error) {
       this.logger.debug(
         'Remote config client subscription wait for remote mode exceeded timeout. Try to fetch from cache.',
@@ -373,7 +417,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
       filteredConfig = remoteConfigInfo.remoteConfig;
     }
 
-    callbackInfo.callback(filteredConfig, source, remoteConfigInfo.lastFetch);
+    callbackInfo.callback(cloneConfig(filteredConfig), source, remoteConfigInfo.lastFetch);
   }
 
   /**

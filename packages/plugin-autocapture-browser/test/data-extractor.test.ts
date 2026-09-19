@@ -5,8 +5,7 @@ import type { ElementBasedTimestampedEvent } from '../src/helpers';
 import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
 import * as hierarchy from '../src/hierarchy';
 import type { Hierarchy } from '../src/typings/autocapture';
-import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE } from '@amplitude/analytics-core';
-import { resetSharedShadowGateForTesting } from '../src/shadow-mode';
+import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE, type BrowserConfig } from '@amplitude/analytics-core';
 
 describe('data extractor', () => {
   let dataExtractor: DataExtractor;
@@ -204,8 +203,6 @@ describe('data extractor', () => {
 
     describe('shadow DOM', () => {
       afterEach(() => {
-        resetSharedShadowGateForTesting();
-        new DataExtractor({}).updateSelectorConfig(undefined);
         document.documentElement.removeAttribute(TEXT_MASK_ATTRIBUTE);
         document.body.innerHTML = '';
       });
@@ -528,9 +525,7 @@ describe('data extractor', () => {
           <button id="test-button">Click me</button>
         </div>
       `;
-      // Deterministic reset. A null delivery is now a no-op (keeps last state),
-      // so use an explicit disable to guarantee a known starting point given the
-      // engine is a shared singleton across tests.
+      // A null delivery is a no-op, so begin from an explicit disabled state.
       dataExtractor.updateSelectorConfig({ enabled: false });
     });
 
@@ -541,11 +536,31 @@ describe('data extractor', () => {
       expect(result).toEqual('button#test-button');
     });
 
-    test('shares selector engine config across DataExtractor instances', () => {
-      const button = document.getElementById('test-button');
+    test('shares selector engine config across extractors bound to the same SDK config', () => {
+      document.body.innerHTML = `<section><span class="lbl">a</span><span class="lbl">b</span></section>`;
+      const target = document.querySelectorAll('span')[1];
+      const config = {} as BrowserConfig;
       const otherExtractor = new DataExtractor({});
+      dataExtractor.bindSelectorRuntime(config);
+      otherExtractor.bindSelectorRuntime(config);
+
       dataExtractor.updateSelectorConfig({ enabled: true });
-      expect(otherExtractor.getElementPath(button)).toEqual('button#test-button');
+
+      expect(otherExtractor.getElementPath(target)).toContain(':nth-of-type');
+    });
+
+    test('isolates selector engine config across different SDK configs', () => {
+      document.body.innerHTML = `<section><span class="lbl">a</span><span class="lbl">b</span></section>`;
+      const target = document.querySelectorAll('span')[1];
+      const otherInstance = new DataExtractor({});
+      dataExtractor.bindSelectorRuntime({} as BrowserConfig);
+      otherInstance.bindSelectorRuntime({} as BrowserConfig);
+
+      dataExtractor.updateSelectorConfig({ enabled: true });
+      otherInstance.updateSelectorConfig({ enabled: false });
+
+      expect(dataExtractor.getElementPath(target)).toContain(':nth-of-type');
+      expect(otherInstance.getElementPath(target)).toContain(':nth-child');
     });
 
     test('handles a null payload without throwing', () => {
