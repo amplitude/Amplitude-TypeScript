@@ -57,7 +57,7 @@ export class VideoObserver {
       const nextState: State = {
         ...this.state,
         isSeeking: false,
-        position: event.last_position,
+        position: event.position,
       };
       this.updateState(nextState);
     },
@@ -103,7 +103,7 @@ export class VideoObserver {
       playbackState,
       errorMessage: undefined,
       lastEvent: event,
-      position: event.last_position,
+      position: event.position,
     };
     this.updateState(nextState);
 

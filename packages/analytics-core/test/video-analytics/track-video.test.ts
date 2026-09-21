@@ -25,13 +25,13 @@ describe('trackHtmlVideo', () => {
     expect(handler.onPlay).toHaveBeenCalledWith({
       duration: 10,
       start_time: 0,
-      last_position: 0,
+      position: 0,
       percent_completed: 0,
     });
 
     video.pause();
     expect(handler.onPause).toHaveBeenCalledWith({
-      last_position: 5,
+      position: 5,
       start_time: 5,
       percent_completed: 50,
       duration: 10,
@@ -40,7 +40,7 @@ describe('trackHtmlVideo', () => {
 
     (video as any).ended();
     expect(handler.onEnded).toHaveBeenCalledWith({
-      last_position: 10,
+      position: 10,
       start_time: 10,
       percent_completed: 100,
       duration: 10,
@@ -67,7 +67,7 @@ describe('trackHtmlVideo', () => {
     expect(handler.onEnded).toHaveBeenCalledWith({
       duration: 10,
       start_time: 10,
-      last_position: 10,
+      position: 10,
       percent_completed: 100,
       stop_reason: 'ended',
     });
@@ -85,7 +85,7 @@ describe('trackHtmlVideo', () => {
     video.play();
     (video as any).simulateSeek(7);
     expect(handler.onSeeking).toHaveBeenCalledWith({
-      last_position: 7,
+      position: 7,
       start_time: 7,
       percent_completed: 70,
       duration: 10,
@@ -105,7 +105,7 @@ describe('trackHtmlVideo', () => {
     (video as any).simulateSeek(7);
     (video as any).seeked();
     expect(handler.onSeeked).toHaveBeenCalledWith({
-      last_position: 7,
+      position: 7,
       start_time: 7,
       percent_completed: 70,
       duration: 10,
@@ -178,14 +178,14 @@ describe('trackHtmlVideo with Mux vendor', () => {
     expect(handler.onPlay).toHaveBeenCalledWith({
       duration: 10,
       start_time: 0,
-      last_position: 0,
+      position: 0,
       percent_completed: 0,
       ...muxMetadata,
     });
 
     video.pause();
     expect(handler.onPause).toHaveBeenCalledWith({
-      last_position: 5,
+      position: 5,
       start_time: 5,
       percent_completed: 50,
       duration: 10,
@@ -195,7 +195,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
 
     (video as any).ended();
     expect(handler.onEnded).toHaveBeenCalledWith({
-      last_position: 10,
+      position: 10,
       start_time: 10,
       percent_completed: 100,
       duration: 10,
@@ -221,7 +221,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
     video.play();
     (video as any).simulateSeek(4);
     expect(handler.onSeeking).toHaveBeenCalledWith({
-      last_position: 4,
+      position: 4,
       start_time: 4,
       percent_completed: 40,
       duration: 10,
@@ -243,7 +243,7 @@ describe('trackHtmlVideo with Mux vendor', () => {
     (video as any).simulateSeek(3);
     (video as any).seeked();
     expect(handler.onSeeked).toHaveBeenCalledWith({
-      last_position: 3,
+      position: 3,
       start_time: 3,
       percent_completed: 30,
       duration: 10,
@@ -293,7 +293,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('play');
       await jest.runAllTimersAsync();
       expect(handler.onPlay).toHaveBeenCalledWith({
-        last_position: 0,
+        position: 0,
         start_time: 0,
         percent_completed: 0,
         duration: 10,
@@ -303,7 +303,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('pause');
       await jest.runAllTimersAsync();
       expect(handler.onPause).toHaveBeenCalledWith({
-        last_position: 5,
+        position: 5,
         start_time: 5,
         percent_completed: 50,
         duration: 10,
@@ -314,7 +314,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('ended');
       await jest.runAllTimersAsync();
       expect(handler.onEnded).toHaveBeenCalledWith({
-        last_position: 10,
+        position: 10,
         start_time: 10,
         percent_completed: 100,
         duration: 10,
@@ -335,7 +335,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('seeking');
       await jest.runAllTimersAsync();
       expect(handler.onSeeking).toHaveBeenCalledWith({
-        last_position: 6,
+        position: 6,
         start_time: 6,
         percent_completed: 60,
         duration: 10,
@@ -356,7 +356,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('seeked');
       await jest.runAllTimersAsync();
       expect(handler.onSeeked).toHaveBeenCalledWith({
-        last_position: 8,
+        position: 8,
         start_time: 8,
         percent_completed: 80,
         duration: 10,
@@ -418,7 +418,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('play');
       await jest.runAllTimersAsync();
       expect(handler.onPlay).toHaveBeenCalledWith({
-        last_position: 0,
+        position: 0,
         start_time: 0,
         percent_completed: 0,
         duration: 10,
@@ -429,7 +429,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('pause');
       await jest.runAllTimersAsync();
       expect(handler.onPause).toHaveBeenCalledWith({
-        last_position: 5,
+        position: 5,
         start_time: 5,
         percent_completed: 50,
         duration: 10,
@@ -441,7 +441,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('ended');
       await jest.runAllTimersAsync();
       expect(handler.onEnded).toHaveBeenCalledWith({
-        last_position: 10,
+        position: 10,
         start_time: 10,
         percent_completed: 100,
         duration: 10,
@@ -470,7 +470,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('seeking');
       await jest.runAllTimersAsync();
       expect(handler.onSeeking).toHaveBeenCalledWith({
-        last_position: 2,
+        position: 2,
         start_time: 2,
         percent_completed: 20,
         duration: 10,
@@ -493,7 +493,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('seeked');
       await jest.runAllTimersAsync();
       expect(handler.onSeeked).toHaveBeenCalledWith({
-        last_position: 4,
+        position: 4,
         start_time: 4,
         percent_completed: 40,
         duration: 10,
@@ -521,7 +521,7 @@ describe('trackEmbeddedVideo', () => {
       player.emit('play');
       await jest.runAllTimersAsync();
       expect(handler.onPlay).toHaveBeenCalledWith({
-        last_position: 0,
+        position: 0,
         start_time: 0,
         duration: 10,
         percent_completed: 0,
