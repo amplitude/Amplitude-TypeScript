@@ -32,6 +32,7 @@ import {
   Logger,
   safeJsonStringify,
   LogLevel,
+  AttributionOptions,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -88,6 +89,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
+  private attributionTrackingOptions: AttributionOptions | undefined;
+  private diagnosticsClient: DiagnosticsClient | undefined;
 
   // Backdoor to set diagnostics sample rate
   // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
@@ -190,6 +193,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       enabled: enableDiagnostics,
       sampleRate: diagnosticsSampleRate,
     });
+    this.diagnosticsClient = diagnosticsClient;
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
     diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
     diagnosticsClient.setTag('web_environment', getRuntimeEnvironment());
@@ -245,24 +249,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     this.config.remoteConfigClient = remoteConfigClient;
 
     const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
-
-    // Add web attribution plugin
-    if (
-      isAttributionTrackingEnabled(this.config.defaultTracking) &&
-      isUserPropertyAttributionEnabled(attributionTrackingOptions)
-    ) {
-      if (this.config.optOut) {
-        this.timeline.addOptOutListener(async (optOut) => {
-          if (!optOut) {
-            this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
-            await this.webAttribution.init();
-          }
-        });
-      }
-      this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
-      // Fetch the current campaign, check if need to track web attribution later
-      await this.webAttribution.init();
-    }
+    this.attributionTrackingOptions = attributionTrackingOptions;
+    await this.addAttributionTrackingPlugin();
 
     // Step 3: Set session ID
     // Priority 1: `options.sessionId`
@@ -321,77 +309,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Notify if DET is enabled
     detNotify(this.config);
-
-    if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding file download tracking plugin');
-      await this.add(fileDownloadTracking()).promise;
-    }
-
-    if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding form interaction plugin');
-      await this.add(formInteractionTracking()).promise;
-    }
-
-    // Add page view plugin
-    if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
-      if (!this.config.optOut) {
-        this.config.loggerProvider.debug('Adding page view tracking plugin');
-        await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
-      } else {
-        this.timeline.addOptOutListener(async (optOut) => {
-          /* istanbul ignore if */
-          if (optOut) {
-            return;
-          }
-          this.config.loggerProvider.debug('Adding page view tracking plugin');
-          await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
-        });
-      }
-    }
-
-    if (
-      isAttributionTrackingEnabled(this.config.defaultTracking) &&
-      isEventPropertyAttributionEnabled(attributionTrackingOptions)
-    ) {
-      this.config.loggerProvider.debug('Adding event property attribution plugin');
-      await this.add(eventPropertyTrackingPlugin(attributionTrackingOptions)).promise;
-    }
-
-    if (isElementInteractionsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
-      await this.add(autocapturePlugin(getElementInteractionsConfig(this.config), { diagnosticsClient })).promise;
-    }
-
-    if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding frustration interactions plugin');
-      await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
-    }
-
-    if (isNetworkTrackingEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding network tracking plugin');
-      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
-    }
-
-    if (isWebVitalsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding web vitals plugin');
-      await this.add(webVitalsPlugin()).promise;
-    }
-
-    if (isPerformanceTrackingEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding performance tracking plugin');
-      await this.add(performancePlugin(getPerformanceTrackingConfig(this.config))).promise;
-    }
-
-    if (isPageUrlEnrichmentEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding referrer page url plugin');
-      await this.add(pageUrlEnrichmentPlugin()).promise;
-    }
-
-    if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
-      this.config.loggerProvider.debug('Adding custom enrichment plugin');
-      await this.add(customEnrichmentPlugin()).promise;
-    }
-
+    await this.addPlugins();
     this.initializing = false;
 
     // Step 6: Run queued dispatch functions
@@ -696,6 +614,103 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     if (!this.config) {
       this._diagnosticsSampleRate = sampleRate;
       return;
+    }
+  }
+
+  private async addPlugins() {
+    if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
+      this.config.loggerProvider.debug('Adding file download tracking plugin');
+      await this.add(fileDownloadTracking()).promise;
+    }
+
+    if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
+      this.config.loggerProvider.debug('Adding form interaction plugin');
+      await this.add(formInteractionTracking()).promise;
+    }
+
+    // Add page view plugin
+    if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
+      if (!this.config.optOut) {
+        this.config.loggerProvider.debug('Adding page view tracking plugin');
+        await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+      } else {
+        this.timeline.addOptOutListener(async (optOut) => {
+          /* istanbul ignore if */
+          if (optOut) {
+            return;
+          }
+          this.config.loggerProvider.debug('Adding page view tracking plugin');
+          await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+        });
+      }
+    }
+
+    if (
+      this.attributionTrackingOptions &&
+      isAttributionTrackingEnabled(this.config.defaultTracking) &&
+      isEventPropertyAttributionEnabled(this.attributionTrackingOptions)
+    ) {
+      this.config.loggerProvider.debug('Adding event property attribution plugin');
+      await this.add(eventPropertyTrackingPlugin(this.attributionTrackingOptions)).promise;
+    }
+
+    if (this.diagnosticsClient && isElementInteractionsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
+      await this.add(
+        autocapturePlugin(getElementInteractionsConfig(this.config), { diagnosticsClient: this.diagnosticsClient }),
+      ).promise;
+    }
+
+    if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding frustration interactions plugin');
+      await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
+    }
+
+    if (isNetworkTrackingEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding network tracking plugin');
+      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
+    }
+
+    if (isWebVitalsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding web vitals plugin');
+      await this.add(webVitalsPlugin()).promise;
+    }
+
+    if (isPerformanceTrackingEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding performance tracking plugin');
+      await this.add(performancePlugin(getPerformanceTrackingConfig(this.config))).promise;
+    }
+
+    if (isPageUrlEnrichmentEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding referrer page url plugin');
+      await this.add(pageUrlEnrichmentPlugin()).promise;
+    }
+
+    if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
+      this.config.loggerProvider.debug('Adding custom enrichment plugin');
+      await this.add(customEnrichmentPlugin()).promise;
+    }
+  }
+
+  private async addAttributionTrackingPlugin() {
+    // Add web attribution plugin
+    if (
+      this.attributionTrackingOptions !== undefined &&
+      isAttributionTrackingEnabled(this.config.defaultTracking) &&
+      isUserPropertyAttributionEnabled(this.attributionTrackingOptions)
+    ) {
+      const attributionTrackingOptions = this.attributionTrackingOptions;
+      if (this.config.optOut) {
+        this.timeline.addOptOutListener(async (optOut) => {
+          if (!optOut) {
+            this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+            await this.webAttribution.init();
+          }
+        });
+      }
+      this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+      // Fetch the current campaign, check if need to track web attribution later
+      await this.webAttribution.init();
     }
   }
 }
