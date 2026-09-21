@@ -136,6 +136,47 @@ describe('VideoCapture', () => {
       // assert that the track method was not called again
       expect(mockAmplitude.track).toHaveBeenCalledTimes(3);
     });
+
+    it('should keep Content Stopped after Content Started when the stop listener runs on start', async () => {
+      new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+
+      const playingState: VideoState = {
+        playbackState: 'playing',
+        lastEvent: { duration: 10, position: 0 },
+        position: 0,
+      };
+      currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+
+      const track = mockAmplitude.track as jest.Mock;
+      const startedTime = track.mock.calls[0][2].time as number;
+      const stoppedTime = track.mock.calls[1][2].time as number;
+      expect(track.mock.calls[0][0]).toBe('[Amplitude] Content Started');
+      expect(track.mock.calls[1][0]).toBe('[Amplitude] Content Stopped');
+      expect(stoppedTime).toBeGreaterThan(startedTime);
+
+      // later playback updates still move the delayed stop timestamp forward
+      await jest.advanceTimersByTimeAsync(5_000);
+      currentVideoObserver!.emitStateChange(playingState, {
+        ...playingState,
+        position: 1,
+        watchTime: 1,
+      });
+      jest.clearAllMocks();
+      await jest.advanceTimersByTimeAsync(60_000);
+
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Amplitude] Content Stopped',
+        expect.any(Object),
+        expect.objectContaining({ time: expect.any(Number) }),
+      );
+      const heartbeatedTime = (mockAmplitude.track as jest.Mock).mock.calls[0][2].time as number;
+      expect(heartbeatedTime).toBeGreaterThan(stoppedTime);
+    });
   });
 
   describe('withEmbeddedPlayer()', () => {

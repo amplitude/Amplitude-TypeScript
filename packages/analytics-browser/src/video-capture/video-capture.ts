@@ -41,7 +41,7 @@ export class VideoCapture {
   private embeddedVideoPlayer: EmbeddedVideoPlayer | null = null;
   private vendor?: VideoVendor;
   private extraEventProperties: Record<string, string | number | boolean> = {};
-  private stopEvent: BaseEvent | null = null;
+  private stopEvent: (BaseEvent & { time: number }) | null = null;
   private listeners: ((previousState: VideoState, nextState: VideoState) => void)[] = [];
   private onRemoveListeners: (() => void)[] = [];
   private playId: string | null = null;
@@ -148,7 +148,9 @@ export class VideoCapture {
           ...this.parseStopEventProperties(nextState),
           ...this.extraEventProperties,
         };
-        this.stopEvent.time = new Date().getTime();
+        // The stop event is created at now + 1 so it sorts after Content Started. This listener
+        // also runs on that start transition, in the same millisecond, and must not erase the offset.
+        this.stopEvent.time = Math.max(this.stopEvent.time, new Date().getTime());
         void this.heartbeat.update(this.stopEvent);
       }
       if (
