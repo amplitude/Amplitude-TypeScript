@@ -76,7 +76,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public flushQueueSize: number = 30,
     public identityStorage: IdentityStorageType = DEFAULT_IDENTITY_STORAGE,
     public ingestionMetadata?: IngestionMetadata,
-    public instanceName?: string,
+    instanceName?: string,
     lastEventId?: number,
     lastEventTime?: number,
     public loggerProvider: ILogger = new Logger(),
@@ -113,7 +113,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public enableRequestBodyCompression: boolean = false,
     public customEnrichment?: boolean | CustomEnrichmentOptions,
   ) {
-    super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
+    super({ apiKey, instanceName, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
     this.deviceId = deviceId;
     this.lastEventId = lastEventId;

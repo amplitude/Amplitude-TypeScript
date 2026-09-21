@@ -9,6 +9,8 @@ export interface Storage<T> {
   reset(): Promise<void>;
 }
 
+export type StorageData = Record<string, any>;
+
 export interface StorageSync<T> {
   get: () => T | undefined;
   set: (value: T | null) => void;

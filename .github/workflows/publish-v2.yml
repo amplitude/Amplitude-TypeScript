@@ -229,30 +229,26 @@ jobs:
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
         run: |
           echo "Running lerna version..."
-          
-          # Temporarily disable exit on error to capture output even when command fails
+
+          # Stream output so runner shutdowns and canceled runs retain Lerna's progress.
+          LOG_FILE=$(mktemp)
+          trap 'rm -f "$LOG_FILE"' EXIT
           set +e
-          OUTPUT=$(GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:version -y --no-private --create-release github 2>&1)
-          EXIT_CODE=$?
+          GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:version -y --no-private --create-release github 2>&1 | tee "$LOG_FILE"
+          EXIT_CODE=${PIPESTATUS[0]}
           set -e
-          
-          # Always display the output first
-          echo "=== Lerna Version Output ==="
-          echo "$OUTPUT"
-          echo "=== End Output ==="
-          
-          # Now handle the exit code
+
           if [ $EXIT_CODE -ne 0 ]; then
             echo "❌ Command failed with exit code: $EXIT_CODE"
             exit $EXIT_CODE
           fi
-          
+
           # Check if the output indicates no changed packages
-          if echo "$OUTPUT" | grep -q "No changed packages to version"; then
+          if grep -q "No changed packages to version" "$LOG_FILE"; then
             echo "❌ No changed packages found to version. Failing the job."
             exit 1
           fi
-          
+
           echo "✅ Successfully created release version"
 
       # Publish to NPM (also uploads minified JS and source maps to S3)

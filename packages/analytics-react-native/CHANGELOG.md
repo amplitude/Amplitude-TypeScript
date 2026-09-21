@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.9.0...@amplitude/analytics-react-native@1.10.0) (2026-09-21)
+
+
+### Features
+
+* **analytics-react-native:** support Remote Config autocapture ([#1988](https://github.com/amplitude/Amplitude-TypeScript/issues/1988)) ([eef3342](https://github.com/amplitude/Amplitude-TypeScript/commit/eef33427cdf3294c285f94ae6dbe1bd45738a60d))
+
+
+
+
+
+# [1.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.8.0...@amplitude/analytics-react-native@1.9.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* **android:** skip explicit Kotlin plugin when AGP registers the kotlin extension ([#1966](https://github.com/amplitude/Amplitude-TypeScript/issues/1966)) ([20fc2a7](https://github.com/amplitude/Amplitude-TypeScript/commit/20fc2a72ac0a0dacf59d5b4c6a6e32bb5c3214fe))
+
+
+### Features
+
+* **react-native:** apply diagnostics sample rate from remote config ([#1983](https://github.com/amplitude/Amplitude-TypeScript/issues/1983)) ([0b4a09a](https://github.com/amplitude/Amplitude-TypeScript/commit/0b4a09ab6ad24a7ee2c78daadfc6ee0b70391e47))
+
+
+
+
+
 # [1.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.7.0...@amplitude/analytics-react-native@1.8.0) (2026-08-27)
 
 

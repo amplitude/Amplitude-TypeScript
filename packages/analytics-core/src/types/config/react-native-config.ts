@@ -1,11 +1,19 @@
 import { IConfig } from './core-config';
-import { Storage } from '../storage';
+import { Storage, StorageData } from '../storage';
 import { UserSession } from '../user-session';
 import { RemoteConfigOptions } from './browser-config';
 import { NetworkTrackingOptions } from '../network-tracking';
 import { IRemoteConfigClient } from '../../remote-config/remote-config';
+import { Event } from '../event/event';
 
-type HiddenOptions = 'apiKey' | 'lastEventId' | 'persistedAppVersion' | 'persistedAppBuild' | 'remoteConfigClient';
+type HiddenOptions =
+  | 'apiKey'
+  | 'lastEventId'
+  | 'persistedAppVersion'
+  | 'persistedAppBuild'
+  | 'remoteConfigClient'
+  | 'storage';
+export type ReactNativeStorageData = Event[] | StorageData;
 
 /* @experimental This config is experimental pending GA of React Native autocapture. */
 export interface ReactNativeAutocaptureOptions {
@@ -44,9 +52,12 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   remoteConfigClient?: IRemoteConfigClient;
   /* @experimental This config is experimental pending GA of React Native autocapture. */
   autocapture?: boolean | ReactNativeAutocaptureOptions;
+  storage?: Storage<ReactNativeStorageData>;
 }
 
-export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions>;
+export type ReactNativeOptions = Omit<Partial<ReactNativeConfig>, HiddenOptions | 'storageProvider'> & {
+  storageProvider?: Storage<ReactNativeStorageData>;
+};
 
 export interface ReactNativeAttributionOptions {
   disabled?: boolean;

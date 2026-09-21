@@ -127,6 +127,23 @@ describe('config', () => {
     });
     expect(config.flushIntervalMillis).toEqual(0);
   });
+
+  test.each([
+    [undefined, DEFAULT_INSTANCE_NAME],
+    ['', DEFAULT_INSTANCE_NAME],
+    ['custom-instance', 'custom-instance'],
+    [' ', ' '],
+  ])('should normalize instance name %p to %p', (instanceName, expected) => {
+    const defaultConfig = useDefaultConfig();
+    const config = new Config({
+      apiKey: API_KEY,
+      instanceName,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+    });
+
+    expect(config.instanceName).toBe(expected);
+  });
 });
 
 describe('RequestMetadata', () => {

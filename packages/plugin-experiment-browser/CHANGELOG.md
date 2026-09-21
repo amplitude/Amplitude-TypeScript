@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-beta.43](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.42...@amplitude/plugin-experiment-browser@1.0.0-beta.43) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/plugin-experiment-browser
+
+
+
+
+
+# [1.0.0-beta.42](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.41...@amplitude/plugin-experiment-browser@1.0.0-beta.42) (2026-09-16)
+
+
+### Bug Fixes
+
+* **browser:** normalize empty instance names ([#1956](https://github.com/amplitude/Amplitude-TypeScript/issues/1956)) ([942c8bc](https://github.com/amplitude/Amplitude-TypeScript/commit/942c8bc3a1ac341988c02a5ea42db1813bb61519))
+
+
+
+
+
 # [1.0.0-beta.41](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.40...@amplitude/plugin-experiment-browser@1.0.0-beta.41) (2026-08-24)
 
 **Note:** Version bump only for package @amplitude/plugin-experiment-browser

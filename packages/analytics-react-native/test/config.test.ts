@@ -2,7 +2,14 @@ import * as Config from '../src/config';
 import { shouldFetchRemoteConfig } from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, Storage, UserSession, getCookieName, FetchTransport } from '@amplitude/analytics-core';
+import {
+  LogLevel,
+  Storage,
+  UserSession,
+  getCookieName,
+  FetchTransport,
+  ReactNativeStorageData,
+} from '@amplitude/analytics-core';
 import * as BrowserUtils from '@amplitude/analytics-core';
 import { isWeb } from '../src/utils/platform';
 import { uuidPattern } from './helpers/constants';
@@ -66,6 +73,14 @@ describe('config', () => {
         storageProvider: undefined,
       });
     });
+
+    test('should expose functional storage from storageProvider', async () => {
+      const storageProvider = new core.MemoryStorage<ReactNativeStorageData>();
+      const config = new Config.ReactNativeConfig(API_KEY, { storageProvider });
+
+      await config.storage?.set('amp-storage-test', { foo: 'bar' });
+      expect(await config.storage?.get('amp-storage-test')).toEqual({ foo: 'bar' });
+    });
   });
 
   describe('useBrowserConfig', () => {
@@ -100,6 +115,7 @@ describe('config', () => {
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionTimeout: 300000,
+        storage: new core.MemoryStorage(),
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
           adid: true,
@@ -182,6 +198,7 @@ describe('config', () => {
         serverZone: 'US',
         _sessionId: -1,
         sessionTimeout: 1,
+        storage: new core.MemoryStorage(),
         storageProvider: new core.MemoryStorage(),
         trackingSessionEvents: false,
         trackingOptions: {
@@ -398,7 +415,7 @@ describe('config', () => {
       expect(shouldFetchRemoteConfig({ remoteConfig: { fetchRemoteConfig: false } })).toBe(false);
     });
 
-    test('should return false when remoteConfig is undefined (opt-in default for React Native)', () => {
+    test('should return false when remoteConfig is undefined', () => {
       expect(shouldFetchRemoteConfig({})).toBe(false);
     });
 
