@@ -2717,6 +2717,51 @@ describe('browser-client', () => {
     });
   });
 
+  describe('when adapters are unavailable', () => {
+    class AmplitudeBrowserWithoutAdapters extends AmplitudeBrowser {
+      protected attributionAdapter() {
+        return null;
+      }
+
+      protected remoteConfigAdapter() {
+        return null;
+      }
+    }
+
+    test('should skip remote config, diagnostics and attribution on init', async () => {
+      const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+      const clientWithoutAdapters = new AmplitudeBrowserWithoutAdapters();
+
+      await clientWithoutAdapters.init(apiKey, userId, {
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: true,
+        },
+        autocapture: { elementInteractions: true },
+      }).promise;
+
+      expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+      expect(clientWithoutAdapters.webAttribution).toBeUndefined();
+      // without a diagnostics client, the autocapture plugin receives no options
+      expect(autocapturePlugin).toHaveBeenCalledTimes(1);
+      expect(autocapturePlugin.mock.calls[0][1]).toBeUndefined();
+    });
+
+    test('should process events without tracking attribution', async () => {
+      const clientWithoutAdapters = new AmplitudeBrowserWithoutAdapters();
+      await clientWithoutAdapters.init(apiKey, userId, {
+        optOut: true,
+        defaultTracking: false,
+      }).promise;
+
+      const result = await clientWithoutAdapters.process({
+        event_type: 'event',
+      });
+
+      expect(result.code).toBe(0);
+    });
+  });
+
   describe('logBrowserOptions', () => {
     test('should not throw error on circular reference', async () => {
       // regression test for https://github.com/amplitude/Amplitude-TypeScript/issues/1521

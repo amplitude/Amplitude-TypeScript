@@ -32,6 +32,9 @@ import {
   Logger,
   safeJsonStringify,
   LogLevel,
+  AttributionOptions,
+  ServerZoneType,
+  ILogger,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -77,6 +80,27 @@ import { isEventPropertyAttributionEnabled, isUserPropertyAttributionEnabled } f
 
 const UNSPECIFIED_SESSION_ID = -1;
 
+type AttributionAdapter = {
+  trackCampaignEventIfNeeded: (lastEventId?: number, promises?: Promise<Result>[]) => boolean;
+  addAttributionTrackingPlugin: () => Promise<void>;
+};
+
+type RemoteConfigAdapter = {
+  getRemoteConfigClient: (
+    options: BrowserOptions & { apiKey: string },
+    loggerProvider: ILogger,
+    serverZone: ServerZoneType,
+  ) => Promise<IRemoteConfigClient>;
+  getDiagnosticsClient: (
+    options: BrowserOptions & { apiKey: string },
+    loggerProvider: ILogger,
+    serverZone: ServerZoneType,
+    enableDiagnostics: boolean,
+    diagnosticsSampleRate: number,
+  ) => Promise<DiagnosticsClient>;
+  fetchRemoteConfig: (remoteConfigClient: IRemoteConfigClient, browserOptions: BrowserConfig) => Promise<void>;
+};
+
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
  * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
@@ -88,6 +112,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
+  private attributionTrackingOptions: AttributionOptions | undefined;
+  private diagnosticsClient: DiagnosticsClient | undefined;
+  private diagnosticsSampleRate = 0;
+  private enableDiagnostics = true;
 
   // Backdoor to set diagnostics sample rate
   // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
@@ -134,68 +162,29 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     let diagnosticsSampleRate = this._diagnosticsSampleRate;
     let enableDiagnostics = options.enableDiagnostics ?? true;
 
+    this.diagnosticsSampleRate = diagnosticsSampleRate;
+    this.enableDiagnostics = enableDiagnostics;
+
+    const remoteConfigAdapter = this.remoteConfigAdapter();
+
     // Step 2.2: Fetch diagnostics config FIRST to get sample rate for DiagnosticsClient
     // We want to create DiagnosticsClient as early as possible so it can track more data
     /* istanbul ignore next */
-    if (fetchRemoteConfig) {
-      remoteConfigClient = new RemoteConfigClient(
-        options.apiKey,
-        loggerProvider,
-        serverZone,
-        /* istanbul ignore next */ options.remoteConfig?.serverUrl,
-      );
-
-      // Fetch diagnostics config first to get sample rate
-      await new Promise<void>((resolve) => {
-        // Disable coverage for this line because remote config client will always be defined in this case.
-        // istanbul ignore next
-        remoteConfigClient?.subscribe(
-          'configs.diagnostics.browserSDK',
-          'all',
-          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-            loggerProvider.debug(
-              'Diagnostics remote configuration received:',
-              JSON.stringify(
-                {
-                  remoteConfig,
-                  source,
-                  lastFetch,
-                },
-                null,
-                2,
-              ),
-            );
-            if (remoteConfig) {
-              // Validate and set sampleRate (must be a valid number)
-              const sampleRate = remoteConfig.sampleRate as number;
-              if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
-                diagnosticsSampleRate = sampleRate;
-              }
-
-              // Validate and set enabled (must be a boolean)
-              const enabled = remoteConfig.enabled as boolean;
-              if (typeof enabled === 'boolean') {
-                enableDiagnostics = enabled;
-              }
-            }
-            resolve();
-          },
-        );
-      });
+    if (fetchRemoteConfig && remoteConfigAdapter) {
+      remoteConfigClient = await remoteConfigAdapter.getRemoteConfigClient(options, loggerProvider, serverZone);
+      diagnosticsSampleRate = this.diagnosticsSampleRate;
+      enableDiagnostics = this.enableDiagnostics;
     }
 
     // Step 2.3: Initialize diagnostics client as early as possible
     // Now we have the sample rate from remote config (if fetched)
-    const diagnosticsClient = new DiagnosticsClient(options.apiKey, loggerProvider, serverZone, {
-      enabled: enableDiagnostics,
-      sampleRate: diagnosticsSampleRate,
-    });
-    diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
-    diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
-    diagnosticsClient.setTag('web_environment', getRuntimeEnvironment());
-    if (typeof navigator !== 'undefined') {
-      diagnosticsClient.setTag('user_agent', navigator.userAgent);
-    }
+    const diagnosticsClient = await remoteConfigAdapter?.getDiagnosticsClient(
+      options,
+      loggerProvider,
+        serverZone,
+        enableDiagnostics,
+        diagnosticsSampleRate,
+      ) ?? undefined;
 
     // Step 2.4: Create browser config with diagnosticsClient and earlyConfig
     // earlyConfig ensures consistent logger/serverZone/diagnostics settings across all components
@@ -209,34 +198,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Step 2.5: Fetch analytics SDK remote config
     // This is fetched after DiagnosticsClient is created so diagnostics can track any issues
     /* istanbul ignore next */
-    if (fetchRemoteConfig && remoteConfigClient) {
-      await new Promise<void>((resolve) => {
-        // Disable coverage for this line because remote config client will always be defined in this case.
-        // istanbul ignore next
-        remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.browserSDK',
-          'all',
-          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-            browserOptions.loggerProvider.debug(
-              'Remote configuration received:',
-              JSON.stringify(
-                {
-                  remoteConfig,
-                  source,
-                  lastFetch,
-                },
-                null,
-                2,
-              ),
-            );
-            if (remoteConfig) {
-              updateBrowserConfigWithRemoteConfig(remoteConfig, browserOptions);
-            }
-            // Resolve the promise on first callback (initial config)
-            resolve();
-          },
-        );
-      });
+    if (fetchRemoteConfig && remoteConfigClient && remoteConfigAdapter) {
+      await remoteConfigAdapter.fetchRemoteConfig(remoteConfigClient, browserOptions);
     }
 
     await super._init(browserOptions);
@@ -245,24 +208,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     this.config.remoteConfigClient = remoteConfigClient;
 
     const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
-
-    // Add web attribution plugin
-    if (
-      isAttributionTrackingEnabled(this.config.defaultTracking) &&
-      isUserPropertyAttributionEnabled(attributionTrackingOptions)
-    ) {
-      if (this.config.optOut) {
-        this.timeline.addOptOutListener(async (optOut) => {
-          if (!optOut) {
-            this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
-            await this.webAttribution.init();
-          }
-        });
-      }
-      this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
-      // Fetch the current campaign, check if need to track web attribution later
-      await this.webAttribution.init();
-    }
+    this.attributionTrackingOptions = attributionTrackingOptions;
+    await this.attributionAdapter()?.addAttributionTrackingPlugin();
 
     // Step 3: Set session ID
     // Priority 1: `options.sessionId`
@@ -321,77 +268,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Notify if DET is enabled
     detNotify(this.config);
-
-    if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding file download tracking plugin');
-      await this.add(fileDownloadTracking()).promise;
-    }
-
-    if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding form interaction plugin');
-      await this.add(formInteractionTracking()).promise;
-    }
-
-    // Add page view plugin
-    if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
-      if (!this.config.optOut) {
-        this.config.loggerProvider.debug('Adding page view tracking plugin');
-        await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
-      } else {
-        this.timeline.addOptOutListener(async (optOut) => {
-          /* istanbul ignore if */
-          if (optOut) {
-            return;
-          }
-          this.config.loggerProvider.debug('Adding page view tracking plugin');
-          await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
-        });
-      }
-    }
-
-    if (
-      isAttributionTrackingEnabled(this.config.defaultTracking) &&
-      isEventPropertyAttributionEnabled(attributionTrackingOptions)
-    ) {
-      this.config.loggerProvider.debug('Adding event property attribution plugin');
-      await this.add(eventPropertyTrackingPlugin(attributionTrackingOptions)).promise;
-    }
-
-    if (isElementInteractionsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
-      await this.add(autocapturePlugin(getElementInteractionsConfig(this.config), { diagnosticsClient })).promise;
-    }
-
-    if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding frustration interactions plugin');
-      await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
-    }
-
-    if (isNetworkTrackingEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding network tracking plugin');
-      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
-    }
-
-    if (isWebVitalsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding web vitals plugin');
-      await this.add(webVitalsPlugin()).promise;
-    }
-
-    if (isPerformanceTrackingEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding performance tracking plugin');
-      await this.add(performancePlugin(getPerformanceTrackingConfig(this.config))).promise;
-    }
-
-    if (isPageUrlEnrichmentEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding referrer page url plugin');
-      await this.add(pageUrlEnrichmentPlugin()).promise;
-    }
-
-    if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
-      this.config.loggerProvider.debug('Adding custom enrichment plugin');
-      await this.add(customEnrichmentPlugin()).promise;
-    }
-
+    await this.addPlugins();
     this.initializing = false;
 
     // Step 6: Run queued dispatch functions
@@ -548,7 +425,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Fire web attribution event when enable webAttribution tracking
     // 1. has new campaign (call setSessionId from init function)
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
-    const isCampaignEventTracked = this.trackCampaignEventIfNeeded(++lastEventId, promises);
+    const isCampaignEventTracked =
+      this.attributionAdapter()?.trackCampaignEventIfNeeded(++lastEventId, promises) ?? false;
 
     // track the identify event if an Identify object is provided in the config
     if (this.config.identify) {
@@ -619,25 +497,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     return super.revenue(revenue, eventOptions);
   }
 
-  private trackCampaignEventIfNeeded(lastEventId?: number, promises?: Promise<Result>[]) {
-    if (
-      !this.webAttribution ||
-      !this.webAttribution.shouldTrackNewCampaign ||
-      !isUserPropertyAttributionEnabled(this.webAttribution.options)
-    ) {
-      return false;
-    }
-
-    const campaignEvent = this.webAttribution.generateCampaignEvent(lastEventId);
-    if (promises) {
-      promises.push(this.track(campaignEvent).promise);
-    } else {
-      this.track(campaignEvent);
-    }
-    this.config.loggerProvider.log('Tracking attribution.');
-    return true;
-  }
-
   async process(event: Event) {
     const currentTime = Date.now();
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
@@ -657,7 +516,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       } else if (!isEventInNewSession) {
         // Web attribution should be tracked during the middle of a session
         // if there has been a chance in the campaign information.
-        this.trackCampaignEventIfNeeded();
+        this.attributionAdapter()?.trackCampaignEventIfNeeded();
       }
     }
 
@@ -697,5 +556,231 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       this._diagnosticsSampleRate = sampleRate;
       return;
     }
+  }
+  protected async addPlugins() {
+    if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
+      this.config.loggerProvider.debug('Adding file download tracking plugin');
+      await this.add(fileDownloadTracking()).promise;
+    }
+
+    if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
+      this.config.loggerProvider.debug('Adding form interaction plugin');
+      await this.add(formInteractionTracking()).promise;
+    }
+
+    // Add page view plugin
+    if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
+      if (!this.config.optOut) {
+        this.config.loggerProvider.debug('Adding page view tracking plugin');
+        await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+      } else {
+        this.timeline.addOptOutListener(async (optOut) => {
+          /* istanbul ignore if */
+          if (optOut) {
+            return;
+          }
+          this.config.loggerProvider.debug('Adding page view tracking plugin');
+          await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+        });
+      }
+    }
+
+    if (
+      this.attributionTrackingOptions &&
+      isAttributionTrackingEnabled(this.config.defaultTracking) &&
+      isEventPropertyAttributionEnabled(this.attributionTrackingOptions)
+    ) {
+      this.config.loggerProvider.debug('Adding event property attribution plugin');
+      await this.add(eventPropertyTrackingPlugin(this.attributionTrackingOptions)).promise;
+    }
+
+    if (isElementInteractionsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
+      const opts = this.diagnosticsClient ? { diagnosticsClient: this.diagnosticsClient } : undefined;
+      await this.add(autocapturePlugin(getElementInteractionsConfig(this.config), opts)).promise;
+    }
+
+    if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding frustration interactions plugin');
+      await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
+    }
+
+    if (isNetworkTrackingEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding network tracking plugin');
+      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
+    }
+
+    if (isWebVitalsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding web vitals plugin');
+      await this.add(webVitalsPlugin()).promise;
+    }
+
+    if (isPerformanceTrackingEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding performance tracking plugin');
+      await this.add(performancePlugin(getPerformanceTrackingConfig(this.config))).promise;
+    }
+
+    if (isPageUrlEnrichmentEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding referrer page url plugin');
+      await this.add(pageUrlEnrichmentPlugin()).promise;
+    }
+
+    if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
+      this.config.loggerProvider.debug('Adding custom enrichment plugin');
+      await this.add(customEnrichmentPlugin()).promise;
+    }
+  }
+
+  protected attributionAdapter(): AttributionAdapter | null {
+    return {
+      trackCampaignEventIfNeeded: (lastEventId?: number, promises?: Promise<Result>[]) => {
+        if (
+          !this.webAttribution ||
+          !this.webAttribution.shouldTrackNewCampaign ||
+          !isUserPropertyAttributionEnabled(this.webAttribution.options)
+        ) {
+          return false;
+        }
+
+        const campaignEvent = this.webAttribution.generateCampaignEvent(lastEventId);
+        if (promises) {
+          promises.push(this.track(campaignEvent).promise);
+        } else {
+          this.track(campaignEvent);
+        }
+        this.config.loggerProvider.log('Tracking attribution.');
+        return true;
+      },
+
+      addAttributionTrackingPlugin: async () => {
+        // Add web attribution plugin
+        if (
+          this.attributionTrackingOptions !== undefined &&
+          isAttributionTrackingEnabled(this.config.defaultTracking) &&
+          isUserPropertyAttributionEnabled(this.attributionTrackingOptions)
+        ) {
+          const attributionTrackingOptions = this.attributionTrackingOptions;
+          if (this.config.optOut) {
+            this.timeline.addOptOutListener(async (optOut) => {
+              if (!optOut) {
+                this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+                await this.webAttribution.init();
+              }
+            });
+          }
+          this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+          // Fetch the current campaign, check if need to track web attribution later
+          await this.webAttribution.init();
+        }
+      },
+    };
+  }
+
+  protected remoteConfigAdapter(): RemoteConfigAdapter | null {
+    return {
+      getDiagnosticsClient: async (
+        options: BrowserOptions & { apiKey: string },
+        loggerProvider: ILogger,
+        serverZone: ServerZoneType,
+        enableDiagnostics: boolean,
+        diagnosticsSampleRate: number,
+      ): Promise<DiagnosticsClient> => {
+        const diagnosticsClient = new DiagnosticsClient(options.apiKey, loggerProvider, serverZone, {
+          enabled: enableDiagnostics,
+          sampleRate: diagnosticsSampleRate,
+        });
+        this.diagnosticsClient = diagnosticsClient;
+        diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+        diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
+        diagnosticsClient.setTag('web_environment', getRuntimeEnvironment());
+        if (typeof navigator !== 'undefined') {
+          diagnosticsClient.setTag('user_agent', navigator.userAgent);
+        }
+        return diagnosticsClient;
+      },
+
+      getRemoteConfigClient: async (
+        options: BrowserOptions & { apiKey: string },
+        loggerProvider: ILogger,
+        serverZone: ServerZoneType,
+      ): Promise<IRemoteConfigClient> => {
+        const remoteConfigClient = new RemoteConfigClient(
+          options.apiKey,
+          loggerProvider,
+          serverZone,
+          /* istanbul ignore next */ options.remoteConfig?.serverUrl,
+        );
+
+        // Fetch diagnostics config first to get sample rate
+        await new Promise<void>((resolve) => {
+          // Disable coverage for this line because remote config client will always be defined in this case.
+          // istanbul ignore next
+          remoteConfigClient?.subscribe(
+            'configs.diagnostics.browserSDK',
+            'all',
+            (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+              loggerProvider.debug(
+                'Diagnostics remote configuration received:',
+                safeJsonStringify(
+                  {
+                    remoteConfig,
+                    source,
+                    lastFetch,
+                  },
+                  null,
+                  2,
+                ),
+              );
+              if (remoteConfig) {
+                // Validate and set sampleRate (must be a valid number)
+                const sampleRate = remoteConfig.sampleRate as number;
+                if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
+                  this.diagnosticsSampleRate = sampleRate;
+                }
+
+                // Validate and set enabled (must be a boolean)
+                const enabled = remoteConfig.enabled as boolean;
+                if (typeof enabled === 'boolean') {
+                  this.enableDiagnostics = enabled;
+                }
+              }
+              resolve();
+            },
+          );
+        });
+
+        return remoteConfigClient;
+      },
+
+      fetchRemoteConfig: async (remoteConfigClient: IRemoteConfigClient, browserOptions: BrowserConfig) => {
+        await new Promise<void>((resolve) => {
+          // Disable coverage for this line because remote config client will always be defined in this case.
+          // istanbul ignore next
+          remoteConfigClient?.subscribe(
+            'configs.analyticsSDK.browserSDK',
+            'all',
+            (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+              browserOptions.loggerProvider?.debug(
+                'Remote configuration received:',
+                safeJsonStringify(
+                  {
+                    remoteConfig,
+                    source,
+                    lastFetch,
+                  },
+                  null,
+                  2,
+                ),
+              );
+              if (remoteConfig) {
+                updateBrowserConfigWithRemoteConfig(remoteConfig, browserOptions);
+              }
+              // Resolve the promise on first callback (initial config)
+              resolve();
+            },
+          );
+        });
+      },
+    };
   }
 }
