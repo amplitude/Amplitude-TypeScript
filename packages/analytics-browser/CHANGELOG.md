@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.10...@amplitude/analytics-browser@2.46.0) (2026-09-21)
+
+
+### Features
+
+* **analytics-react-native:** support Remote Config autocapture ([#1988](https://github.com/amplitude/Amplitude-TypeScript/issues/1988)) ([eef3342](https://github.com/amplitude/Amplitude-TypeScript/commit/eef33427cdf3294c285f94ae6dbe1bd45738a60d))
+
+
+
+
+
 ## [2.45.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.9...@amplitude/analytics-browser@2.45.10) (2026-09-16)
 
 

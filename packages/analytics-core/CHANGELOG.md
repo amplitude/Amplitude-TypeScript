@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.57.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.56.0...@amplitude/analytics-core@2.57.0) (2026-09-21)
+
+
+### Features
+
+* **analytics-react-native:** support Remote Config autocapture ([#1988](https://github.com/amplitude/Amplitude-TypeScript/issues/1988)) ([eef3342](https://github.com/amplitude/Amplitude-TypeScript/commit/eef33427cdf3294c285f94ae6dbe1bd45738a60d))
+
+
+
+
+
 # [2.56.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.55.0...@amplitude/analytics-core@2.56.0) (2026-09-16)
 
 
