@@ -105,3 +105,73 @@ pnpm start
 pnpm ios
 # or: pnpm android
 ```
+
+The `pnpm ios` command regenerates React Native's iOS New Architecture codegen
+artifacts before building. This keeps CocoaPods' Fabric header links valid after
+`pnpm install` refreshes `node_modules`.
+
+## Run the Guides and Surveys smoke test
+
+The example includes a Maestro smoke test based on the Guides and Surveys
+mobile SDK's own React Native E2E scenario. It initializes the unified SDK with
+the stable test identity `rn-test-user-1` / `test-device-1`, then verifies that
+the published `Tap Element Nudge` guide is rendered by the native Guides and
+Surveys plugin.
+
+The upstream guide definition is in the `gs-mobile-sdk-test` Amplitude project:
+
+- [Tap Element Nudge guide](https://app.amplitude.com/guides-surveys/gs-mobile-sdk-test/guides/706964/102882/106125/build)
+
+Keep that guide published and eligible for the test identity above. If the
+asserted content or targeting changes upstream, update the smoke test to match
+the linked definition.
+
+Set the repository-root `VITE_AMPLITUDE_API_KEY` in `.env` to that project's API
+key. Install [Maestro](https://maestro.mobile.dev/) once:
+
+```sh
+curl -fsSL "https://get.maestro.mobile.dev" | bash
+```
+
+Build and install the app on a booted simulator:
+
+```sh
+pnpm ios
+```
+
+Then run the smoke test from this directory:
+
+```sh
+pnpm e2e:ios
+```
+
+The test command reuses Metro when this example already has a healthy server on
+port 8081, or starts and stops Metro itself when no server is running. It also
+builds the iOS JavaScript bundle before launching Maestro so Metro failures are
+reported directly instead of surfacing as a missing-element assertion.
+
+The flow clears the app's local state and allows up to 60 seconds for G&S
+configuration and decision requests to finish before checking the guide.
+
+## Manually verify survey responses
+
+The app also includes a manual trigger for the published `Multiple Step Nudge`
+survey. This is intentionally not part of the Maestro flow because the response
+should be checked in the Amplitude product:
+
+- [Multiple Step Nudge survey](https://app.amplitude.com/guides-surveys/gs-mobile-sdk-test/surveys/706964/102062/105265/build)
+- [Survey used for manual product verification](https://app.amplitude.com/guides-surveys/gs-mobile-sdk-test/surveys/706964/103853/107121/info)
+- [Example of a response in the Responses tab](https://share.amplitude.com/mBH0M17w)
+
+The upstream survey is targeted to all users and appears after Analytics tracks
+`Country Selected` with the event property `countrySelected = vietnam`. Keep
+that trigger configuration published, or update this example if the upstream
+definition changes.
+
+To exercise the survey manually:
+
+1. Run the app and press **Initialize all SDKs**.
+2. Press **Trigger G&S survey**. The app tracks the required event and property.
+3. Complete the survey and press **Share Feedback**.
+4. Open the linked survey in Amplitude, select its **Responses** tab, and confirm
+   that the response appears for `rn-test-user-1` / `test-device-1`.

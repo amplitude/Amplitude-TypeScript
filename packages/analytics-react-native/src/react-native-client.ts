@@ -28,6 +28,7 @@ import {
   IRemoteConfigClient,
   RemoteConfigClient,
   RemoteConfig,
+  RemoteConfigGroup,
   Source,
   ReactNativeAutocaptureOptions,
   NavigationState,
@@ -43,10 +44,11 @@ import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity
 import { ReactNativeDiagnosticsStorage } from './diagnostics/diagnostics-storage';
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
-import { useReactNativeConfig, createCookieStorage, shouldFetchRemoteConfig } from './config';
+import { useReactNativeConfig, createCookieStorage, createStorageProvider, shouldFetchRemoteConfig } from './config';
 import { updateReactNativeConfigWithRemoteConfig } from './config/joined-config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import { RemoteConfigCustomStorage } from './remote-config/remote-config-customstorage';
 import * as Capture from './amp-capture';
 import {
   APP_BUILD,
@@ -89,7 +91,18 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   return routeName;
 };
 
-const getRemoteConfigPlatform = () => {
+const getRemoteConfigSdkKey = () => {
+  if (Platform.OS === 'ios') {
+    return 'configs.analyticsSDK.iosSDK';
+  }
+  if (Platform.OS === 'android') {
+    return 'configs.analyticsSDK.androidSDK';
+  }
+  // unexpected React Native platform, just use Browser SDK.
+  return 'configs.analyticsSDK.browserSDK';
+};
+
+const getRemoteConfigPlatform = (): { configGroup: RemoteConfigGroup; diagnosticsKey: string } => {
   switch (Platform.OS) {
     case 'ios':
       return {
@@ -169,7 +182,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     let diagnosticsSampleRate = 0;
 
     // Step 0.2: Fetch only the platform-specific diagnostics config.
+    let remoteConfigStorage: RemoteConfigCustomStorage | undefined;
     if (fetchRemoteConfig) {
+      if (options.storageProvider) {
+        remoteConfigStorage = new RemoteConfigCustomStorage(options.apiKey, loggerProvider, options.storageProvider);
+      }
       const remoteConfigPlatform = getRemoteConfigPlatform();
       remoteConfigClient = new RemoteConfigClient(
         options.apiKey,
@@ -178,6 +195,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         /* istanbul ignore next */ options.remoteConfig?.serverUrl,
         undefined,
         remoteConfigPlatform.configGroup,
+        remoteConfigStorage,
       );
       const diagnosticsRemoteConfigPromise = new Promise<void>((resolve) => {
         remoteConfigClient?.subscribe(
@@ -206,7 +224,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       });
       analyticsRemoteConfigPromise = new Promise<RemoteConfig | null>((resolve) => {
         remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.reactNativeSDK',
+          getRemoteConfigSdkKey(),
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
             loggerProvider.debug(
@@ -228,16 +246,17 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       await diagnosticsRemoteConfigPromise;
     }
 
-    // Step 0.3: Initialize diagnostics client as early as possible so it can record failures
-    // during config setup. Mirrors the browser SDK; storage is injected because RN has no
-    // IndexedDB. The platform-specific remote config sample rate keeps the client inert when
-    // diagnostics are not configured, since the default sample rate is 0.
+    const storageProvider = await createStorageProvider(options);
+
+    // Step 0.3: Initialize diagnostics as early as possible so it can record failures during
+    // config setup. React Native has no IndexedDB, so diagnostics uses the same storage provider
+    // that will be passed to the final config.
     const diagnosticsClient = new DiagnosticsClient(
       options.apiKey,
       loggerProvider,
       serverZone,
       { sampleRate: diagnosticsSampleRate },
-      new ReactNativeDiagnosticsStorage(options.apiKey, loggerProvider),
+      new ReactNativeDiagnosticsStorage(options.apiKey, loggerProvider, storageProvider),
     );
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
     diagnosticsClient.setTag('platform', 'ReactNative');
@@ -253,6 +272,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       ...options,
       loggerProvider,
       serverZone,
+      storageProvider,
       deviceId: options.deviceId ?? oldCookies.deviceId,
       sessionId: oldCookies.sessionId,
       optOut: options.optOut ?? oldCookies.optOut,

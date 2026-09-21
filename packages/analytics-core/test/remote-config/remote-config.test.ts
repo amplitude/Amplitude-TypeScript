@@ -62,6 +62,7 @@ describe('RemoteConfigClient', () => {
     test('should initialize correctly', () => {
       expect(client.serverUrl).toBe(US_SERVER_URL);
       expect(client.apiKey).toBe(mockApiKey);
+      expect(client.configGroup).toBe('browser');
       expect(client.logger).toBeDefined();
       expect(client.storage).toBeDefined();
 
@@ -1209,6 +1210,13 @@ describe('RemoteConfigClient', () => {
     test('should generate URL with a custom config group', () => {
       client = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, undefined, 'android');
       const expectedUrl = `https://sr-client-cfg.amplitude.com/config/test-api-key?config_group=android`;
+      const url = client.getUrlParams();
+      expect(url).toBe(expectedUrl);
+    });
+
+    test('should generate URL with the ios config group', () => {
+      client = new RemoteConfigClient(mockApiKey, mockLogger, 'US', undefined, undefined, 'ios');
+      const expectedUrl = `https://sr-client-cfg.amplitude.com/config/test-api-key?config_group=ios`;
       const url = client.getUrlParams();
       expect(url).toBe(expectedUrl);
     });

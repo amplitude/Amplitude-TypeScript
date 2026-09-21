@@ -1,6 +1,5 @@
-import { ILogger } from '@amplitude/analytics-core';
+import { ILogger, ReactNativeStorageData, Storage } from '@amplitude/analytics-core';
 import { ReactNativeDiagnosticsStorage } from '../../src/diagnostics/diagnostics-storage';
-import * as localStorageModule from '../../src/storage/local-storage';
 
 const mockLogger: ILogger = {
   disable: jest.fn(),
@@ -13,21 +12,27 @@ const mockLogger: ILogger = {
 
 const apiKey = '1234567890abcdefg';
 
-/** In-memory stand-in for the AsyncStorage module surface we use. */
-const createFakeAsyncStorage = () => {
-  const entries = new Map<string, string>();
+/** In-memory stand-in for a storage provider supplied through React Native config. */
+const createFakeStorage = (): Storage<ReactNativeStorageData> & {
+  entries: Map<string, ReactNativeStorageData>;
+  get: jest.Mock;
+  set: jest.Mock;
+} => {
+  const entries = new Map<string, ReactNativeStorageData>();
   return {
     entries,
-    getItem: jest.fn((key: string) => Promise.resolve(entries.get(key) ?? null)),
-    setItem: jest.fn((key: string, value: string) => {
+    isEnabled: jest.fn(() => Promise.resolve(true)),
+    get: jest.fn((key: string) => Promise.resolve(entries.get(key))),
+    getRaw: jest.fn(() => Promise.resolve(undefined)),
+    set: jest.fn((key: string, value: ReactNativeStorageData) => {
       entries.set(key, value);
       return Promise.resolve();
     }),
-    removeItem: jest.fn((key: string) => {
+    remove: jest.fn((key: string) => {
       entries.delete(key);
       return Promise.resolve();
     }),
-    clear: jest.fn(() => {
+    reset: jest.fn(() => {
       entries.clear();
       return Promise.resolve();
     }),
@@ -35,20 +40,15 @@ const createFakeAsyncStorage = () => {
 };
 
 describe('ReactNativeDiagnosticsStorage', () => {
-  let fakeAsyncStorage: ReturnType<typeof createFakeAsyncStorage>;
-  let getAsyncStorageSpy: jest.SpyInstance;
+  let fakeStorage: ReturnType<typeof createFakeStorage>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    fakeAsyncStorage = createFakeAsyncStorage();
-    getAsyncStorageSpy = jest.spyOn(localStorageModule, 'getAsyncStorage').mockReturnValue(fakeAsyncStorage);
+    fakeStorage = createFakeStorage();
   });
 
-  afterEach(() => {
-    getAsyncStorageSpy.mockRestore();
-  });
-
-  const createStorage = () => new ReactNativeDiagnosticsStorage(apiKey, mockLogger);
+  const createStorage = (storage: Storage<ReactNativeStorageData> | undefined = fakeStorage) =>
+    new ReactNativeDiagnosticsStorage(apiKey, mockLogger, storage);
 
   describe('storage key', () => {
     test('should namespace by the first 10 characters of the api key', () => {
@@ -94,7 +94,7 @@ describe('ReactNativeDiagnosticsStorage', () => {
 
       await storage.setTags({});
 
-      expect(fakeAsyncStorage.setItem).not.toHaveBeenCalled();
+      expect(fakeStorage.set).not.toHaveBeenCalled();
     });
   });
 
@@ -127,7 +127,7 @@ describe('ReactNativeDiagnosticsStorage', () => {
 
       await storage.incrementCounters({});
 
-      expect(fakeAsyncStorage.setItem).not.toHaveBeenCalled();
+      expect(fakeStorage.set).not.toHaveBeenCalled();
     });
   });
 
@@ -157,7 +157,7 @@ describe('ReactNativeDiagnosticsStorage', () => {
 
       await storage.setHistogramStats({});
 
-      expect(fakeAsyncStorage.setItem).not.toHaveBeenCalled();
+      expect(fakeStorage.set).not.toHaveBeenCalled();
     });
   });
 
@@ -191,11 +191,11 @@ describe('ReactNativeDiagnosticsStorage', () => {
     test('should drop events once full', async () => {
       const storage = createStorage();
       await storage.addEventRecords(Array.from({ length: 10 }, (_, i) => event(`e${i}`)));
-      fakeAsyncStorage.setItem.mockClear();
+      fakeStorage.set.mockClear();
 
       await storage.addEventRecords([event('overflow')]);
 
-      expect(fakeAsyncStorage.setItem).not.toHaveBeenCalled();
+      expect(fakeStorage.set).not.toHaveBeenCalled();
       const { events } = await storage.getAllAndClear();
       expect(events.map((e) => e.event_name)).not.toContain('overflow');
     });
@@ -215,7 +215,7 @@ describe('ReactNativeDiagnosticsStorage', () => {
 
       await storage.addEventRecords([]);
 
-      expect(fakeAsyncStorage.setItem).not.toHaveBeenCalled();
+      expect(fakeStorage.set).not.toHaveBeenCalled();
     });
   });
 
@@ -248,8 +248,8 @@ describe('ReactNativeDiagnosticsStorage', () => {
       expect(counters).toEqual([{ key: 'analytics.error', value: 4 }]);
     });
 
-    test('should log and start empty on unparsable persisted data', async () => {
-      fakeAsyncStorage.entries.set('AMP_diagnostics_1234567890', 'not json');
+    test('should log and start empty when reading persisted data fails', async () => {
+      fakeStorage.get.mockRejectedValueOnce(new Error('storage unavailable'));
 
       const storage = createStorage();
 
@@ -264,7 +264,7 @@ describe('ReactNativeDiagnosticsStorage', () => {
 
     test('should log and keep data in memory when a write fails', async () => {
       const storage = createStorage();
-      fakeAsyncStorage.setItem.mockRejectedValueOnce(new Error('native module missing'));
+      fakeStorage.set.mockRejectedValueOnce(new Error('storage unavailable'));
 
       await storage.incrementCounters({ 'analytics.error': 1 });
 
@@ -287,7 +287,7 @@ describe('ReactNativeDiagnosticsStorage', () => {
         storage.addEventRecords([{ event_name: 'e', time: 1, event_properties: {} }]),
       ]);
 
-      const persisted = JSON.parse(fakeAsyncStorage.entries.get('AMP_diagnostics_1234567890') as string) as {
+      const persisted = fakeStorage.entries.get('AMP_diagnostics_1234567890') as {
         counters: Record<string, number>;
         tags: Record<string, string>;
         events: unknown[];
@@ -298,13 +298,9 @@ describe('ReactNativeDiagnosticsStorage', () => {
     });
   });
 
-  describe('without AsyncStorage installed', () => {
-    beforeEach(() => {
-      getAsyncStorageSpy.mockReturnValue(null);
-    });
-
+  describe('without configured storage', () => {
     test('should keep data in memory and never throw', async () => {
-      const storage = createStorage();
+      const storage = new ReactNativeDiagnosticsStorage(apiKey, mockLogger);
 
       await storage.setTags({ platform: 'ReactNative' });
       await storage.incrementCounters({ 'analytics.error': 2 });
@@ -321,10 +317,10 @@ describe('ReactNativeDiagnosticsStorage', () => {
     });
 
     test('should not share data between instances', async () => {
-      const first = createStorage();
+      const first = new ReactNativeDiagnosticsStorage(apiKey, mockLogger);
       await first.incrementCounters({ 'analytics.error': 1 });
 
-      const { counters } = await createStorage().getAllAndClear();
+      const { counters } = await new ReactNativeDiagnosticsStorage(apiKey, mockLogger).getAllAndClear();
 
       expect(counters).toEqual([]);
     });
