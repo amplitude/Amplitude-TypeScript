@@ -54,7 +54,7 @@ describe('VideoCapture', () => {
 
       // mock a play event
       let previousState: VideoState = { playbackState: 'paused', lastEvent: undefined };
-      let nextState: VideoState = { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } };
+      let nextState: VideoState = { playbackState: 'playing', lastEvent: { duration: 10, position: undefined } };
       currentVideoObserver!.emitStateChange(previousState, nextState);
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
@@ -85,7 +85,7 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 0,
           start_time: 0,
-          watch_duration: 0,
+          stream_duration: 0,
           percent_completed: 0,
           stop_reason: 'timeout',
           delivery_mode: 'video',
@@ -99,7 +99,7 @@ describe('VideoCapture', () => {
 
       // mock a pause event
       previousState = nextState;
-      nextState = { playbackState: 'paused', lastEvent: { duration: 10, last_position: 5 }, position: 5 };
+      nextState = { playbackState: 'paused', lastEvent: { duration: 10, position: 5 }, position: 5 };
       currentVideoObserver!.emitStateChange(previousState, nextState);
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
@@ -112,7 +112,7 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 5,
           start_time: 0,
-          watch_duration: 0,
+          stream_duration: 0,
           percent_completed: 50,
           stop_reason: 'paused',
           delivery_mode: 'video',
@@ -130,7 +130,7 @@ describe('VideoCapture', () => {
 
       // mock another play event
       previousState = nextState;
-      nextState = { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } };
+      nextState = { playbackState: 'playing', lastEvent: { duration: 10, position: undefined } };
       currentVideoObserver!.emitStateChange(previousState, nextState);
 
       // assert that the track method was not called again
@@ -165,7 +165,7 @@ describe('VideoCapture', () => {
 
       const muxLastEvent = {
         duration: 10,
-        last_position: 0,
+        position: 0,
         mux_playback_id: 'playback-id',
         mux_video_id: 'video-id',
         mux_video_title: 'video-title',
@@ -190,7 +190,7 @@ describe('VideoCapture', () => {
         { playbackState: 'playing', lastEvent: muxLastEvent, position: 0 },
         {
           playbackState: 'paused',
-          lastEvent: { ...muxLastEvent, last_position: 5, percent_completed: 20, stop_reason: 'paused' },
+          lastEvent: { ...muxLastEvent, position: 5, percent_completed: 20, stop_reason: 'paused' },
           position: 5,
         },
       );
@@ -237,7 +237,7 @@ describe('VideoCapture', () => {
       expect(currentVideoObserver!.vendor).toBe('mux');
       currentVideoObserver!.emitStateChange(
         { playbackState: 'paused', lastEvent: undefined },
-        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: undefined } },
       );
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
@@ -250,7 +250,7 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 0,
           start_time: 0,
-          view_session_id: expect.any(String),
+          stream_session_id: expect.any(String),
           delivery_mode: 'video',
         },
         {
@@ -260,8 +260,8 @@ describe('VideoCapture', () => {
         },
       );
       currentVideoObserver!.emitStateChange(
-        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
-        { playbackState: 'paused', lastEvent: { duration: 10, last_position: 5 }, position: 5 },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: undefined } },
+        { playbackState: 'paused', lastEvent: { duration: 10, position: 5 }, position: 5 },
       );
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
@@ -274,10 +274,10 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 5,
           start_time: 0,
-          watch_duration: 0,
+          stream_duration: 0,
           percent_completed: 50,
           stop_reason: 'paused',
-          view_session_id: expect.any(String),
+          stream_session_id: expect.any(String),
           delivery_mode: 'video',
         },
         {
@@ -288,8 +288,8 @@ describe('VideoCapture', () => {
       );
       typeof stopVideoCapture === 'function' && stopVideoCapture();
       currentVideoObserver!.emitStateChange(
-        { playbackState: 'paused', lastEvent: { duration: 10, last_position: 5 } },
-        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
+        { playbackState: 'paused', lastEvent: { duration: 10, position: 5 } },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: undefined } },
       );
       expect(mockAmplitude.track).toHaveBeenCalledTimes(3);
     });
@@ -303,7 +303,7 @@ describe('VideoCapture', () => {
       } as unknown as EmbeddedVideoPlayer);
       currentVideoObserver!.emitStateChange(
         { playbackState: 'paused', lastEvent: undefined },
-        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: undefined } },
       );
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
@@ -314,7 +314,7 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 0,
           start_time: 0,
-          view_session_id: expect.any(String),
+          stream_session_id: expect.any(String),
           delivery_mode: 'video',
         },
         {
@@ -324,8 +324,8 @@ describe('VideoCapture', () => {
         },
       );
       currentVideoObserver!.emitStateChange(
-        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
-        { playbackState: 'paused', lastEvent: { duration: 10, last_position: 5 }, position: 5 },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: undefined } },
+        { playbackState: 'paused', lastEvent: { duration: 10, position: 5 }, position: 5 },
       );
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
@@ -336,10 +336,10 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 5,
           start_time: 0,
-          watch_duration: 0,
+          stream_duration: 0,
           percent_completed: 50,
           stop_reason: 'paused',
-          view_session_id: expect.any(String),
+          stream_session_id: expect.any(String),
           delivery_mode: 'video',
         },
         {
@@ -360,7 +360,7 @@ describe('VideoCapture', () => {
       const stopVideoCapture = trackVideo(mockAmplitude, document.createElement('audio'));
       currentVideoObserver!.emitStateChange(
         { playbackState: 'paused', lastEvent: undefined },
-        { playbackState: 'playing', lastEvent: { duration: 10, last_position: undefined } },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: undefined } },
       );
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
@@ -376,19 +376,19 @@ describe('VideoCapture', () => {
   describe('buffering (waiting state)', () => {
     const playingState: VideoState = {
       playbackState: 'playing',
-      lastEvent: { duration: 10, last_position: 0 },
+      lastEvent: { duration: 10, position: 0 },
       position: 0,
       watchTime: 5,
     };
     const waitingState: VideoState = {
       playbackState: 'waiting',
-      lastEvent: { duration: 10, last_position: 5 },
+      lastEvent: { duration: 10, position: 5 },
       position: 5,
       watchTime: 5,
     };
     const pausedState: VideoState = {
       playbackState: 'paused',
-      lastEvent: { duration: 10, last_position: 5 },
+      lastEvent: { duration: 10, position: 5 },
       position: 5,
       watchTime: 5,
     };
@@ -459,7 +459,7 @@ describe('VideoCapture', () => {
           stop_reason: 'error',
           error_message: 'Media element error (code 2): network',
           position: 5,
-          watch_duration: 5,
+          stream_duration: 5,
         }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
@@ -494,7 +494,7 @@ describe('VideoCapture', () => {
         '[Amplitude] Content Stopped',
         expect.objectContaining({
           position: 8,
-          watch_duration: 8,
+          stream_duration: 8,
           percent_completed: 80,
           stop_reason: 'timeout',
         }),
@@ -508,13 +508,13 @@ describe('VideoCapture', () => {
     // partway through playback reports the stop position rather than where playback began
     const playingState: VideoState = {
       playbackState: 'playing',
-      lastEvent: { duration: 10, start_time: 2, last_position: 2 },
+      lastEvent: { duration: 10, start_time: 2, position: 2 },
       position: 2,
       watchTime: 0,
     };
     const pausedState: VideoState = {
       playbackState: 'paused',
-      lastEvent: { duration: 10, start_time: 7, last_position: 7 },
+      lastEvent: { duration: 10, start_time: 7, position: 7 },
       position: 7,
       watchTime: 5,
     };
@@ -552,7 +552,7 @@ describe('VideoCapture', () => {
       // buffering keeps the session open but moves the playhead
       observer.emitStateChange(playingState, {
         playbackState: 'waiting',
-        lastEvent: { duration: 10, start_time: 5, last_position: 5 },
+        lastEvent: { duration: 10, start_time: 5, position: 5 },
         position: 5,
         watchTime: 3,
       });
@@ -576,7 +576,7 @@ describe('VideoCapture', () => {
 
       const replayState: VideoState = {
         playbackState: 'playing',
-        lastEvent: { duration: 10, start_time: 7, last_position: 7 },
+        lastEvent: { duration: 10, start_time: 7, position: 7 },
         position: 7,
         watchTime: 5,
       };
@@ -584,7 +584,7 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       observer.emitStateChange(replayState, {
         playbackState: 'ended',
-        lastEvent: { duration: 10, start_time: 10, last_position: 10 },
+        lastEvent: { duration: 10, start_time: 10, position: 10 },
         position: 10,
         watchTime: 8,
       });
@@ -601,7 +601,7 @@ describe('VideoCapture', () => {
   describe('stops capturing when track fails', () => {
     const playingState: VideoState = {
       playbackState: 'playing',
-      lastEvent: { duration: 10, last_position: undefined },
+      lastEvent: { duration: 10, position: undefined },
     };
     const pausedState: VideoState = { playbackState: 'paused', lastEvent: undefined };
 
@@ -674,7 +674,7 @@ describe('VideoCapture', () => {
       await jest.advanceTimersByTimeAsync(0);
       currentVideoObserver!.emitStateChange(playingState, {
         playbackState: 'paused',
-        lastEvent: { duration: 10, last_position: 5 },
+        lastEvent: { duration: 10, position: 5 },
         position: 5,
       });
       await jest.advanceTimersByTimeAsync(0);
@@ -690,7 +690,7 @@ describe('VideoCapture', () => {
     const idleState: VideoState = { playbackState: 'paused', lastEvent: undefined };
     const playingState: VideoState = {
       playbackState: 'playing',
-      lastEvent: { duration: 10, last_position: 0 },
+      lastEvent: { duration: 10, position: 0 },
       position: 4,
       watchTime: 4,
     };
@@ -717,7 +717,7 @@ describe('VideoCapture', () => {
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         '[Amplitude] Content Stopped',
-        expect.objectContaining({ stop_reason: 'untracked', position: 4, watch_duration: 4 }),
+        expect.objectContaining({ stop_reason: 'untracked', position: 4, stream_duration: 4 }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
 
@@ -782,7 +782,7 @@ describe('VideoCapture', () => {
       expect(
         capture.parseStartEventProperties({
           playbackState: 'playing',
-          lastEvent: { duration: 10, start_time: 2, last_position: 5 },
+          lastEvent: { duration: 10, start_time: 2, position: 5 },
           position: 5,
         }),
       ).toEqual({
@@ -815,7 +815,7 @@ describe('VideoCapture', () => {
           lastEvent: {
             duration: 10,
             start_time: 2,
-            last_position: 5,
+            position: 5,
             percent_completed: 50,
             stop_reason: 'paused',
             mux_playback_id: 'playback-id',
@@ -858,7 +858,7 @@ describe('VideoCapture', () => {
       expect(
         capture.parseStopEventProperties({
           playbackState: 'paused',
-          lastEvent: { duration: 10, start_time: 2, last_position: 5 },
+          lastEvent: { duration: 10, start_time: 2, position: 5 },
           position: 5,
           watchTime: 30,
         }),
@@ -866,7 +866,7 @@ describe('VideoCapture', () => {
         duration: 10,
         start_time: 2,
         position: 5,
-        watch_duration: 30,
+        stream_duration: 30,
         percent_completed: 50,
         delivery_mode: 'video',
       });
@@ -881,7 +881,7 @@ describe('VideoCapture', () => {
         duration: 0,
         start_time: 0,
         position: 0,
-        watch_duration: 0,
+        stream_duration: 0,
         percent_completed: 0,
         delivery_mode: 'video',
       });
@@ -895,7 +895,7 @@ describe('VideoCapture', () => {
           lastEvent: {
             duration: 10,
             start_time: 2,
-            last_position: 5,
+            position: 5,
             percent_completed: 20,
             stop_reason: 'paused',
             mux_playback_id: 'playback-id',
@@ -907,7 +907,7 @@ describe('VideoCapture', () => {
         duration: 10,
         start_time: 2,
         position: 5,
-        watch_duration: 30,
+        stream_duration: 30,
         percent_completed: 50,
         delivery_mode: 'video',
         mux_playback_id: 'playback-id',
@@ -919,7 +919,7 @@ describe('VideoCapture', () => {
       expect(
         capture.parseStopEventProperties({
           playbackState: 'paused',
-          lastEvent: { duration: 0, last_position: 0 },
+          lastEvent: { duration: 0, position: 0 },
           position: 5,
         }).percent_completed,
       ).toBe(0);
@@ -930,7 +930,7 @@ describe('VideoCapture', () => {
       expect(
         capture.parseStopEventProperties({
           playbackState: 'paused',
-          lastEvent: { duration: Infinity, last_position: 30 },
+          lastEvent: { duration: Infinity, position: 30 },
           position: 30,
         }).percent_completed,
       ).toBe(0);
@@ -941,7 +941,7 @@ describe('VideoCapture', () => {
       expect(
         capture.parseStopEventProperties({
           playbackState: 'ended',
-          lastEvent: { duration: 10, last_position: 12 },
+          lastEvent: { duration: 10, position: 12 },
           position: 12,
         }).percent_completed,
       ).toBe(100);

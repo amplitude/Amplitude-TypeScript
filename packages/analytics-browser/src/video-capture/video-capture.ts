@@ -14,11 +14,11 @@ import { DEFAULT_CONTENT_STARTED_EVENT, DEFAULT_CONTENT_STOPPED_EVENT } from '..
 const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 'waiting']);
 
 /**
- * Observer fields that never reach event properties: `last_position` is an observer internal,
- * and `percent_completed`/`stop_reason` describe the player event rather than the play session,
- * which tracks its own values.
+ * Observer fields that never reach event properties from `lastEvent`: `position` is taken from
+ * observer state instead, and `percent_completed`/`stop_reason` describe the player event rather
+ * than the play session, which tracks its own values.
  */
-const OMITTED_VIDEO_EVENT_PROPERTIES = new Set(['last_position', 'percent_completed', 'stop_reason']);
+const OMITTED_VIDEO_EVENT_PROPERTIES = new Set(['position', 'percent_completed', 'stop_reason']);
 
 /**
  * Copy remaining player-event fields (vendor metadata such as `mux_playback_id`, ids, titles)
@@ -252,7 +252,7 @@ export class VideoCapture {
       // lastEvent.start_time is the playhead at the time of the event, which for a stop event is
       // where playback ended, so the position captured when the play session began is preferred.
       start_time: this.playStartTime ?? nextState.lastEvent?.start_time ?? 0,
-      watch_duration: nextState.watchTime ?? 0,
+      stream_duration: nextState.watchTime ?? 0,
       percent_completed: calculatePercentCompleted(nextState.position ?? 0, nextState.lastEvent?.duration ?? 0),
       ...(nextState.errorMessage ? { error_message: nextState.errorMessage } : {}),
     };
@@ -305,7 +305,7 @@ export function trackVideo(
   try {
     videoCapture
       .withExtraEventProperties({
-        view_session_id: UUID(),
+        stream_session_id: UUID(),
         ...extraEventProperties,
       })
       .captureVideoStarted()
