@@ -96,7 +96,7 @@ export class Destination implements DestinationPlugin {
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
 
-  constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
+  constructor(context?: { diagnosticsClient: IDiagnosticsClient | undefined }) {
     this.diagnosticsClient = context?.diagnosticsClient;
   }
 
