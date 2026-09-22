@@ -176,10 +176,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     const diagnosticsClient = await remoteConfigAdapter?.getDiagnosticsClient(
       options,
       loggerProvider,
-        serverZone,
-        enableDiagnostics,
-        diagnosticsSampleRate,
-      ) ?? undefined;
+      serverZone,
+      enableDiagnostics,
+      diagnosticsSampleRate,
+    );
+    this.diagnosticsClient = diagnosticsClient;
 
     // Step 2.4: Create browser config with diagnosticsClient and earlyConfig
     // earlyConfig ensures consistent logger/serverZone/diagnostics settings across all components
@@ -607,10 +608,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await this.add(eventPropertyTrackingPlugin(this.attributionTrackingOptions)).promise;
     }
 
-    if (this.diagnosticsClient && isElementInteractionsEnabled(this.config.autocapture)) {
+    if (isElementInteractionsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
+      const diagnosticsClient = this.diagnosticsClient;
       await this.add(
-        autocapturePlugin(getElementInteractionsConfig(this.config), { diagnosticsClient: this.diagnosticsClient }),
+        autocapturePlugin(
+          getElementInteractionsConfig(this.config),
+          diagnosticsClient ? { diagnosticsClient } : undefined,
+        ),
       ).promise;
     }
 
@@ -680,7 +685,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
           enabled: enableDiagnostics,
           sampleRate: diagnosticsSampleRate,
         });
-        this.diagnosticsClient = diagnosticsClient;
         diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
         diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
         diagnosticsClient.setTag('web_environment', getRuntimeEnvironment());

@@ -910,6 +910,52 @@ describe('browser-client', () => {
       expect(autocapturePlugin).toHaveBeenCalledTimes(0);
     });
 
+    test('should add autocapture plugin when the remote config adapter is omitted', async () => {
+      class BrowserWithoutRemoteConfig extends AmplitudeBrowser {
+        protected remoteConfigAdapter() {
+          return undefined;
+        }
+      }
+
+      const browser = new BrowserWithoutRemoteConfig();
+      const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+      await browser.init(apiKey, userId, {
+        autocapture: { elementInteractions: true },
+      }).promise;
+      expect(autocapturePlugin).toHaveBeenCalledTimes(1);
+      expect(autocapturePlugin).toHaveBeenCalledWith(undefined, undefined);
+    });
+
+    test('should pass a custom remote config adapter diagnostics client to autocapture', async () => {
+      const customDiagnostics = {
+        setTag: jest.fn(),
+        recordEvent: jest.fn(),
+        recordHistogram: jest.fn(),
+        increment: jest.fn(),
+      } as unknown as DiagnosticsClient;
+
+      class BrowserWithCustomDiagnostics extends AmplitudeBrowser {
+        protected remoteConfigAdapter() {
+          return {
+            getDiagnosticsClient: async () => customDiagnostics,
+            getRemoteConfigClient: async () => mockRemoteConfigClient,
+            fetchRemoteConfig: async () => undefined,
+          };
+        }
+      }
+
+      const browser = new BrowserWithCustomDiagnostics();
+      const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+      await browser.init(apiKey, userId, {
+        fetchRemoteConfig: false,
+        autocapture: { elementInteractions: true },
+      }).promise;
+      expect(autocapturePlugin).toHaveBeenCalledTimes(1);
+      expect(autocapturePlugin).toHaveBeenCalledWith(undefined, {
+        diagnosticsClient: customDiagnostics,
+      });
+    });
+
     test('should use network tracking plugin when autocapture.networkTracking is on', async () => {
       const networkTrackingPlugin = jest.spyOn(networkCapturePlugin, 'plugin');
       await client.init(apiKey, userId, {
