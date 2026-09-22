@@ -1,5 +1,6 @@
 /**
  * Configuration options for web vitals tracking.
+ * @experimental This feature is experimental and may not be stable
  */
 export interface WebVitalsOptions {
   /**
@@ -16,6 +17,7 @@ export interface WebVitalsOptions {
    * See {@link https://github.com/WICG/soft-navigations}.
    *
    * @defaultValue `false`
+   * @experimental This feature is experimental and may not be stable
    */
   reportSoftNav?: boolean;
 }
