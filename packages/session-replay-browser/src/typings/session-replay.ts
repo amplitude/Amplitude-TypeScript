@@ -107,6 +107,17 @@ export interface AmplitudeSessionReplay {
     forceTargetingReevaluation?: boolean,
   ) => Promise<void>;
   flush: (useRetry: boolean) => Promise<void>;
+  /**
+   * Start or resume session replay recording.
+   * Recording still respects sample rate, targeting, opt-out, and remote capture flags.
+   */
+  start: () => AmplitudeReturn<void>;
+  /**
+   * Stop session replay recording without tearing down the SDK.
+   * Call {@link AmplitudeSessionReplay.start} to resume. Prefer {@link AmplitudeSessionReplay.shutdown}
+   * when you want to fully discontinue collection and remove event listeners.
+   */
+  stop: () => void;
   shutdown: () => void;
 }
 

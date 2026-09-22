@@ -26,7 +26,10 @@ describe('action clicks:', () => {
       pathname: '',
       search: '',
     };
-    plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+    plugin = autocapturePlugin({
+      debounceTime: TESTING_DEBOUNCE_TIME,
+      viewportContentUpdated: { enabled: false },
+    });
   });
 
   afterEach(() => {
@@ -55,7 +58,10 @@ describe('action clicks:', () => {
     };
 
     beforeEach(async () => {
-      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      plugin = autocapturePlugin({
+        debounceTime: TESTING_DEBOUNCE_TIME,
+        viewportContentUpdated: { enabled: false },
+      });
       instance = createMockBrowserClient();
       await instance.init(API_KEY, USER_ID).promise;
       track = jest.spyOn(instance, 'track');
@@ -228,7 +234,11 @@ describe('action clicks:', () => {
     describe('actionClickAllowlist configuration', () => {
       test('should be able to track non-default tags by overwriting default actionClickAllowlist', async () => {
         // Use only div in allowlist
-        plugin = autocapturePlugin({ actionClickAllowlist: ['h1'], debounceTime: TESTING_DEBOUNCE_TIME });
+        plugin = autocapturePlugin({
+          actionClickAllowlist: ['h1'],
+          debounceTime: TESTING_DEBOUNCE_TIME,
+          viewportContentUpdated: { enabled: false },
+        });
         await plugin?.setup?.(config as BrowserConfig, instance);
 
         // trigger click on card which should result in no event since div is not in the allowlist
@@ -259,7 +269,11 @@ describe('action clicks:', () => {
 
     test('should not track when element type is hidden', async () => {
       // Use only div in allowlist
-      plugin = autocapturePlugin({ actionClickAllowlist: ['input'], debounceTime: TESTING_DEBOUNCE_TIME });
+      plugin = autocapturePlugin({
+        actionClickAllowlist: ['input'],
+        debounceTime: TESTING_DEBOUNCE_TIME,
+        viewportContentUpdated: { enabled: false },
+      });
       await plugin?.setup?.(config as BrowserConfig, instance);
 
       const input = document.createElement('input');
@@ -316,9 +330,8 @@ describe('action clicks:', () => {
         (window.navigation as any).dispatchEvent(new Event('navigate'));
         await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
 
-        // once for the page view end event, once for the click event
-        expect(track).toHaveBeenCalledTimes(2);
-        expect(track).toHaveBeenNthCalledWith(2, '[Amplitude] Element Clicked', expect.objectContaining({}));
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenCalledWith('[Amplitude] Element Clicked', expect.objectContaining({}));
       });
     });
   });

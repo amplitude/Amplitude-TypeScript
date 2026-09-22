@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.45.5",
+  "version": "2.46.0",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -51,7 +51,7 @@
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
     "@amplitude/plugin-autocapture-browser": "workspace:*",
-    "@amplitude/plugin-custom-enrichment-browser": "workspace:*",
+    "@amplitude/plugin-custom-enrichment-browser": "0.1.22",
     "@amplitude/plugin-event-property-attribution-browser": "workspace:*",
     "@amplitude/plugin-network-capture-browser": "workspace:*",
     "@amplitude/plugin-page-url-enrichment-browser": "workspace:*",

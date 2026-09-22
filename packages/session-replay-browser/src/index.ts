@@ -5,6 +5,8 @@ export const {
   getSessionId,
   getSessionReplayProperties,
   flush,
+  start,
+  stop,
   shutdown,
   evaluateTargetingAndCapture,
 } = sessionReplay;

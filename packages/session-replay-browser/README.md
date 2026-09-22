@@ -77,8 +77,21 @@ You can optionally pass a new device id as a second argument as well:
 sessionReplay.setSessionId(UNIX_TIMESTAMP, deviceId)
 ```
 
-### 6. Shutdown (optional)
-If at any point you would like to discontinue collection of session replays, for example in a part of your application where you would not like sessions to be collected, you can use the following method to stop collection and remove collection event listeners.
+### 6. Start and stop recording (optional)
+Use `stop()` to pause capture without tearing down the SDK (session id, config, and event listeners stay in place). Call `start()` to resume. Sampling, targeting, and opt-out still apply — `start()` will not record a session that is opted out, not sampled, or excluded by targeting.
+
+```typescript
+// Pause capture, for example on a sensitive screen
+sessionReplay.stop()
+
+// Resume capture
+sessionReplay.start()
+```
+
+`stop()` flushes any events already captured. Events while recording is stopped are not tagged with session replay properties.
+
+### 7. Shutdown (optional)
+If at any point you would like to discontinue collection of session replays, for example in a part of your application where you would not like sessions to be collected, you can use the following method to stop collection and remove collection event listeners. After `shutdown()`, call `init()` again to restart — `start()` alone is not enough because listeners have been removed.
 ```typescript
 sessionReplay.shutdown()
 ```
@@ -100,6 +113,7 @@ sessionReplay.shutdown()
 |`configServerUrl`|`string`|No|`undefined`|Specifies the endpoint URL to fetch remote configuration. If provided, it overrides the default server zone configuration.|
 |`trackServerUrl`|`string`|No|`undefined`|Specifies the endpoint URL for sending session replay data. If provided, it overrides the default server zone configuration.|
 |`shouldInlineStylesheet`|`boolean`|No|`true`|If stylesheets are inlined, the contents of the stylesheet will be stored. During replay, the stored stylesheet will be used instead of attempting to fetch it remotely. This prevents replays from appearing broken due to missing stylesheets. Note: Inlining stylesheets may not work in all cases. If this is `undefined` stylesheets will be inlined.|
+|`inlineImages`|`boolean`|No|`false`|When true, image sources are inlined as data URLs in the rrweb snapshot so replays do not depend on fetching remote image assets at playback time. Increases snapshot payload size. Passed through to rrweb's `inlineImages` record option.|
 |`storeType`|`string`|No|`idb`|Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events when all events cannot be sent during capture. `memory` stores replay events only in memory, meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.|
 |`performanceConfig.enabled`|`boolean`|No|`true`|If enabled, event compression will be deferred to occur during the browser's idle periods.|
 |`performanceConfig.timeout`|`number`|No|`undefined`|Optional timeout in milliseconds for the `requestIdleCallback` API. If specified, this value will be used to set a maximum time for the browser to wait before executing the deferred compression task, even if the browser is not idle.|

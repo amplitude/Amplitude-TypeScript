@@ -7,6 +7,7 @@ import { trackErrorClicks } from '../../src/autocapture/track-error-click';
 import { trackThrashedCursor } from '../../src/autocapture/track-thrashed-cursor';
 import { BrowserErrorEvent, createErrorObservable } from '../../src/observables';
 import { dispatchUnhandledRejection } from '../utils';
+import { ObservablesEnum } from '../../src/autocapture-plugin';
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -420,7 +421,7 @@ describe('frustrationPlugin', () => {
   });
 
   describe('observables', () => {
-    it('should create click + mutation observables with correct properties', async () => {
+    it('should create separate click and pointerdown observables with correct properties', async () => {
       plugin = frustrationPlugin({});
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -428,12 +429,15 @@ describe('frustrationPlugin', () => {
       const observables = rageClickCall.allObservables;
 
       expect(observables).toHaveProperty('clickObservable');
+      expect(observables).toHaveProperty(ObservablesEnum.PointerDownObservable);
       expect(observables).toHaveProperty('mutationObservable');
       expect(observables).toHaveProperty('navigateObservable');
 
-      // Test click observable
+      // Dead clicks use completed click events, while rage/error clicks use pointerdown.
       const clickSpy = jest.fn();
-      const subscription = observables.clickObservable.subscribe(clickSpy);
+      const pointerDownSpy = jest.fn();
+      const clickSubscription = observables.clickObservable.subscribe(clickSpy);
+      const pointerDownSubscription = observables[ObservablesEnum.PointerDownObservable].subscribe(pointerDownSpy);
 
       // Create and trigger a mock click event
       const testElement = document.createElement('button');
@@ -447,11 +451,23 @@ describe('frustrationPlugin', () => {
       });
       testElement.dispatchEvent(mockPointerDownEvent);
 
-      // Verify click was captured
-      expect(clickSpy).toHaveBeenCalled();
+      expect(pointerDownSpy).toHaveBeenCalledTimes(1);
+      expect(clickSpy).not.toHaveBeenCalled();
+
+      testElement.dispatchEvent(
+        new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        }),
+      );
+
+      expect(clickSpy).toHaveBeenCalledTimes(1);
+      expect(pointerDownSpy).toHaveBeenCalledTimes(1);
 
       // Cleanup
-      subscription.unsubscribe();
+      clickSubscription.unsubscribe();
+      pointerDownSubscription.unsubscribe();
       document.body.removeChild(testElement);
 
       // Test mutation observable

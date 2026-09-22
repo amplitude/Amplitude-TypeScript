@@ -13,6 +13,7 @@ const config = getDefaultConfig(projectRoot);
 config.watchFolders = [
   path.join(packagesRoot, 'analytics-react-native'),
   path.join(packagesRoot, 'analytics-core'),
+  path.join(packagesRoot, 'plugin-experiment-react-native'),
   path.join(packagesRoot, 'plugin-page-view-tracking-browser'),
   path.join(packagesRoot, 'plugin-network-capture-browser'),
 ];

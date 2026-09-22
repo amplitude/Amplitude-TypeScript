@@ -104,7 +104,7 @@ export function trackRageClicks({
   allObservables: AllWindowObservables;
   shouldTrackRageClick: shouldTrackEvent;
 }) {
-  const { clickObservable, selectionObservable }: AllWindowObservables = allObservables;
+  const { pointerDownObservable, selectionObservable }: AllWindowObservables = allObservables;
 
   // Keep track of all clicks within the sliding window
   let clickWindow: ClickEvent[] = [];
@@ -129,7 +129,7 @@ export function trackRageClicks({
   }
 
   const rageClickObservable = asyncMap(
-    clickObservable.filter((click) => shouldTrackRageClick('click', click.closestTrackedAncestor)),
+    pointerDownObservable.filter((click) => shouldTrackRageClick('click', click.closestTrackedAncestor)),
     async (click: ClickEvent): Promise<RageClickEvent | null> => {
       // add this click's coordinates to the bounding box
       addCoordinates(clickBoundingBox, click);

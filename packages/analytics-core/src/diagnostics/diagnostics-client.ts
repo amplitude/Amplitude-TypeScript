@@ -194,6 +194,12 @@ export class DiagnosticsClient implements IDiagnosticsClient {
       enabled?: boolean;
       sampleRate?: number;
     },
+    /**
+     * Storage for diagnostics data. Defaults to IndexedDB, which only exists in the browser —
+     * non-browser SDKs inject their own implementation. Internal: this is a constructor argument,
+     * not a public config option.
+     */
+    storage?: IDiagnosticsStorage,
   ) {
     this.apiKey = apiKey;
     this.logger = logger;
@@ -205,7 +211,9 @@ export class DiagnosticsClient implements IDiagnosticsClient {
     this.startTimestamp = Date.now();
     this.shouldTrack = isTimestampInSampleTemp(this.startTimestamp, this.config.sampleRate) && this.config.enabled;
 
-    if (DiagnosticsStorage.isSupported()) {
+    if (storage) {
+      this.storage = storage;
+    } else if (DiagnosticsStorage.isSupported()) {
       this.storage = new DiagnosticsStorage(apiKey, logger);
     } else {
       this.logger.debug('DiagnosticsClient: IndexedDB is not supported');

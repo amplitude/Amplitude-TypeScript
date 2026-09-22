@@ -10,12 +10,11 @@ jest.mock('react-native');
 
 jest.mock('../src/logger', () => require('./utils/logger'));
 
-import { init, start, stop, getSessionId, getSessionReplayProperties, type SessionReplayConfig } from '../src/index';
+import { init, start, stop, getSessionId, teardown, setOptOut, type SessionReplayConfig } from '../src/index';
 import { NativeModules } from 'react-native';
 import { LogLevel } from '@amplitude/analytics-types';
 
 const mockNativeModules = NativeModules as jest.Mocked<typeof NativeModules>;
-mockNativeModules.AMPNativeSessionReplay.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
 
 describe('Session Replay Integration Tests', () => {
   beforeEach(() => {
@@ -38,6 +37,10 @@ describe('Session Replay Integration Tests', () => {
         logLevel: LogLevel.Warn,
       }),
     );
+    const [setupConfig] = jest.mocked(mockNativeModules.AMPNativeSessionReplay.setup).mock.calls[0] as [
+      Record<string, unknown>,
+    ];
+    expect(Object.keys(setupConfig)).not.toContain('autoStart');
 
     await start();
     expect(mockNativeModules.AMPNativeSessionReplay.start).toHaveBeenCalled();
@@ -46,19 +49,65 @@ describe('Session Replay Integration Tests', () => {
     expect(sessionId).toBe(12345);
     expect(mockNativeModules.AMPNativeSessionReplay.getSessionId).toHaveBeenCalled();
 
-    const properties = await getSessionReplayProperties();
-    expect(properties).toEqual({ replayId: 'test-id' });
-    expect(mockNativeModules.AMPNativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
-
     await stop();
     expect(mockNativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
+
+    await setOptOut(true);
+    expect(mockNativeModules.AMPNativeSessionReplay.setOptOut).toHaveBeenCalledWith(true);
+
+    await teardown();
+    expect(mockNativeModules.AMPNativeSessionReplay.teardown).toHaveBeenCalled();
 
     const calls = jest.mocked(mockNativeModules.AMPNativeSessionReplay);
     expect(calls.setup).toHaveBeenCalled();
     expect(calls.start).toHaveBeenCalled();
     expect(calls.getSessionId).toHaveBeenCalled();
-    expect(calls.getSessionReplayProperties).toHaveBeenCalled();
     expect(calls.stop).toHaveBeenCalled();
+    expect(calls.setOptOut).toHaveBeenCalled();
+    expect(calls.teardown).toHaveBeenCalled();
+  });
+
+  it('clears JS state during teardown so the SDK can be initialized again', async () => {
+    let pending!: Promise<void>;
+    let setupMock!: jest.Mock;
+    jest.isolateModules(() => {
+      const {
+        init: freshInit,
+        teardown: freshTeardown,
+        start: freshStart,
+      } = require('../src/index') as typeof import('../src/index');
+      const { NativeModules: freshNativeModules } = require('react-native') as typeof import('react-native');
+      setupMock = (freshNativeModules as jest.Mocked<typeof NativeModules>).AMPNativeSessionReplay.setup;
+      pending = (async () => {
+        await freshInit({ apiKey: 'first-api-key' });
+        await freshTeardown();
+        await freshStart();
+        await freshInit({ apiKey: 'second-api-key' });
+      })();
+    });
+
+    await pending;
+    expect(setupMock).toHaveBeenCalledTimes(2);
+    expect(setupMock).toHaveBeenLastCalledWith(expect.objectContaining({ apiKey: 'second-api-key' }));
+  });
+
+  it('does not call native lifecycle methods before initialization', async () => {
+    let pending!: Promise<void>;
+    let nativeModule!: jest.Mocked<(typeof NativeModules)['AMPNativeSessionReplay']>;
+    jest.isolateModules(() => {
+      const { teardown: freshTeardown, setOptOut: freshSetOptOut } =
+        require('../src/index') as typeof import('../src/index');
+      const { NativeModules: freshNativeModules } = require('react-native') as typeof import('react-native');
+      nativeModule = (freshNativeModules as jest.Mocked<typeof NativeModules>).AMPNativeSessionReplay;
+      pending = (async () => {
+        await freshSetOptOut(true);
+        await freshTeardown();
+      })();
+    });
+
+    await pending;
+    expect(nativeModule.setOptOut).not.toHaveBeenCalled();
+    expect(nativeModule.teardown).not.toHaveBeenCalled();
   });
 
   // These tests cover the resolution chain in `nativeConfig()` for the

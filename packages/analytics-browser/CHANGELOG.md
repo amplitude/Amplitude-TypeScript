@@ -3,6 +3,69 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.10...@amplitude/analytics-browser@2.46.0) (2026-09-21)
+
+
+### Features
+
+* **analytics-react-native:** support Remote Config autocapture ([#1988](https://github.com/amplitude/Amplitude-TypeScript/issues/1988)) ([eef3342](https://github.com/amplitude/Amplitude-TypeScript/commit/eef33427cdf3294c285f94ae6dbe1bd45738a60d))
+
+
+
+
+
+## [2.45.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.9...@amplitude/analytics-browser@2.45.10) (2026-09-16)
+
+
+### Bug Fixes
+
+* pin custom enrichment plugin ([#1995](https://github.com/amplitude/Amplitude-TypeScript/issues/1995)) ([4cfc431](https://github.com/amplitude/Amplitude-TypeScript/commit/4cfc431e2f397dce2f8f9413956e578389e6b65b))
+
+
+
+
+
+## [2.45.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.8...@amplitude/analytics-browser@2.45.9) (2026-09-16)
+
+
+### Bug Fixes
+
+* **browser:** normalize empty instance names ([#1956](https://github.com/amplitude/Amplitude-TypeScript/issues/1956)) ([942c8bc](https://github.com/amplitude/Amplitude-TypeScript/commit/942c8bc3a1ac341988c02a5ea42db1813bb61519))
+
+
+
+
+
+## [2.45.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.7...@amplitude/analytics-browser@2.45.8) (2026-08-27)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.45.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.6...@amplitude/analytics-browser@2.45.7) (2026-08-24)
+
+
+### Bug Fixes
+
+* **analytics-browser:** tolerate nullish querySelectorAll in mutation observers ([#1919](https://github.com/amplitude/Amplitude-TypeScript/issues/1919)) ([1b7b929](https://github.com/amplitude/Amplitude-TypeScript/commit/1b7b929d786e51c5f08a2282c404c280b4b37d2f))
+
+
+
+
+
+## [2.45.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.5...@amplitude/analytics-browser@2.45.6) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
+
+
+
+
+
 ## [2.45.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.4...@amplitude/analytics-browser@2.45.5) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

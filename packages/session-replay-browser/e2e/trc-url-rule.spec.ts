@@ -181,16 +181,15 @@ test.describe('TRC URL rule — happy path', () => {
     expect(propsAfter[SR_PROPERTY_KEY]).toBeTruthy();
     expect(String(propsAfter[SR_PROPERTY_KEY])).toContain(`/${TEST_SESSION_ID}`);
 
-    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-
-    // The full snapshot is captured asynchronously after targeting flips recording on, so a
-    // single flush can run before any rrweb event has been queued and deliver nothing. Poll:
-    // flush repeatedly until a batch actually reaches the track API (or time out). This removes
-    // the snapshot-vs-flush race that made this assertion flaky (it fails ~2/3 attempts even on
-    // main); flush(false) is a no-op when the queue is empty, so re-driving it is safe.
+    // Properties flip as soon as targeting matches, which can be before rrweb has emitted
+    // (or before those events have been moved from the current sequence into the track
+    // destination). flush() only drains the destination queue, so a one-shot blur + poll
+    // of flush() stays at 0 forever if the first sendEvents() ran against an empty sequence.
+    // Re-drive blur (sendEvents) and flush until a batch reaches the track API.
     await expect
       .poll(
         async () => {
+          await page.evaluate(() => window.dispatchEvent(new Event('blur')));
           await page.evaluate(() => (window as any).sessionReplay.flush(false) as Promise<void>);
           return getBodies().length;
         },

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "workspace:*",
+    "@amplitude/plugin-experiment-react-native": "workspace:*",
     "@amplitude/plugin-network-capture-browser": "workspace:*",
     "@babel/runtime": "^7.20.0",
     "@react-native-async-storage/async-storage": "~1.17.11",
@@ -21,7 +22,7 @@
     "expo-status-bar": "~1.4.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-native": "0.71.14",
+    "react-native": "0.71.15",
     "react-native-safe-area-context": "4.5.0",
     "react-native-screens": "~3.20.0",
     "react-native-web": "0.18.10"

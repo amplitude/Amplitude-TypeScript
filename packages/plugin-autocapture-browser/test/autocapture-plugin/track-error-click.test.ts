@@ -37,7 +37,8 @@ describe('trackErrorClicks', () => {
     });
     mouseMoveObservable = new Observable<any>(() => {});
     allObservables = {
-      [ObservablesEnum.ClickObservable]: clickObservable,
+      [ObservablesEnum.ClickObservable]: new Observable<any>(() => {}),
+      [ObservablesEnum.PointerDownObservable]: clickObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.BrowserErrorObservable]: browserErrorObservable,

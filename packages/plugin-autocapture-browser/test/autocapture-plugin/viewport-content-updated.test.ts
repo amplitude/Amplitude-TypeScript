@@ -4,6 +4,7 @@ import { createMockBrowserClient } from '../mock-browser-client';
 import { trackExposure } from '../../src/autocapture/track-exposure';
 import {
   fireViewportContentUpdated,
+  onExposure,
   ScrollTracker,
   ExposureTracker,
 } from '../../src/autocapture/track-viewport-content-updated';
@@ -230,6 +231,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
   test('should handle undefined exposureTracker gracefully when isPageEnd is true and early-returning', () => {
     const currentElementExposed = new Set<string>();
     const elementExposedForPage = new Set<string>(['stale-element']);
+    const elementExposedInSentEvents = new Set<string>();
 
     expect(() => {
       fireViewportContentUpdated({
@@ -237,6 +239,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
         scrollTracker: mockScrollTracker,
         currentElementExposed,
         elementExposedForPage,
+        elementExposedInSentEvents,
         exposureTracker: undefined,
         isPageEnd: true,
         lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state → triggers early return
@@ -245,6 +248,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
 
     expect(mockScrollTracker.reset).toHaveBeenCalled();
     expect(elementExposedForPage.size).toBe(0);
+    expect(elementExposedInSentEvents.size).toBe(0);
   });
 
   test('should handle undefined exposureTracker gracefully when isPageEnd is true', () => {
@@ -258,6 +262,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
         scrollTracker: mockScrollTracker,
         currentElementExposed,
         elementExposedForPage,
+        elementExposedInSentEvents: new Set(),
         exposureTracker: undefined,
         isPageEnd: true,
         lastScroll: { maxX: undefined, maxY: undefined },
@@ -282,6 +287,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
       exposureTracker: mockExposureTracker,
       isPageEnd: true,
       lastScroll: { maxX: undefined, maxY: undefined },
@@ -305,6 +311,7 @@ describe('fireViewportContentUpdated - exposureTracker optional chaining', () =>
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
       exposureTracker: mockExposureTracker,
       isPageEnd: false,
       lastScroll: { maxX: undefined, maxY: undefined },
@@ -346,6 +353,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
       exposureTracker: undefined,
       isPageEnd: false,
       lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state
@@ -358,6 +366,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
   test('should still run page-end cleanup when early-returning with isPageEnd=true', () => {
     const currentElementExposed = new Set<string>();
     const elementExposedForPage = new Set<string>(['stale-element']);
+    const elementExposedInSentEvents = new Set<string>(['stale-element']);
     const mockExposureTracker: ExposureTracker = { reset: jest.fn() };
 
     fireViewportContentUpdated({
@@ -365,6 +374,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents,
       exposureTracker: mockExposureTracker,
       isPageEnd: true,
       lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state
@@ -376,6 +386,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
     // But page-end cleanup MUST still run
     expect(mockScrollTracker.reset).toHaveBeenCalled();
     expect(elementExposedForPage.size).toBe(0);
+    expect(elementExposedInSentEvents.size).toBe(0);
     expect(mockExposureTracker.reset).toHaveBeenCalled();
   });
 
@@ -388,6 +399,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
       exposureTracker: undefined,
       isPageEnd: false,
       lastScroll: { maxX: 100, maxY: 200 }, // Same as scrollTracker state
@@ -411,6 +423,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
       exposureTracker: undefined,
       isPageEnd: false,
       lastScroll: { maxX: 50, maxY: 200 }, // Different maxX
@@ -434,6 +447,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
       exposureTracker: undefined,
       isPageEnd: false,
       lastScroll: { maxX: 100, maxY: 150 }, // Different maxY
@@ -469,6 +483,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
         scrollTracker: mockScrollTracker,
         currentElementExposed,
         elementExposedForPage,
+        elementExposedInSentEvents: new Set(),
         exposureTracker: undefined,
         isPageEnd: false,
         lastScroll: { maxX: undefined, maxY: undefined },
@@ -484,6 +499,48 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       const trackCall = trackSpy.mock.calls[0];
       expect(trackCall[1][constants.AMPLITUDE_EVENT_PROP_PAGE_URL]).not.toContain('?');
       expect(trackCall[1][constants.AMPLITUDE_EVENT_PROP_PAGE_URL]).not.toContain('foo=bar');
+    } finally {
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+        configurable: true,
+      });
+    }
+  });
+
+  test('should keep the URL hash when stripping query parameters from Page URL', () => {
+    const originalLocation = window.location;
+    const locationMock = {
+      ...originalLocation,
+      href: 'https://www.test.com/path?foo=bar#section',
+    } as unknown as Location;
+    Object.defineProperty(window, 'location', {
+      value: locationMock,
+      writable: true,
+      configurable: true,
+    });
+
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+
+    try {
+      fireViewportContentUpdated({
+        amplitude: mockAmplitude,
+        scrollTracker: mockScrollTracker,
+        currentElementExposed,
+        elementExposedForPage,
+        elementExposedInSentEvents: new Set(),
+        exposureTracker: undefined,
+        isPageEnd: false,
+        lastScroll: { maxX: undefined, maxY: undefined },
+      });
+
+      expect(trackSpy).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: 'https://www.test.com/path#section',
+        }),
+      );
     } finally {
       Object.defineProperty(window, 'location', {
         value: originalLocation,
@@ -514,6 +571,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
         scrollTracker: mockScrollTracker,
         currentElementExposed,
         elementExposedForPage,
+        elementExposedInSentEvents: new Set(),
         exposureTracker: undefined,
         isPageEnd: false,
         lastScroll: { maxX: undefined, maxY: undefined },
@@ -556,6 +614,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
         scrollTracker: mockScrollTracker,
         currentElementExposed,
         elementExposedForPage,
+        elementExposedInSentEvents: new Set(),
         exposureTracker: undefined,
         isPageEnd: false,
         lastScroll: { maxX: undefined, maxY: undefined },
@@ -585,6 +644,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
       exposureTracker: undefined,
       isPageEnd: false,
       lastScroll: { maxX: undefined, maxY: undefined }, // First call, undefined values
@@ -610,6 +670,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
       exposureTracker: undefined,
       isPageEnd: false,
       lastScroll,
@@ -626,10 +687,91 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       scrollTracker: mockScrollTracker,
       currentElementExposed,
       elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
       exposureTracker: undefined,
       isPageEnd: false,
       lastScroll,
     });
     expect(trackSpy).toHaveBeenCalledTimes(1); // Still 1, deduplication worked
+  });
+
+  test('should reset lastScroll on page end so the next snapshot does not look like a scroll change', () => {
+    let scrollState = { maxX: 100, maxY: 200 };
+    const statefulScrollTracker: ScrollTracker = {
+      getState: jest.fn(() => ({ ...scrollState })),
+      reset: jest.fn(() => {
+        scrollState = { maxX: 0, maxY: 0 };
+      }),
+    };
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: statefulScrollTracker,
+      currentElementExposed: new Set<string>(['element-1']),
+      elementExposedForPage: new Set<string>(['element-1']),
+      elementExposedInSentEvents: new Set(),
+      exposureTracker: undefined,
+      isPageEnd: true,
+      lastScroll,
+    });
+
+    expect(trackSpy).toHaveBeenCalledTimes(1);
+    expect(lastScroll.maxX).toBe(0);
+    expect(lastScroll.maxY).toBe(0);
+
+    trackSpy.mockClear();
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: statefulScrollTracker,
+      currentElementExposed: new Set<string>(),
+      elementExposedForPage: new Set<string>(),
+      elementExposedInSentEvents: new Set(),
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll,
+    });
+
+    expect(trackSpy).not.toHaveBeenCalled();
+  });
+
+  test('should not re-send elements already included in a previous flush', () => {
+    const currentElementExposed = new Set<string>(['element-1', 'element-2']);
+    const elementExposedForPage = new Set<string>(['element-1', 'element-2']);
+    const elementExposedInSentEvents = new Set<string>(['element-1']);
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      elementExposedInSentEvents,
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: undefined, maxY: undefined },
+    });
+
+    expect(trackSpy).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': ['element-2'],
+      }),
+    );
+    expect(elementExposedInSentEvents.has('element-2')).toBe(true);
+  });
+});
+
+describe('onExposure - sent event deduplication', () => {
+  test('should ignore elements already included in a previous flush', () => {
+    const elementExposedForPage = new Set<string>();
+    const elementExposedInSentEvents = new Set<string>(['element-1']);
+    const currentElementExposed = new Set<string>();
+    const flush = jest.fn();
+
+    onExposure('element-1', elementExposedForPage, elementExposedInSentEvents, currentElementExposed, flush);
+
+    expect(currentElementExposed.size).toBe(0);
+    expect(flush).not.toHaveBeenCalled();
   });
 });

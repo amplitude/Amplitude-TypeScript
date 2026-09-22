@@ -9,26 +9,21 @@ jest.mock('react-native');
 // Explicitly mock the logger module using the imported mock
 jest.mock('../src/logger', (): any => require('./utils/logger'));
 
+import * as sessionReplay from '../src/index';
 import {
   init,
   setSessionId,
   getSessionId,
-  getSessionReplayProperties,
   flush,
   start,
   stop,
   setDeviceId,
-  SessionReplayPlugin,
   AmpMaskView,
   type SessionReplayConfig,
-  type SessionReplayPluginConfig,
   type MaskLevel,
+  LogLevel,
 } from '../src/index';
 import { NativeModules } from 'react-native';
-import { LogLevel } from '@amplitude/analytics-types';
-
-// Mock the getSessionReplayProperties return value for our tests
-NativeModules.AMPNativeSessionReplay.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
 
 describe('Index Exports', () => {
   const testConfig: SessionReplayConfig = {
@@ -52,6 +47,8 @@ describe('Index Exports', () => {
           logLevel: LogLevel.Warn,
         }),
       );
+      const [setupConfig] = NativeModules.AMPNativeSessionReplay.setup.mock.calls[0] as [Record<string, unknown>];
+      expect(Object.keys(setupConfig)).not.toContain('autoStart');
     });
 
     it('should export setSessionId function that updates session ID', async () => {
@@ -68,11 +65,8 @@ describe('Index Exports', () => {
       expect(sessionId).toBe(12345);
     });
 
-    it('should export getSessionReplayProperties function', async () => {
-      await init(testConfig); // Initialize first
-      const properties = await getSessionReplayProperties();
-      expect(NativeModules.AMPNativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
-      expect(properties).toEqual({ replayId: 'test-id' });
+    it('should not export getSessionReplayProperties', () => {
+      expect(sessionReplay).not.toHaveProperty('getSessionReplayProperties');
     });
 
     it('should export flush function that flushes session data', async () => {
@@ -102,11 +96,8 @@ describe('Index Exports', () => {
   });
 
   describe('Class Exports', () => {
-    it('should export SessionReplayPlugin class', () => {
-      const plugin = new SessionReplayPlugin();
-      expect(plugin).toBeInstanceOf(SessionReplayPlugin);
-      expect(plugin.name).toBe('@amplitude/plugin-session-replay-react-native');
-      expect(plugin.type).toBe('enrichment');
+    it('should not export SessionReplayPlugin', () => {
+      expect(sessionReplay).not.toHaveProperty('SessionReplayPlugin');
     });
 
     it('should export AmpMaskView component', () => {
@@ -121,7 +112,6 @@ describe('Index Exports', () => {
         serverZone: 'US',
         logLevel: LogLevel.Warn,
         maskLevel: 'medium',
-        autoStart: true,
         deviceId: 'test-device',
         enableRemoteConfig: true,
         optOut: false,
@@ -132,20 +122,19 @@ describe('Index Exports', () => {
       expect(config).toBeTruthy();
     });
 
-    it('should export SessionReplayPluginConfig interface', () => {
-      const config: SessionReplayPluginConfig = {
-        sampleRate: 1,
-        enableRemoteConfig: true,
-        logLevel: LogLevel.Warn,
-        autoStart: true,
-      };
-      // TypeScript compilation is the test - if it compiles, the interface is correct
-      expect(config).toBeTruthy();
-    });
-
     it('should export MaskLevel type', () => {
       const level: MaskLevel = 'conservative';
       expect(level).toBe('conservative');
+    });
+  });
+
+  describe('Enum Exports', () => {
+    it('should export LogLevel as a runtime enum from the package entry', () => {
+      expect(LogLevel.Warn).toBe(2);
+      expect(LogLevel.None).toBe(0);
+      expect(LogLevel.Error).toBe(1);
+      expect(LogLevel.Verbose).toBe(3);
+      expect(LogLevel.Debug).toBe(4);
     });
   });
 });

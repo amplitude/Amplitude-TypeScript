@@ -44,6 +44,7 @@ describe('trackDeadClick', () => {
     });
     allObservables = {
       [ObservablesEnum.ClickObservable]: clickObservable,
+      [ObservablesEnum.PointerDownObservable]: new Observable<any>(() => undefined),
       [ObservablesEnum.MutationObservable]: mutationObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.BrowserErrorObservable]: browserErrorObservable,

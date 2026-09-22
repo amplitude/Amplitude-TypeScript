@@ -27,7 +27,6 @@ const localAliases = {
   '@amplitude/session-replay-browser': path.join(packagesDir, 'session-replay-browser'),
   '@amplitude/targeting': path.join(packagesDir, 'targeting'),
   '@amplitude/analytics-core': path.join(packagesDir, 'analytics-core'),
-  '@amplitude/analytics-client-common': path.join(packagesDir, 'analytics-client-common'),
 };
 
 const npmAliases = {

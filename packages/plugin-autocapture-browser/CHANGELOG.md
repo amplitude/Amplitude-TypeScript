@@ -3,6 +3,64 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.29.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.29.1...@amplitude/plugin-autocapture-browser@1.29.2) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.29.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.29.0...@amplitude/plugin-autocapture-browser@1.29.1) (2026-09-16)
+
+
+### Bug Fixes
+
+* **autocapture:** expose zones when the mid-height line is viewed ([#1972](https://github.com/amplitude/Amplitude-TypeScript/issues/1972)) ([5c09973](https://github.com/amplitude/Amplitude-TypeScript/commit/5c099733e456618d81976282e1187c2330e9383d))
+
+
+
+
+
+# [1.29.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.12...@amplitude/plugin-autocapture-browser@1.29.0) (2026-08-27)
+
+
+### Bug Fixes
+
+* **autocapture:** exposure snapshot ([#1948](https://github.com/amplitude/Amplitude-TypeScript/issues/1948)) ([e0fa402](https://github.com/amplitude/Amplitude-TypeScript/commit/e0fa4024d41b8a2386f7f27fdc18289c61ef965b))
+
+
+### Features
+
+* **plugin-autocapture-browser:** add shadow to hierarchy ([#1937](https://github.com/amplitude/Amplitude-TypeScript/issues/1937)) ([6fa34e9](https://github.com/amplitude/Amplitude-TypeScript/commit/6fa34e9737136599c80fc249077fbf32417e4eb8))
+* **zoning:** add support for shadow dom ([#1922](https://github.com/amplitude/Amplitude-TypeScript/issues/1922)) ([6c2d5c2](https://github.com/amplitude/Amplitude-TypeScript/commit/6c2d5c20f515554a10c55c18ef23432e9c66bc5c))
+
+
+
+
+
+## [1.28.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.11...@amplitude/plugin-autocapture-browser@1.28.12) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autocapture:** prevent scroll gestures from triggering dead clicks ([#1941](https://github.com/amplitude/Amplitude-TypeScript/issues/1941)) ([0807d88](https://github.com/amplitude/Amplitude-TypeScript/commit/0807d88cc3218b75d15fdec1a3a3d88104b4ccfa))
+
+
+
+
+
+## [1.28.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.10...@amplitude/plugin-autocapture-browser@1.28.11) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
+
+
+
+
+
 ## [1.28.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.28.9...@amplitude/plugin-autocapture-browser@1.28.10) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

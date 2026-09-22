@@ -16,6 +16,8 @@ import {
   resolveSelectorConfig,
   DEFAULT_RESOLVED_CONFIG,
   createSelectorEngine,
+  walkComposedAncestors,
+  collectOpenShadowRoots,
 } from '../src';
 
 describe('@amplitude/element-selector — public API surface', () => {
@@ -50,6 +52,11 @@ describe('@amplitude/element-selector — public API surface', () => {
     expect(typeof resolveSelectorConfig).toBe('function');
     expect(DEFAULT_RESOLVED_CONFIG.enabled).toBe(false);
     expect(DEFAULT_RESOLVED_CONFIG.explicitTrackingAttribute).toBe('data-amp-track-id');
+  });
+
+  it('exports shadow DOM traversal primitives', () => {
+    expect(typeof walkComposedAncestors).toBe('function');
+    expect(typeof collectOpenShadowRoots).toBe('function');
   });
 
   it('exports the engine factory', () => {

@@ -49,25 +49,40 @@ await segmentClient.add(createSegmentSessionReplayPlugin(sessionReplayConfig));
 
 ### Plugin Configuration
 
-The plugin accepts a `SessionReplayConfig` object
+The plugin accepts a `SegmentSessionReplayPluginConfig` object: every option from the
+`SessionReplayConfig` of `@amplitude/session-replay-react-native`, plus:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `autoStart` | `true` | Start recording as soon as the plugin is added to the Segment client. |
+
+Set `autoStart: false` to control when recording begins, then call `start()` from
+`@amplitude/session-replay-react-native` yourself:
+
+```js
+import { start } from '@amplitude/session-replay-react-native';
+
+await segmentClient.add(createSegmentSessionReplayPlugin({ ...sessionReplayConfig, autoStart: false }));
+
+// later, once you're ready to record
+await start();
+```
 
 ### Automatic Integration
 
 The plugin automatically:
 
 1. **Initializes Session Replay**: Sets up Amplitude Session Replay with your configuration
-2. **Syncs Session Data**: Updates session ID and device ID for each Segment event
-3. **Enriches Events**: Adds session replay properties to track and screen events
+2. **Starts Recording**: Begins recording once configured, unless `autoStart` is `false`
+3. **Syncs Session Data**: Updates session ID and device ID for each Segment event
 4. **Manages Lifecycle**: Handles start/stop operations for session replay
 
 ### Event Processing
 
-The plugin processes the following Segment event types:
-- `TrackEvent`: Adds session replay properties to track events
-- `ScreenEvent`: Adds session replay properties to screen events
-
-For these events, the plugin:
+For every event, the plugin:
 - Extracts session ID from event properties or Amplitude integration data
 - Extracts device ID from event context or anonymous ID
-- Adds session replay properties to the event before sending to Segment
+- Forwards both to Session Replay so the recording is attributed correctly
+
+Events are passed through unmodified; the plugin does not add properties to them.
 

@@ -5,7 +5,8 @@ import type { ElementBasedTimestampedEvent } from '../src/helpers';
 import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
 import * as hierarchy from '../src/hierarchy';
 import type { Hierarchy } from '../src/typings/autocapture';
-import { MASKED_TEXT_VALUE } from '@amplitude/analytics-core';
+import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE } from '@amplitude/analytics-core';
+import { resetSharedShadowGateForTesting } from '../src/shadow-mode';
 
 describe('data extractor', () => {
   let dataExtractor: DataExtractor;
@@ -199,6 +200,76 @@ describe('data extractor', () => {
       parent.appendChild(button);
       const result = dataExtractor.getText(button);
       expect(result).toEqual(MASKED_TEXT_VALUE);
+    });
+
+    describe('shadow DOM', () => {
+      afterEach(() => {
+        resetSharedShadowGateForTesting();
+        new DataExtractor({}).updateSelectorConfig(undefined);
+        document.documentElement.removeAttribute(TEXT_MASK_ATTRIBUTE);
+        document.body.innerHTML = '';
+      });
+
+      test('should mask an in-shadow element when a light-DOM ancestor is marked and piercing is on', () => {
+        document.body.innerHTML = `<div ${TEXT_MASK_ATTRIBUTE}><my-host></my-host></div>`;
+        const host = document.querySelector('my-host') as Element;
+        const root = host.attachShadow({ mode: 'open' });
+        root.innerHTML = `<span id="secret">super secret value</span>`;
+        const secret = root.getElementById('secret') as Element;
+
+        const extractor = new DataExtractor({});
+        extractor.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth: 2 });
+        expect(extractor.getText(secret)).toBe(MASKED_TEXT_VALUE);
+      });
+
+      test('should not mask an unmarked in-shadow element when piercing is on', () => {
+        document.body.innerHTML = `<div><my-host></my-host></div>`;
+        const host = document.querySelector('my-host') as Element;
+        const root = host.attachShadow({ mode: 'open' });
+        root.innerHTML = `<span id="plain">hello</span>`;
+        const plain = root.getElementById('plain') as Element;
+
+        const extractor = new DataExtractor({});
+        extractor.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth: 2 });
+        expect(extractor.getText(plain)).toBe('hello');
+      });
+
+      test('should mask an in-shadow element when <html> carries the mask attribute and piercing is on', () => {
+        document.documentElement.setAttribute(TEXT_MASK_ATTRIBUTE, 'true');
+        document.body.innerHTML = `<my-host></my-host>`;
+        const host = document.querySelector('my-host') as Element;
+        const root = host.attachShadow({ mode: 'open' });
+        root.innerHTML = `<span id="secret">super secret value</span>`;
+        const secret = root.getElementById('secret') as Element;
+
+        const extractor = new DataExtractor({});
+        extractor.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth: 2 });
+        expect(extractor.getText(secret)).toBe(MASKED_TEXT_VALUE);
+      });
+
+      test('should not treat a missing documentElement as masked when piercing is on', () => {
+        document.body.innerHTML = `<my-host></my-host>`;
+        const host = document.querySelector('my-host') as Element;
+        const root = host.attachShadow({ mode: 'open' });
+        root.innerHTML = `<span id="plain">hello</span>`;
+        const plain = root.getElementById('plain') as Element;
+        const original = document.documentElement;
+        Object.defineProperty(document, 'documentElement', {
+          configurable: true,
+          value: null,
+        });
+
+        try {
+          const extractor = new DataExtractor({});
+          extractor.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth: 2 });
+          expect(extractor.getText(plain)).toBe('hello');
+        } finally {
+          Object.defineProperty(document, 'documentElement', {
+            configurable: true,
+            value: original,
+          });
+        }
+      });
     });
 
     test('should mask sensitive text content containing credit card numbers', () => {

@@ -54,6 +54,10 @@ export default defineConfig({
     // wired into CI (requires a real remote config + SR API setup). Run manually
     // with `npx playwright test packages/session-replay-browser/e2e/`.
     '**/session-replay-browser/e2e/**',
+    // Shadow-DOM perf differential uses CPU throttling and long timeouts; too
+    // flaky for shared CI runners. Run manually before rollout:
+    //   npx playwright test packages/plugin-autocapture-browser/e2e/shadow-dom-perf.spec.ts
+    '**/plugin-autocapture-browser/e2e/shadow-dom-perf.spec.ts',
   ],
   timeout: 30000,
 });

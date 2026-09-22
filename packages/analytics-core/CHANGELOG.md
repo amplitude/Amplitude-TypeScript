@@ -3,6 +3,57 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.57.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.56.0...@amplitude/analytics-core@2.57.0) (2026-09-21)
+
+
+### Features
+
+* **analytics-react-native:** support Remote Config autocapture ([#1988](https://github.com/amplitude/Amplitude-TypeScript/issues/1988)) ([eef3342](https://github.com/amplitude/Amplitude-TypeScript/commit/eef33427cdf3294c285f94ae6dbe1bd45738a60d))
+
+
+
+
+
+# [2.56.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.55.0...@amplitude/analytics-core@2.56.0) (2026-09-16)
+
+
+### Bug Fixes
+
+* **analytics-core:** safely stringify timeline events ([#1967](https://github.com/amplitude/Amplitude-TypeScript/issues/1967)) ([a0d72dd](https://github.com/amplitude/Amplitude-TypeScript/commit/a0d72ddb4ece1fb887d2cb571a96c119c79fc4e6))
+* **browser:** normalize empty instance names ([#1956](https://github.com/amplitude/Amplitude-TypeScript/issues/1956)) ([942c8bc](https://github.com/amplitude/Amplitude-TypeScript/commit/942c8bc3a1ac341988c02a5ea42db1813bb61519))
+
+
+### Features
+
+* **react-native:** apply diagnostics sample rate from remote config ([#1983](https://github.com/amplitude/Amplitude-TypeScript/issues/1983)) ([0b4a09a](https://github.com/amplitude/Amplitude-TypeScript/commit/0b4a09ab6ad24a7ee2c78daadfc6ee0b70391e47))
+
+
+
+
+
+# [2.55.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.2...@amplitude/analytics-core@2.55.0) (2026-08-24)
+
+
+### Features
+
+* **analytics-react-native:** add diagnostics client ([#1939](https://github.com/amplitude/Amplitude-TypeScript/issues/1939)) ([8d150ce](https://github.com/amplitude/Amplitude-TypeScript/commit/8d150ce6611b628e9e10a59ea96da07ec71e9fcf))
+
+
+
+
+
+## [2.54.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.1...@amplitude/analytics-core@2.54.2) (2026-08-12)
+
+
+### Bug Fixes
+
+* **analytics-core:** drop events with an empty event type before upload ([#1920](https://github.com/amplitude/Amplitude-TypeScript/issues/1920)) ([87486e9](https://github.com/amplitude/Amplitude-TypeScript/commit/87486e9a9e75a977eeb27b128f94c204ff6400a8))
+* **analytics-node:** add a request timeout to the HTTP transport ([#1923](https://github.com/amplitude/Amplitude-TypeScript/issues/1923)) ([fa799ea](https://github.com/amplitude/Amplitude-TypeScript/commit/fa799eac3ebbce8ca64e9773bcc644f5fb3bbdf0))
+
+
+
+
+
 ## [2.54.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.54.0...@amplitude/analytics-core@2.54.1) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/analytics-core

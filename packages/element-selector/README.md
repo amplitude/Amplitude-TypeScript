@@ -130,6 +130,28 @@ The default list (used by the fallback) catches classes that look stable in name
 
 By default the walk runs all the way to `<html>`. Set this to a positive integer to cap the depth — useful for catastrophically deep DOMs where uniqueness checks could become expensive.
 
+## Shadow DOM
+
+Shadow support is controlled independently from the selector engine kill switch via `shadowDomEnabled` and `maxShadowDomDepth` in remote config. Defaults: `shadowDomEnabled: false`, `maxShadowDomDepth: 1` (clamped to `[1, 10]`).
+
+When enabled, `engine.generate` emits a delimited selector (` >>> ` between per-tree segments) that must be re-resolved with `resolveSelector` — plain `document.querySelector` cannot pierce shadow boundaries.
+
+The autocapture plugin arms shadow support once per page via a latch (`ShadowGate`): the first remote-config delivery that enables it takes effect for the rest of the page load. A later delivery that disables shadow support does not turn it off until the next navigation.
+
+**Full design doc (architecture, performance, late-root scenarios, DFS mitigations, follow-ups):** [`packages/plugin-autocapture-browser/SHADOW-DOM.md`](../plugin-autocapture-browser/SHADOW-DOM.md)
+
+### Rollout limitations (summary)
+
+| Limitation | Impact |
+|------------|--------|
+| **Open shadow roots only** | Closed roots are opaque. `composedPath()` retargets events to the host; selectors cannot round-trip through closed roots. |
+| **Latch-once per page** | Disabling `shadowDomEnabled` mid-session has no effect until the next full page load. First arming delivery also fixes `maxShadowDomDepth` for the page. |
+| **Late `attachShadow`** | Roots attached to elements already in the DOM are not discovered by observers. Clicks still capture; mutation/exposure may miss. A global `attachShadow` patch is **not planned** — session replay and other libs already wrap the same API ([details](../plugin-autocapture-browser/SHADOW-DOM.md#performance)). |
+| **Depth budget** | Targets deeper than `maxShadowDomDepth` produce a best-effort selector for the outermost in-budget shadow host. |
+| **Traversal caps** | `MAX_SHADOW_COMPOSED_WALK_ITERATIONS` (ancestor walks) and `MAX_SHADOW_DOM_TRAVERSAL_NODES` (shadow-root collection DFS) bound synchronous work on pathological trees. |
+
+Pre-rollout: run `e2e/shadow-dom.spec.ts` (CI) and `e2e/shadow-dom-perf.spec.ts` locally before enabling the flag for an org.
+
 ## Remote config
 
 The remote-config payload shape is defined in `src/types.ts` as `ElementSelectorRemoteConfig` and mirrored as a JSON Schema at `schema/element-selector-remote-config.schema.json` for the dashboard's remote-config editor and backend validation.

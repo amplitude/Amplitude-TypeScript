@@ -114,6 +114,8 @@ export interface RemoteConfigStorage {
   setConfig(config: RemoteConfigInfo): Promise<boolean>;
 }
 
+export type RemoteConfigGroup = 'browser' | 'android' | 'ios';
+
 /**
  * Information about each callback registered by `RemoteConfigClient.subscribe()`,
  * managed internally by `RemoteConfigClient`.
@@ -163,9 +165,10 @@ export interface IRemoteConfigClient {
 }
 
 export class RemoteConfigClient implements IRemoteConfigClient {
-  static readonly CONFIG_GROUP = 'browser';
+  static readonly DEFAULT_CONFIG_GROUP = 'browser';
 
   readonly apiKey: string;
+  readonly configGroup: RemoteConfigGroup;
   readonly serverUrl: string;
   readonly logger: ILogger;
   readonly storage: RemoteConfigStorage;
@@ -187,11 +190,14 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     serverZone: ServerZoneType = 'US',
     serverUrl?: string,
     customFetch?: RemoteConfigCustomFetch,
+    configGroup: RemoteConfigGroup = RemoteConfigClient.DEFAULT_CONFIG_GROUP,
+    customStorage?: RemoteConfigStorage,
   ) {
     this.apiKey = apiKey;
+    this.configGroup = configGroup;
     this.serverUrl = serverUrl || (serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL);
     this.logger = logger;
-    this.storage = new RemoteConfigLocalStorage(apiKey, logger);
+    this.storage = customStorage || new RemoteConfigLocalStorage(apiKey, logger);
     this.customFetch = customFetch;
   }
 
@@ -487,7 +493,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     const encodedApiKey = encodeURIComponent(this.apiKey);
 
     const urlParams = new URLSearchParams();
-    urlParams.append('config_group', RemoteConfigClient.CONFIG_GROUP);
+    urlParams.append('config_group', this.configGroup);
 
     return `${this.serverUrl}/${encodedApiKey}?${urlParams.toString()}`;
   }

@@ -1,1 +1,4 @@
-export { createSegmentSessionReplayPlugin } from './segment-session-replay-plugin';
+export {
+  createSegmentSessionReplayPlugin,
+  type SegmentSessionReplayPluginConfig,
+} from './segment-session-replay-plugin';

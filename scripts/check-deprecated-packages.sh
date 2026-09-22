@@ -8,7 +8,7 @@
 set -e
 
 DEPRECATED_PACKAGES=("@amplitude/analytics-types" "@amplitude/analytics-client-common" "@amplitude/analytics-remote-config")
-DEPRECATED_PACKAGE_DIRS=("packages/analytics-types" "packages/analytics-client-common")
+DEPRECATED_PACKAGE_DIRS=("packages/analytics-types")
 FAILED=0
 
 echo "Checking for new usage of deprecated packages..."

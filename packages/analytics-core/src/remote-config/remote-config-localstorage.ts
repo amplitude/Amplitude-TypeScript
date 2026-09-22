@@ -1,13 +1,21 @@
 import { RemoteConfigStorage, RemoteConfigInfo } from './remote-config';
 import { ILogger } from '../logger';
+import { safeJsonStringify } from '../utils/safe-stringify';
 
 export class RemoteConfigLocalStorage implements RemoteConfigStorage {
   private readonly key: string;
   private readonly logger: ILogger;
+  private readonly isSupported: boolean;
 
   constructor(apiKey: string, logger: ILogger) {
     this.key = `AMP_remote_config_${apiKey.substring(0, 10)}`;
     this.logger = logger;
+    try {
+      this.isSupported = typeof localStorage !== 'undefined';
+    } catch (error) {
+      this.logger.debug('Remote config localstorage failed to access: ', error);
+      this.isSupported = false;
+    }
   }
 
   fetchConfig(): Promise<RemoteConfigInfo> {
@@ -16,6 +24,10 @@ export class RemoteConfigLocalStorage implements RemoteConfigStorage {
       remoteConfig: null,
       lastFetch: new Date(),
     };
+
+    if (!this.isSupported) {
+      return Promise.resolve(failedRemoteConfigInfo);
+    }
 
     try {
       result = localStorage.getItem(this.key);
@@ -31,7 +43,7 @@ export class RemoteConfigLocalStorage implements RemoteConfigStorage {
 
     try {
       const remoteConfigInfo: RemoteConfigInfo = JSON.parse(result) as RemoteConfigInfo;
-      this.logger.debug(`Remote config localstorage parsed successfully: ${JSON.stringify(remoteConfigInfo)}`);
+      this.logger.debug(`Remote config localstorage parsed successfully: ${safeJsonStringify(remoteConfigInfo)}`);
       return Promise.resolve({
         remoteConfig: remoteConfigInfo.remoteConfig,
         lastFetch: new Date(remoteConfigInfo.lastFetch),
@@ -44,6 +56,10 @@ export class RemoteConfigLocalStorage implements RemoteConfigStorage {
   }
 
   setConfig(config: RemoteConfigInfo): Promise<boolean> {
+    if (!this.isSupported) {
+      return Promise.resolve(false);
+    }
+
     try {
       localStorage.setItem(this.key, JSON.stringify(config));
       this.logger.debug('Remote config localstorage set successfully.');

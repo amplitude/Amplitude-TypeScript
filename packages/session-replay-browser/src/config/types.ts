@@ -225,6 +225,12 @@ export interface SessionReplayLocalConfig extends IConfig {
    * Note: Inlining stylesheets may not work in all cases.
    */
   shouldInlineStylesheet?: boolean;
+  /**
+   * When true, image sources are inlined as data URLs in the rrweb snapshot so replays do not
+   * depend on fetching remote image assets at playback time. Increases snapshot payload size.
+   * Passed through to rrweb's `inlineImages` record option; when unset, rrweb defaults to false.
+   */
+  inlineImages?: boolean;
   version?: SessionReplayVersion;
   /**
    * Performance configuration config. If enabled, we will defer compression

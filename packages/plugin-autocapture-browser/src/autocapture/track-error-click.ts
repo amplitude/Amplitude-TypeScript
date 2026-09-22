@@ -23,9 +23,9 @@ export function trackErrorClicks({
   allObservables: AllWindowObservables;
   shouldTrackErrorClick: shouldTrackEvent;
 }) {
-  const { clickObservable, browserErrorObservable } = allObservables;
+  const { pointerDownObservable, browserErrorObservable } = allObservables;
 
-  const filteredClickObservable = clickObservable.filter((click) => {
+  const filteredClickObservable = pointerDownObservable.filter((click) => {
     return (
       filterOutNonTrackableEvents(click) &&
       shouldTrackErrorClick('click', click.closestTrackedAncestor) &&

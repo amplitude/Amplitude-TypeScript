@@ -6,7 +6,7 @@ import {
 } from '@amplitude/analytics-types';
 
 import { SessionReplayPluginConfig, getDefaultSessionReplayPluginConfig } from './plugin-session-replay-config';
-import { getSessionId, getSessionReplayProperties, privateInit, setSessionId, start, stop } from './session-replay';
+import { getSessionId, privateInit, setOptOut, setSessionId, start, stop, teardown } from './session-replay';
 import { createSessionReplayLogger } from './logger';
 
 /**
@@ -72,11 +72,14 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
         sampleRate: this.sessionReplayConfig.sampleRate,
         enableRemoteConfig: this.sessionReplayConfig.enableRemoteConfig,
         logLevel: this.sessionReplayConfig.logLevel,
-        autoStart: this.sessionReplayConfig.autoStart,
+        optOut: config.optOut,
       },
       this.logger,
     );
     this.isInitialized = true;
+    if (this.sessionReplayConfig.autoStart) {
+      await start();
+    }
   }
 
   async execute(event: Event): Promise<Event | null> {
@@ -89,15 +92,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
     // in SR.
     if (this.config?.sessionId && this.config.sessionId !== (await getSessionId())) {
       await setSessionId(this.config.sessionId);
-    }
-    // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
-    // event is not of the current session (offline/late events). In that case, don't tag the events
-    if (this.config?.sessionId && this.config.sessionId === event.session_id) {
-      const sessionRecordingProperties = await getSessionReplayProperties();
-      event.event_properties = {
-        ...event.event_properties,
-        ...sessionRecordingProperties,
-      };
     }
     return Promise.resolve(event);
   }
@@ -126,34 +120,31 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
     }
   }
 
+  /**
+   * Update whether session replay collection is disabled for the current user.
+   *
+   * @param optOut - Whether to opt out of session replay collection
+   * @returns Promise that resolves when the opt-out state is updated
+   */
+  async setOptOut(optOut: boolean): Promise<void> {
+    if (this.isInitialized) {
+      await setOptOut(optOut);
+    }
+  }
+
+  /**
+   * Amplitude SDK hook. `client.setOptOut()` fans this out through the plugin timeline.
+   */
+  async onOptOutChanged(optOut: boolean): Promise<void> {
+    await this.setOptOut(optOut);
+  }
+
   async teardown(): Promise<void> {
     if (this.isInitialized) {
-      await stop();
+      await teardown();
     }
 
     this.config = null;
     this.isInitialized = false;
-  }
-
-  /**
-   * Get session replay properties for manual event correlation.
-   * When you send events to Amplitude, call this method to get the most up-to-date session replay properties for the event.
-   *
-   * @returns Promise that resolves to an object containing session replay metadata
-   *
-   * @example
-   * ```typescript
-   * const sessionReplayProperties = await plugin.getSessionReplayProperties();
-   * analytics.track('Button Clicked', {
-   *   buttonName: 'submit',
-   *   ...sessionReplayProperties
-   * });
-   * ```
-   */
-  async getSessionReplayProperties() {
-    if (!this.isInitialized) {
-      return {};
-    }
-    return getSessionReplayProperties();
   }
 }

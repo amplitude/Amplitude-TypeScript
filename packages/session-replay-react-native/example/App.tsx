@@ -39,9 +39,10 @@ import {
   stop,
   flush,
   getSessionId,
-  getSessionReplayProperties,
   setSessionId,
   setDeviceId,
+  setOptOut,
+  teardown,
   AmpMaskView,
 } from '@amplitude/session-replay-react-native';
 
@@ -92,18 +93,18 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           enableRemoteConfig: false,
           logLevel: 4,
         });
+        await start();
         const sessionId = await getSessionId();
-        const props = await getSessionReplayProperties();
         log('init() resolved deviceId=' + verificationDeviceId);
+        log('start() resolved');
         log('getSessionId() -> ' + String(sessionId));
-        log('getSessionReplayProperties() -> ' + JSON.stringify(props));
 
         // init() swallows native setup failures and resolves without throwing;
         // verify the module is actually live before showing success.
-        if (sessionId === null || Object.keys(props).length === 0) {
+        if (sessionId === null) {
           log(
             'ERROR: init() resolved but Session Replay is not initialized ' +
-              `(sessionId=${String(sessionId)}, props=${JSON.stringify(props)})`,
+              `(sessionId=${String(sessionId)})`,
           );
           setOk(false);
         } else {
@@ -165,9 +166,14 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
             onPress={runFn('getSessionId', getSessionId)}
           />
           <Button
-            title="getProps"
-            onPress={runFn('getSessionReplayProperties', getSessionReplayProperties)}
+            title="optOut true"
+            onPress={runFn('setOptOut(true)', () => setOptOut(true))}
           />
+          <Button
+            title="optOut false"
+            onPress={runFn('setOptOut(false)', () => setOptOut(false))}
+          />
+          <Button title="teardown" onPress={runFn('teardown', teardown)} />
         </View>
 
         <Text style={styles.heading}>Navigate</Text>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dead Click Scroll Flick Test</title>
+    <style>
+      :root {
+        color: #26222c;
+        background: #f7f5f8;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      .test-guide {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        padding: 12px 16px;
+        border-bottom: 1px solid #dcd5e0;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 2px 10px rgba(36, 25, 42, 0.08);
+      }
+
+      .test-guide h1 {
+        margin: 0 0 6px;
+        font-size: 17px;
+      }
+
+      .test-guide p {
+        margin: 3px 0;
+        color: #625a69;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .event-status {
+        margin-top: 9px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: #f0ebf3;
+        color: #4d315c;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+
+      .wrapper {
+        max-width: 760px;
+        margin: 0 auto;
+        background: #fff;
+      }
+
+      .contents-main-upper {
+        padding: 18px 14px 80px;
+      }
+
+      .section-title {
+        margin: 0 0 14px;
+        font-size: 20px;
+      }
+
+      .list-products-01 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .box-link {
+        display: block;
+        min-height: 320px;
+        color: inherit;
+        text-decoration: none;
+        touch-action: pan-y;
+        -webkit-tap-highlight-color: rgba(100, 64, 120, 0.12);
+      }
+
+      .box-image {
+        display: grid;
+        height: 244px;
+        margin: 0;
+        place-items: center;
+        overflow: hidden;
+        border-radius: 3px;
+        background: linear-gradient(145deg, var(--card-color), #eee7f1);
+      }
+
+      .product-shape {
+        width: 64%;
+        height: 72%;
+        border-radius: 42% 42% 16% 16%;
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow: 0 14px 30px rgba(49, 34, 58, 0.14);
+        transform: rotate(var(--tilt));
+      }
+
+      .txt-name {
+        margin: 8px 0 3px;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .txt-price {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .tag {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 2px 5px;
+        background: #d89bb7;
+        color: #fff;
+        font-size: 10px;
+      }
+
+      @media (min-width: 680px) {
+        .list-products-01 {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="test-guide">
+      <h1>Dead-click scroll-flick reproduction</h1>
+      <p>
+        <strong>Scroll test:</strong> start a vertical flick on any product card. No dead-click event should appear.
+      </p>
+      <p>
+        <strong>Control:</strong> tap a card without moving. A dead-click event should appear after about 3 seconds.
+      </p>
+      <p><strong>Rage control:</strong> rapidly tap the same card at least four times.</p>
+      <div id="event-status" class="event-status">No frustration events captured.</div>
+    </aside>
+
+    <div class="wrapper">
+      <main>
+        <div class="contents-main-upper">
+          <div class="sec-cmn-02">
+            <h2 class="section-title">Product list</h2>
+            <div class="mod-product-view-tab js-product-view-tab">
+              <ul id="product-list" class="list-products-01 col-sp-02"></ul>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+
+      const productList = document.getElementById('product-list');
+      const eventStatus = document.getElementById('event-status');
+      const colors = ['#c8d7cd', '#e7c8cb', '#c9c7dd', '#ddd1bd', '#bfcfd9', '#d8c6d9'];
+
+      for (let index = 1; index <= 30; index += 1) {
+        const item = document.createElement('li');
+        item.innerHTML = `
+          <div class="card-product-01">
+            <a class="box-link" href="#product-${index}" style="--card-color: ${
+          colors[index % colors.length]
+        }; --tilt: ${index % 2 ? '-4deg' : '4deg'}">
+              <figure class="box-image"><span class="product-shape"></span></figure>
+              <p class="txt-name">Sample product ${String(index).padStart(2, '0')}</p>
+              <p class="txt-price">$${(24 + index).toFixed(2)}</p>
+              <span class="tag">NEW</span>
+            </a>
+          </div>
+        `;
+        productList.appendChild(item);
+      }
+
+      // A stationary tap intentionally has no effect, making it a dead-click control.
+      // Preventing navigation does not mutate the DOM and therefore does not cancel detection.
+      productList.addEventListener('click', (event) => event.preventDefault());
+
+      let deadClickCount = 0;
+      let rageClickCount = 0;
+      const inspectorPlugin = {
+        name: 'dead-click-scroll-flick-inspector',
+        type: 'enrichment',
+        setup: async () => {},
+        execute: async (event) => {
+          if (event.event_type === '[Amplitude] Dead Click') {
+            deadClickCount += 1;
+          }
+          if (event.event_type === '[Amplitude] Rage Click') {
+            rageClickCount += 1;
+          }
+          if (event.event_type === '[Amplitude] Dead Click' || event.event_type === '[Amplitude] Rage Click') {
+            const properties = event.event_properties ?? {};
+            eventStatus.textContent = `Dead clicks: ${deadClickCount} | Rage clicks: ${rageClickCount} | last: ${event.event_type} | tag: ${properties['[Amplitude] Element Tag']}`;
+          }
+          return event;
+        },
+      };
+
+      window.amplitude = amplitude;
+      amplitude.add(inspectorPlugin);
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY || 'dead-click-local-test',
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'dead-click-scroll-flick-test-user',
+        {
+          logLevel: 'debug',
+          autocapture: {
+            frustrationInteractions: {
+              deadClicks: true,
+              rageClicks: true,
+              errorClicks: false,
+              thrashedCursor: false,
+            },
+          },
+        },
+      );
+    </script>
+  </body>
+</html>

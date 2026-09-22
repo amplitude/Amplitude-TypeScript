@@ -35,7 +35,7 @@ const integrity = algorithm + '-' + crypto.createHash(algorithm).update(inputTex
 const version = getVersion() || '';
 const outputText = header + snippet(getName() + nameSuffix, integrity, version, globalVar);
 const { code: transpiledOutputText } = babel.transformSync(outputText, {
-  presets: ['env'],
+  presets: ['@babel/preset-env'],
 });
 
 // Write to disk

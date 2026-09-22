@@ -1,0 +1,18 @@
+appId: org.reactjs.native.example.app
+---
+# Keep this assertion aligned with the guide published in gs-mobile-sdk-test:
+# https://app.amplitude.com/guides-surveys/gs-mobile-sdk-test/guides/706964/102882/106125/build
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      text: "Unified React Native SDK"
+    timeout: 15000
+- tapOn:
+    id: "initialize-all-sdks"
+- extendedWaitUntil:
+    visible:
+      text: "Tap Element Nudge"
+    timeout: 60000
+- assertVisible:
+    text: "Tap Element Nudge"

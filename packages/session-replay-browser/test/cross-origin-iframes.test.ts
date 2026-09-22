@@ -20,13 +20,19 @@ describe('isInIframe', () => {
   });
 
   it('returns true when accessing window.parent throws (sandboxed environment)', () => {
-    Object.defineProperty(window, 'parent', {
-      get() {
+    const sandboxedScope = {
+      get parent(): Window {
         throw new Error('SecurityError');
       },
-      configurable: true,
-    });
-    expect(isInIframe()).toBe(true);
+    };
+    const spy = jest
+      .spyOn(AnalyticsCore, 'getGlobalScope')
+      .mockReturnValue(sandboxedScope as unknown as typeof globalThis);
+    try {
+      expect(isInIframe()).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('returns false when getGlobalScope() returns null (non-browser environment)', () => {

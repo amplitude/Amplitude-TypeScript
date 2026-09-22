@@ -956,4 +956,42 @@ describe('DiagnosticsClient', () => {
       expect(mockLogger.debug).toHaveBeenCalledWith('DiagnosticsClient: Should track is', false);
     });
   });
+
+  describe('injected storage', () => {
+    const createInjectedStorage = () =>
+      ({
+        setTags: jest.fn().mockResolvedValue(undefined),
+        incrementCounters: jest.fn().mockResolvedValue(undefined),
+        setHistogramStats: jest.fn().mockResolvedValue(undefined),
+        addEventRecords: jest.fn().mockResolvedValue(undefined),
+        setLastFlushTimestamp: jest.fn().mockResolvedValue(undefined),
+        getLastFlushTimestamp: jest.fn().mockResolvedValue(undefined),
+        getAllAndClear: jest.fn().mockResolvedValue({ tags: [], counters: [], histogramStats: [], events: [] }),
+      } as unknown as DiagnosticsStorage);
+
+    test('should use the injected storage instead of IndexedDB', () => {
+      const injected = createInjectedStorage();
+
+      const client = new DiagnosticsClient(apiKey, mockLogger, 'US', undefined, injected);
+
+      expect(client.storage).toBe(injected);
+      expect(DiagnosticsStorage).not.toHaveBeenCalled();
+    });
+
+    test('should use the injected storage even when IndexedDB is unsupported', () => {
+      (DiagnosticsStorage.isSupported as jest.Mock).mockReturnValue(false);
+      const injected = createInjectedStorage();
+
+      const client = new DiagnosticsClient(apiKey, mockLogger, 'US', undefined, injected);
+
+      expect(client.storage).toBe(injected);
+    });
+
+    test('should fall back to IndexedDB when no storage is injected', () => {
+      const client = new DiagnosticsClient(apiKey, mockLogger);
+
+      expect(client.storage).toBeDefined();
+      expect(DiagnosticsStorage).toHaveBeenCalledWith(apiKey, mockLogger);
+    });
+  });
 });

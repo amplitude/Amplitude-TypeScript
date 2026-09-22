@@ -142,6 +142,110 @@ describe('fileDownloadTracking', () => {
     });
   });
 
+  describe('malformed added nodes', () => {
+    const createLinkInWrapper = (id: string) => {
+      const link = document.createElement('a');
+      link.setAttribute('id', id);
+      link.setAttribute('href', `https://analytics.amplitude.com/files/${id}.pdf`);
+      link.text = `${id}-text`;
+
+      const wrapper = document.createElement('div');
+      wrapper.appendChild(link);
+
+      return { link, wrapper };
+    };
+
+    const expectedEventProperties = (id: string) => ({
+      [FILE_EXTENSION]: 'pdf',
+      [FILE_NAME]: `/files/${id}.pdf`,
+      [LINK_ID]: id,
+      [LINK_TEXT]: `${id}-text`,
+      [LINK_URL]: `https://analytics.amplitude.com/files/${id}.pdf`,
+    });
+
+    test('should track links added after a node whose querySelectorAll returns a nullish value', async () => {
+      // setup
+      const config = createConfigurationMock();
+      const plugin = fileDownloadTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      const early = createLinkInWrapper('early-link-id');
+      const late = createLinkInWrapper('late-link-id');
+
+      // simulate an environment that patches querySelectorAll to return a nullish value
+      const poisoned = document.createElement('div');
+      Object.defineProperty(poisoned, 'querySelectorAll', {
+        value: () => undefined,
+        configurable: true,
+      });
+
+      // append all three in a single mutation batch, with the poisoned node between the two links
+      document.body.append(early.wrapper, poisoned, late.wrapper);
+
+      // allow mutation observer to execute and event listeners to be attached
+      await new Promise((r) => r(undefined)); // basically, await next clock tick
+      early.link.dispatchEvent(new Event('click'));
+      late.link.dispatchEvent(new Event('click'));
+
+      // assert the link appended after the poisoned node was still registered
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] File Downloaded',
+        expectedEventProperties('early-link-id'),
+      );
+      expect(amplitude.track).toHaveBeenNthCalledWith(
+        2,
+        '[Amplitude] File Downloaded',
+        expectedEventProperties('late-link-id'),
+      );
+
+      await plugin.teardown?.();
+      [early.wrapper, poisoned, late.wrapper].forEach((node) => node.remove());
+    });
+
+    test('should log a warning and track links added after a node whose querySelectorAll throws', async () => {
+      // setup
+      const config = createConfigurationMock();
+      const warnSpy = jest.spyOn(config.loggerProvider, 'warn');
+      const plugin = fileDownloadTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      const late = createLinkInWrapper('late-link-id');
+
+      const throwing = document.createElement('div');
+      Object.defineProperty(throwing, 'querySelectorAll', {
+        value: () => {
+          throw new TypeError('querySelectorAll is not available');
+        },
+        configurable: true,
+      });
+
+      // append both in a single mutation batch, with the throwing node first
+      document.body.append(throwing, late.wrapper);
+
+      // allow mutation observer to execute and event listeners to be attached
+      await new Promise((r) => r(undefined)); // basically, await next clock tick
+      late.link.dispatchEvent(new Event('click'));
+
+      // assert the failure was logged rather than escaping the observer callback
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to track file downloads for an added node'));
+
+      // assert the link appended after the throwing node was still registered
+      expect(amplitude.track).toHaveBeenCalledTimes(1);
+      expect(amplitude.track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] File Downloaded',
+        expectedEventProperties('late-link-id'),
+      );
+
+      await plugin.teardown?.();
+      [throwing, late.wrapper].forEach((node) => node.remove());
+    });
+  });
+
   test('should track file download event when the plugin is added after window load', async () => {
     // setup
     document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.pdf');
