@@ -36,6 +36,12 @@ const limits = [
     limit: '7kb',
     brotli: false,
   },
+  {
+    name: '@amplitude/analytics-browser-core (gzipped esm)',
+    path: './packages/analytics-browser/lib/esm/browser-client-core.js',
+    limit: '25kb',
+    brotli: false,
+  }
 ]
 
 module.exports = limits;
