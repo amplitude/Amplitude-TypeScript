@@ -178,13 +178,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Step 2.3: Initialize diagnostics client as early as possible
     // Now we have the sample rate from remote config (if fetched)
-    const diagnosticsClient = await remoteConfigAdapter?.getDiagnosticsClient(
-      options,
-      loggerProvider,
+    const diagnosticsClient =
+      (await remoteConfigAdapter?.getDiagnosticsClient(
+        options,
+        loggerProvider,
         serverZone,
         enableDiagnostics,
         diagnosticsSampleRate,
-      ) ?? undefined;
+      )) ?? undefined;
 
     // Step 2.4: Create browser config with diagnosticsClient and earlyConfig
     // earlyConfig ensures consistent logger/serverZone/diagnostics settings across all components
@@ -425,8 +426,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Fire web attribution event when enable webAttribution tracking
     // 1. has new campaign (call setSessionId from init function)
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
+    // Reserve the id before the call: `?.` skips argument evaluation when the adapter is null.
+    const campaignEventId = ++lastEventId;
     const isCampaignEventTracked =
-      this.attributionAdapter()?.trackCampaignEventIfNeeded(++lastEventId, promises) ?? false;
+      this.attributionAdapter()?.trackCampaignEventIfNeeded(campaignEventId, promises) ?? false;
 
     // track the identify event if an Identify object is provided in the config
     if (this.config.identify) {
