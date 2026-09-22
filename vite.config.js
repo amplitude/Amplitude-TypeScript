@@ -5,9 +5,11 @@ import path from 'path';
 import fs from 'fs';
 import glob from 'fast-glob';
 import { createMockApi } from './test-server/mock-api.js';
+import { createExtensionArchive } from './test-server/extension-archive.js';
 
 const packagesDir = path.resolve(__dirname, 'packages');
 const testServerDir = path.resolve(__dirname, 'test-server');
+const extensionDir = path.resolve(testServerDir, 'configurator-extension');
 
 const ignorePkg = (pkgName) => {
   return pkgName.startsWith('.') ||
@@ -160,5 +162,7 @@ export default defineConfig({
     fileListingPlugin(),
     spaRoutingPlugin(),
     createMockApi(),
+    // Offers the configurator's runner extension as a download, since it isn't in the Chrome Web Store.
+    createExtensionArchive(extensionDir),
   ],
 });
