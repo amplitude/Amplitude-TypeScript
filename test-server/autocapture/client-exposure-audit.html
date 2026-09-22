@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client exposure audit fixture</title>
+  </head>
+  <body>
+    <button id="client-widget-a1b2c3d4" type="button">First tracked control</button>
+    <button id="client-widget-e5f6a7b8" type="button">Second tracked control</button>
+    <div id="custom-control" role="button" tabindex="0">Custom control</div>
+    <div id="status">loading</div>
+
+    <script type="module">
+      import * as audit from '@amplitude/plugin-autocapture-browser/e2e/client-exposure-audit.browser';
+
+      window.AmplitudeExposureAudit = audit;
+      audit.install();
+      document.getElementById('status').textContent = 'ready';
+    </script>
+  </body>
+</html>
