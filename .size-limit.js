@@ -36,6 +36,15 @@ const limits = [
     limit: '7kb',
     brotli: false,
   },
+  {
+    // analytics-browser-core bundle
+    name: '@amplitude/analytics-browser-core (gzipped esm)',
+    path: './packages/analytics-browser/lib/esm/browser-client-core.js',
+    // This is a very strict limit. This bundle should rarely have features added to it.
+    // Features are what gets added to the browser-client bundle.
+    limit: '20kb',
+    brotli: false,
+  }
 ]
 
 module.exports = limits;
