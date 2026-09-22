@@ -497,7 +497,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin();
       await sessionReplay.onSessionIdChanged?.(456);
 
-      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(setSessionId).not.toHaveBeenCalled();
       expect(mockLoggerProviderDebug).not.toHaveBeenCalled();
     });
   });
@@ -844,6 +844,134 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
       sessionReplay.stop();
+      expect(stop).toHaveBeenCalled();
+    });
+  });
+
+  describe('deferInitUntilPageLoad', () => {
+    const mockLoadingWindow = () => {
+      const listeners: Record<string, EventListener> = {};
+      const mockWindow = {
+        document: { readyState: 'loading' },
+        addEventListener: jest.fn((event: string, cb: EventListener) => {
+          listeners[event] = cb;
+        }),
+      } as unknown as typeof globalThis;
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockWindow);
+      return { listeners, mockWindow };
+    };
+
+    const fireLoad = async (listeners: Record<string, EventListener>) => {
+      listeners['load']?.(new Event('load'));
+      await Promise.resolve();
+      await Promise.resolve();
+    };
+
+    test('should not init until the page load event when the page is still loading', async () => {
+      const { listeners } = mockLoadingWindow();
+      const sessionReplay = new SessionReplayPlugin({
+        deferInitUntilPageLoad: true,
+        sampleRate: 0.01,
+      });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).not.toHaveBeenCalled();
+      const event = {
+        event_type: 'event_type',
+        session_id: 123,
+      };
+      expect(await sessionReplay.execute?.(event)).toEqual(event);
+      expect(sessionReplay.getSessionReplayProperties()).toEqual({});
+
+      await fireLoad(listeners);
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({
+          sampleRate: 0.01,
+          sessionId: 123,
+        }),
+      );
+    });
+
+    test('should apply session id changes that happen before deferred init', async () => {
+      const { listeners } = mockLoadingWindow();
+      const sessionReplay = new SessionReplayPlugin({
+        deferInitUntilPageLoad: true,
+        sampleRate: 0.5,
+      });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      await sessionReplay.onSessionIdChanged?.(456);
+      expect(setSessionId).not.toHaveBeenCalled();
+
+      await fireLoad(listeners);
+
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({
+          sampleRate: 0.5,
+          sessionId: 456,
+        }),
+      );
+    });
+
+    test('should not init after teardown if load fires later', async () => {
+      const { listeners } = mockLoadingWindow();
+      const sessionReplay = new SessionReplayPlugin({ deferInitUntilPageLoad: true });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      await sessionReplay.teardown?.();
+      await fireLoad(listeners);
+
+      expect(init).not.toHaveBeenCalled();
+      expect(shutdown).not.toHaveBeenCalled();
+    });
+
+    test('should init immediately when the page is already loaded', async () => {
+      const sessionReplay = new SessionReplayPlugin({
+        deferInitUntilPageLoad: true,
+        sampleRate: 0.2,
+      });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({
+          sampleRate: 0.2,
+        }),
+      );
+    });
+
+    test('should wait for deferred init before start()', async () => {
+      const { listeners } = mockLoadingWindow();
+      const sessionReplay = new SessionReplayPlugin({ deferInitUntilPageLoad: true });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      const startPromise = sessionReplay.start();
+      expect(start).not.toHaveBeenCalled();
+
+      await fireLoad(listeners);
+      await startPromise;
+
+      expect(init).toHaveBeenCalled();
+      expect(start).toHaveBeenCalled();
+    });
+
+    test('should apply stop() called before deferred init', async () => {
+      const { listeners } = mockLoadingWindow();
+      const sessionReplay = new SessionReplayPlugin({ deferInitUntilPageLoad: true });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      sessionReplay.stop();
+      expect(stop).not.toHaveBeenCalled();
+
+      await fireLoad(listeners);
+
+      expect(init).toHaveBeenCalled();
       expect(stop).toHaveBeenCalled();
     });
   });

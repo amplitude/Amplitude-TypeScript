@@ -1,5 +1,6 @@
-import { parseUserProperties } from '../src/helpers';
+import { parseUserProperties, waitForPageLoad } from '../src/helpers';
 import { Event, IdentifyOperation } from '@amplitude/analytics-types';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 
 describe('Plugin Helpers', () => {
   describe('parseUserProperties', () => {
@@ -184,6 +185,47 @@ describe('Plugin Helpers', () => {
 
       const result = parseUserProperties(event);
       expect(result).toEqual({});
+    });
+  });
+
+  describe('waitForPageLoad', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test('should resolve immediately when there is no document', async () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+      await expect(waitForPageLoad()).resolves.toBeUndefined();
+    });
+
+    test('should resolve immediately when the document is already complete', async () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        document: { readyState: 'complete' },
+        addEventListener: jest.fn(),
+      } as unknown as typeof globalThis);
+
+      await expect(waitForPageLoad()).resolves.toBeUndefined();
+    });
+
+    test('should wait for the load event when the document is still loading', async () => {
+      const addEventListener = jest.fn();
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        document: { readyState: 'loading' },
+        addEventListener,
+      } as unknown as typeof globalThis);
+
+      let resolved = false;
+      const pending = waitForPageLoad().then(() => {
+        resolved = true;
+      });
+
+      expect(resolved).toBe(false);
+      expect(addEventListener).toHaveBeenCalledWith('load', expect.any(Function), { once: true });
+
+      const loadListener = addEventListener.mock.calls[0][1] as () => void;
+      loadListener();
+      await pending;
+      expect(resolved).toBe(true);
     });
   });
 });

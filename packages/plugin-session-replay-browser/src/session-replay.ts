@@ -20,7 +20,7 @@ import {
   AmplitudeSessionReplay,
   SessionReplayOptions as SessionReplayBrowserOptions,
 } from '@amplitude/session-replay-browser';
-import { parseUserProperties } from './helpers';
+import { parseUserProperties, waitForPageLoad } from './helpers';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';
 
@@ -47,6 +47,10 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
     shutdown: shutdown,
     evaluateTargetingAndCapture: evaluateTargetingAndCapture,
   };
+  private didInit = false;
+  private initPromise: Promise<void> | null = null;
+  private pendingStop = false;
+  private cancelled = false;
 
   constructor(options?: SessionReplayOptions) {
     this.options = { forceSessionTracking: false, ...options };
@@ -59,6 +63,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
       config?.loggerProvider.log(`Installing @amplitude/plugin-session-replay, version ${VERSION}.`);
 
       this.config = config;
+      this.cancelled = false;
 
       if (this.options.forceSessionTracking) {
         if (typeof config.defaultTracking === 'boolean') {
@@ -123,14 +128,59 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         handleFetchConfig: this.options.handleFetchConfig,
       };
 
-      await this.sessionReplay.init(config.apiKey, this.srInitOptions).promise;
+      if (this.options.deferInitUntilPageLoad) {
+        // Return immediately so amplitude.add() / initAll() are not blocked on page load.
+        this.initPromise = this.deferInitUntilPageLoad();
+        return;
+      }
+
+      await this.initSessionReplay();
     } catch (error) {
       /* istanbul ignore next */
       config?.loggerProvider.error(`Session Replay: Failed to initialize due to ${(error as Error).message}`);
     }
   }
 
+  private async deferInitUntilPageLoad(): Promise<void> {
+    try {
+      await waitForPageLoad();
+      if (this.cancelled || this.config == null) {
+        return;
+      }
+      await this.initSessionReplay();
+    } catch (error) {
+      /* istanbul ignore next */
+      this.config?.loggerProvider.error(`Session Replay: Failed to initialize due to ${(error as Error).message}`);
+    }
+  }
+
+  private async initSessionReplay(): Promise<void> {
+    if (this.cancelled || this.config == null || this.didInit) {
+      return;
+    }
+    await this.sessionReplay.init(this.config.apiKey, this.srInitOptions).promise;
+    this.didInit = true;
+    if (this.pendingStop) {
+      this.sessionReplay.stop();
+    }
+  }
+
+  private async ensureInit(): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+    }
+  }
+
   async onSessionIdChanged(sessionId: number): Promise<void> {
+    if (!this.options.customSessionId) {
+      this.srInitOptions = { ...this.srInitOptions, sessionId };
+    }
+    if (!this.didInit) {
+      this.config?.loggerProvider.debug(
+        `Analytics session id is changed to ${sessionId} before Session Replay init; applying at init.`,
+      );
+      return;
+    }
     this.config?.loggerProvider.debug(
       `Analytics session id is changed to ${sessionId}, SR session id is ${String(this.sessionReplay.getSessionId())}.`,
     );
@@ -146,14 +196,22 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
     // TODO: compare optOut with this.sessionReplay.getOptOut().
     // Need to add getOptOut() to the interface AmplitudeSessionReplay first.
     if (optOut) {
-      this.sessionReplay.shutdown();
+      if (this.didInit) {
+        this.sessionReplay.shutdown();
+      }
+      this.pendingStop = true;
     } else {
+      this.pendingStop = false;
       this.config != null && (await this.sessionReplay.init(this.config.apiKey, this.srInitOptions).promise);
+      this.didInit = true;
     }
   }
 
   async execute(event: Event) {
     try {
+      if (!this.didInit) {
+        return Promise.resolve(event);
+      }
       if (this.options.customSessionId) {
         const sessionId = this.options.customSessionId(event);
         if (sessionId) {
@@ -213,12 +271,12 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
 
   async teardown(): Promise<void> {
     try {
-      this.sessionReplay.shutdown();
-      // the following are initialized in setup() which will always be called first
-      // here we reset them to null to prevent memory leaks
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
+      this.cancelled = true;
       this.config = null;
+      if (this.didInit) {
+        this.sessionReplay.shutdown();
+      }
+      this.didInit = false;
     } catch (error) {
       /* istanbul ignore next */
       this.config?.loggerProvider.error(`Session Replay: teardown failed due to ${(error as Error).message}`);
@@ -226,6 +284,9 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   }
 
   getSessionReplayProperties() {
+    if (!this.didInit) {
+      return {};
+    }
     return this.sessionReplay.getSessionReplayProperties();
   }
 
@@ -234,6 +295,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
    * Recording still respects sample rate, targeting, opt-out, and remote capture flags.
    */
   async start() {
+    this.pendingStop = false;
+    await this.ensureInit();
+    if (!this.didInit) {
+      return;
+    }
     await this.sessionReplay.start().promise;
   }
 
@@ -242,6 +308,10 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
    * Call {@link SessionReplayPlugin.start} to resume. Plugin teardown still uses shutdown.
    */
   stop() {
+    this.pendingStop = true;
+    if (!this.didInit) {
+      return;
+    }
     this.sessionReplay.stop();
   }
 }

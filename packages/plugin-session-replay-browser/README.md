@@ -54,6 +54,7 @@ const sessionReplayTracking = sessionReplayPlugin({
 |Name|Type|Default|Required|Description|
 |-|-|-|-|-|
 |`sampleRate`|`number`|`undefined`|Yes|Use this option to control how many sessions will be selected for replay collection. A selected session will be collected for replay, while sessions that are not selected will not.  <br></br>The number should be a decimal between 0 and 1, ie `0.01`, representing the fraction of sessions you would like to have randomly selected for replay collection. Over a large number of sessions, `0.01` would select `1%` of those sessions.|
+|`deferInitUntilPageLoad`|`boolean`|`false`|No|When `true`, plugin setup returns immediately and Session Replay `init()` runs after the window `load` event. Sampling is unchanged: the same `sessionId` is hashed against `sampleRate` (and remote config) once init runs. Activity before load is not captured. See [Deferring init until page load](#deferring-init-until-page-load).|
 |`privacyConfig`|`object`|`undefined`|No| Supports advanced masking configs with CSS selectors.|
 |`forceSessionTracking`|`boolean`|`false`|No|If this is enabled we will force the browser SDK to also send start and end session events.|
 |`debugMode`|`boolean`|`false`|No| Adds additional debug event property to help debug instrumentation issues (such as mismatching apps). Only recommended for debugging initial setup, and not recommended for production.|
@@ -89,6 +90,33 @@ sessionReplayTracking.stop();
 // Resume capture
 await sessionReplayTracking.start();
 ```
+
+### Deferring init until page load
+
+To keep Session Replay off the critical path, set `deferInitUntilPageLoad: true`. The plugin still registers immediately (`amplitude.add()` does not wait), and `init()` runs after `window` `load`.
+
+```typescript
+const sessionReplayTracking = sessionReplayPlugin({
+  sampleRate: 0.01,
+  deferInitUntilPageLoad: true,
+});
+amplitude.add(sessionReplayTracking);
+```
+
+To also keep the plugin out of the main JS bundle, dynamically import it after load instead of using the option:
+
+```typescript
+window.addEventListener('load', async () => {
+  const { sessionReplayPlugin } = await import('@amplitude/plugin-session-replay-browser');
+  amplitude.add(sessionReplayPlugin({ sampleRate: 0.01 }));
+});
+```
+
+**Does this affect sample rate?** No. Sampling is a deterministic hash of the analytics `sessionId` against `sampleRate` (remote config wins when present). Deferring init does not change which sessions are selected among those that reach init.
+
+Do **not** locally pre-sample (for example `Math.random() < 0.01`) before loading the plugin. That stacks with SDK/remote sampling and blocks remote sample-rate increases without a deploy. Load the plugin for all users and keep using `sampleRate` / remote config. Unsampled sessions skip rrweb capture after init.
+
+Trade-offs: activity before `load` is missing from the replay, and sessions that bounce before `load` are never captured. That reduces coverage of very short sessions; it does not change the configured sample rate.
 
 ## Privacy
 By default, the session replay will mask all inputs, meaning the text in inputs will appear in a session replay as asterisks: `***`. You may require more specific masking controls based on your use case, so we offer the following controls:

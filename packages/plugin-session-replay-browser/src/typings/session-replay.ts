@@ -101,6 +101,18 @@ export interface SessionReplayOptions {
    */
   sampleRate?: number;
   /**
+   * When true, plugin setup returns immediately and Session Replay `init()` runs after the
+   * window `load` event. Sampling is unchanged: the same `sessionId` is hashed against
+   * `sampleRate` (and remote config) once init runs. Activity before load is not captured.
+   *
+   * Do not locally pre-sample before adding the plugin. That stacks with SDK/remote
+   * sampling and prevents remote sample-rate increases without a deploy. Load the plugin
+   * for all users and keep using `sampleRate` / remote config.
+   *
+   * @defaultValue false
+   */
+  deferInitUntilPageLoad?: boolean;
+  /**
    * @see {@link StandaloneSessionReplayOptions.privacyConfig}
    */
   privacyConfig?: SessionReplayPrivacyConfig;
