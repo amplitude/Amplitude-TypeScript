@@ -40,7 +40,7 @@ import { FetchTransport } from './transports/fetch';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
-import { AmplitudeBrowser } from './browser-client';
+import { AmplitudeBrowser } from './browser-client-core';
 import { VERSION } from './version';
 import { getDomain, KNOWN_2LDS } from './attribution/helpers';
 
