@@ -27,6 +27,7 @@ export type WebVitalsMetricPayload = {
   id: string;
   timestamp: number;
   navigationStart: number;
+  navigationId?: number;
 };
 
 export type WebVitalsEventPayload = {

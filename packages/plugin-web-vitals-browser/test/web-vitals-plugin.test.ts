@@ -146,6 +146,7 @@ describe('webVitalsPlugin', () => {
       delta: 0,
       navigationType: 'navigate',
       id: 'test-id',
+      navigationId: 1,
       entries: [{ startTime: 0 }],
     };
 
@@ -185,6 +186,7 @@ describe('webVitalsPlugin', () => {
     expect(eventObject['[Amplitude] INP']).toMatchObject(expectedMetric);
     expect(eventObject['[Amplitude] CLS']).toMatchObject(expectedMetric);
     expect(eventObject['[Amplitude] TTFB']).toMatchObject(expectedMetric);
+    expect(eventObject['[Amplitude] LCP']).not.toHaveProperty('navigationId');
   });
 
   it('should stop listening for visibility changes after tracking', async () => {

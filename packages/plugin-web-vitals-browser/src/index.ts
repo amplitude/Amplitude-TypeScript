@@ -1,4 +1,4 @@
-import { WebVitalsOptions } from '@amplitude/analytics-core';
+import { WebVitalsOptions, getGlobalScope } from '@amplitude/analytics-core';
 import { webVitalsPlugin as createWebVitalsPlugin } from './web-vitals-plugin';
 import { webVitalsSoftNavPlugin } from './web-vitals-soft-nav-plugin';
 
@@ -6,7 +6,8 @@ export { VERSION } from './version';
 export { webVitalsSoftNavPlugin };
 
 const isSoftNavSupported = () => {
-  return 'PerformanceSoftNavigation' in window;
+  const globalScope = getGlobalScope();
+  return globalScope && 'PerformanceSoftNavigation' in globalScope;
 };
 
 /**

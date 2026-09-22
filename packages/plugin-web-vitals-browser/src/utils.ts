@@ -8,7 +8,7 @@ function getMetricStartTime(metric: Metric) {
 }
 
 export function processMetric(metric: Metric, isSoftNav = false): WebVitalsMetricPayload {
-  return {
+  const payload: WebVitalsMetricPayload = {
     value: metric.value,
     rating: metric.rating,
     delta: metric.delta,
@@ -19,4 +19,10 @@ export function processMetric(metric: Metric, isSoftNav = false): WebVitalsMetri
       ? Math.floor(performance.timeOrigin)
       : Math.floor(performance.timeOrigin + /* istanbul ignore next */ (metric.navigationStartTime || 0)),
   };
+
+  if (isSoftNav) {
+    payload.navigationId = metric.navigationId;
+  }
+
+  return payload;
 }

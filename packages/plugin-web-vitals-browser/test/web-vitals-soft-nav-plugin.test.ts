@@ -116,16 +116,17 @@ describe('webVitalsSoftNavPlugin', () => {
 
   const setSoftNavSupported = (supported: boolean) => {
     if (supported) {
-      Object.defineProperty(window, 'PerformanceSoftNavigation', {
-        value: function PerformanceSoftNavigation() {
+      (getGlobalScope as jest.Mock).mockReturnValue({
+        ...mockGlobalScope,
+        PerformanceSoftNavigation: function PerformanceSoftNavigation() {
           /* noop */
         },
-        configurable: true,
       });
-      return;
+    } else {
+      (getGlobalScope as jest.Mock).mockReturnValue({
+        ...mockGlobalScope,
+      });
     }
-
-    delete (window as Window & { PerformanceSoftNavigation?: unknown }).PerformanceSoftNavigation;
   };
 
   it('should be used when reportSoftNav is enabled and soft navigation is supported', async () => {
@@ -194,6 +195,7 @@ describe('webVitalsSoftNavPlugin', () => {
     const [, eventObject] = (amplitude.track as jest.Mock).mock.calls[0];
     expect(eventObject['[Amplitude] LCP']).toMatchObject({
       navigationType: 'soft-navigation',
+      navigationId: 4,
       // performance.timeOrigin (1000) + navigationStartTime (500)
       navigationStart: 1500,
     });
