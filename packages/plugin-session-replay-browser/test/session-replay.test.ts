@@ -500,6 +500,17 @@ describe('SessionReplayPlugin', () => {
       expect(setSessionId).not.toHaveBeenCalled();
       expect(mockLoggerProviderDebug).not.toHaveBeenCalled();
     });
+
+    test('should handle session id change after config is cleared', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      getSessionId.mockReturnValueOnce(123);
+      await sessionReplay.setup?.({ ...mockConfig }, mockAmplitude);
+      sessionReplay.config = null;
+
+      await sessionReplay.onSessionIdChanged?.(456);
+
+      expect(setSessionId).toHaveBeenCalledWith(456);
+    });
   });
 
   describe('onOptOutChanged', () => {
@@ -795,6 +806,23 @@ describe('SessionReplayPlugin', () => {
       expect(enrichedEvent).toEqual(event);
       expect(setSessionId).not.toHaveBeenCalled();
     });
+
+    test('should skip enrichment when config is cleared after init', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup?.({ ...mockConfig }, mockAmplitude);
+      sessionReplay.config = null;
+      const event = {
+        event_type: 'event_type',
+        event_properties: {
+          property_a: true,
+        },
+        session_id: 123,
+      };
+
+      const enrichedEvent = await sessionReplay.execute?.(event);
+      expect(enrichedEvent).toEqual(event);
+      expect(setSessionId).not.toHaveBeenCalled();
+    });
   });
 
   describe('teardown', () => {
@@ -968,6 +996,53 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
       sessionReplay.stop();
       expect(stop).not.toHaveBeenCalled();
+
+      await fireLoad(listeners);
+
+      expect(init).toHaveBeenCalled();
+      expect(stop).toHaveBeenCalled();
+    });
+
+    test('should no-op start() if teardown happens before page load', async () => {
+      const { listeners } = mockLoadingWindow();
+      const sessionReplay = new SessionReplayPlugin({ deferInitUntilPageLoad: true });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      await sessionReplay.teardown?.();
+      const startPromise = sessionReplay.start();
+      await fireLoad(listeners);
+      await startPromise;
+
+      expect(init).not.toHaveBeenCalled();
+      expect(start).not.toHaveBeenCalled();
+    });
+
+    test('should not overwrite custom session id while waiting for page load', async () => {
+      const { listeners } = mockLoadingWindow();
+      const sessionReplay = new SessionReplayPlugin({
+        deferInitUntilPageLoad: true,
+        customSessionId: () => 'custom',
+      });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      await sessionReplay.onSessionIdChanged?.(456);
+      await fireLoad(listeners);
+
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({
+          sessionId: undefined,
+        }),
+      );
+    });
+
+    test('should not shutdown before deferred init when opting out', async () => {
+      const { listeners } = mockLoadingWindow();
+      const sessionReplay = new SessionReplayPlugin({ deferInitUntilPageLoad: true });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      await sessionReplay.onOptOutChanged?.(true);
+      expect(shutdown).not.toHaveBeenCalled();
 
       await fireLoad(listeners);
 

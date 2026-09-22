@@ -144,9 +144,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   private async deferInitUntilPageLoad(): Promise<void> {
     try {
       await waitForPageLoad();
-      if (this.cancelled || this.config == null) {
-        return;
-      }
       await this.initSessionReplay();
     } catch (error) {
       /* istanbul ignore next */
@@ -272,11 +269,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   async teardown(): Promise<void> {
     try {
       this.cancelled = true;
-      this.config = null;
       if (this.didInit) {
         this.sessionReplay.shutdown();
       }
       this.didInit = false;
+      this.config = null;
     } catch (error) {
       /* istanbul ignore next */
       this.config?.loggerProvider.error(`Session Replay: teardown failed due to ${(error as Error).message}`);
