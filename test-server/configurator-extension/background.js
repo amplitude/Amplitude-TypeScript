@@ -177,13 +177,12 @@ function clearStoredSession(prefixes) {
     removed.push(`cookie ${name}`);
   }
 
-  for (const [label, store] of [
-    ['localStorage', localStorage],
-    ['sessionStorage', sessionStorage],
-  ]) {
+  for (const label of ['localStorage', 'sessionStorage']) {
     // Reading either throws outright where the site's cookie policy forbids it, which says nothing about
-    // the other or about the cookies above.
+    // the other or about the cookies above. The lookup itself has to sit inside the try: the getter throws
+    // before the loop body when storage is blocked.
     try {
+      const store = window[label];
       for (const key of Object.keys(store).filter(isAmplitude)) {
         store.removeItem(key);
         removed.push(`${label} ${key}`);
