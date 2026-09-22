@@ -6,6 +6,7 @@ import {
   Revenue,
   UUID,
   getAnalyticsConnector,
+  getGlobalScope,
   setConnectorDeviceId,
   setConnectorUserId,
   isNewSession,
@@ -569,7 +570,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
           loggerProvider.debug(
             'Diagnostics remote configuration received:',
-            JSON.stringify(
+            safeJsonStringify(
               {
                 remoteConfig,
                 source,
@@ -613,7 +614,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
           browserOptions.loggerProvider?.debug(
             'Remote configuration received:',
-            JSON.stringify(
+            safeJsonStringify(
               {
                 remoteConfig,
                 source,
@@ -745,8 +746,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
     diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
     diagnosticsClient.setTag('web_environment', getRuntimeEnvironment());
-    if (typeof navigator !== 'undefined') {
-      diagnosticsClient.setTag('user_agent', navigator.userAgent);
+    const globalScope = getGlobalScope();
+    if (globalScope?.navigator) {
+      diagnosticsClient.setTag('user_agent', globalScope.navigator.userAgent);
     }
     return diagnosticsClient;
   }
