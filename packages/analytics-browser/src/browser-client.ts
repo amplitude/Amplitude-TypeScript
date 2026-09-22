@@ -145,6 +145,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // We want to create DiagnosticsClient as early as possible so it can track more data
     /* istanbul ignore next */
     if (fetchRemoteConfig) {
+      // Seed from caller settings so a missing or partial diagnostics payload
+      // keeps those values instead of the field defaults (0 and true).
+      this.diagnosticsSampleRate = diagnosticsSampleRate;
+      this.enableDiagnostics = enableDiagnostics;
       remoteConfigClient = await this.getRemoteConfigClient(options, loggerProvider, serverZone);
       diagnosticsSampleRate = this.diagnosticsSampleRate;
       enableDiagnostics = this.enableDiagnostics;
@@ -152,7 +156,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Step 2.3: Initialize diagnostics client as early as possible
     // Now we have the sample rate from remote config (if fetched)
-    const diagnosticsClient = await this.getDiagnosticsClient(options, loggerProvider, serverZone, enableDiagnostics, diagnosticsSampleRate);
+    const diagnosticsClient = await this.getDiagnosticsClient(
+      options,
+      loggerProvider,
+      serverZone,
+      enableDiagnostics,
+      diagnosticsSampleRate,
+    );
 
     // Step 2.4: Create browser config with diagnosticsClient and earlyConfig
     // earlyConfig ensures consistent logger/serverZone/diagnostics settings across all components
@@ -597,10 +607,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     return remoteConfigClient;
   }
 
-  protected async fetchRemoteConfig(
-    remoteConfigClient: IRemoteConfigClient,
-    browserOptions: BrowserConfig,
-  ) {
+  protected async fetchRemoteConfig(remoteConfigClient: IRemoteConfigClient, browserOptions: BrowserConfig) {
     await new Promise<void>((resolve) => {
       // Disable coverage for this line because remote config client will always be defined in this case.
       // istanbul ignore next
