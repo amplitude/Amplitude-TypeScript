@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.36-video-analytics-5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.35...@amplitude/unified@1.1.36-video-analytics-5.0) (2026-09-22)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 ## [1.1.35](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.34...@amplitude/unified@1.1.35) (2026-09-21)
 
 **Note:** Version bump only for package @amplitude/unified

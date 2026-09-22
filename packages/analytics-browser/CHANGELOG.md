@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.47.0-video-analytics-5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.46.0...@amplitude/analytics-browser@2.47.0-video-analytics-5.0) (2026-09-22)
+
+
+### Bug Fixes
+
+* add error handling to video element ([#1981](https://github.com/amplitude/Amplitude-TypeScript/issues/1981)) ([f880e75](https://github.com/amplitude/Amplitude-TypeScript/commit/f880e7555eac43545ff12f71138e847c2cc3cde1))
+* **analytics-browser:** rename Video events to align with new standards ([#1971](https://github.com/amplitude/Amplitude-TypeScript/issues/1971)) ([5728a20](https://github.com/amplitude/Amplitude-TypeScript/commit/5728a2024068b3aaab486475a50cf996e046dc8a))
+* fix infinite calculation ([#1978](https://github.com/amplitude/Amplitude-TypeScript/issues/1978)) ([ff5bcd9](https://github.com/amplitude/Amplitude-TypeScript/commit/ff5bcd9728481bb31fec6f6c24f9135fc5542529))
+* move delayedEventsServerUrl to end of function params ([#1982](https://github.com/amplitude/Amplitude-TypeScript/issues/1982)) ([731e572](https://github.com/amplitude/Amplitude-TypeScript/commit/731e5721a5233d56ba7d4454a52bb36891d97ec7))
+* re-order delayedEventsServerUrl parsing ([#1976](https://github.com/amplitude/Amplitude-TypeScript/issues/1976)) ([ef8f403](https://github.com/amplitude/Amplitude-TypeScript/commit/ef8f403d3a686e1f58b84aa09ed1eb12632c94b0))
+* remove extra event_properties ([#1984](https://github.com/amplitude/Amplitude-TypeScript/issues/1984)) ([6f6458d](https://github.com/amplitude/Amplitude-TypeScript/commit/6f6458d35183e8563730494828e24d58c7edb3b8))
+* start_time ([#1980](https://github.com/amplitude/Amplitude-TypeScript/issues/1980)) ([dfba53f](https://github.com/amplitude/Amplitude-TypeScript/commit/dfba53f33a79fc5a55761999ae1b701a4acd0d84))
+* **video-analytics:** tweak taxonomy to match mobile ([#2006](https://github.com/amplitude/Amplitude-TypeScript/issues/2006)) ([75a61cc](https://github.com/amplitude/Amplitude-TypeScript/commit/75a61ccb24748d0605ce7e0a7df7d8211ed95683))
+
+
+### Features
+
+* **analytics-browser:** add heartbeat service to video tracker ([#1839](https://github.com/amplitude/Amplitude-TypeScript/issues/1839)) ([cecda1b](https://github.com/amplitude/Amplitude-TypeScript/commit/cecda1ba78e17ddb615e7a88d2b2e0fbc18ac03b))
+
+
+
+
+
 # [2.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.10...@amplitude/analytics-browser@2.46.0) (2026-09-21)
 
 

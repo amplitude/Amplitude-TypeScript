@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.58.0-video-analytics-5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.57.0...@amplitude/analytics-core@2.58.0-video-analytics-5.0) (2026-09-22)
+
+
+### Bug Fixes
+
+* add error handling to video element ([#1981](https://github.com/amplitude/Amplitude-TypeScript/issues/1981)) ([f880e75](https://github.com/amplitude/Amplitude-TypeScript/commit/f880e7555eac43545ff12f71138e847c2cc3cde1))
+* **analytics-browser:** rename Video events to align with new standards ([#1971](https://github.com/amplitude/Amplitude-TypeScript/issues/1971)) ([5728a20](https://github.com/amplitude/Amplitude-TypeScript/commit/5728a2024068b3aaab486475a50cf996e046dc8a))
+* fixes delayed events cleanup logic ([#1977](https://github.com/amplitude/Amplitude-TypeScript/issues/1977)) ([486e7b5](https://github.com/amplitude/Amplitude-TypeScript/commit/486e7b5549171e7399965aa3e91dee8836e4821c))
+* transpose pause and ended handlers ([#1986](https://github.com/amplitude/Amplitude-TypeScript/issues/1986)) ([bdea070](https://github.com/amplitude/Amplitude-TypeScript/commit/bdea070c490b141cba5c7379d809903631aa2931))
+* **video-analytics:** tweak taxonomy to match mobile ([#2006](https://github.com/amplitude/Amplitude-TypeScript/issues/2006)) ([75a61cc](https://github.com/amplitude/Amplitude-TypeScript/commit/75a61ccb24748d0605ce7e0a7df7d8211ed95683))
+
+
+### Features
+
+* **analytics-browser:** add heartbeat service to video tracker ([#1839](https://github.com/amplitude/Amplitude-TypeScript/issues/1839)) ([cecda1b](https://github.com/amplitude/Amplitude-TypeScript/commit/cecda1ba78e17ddb615e7a88d2b2e0fbc18ac03b))
+
+
+
+
+
 # [2.57.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.56.0...@amplitude/analytics-core@2.57.0) (2026-09-21)
 
 

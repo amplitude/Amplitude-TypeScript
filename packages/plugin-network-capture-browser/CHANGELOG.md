@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.10.17-video-analytics-5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.10.16...@amplitude/plugin-network-capture-browser@1.10.17-video-analytics-5.0) (2026-09-22)
+
+**Note:** Version bump only for package @amplitude/plugin-network-capture-browser
+
+
+
+
+
 ## [1.10.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.10.15...@amplitude/plugin-network-capture-browser@1.10.16) (2026-09-21)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

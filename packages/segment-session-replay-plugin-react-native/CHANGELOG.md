@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0-video-analytics-5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin-react-native@0.1.0-beta.2...@amplitude/segment-session-replay-plugin-react-native@0.1.0-video-analytics-5.0) (2026-09-22)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin-react-native
+
+
+
+
+
 # [0.1.0-beta.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin-react-native@0.1.0-beta.1...@amplitude/segment-session-replay-plugin-react-native@0.1.0-beta.2) (2026-09-16)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin-react-native
