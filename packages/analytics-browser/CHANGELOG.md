@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.47.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.46.0...@amplitude/analytics-browser@2.47.0) (2026-09-23)
+
+
+### Features
+
+* hackathon client configurator ([#1930](https://github.com/amplitude/Amplitude-TypeScript/issues/1930)) ([d9de021](https://github.com/amplitude/Amplitude-TypeScript/commit/d9de021c068f9b282125f748829a17777f7f661b))
+* **plugin-web-vitals-browser:** [@experimental](https://github.com/experimental) add reportSoftNav option for soft navigation reporting ([#1965](https://github.com/amplitude/Amplitude-TypeScript/issues/1965)) ([0e341de](https://github.com/amplitude/Amplitude-TypeScript/commit/0e341dec23e1d5a643c87c80507bbdb9c753c6ab))
+
+
+
+
+
 # [2.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.10...@amplitude/analytics-browser@2.46.0) (2026-09-21)
 
 
