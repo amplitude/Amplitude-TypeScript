@@ -59,11 +59,14 @@ export const webVitalsSoftNavPlugin = (): BrowserEnrichmentPlugin => {
   const globalScope = getGlobalScope();
   const doc = globalScope?.document;
   const location = globalScope?.location;
+  let isActive = false;
+  const recordedNavigationIds = new Set<number>();
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     if (doc === undefined) {
       return;
     }
+    isActive = true;
 
     // One payload per navigation, keyed by the navigation its metrics belong to.
     const payloads = new Map<number, WebVitalsEventPayload>();
@@ -84,6 +87,8 @@ export const webVitalsSoftNavPlugin = (): BrowserEnrichmentPlugin => {
     };
 
     const flush = (key: number) => {
+      recordedNavigationIds.add(key);
+
       const payload = payloads.get(key);
       /* istanbul ignore if */
       if (!payload) {
@@ -120,6 +125,9 @@ export const webVitalsSoftNavPlugin = (): BrowserEnrichmentPlugin => {
     };
 
     const recordMetric = (property: WebVitalsMetricPropertyType) => (metric: Metric) => {
+      if (!isActive || recordedNavigationIds.has(metric.navigationId)) {
+        return;
+      }
       getPayload(metric)[property] = processMetric(metric, true);
 
       if (metric.navigationId > latestNavigationId) {
@@ -152,6 +160,7 @@ export const webVitalsSoftNavPlugin = (): BrowserEnrichmentPlugin => {
   };
 
   const teardown = async () => {
+    isActive = false;
     if (flushTimeout !== undefined) {
       clearTimeout(flushTimeout);
       flushTimeout = undefined;

@@ -364,6 +364,10 @@ describe('webVitalsSoftNavPlugin', () => {
 
     expect(amplitude.track as jest.Mock).not.toHaveBeenCalled();
     expect(mockDocument.removeEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+
+    // should not report metrics after teardown
+    reportAllMetrics(makeMetric({ navigationId: 3, navigationURL: 'https://www.example.com/products/2' }));
+    expect(amplitude.track as jest.Mock).not.toHaveBeenCalled();
   });
 
   it('should fall back to the current URL when the metric has no navigation URL', async () => {
@@ -397,5 +401,17 @@ describe('webVitalsSoftNavPlugin', () => {
     const event = { event_type: 'test' };
     const result = await plugin?.execute?.(event);
     expect(result).toBe(event);
+  });
+
+  it('should not report the same navigationId twice', async () => {
+    const plugin = webVitalsSoftNavPlugin();
+    await plugin?.setup?.(config, amplitude);
+
+    reportAllMetrics(makeMetric({ navigationId: 1, navigationURL: 'https://www.example.com/' }));
+    hideDocument();
+    expect(amplitude.track as jest.Mock).toHaveBeenCalled();
+    reportAllMetrics(makeMetric({ navigationId: 1, navigationURL: 'https://www.example.com/' }));
+    hideDocument();
+    expect(amplitude.track as jest.Mock).toHaveBeenCalledTimes(1);
   });
 });
