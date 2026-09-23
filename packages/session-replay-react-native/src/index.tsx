@@ -1,7 +1,9 @@
 export {
   init,
   setSessionId,
+  setCustomSessionId,
   getSessionId,
+  getCustomSessionId,
   flush,
   start,
   stop,

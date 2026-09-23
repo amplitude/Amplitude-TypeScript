@@ -81,8 +81,11 @@ export interface SessionReplayConfig {
   serverZone?: 'EU' | 'US';
 
   /**
-   * Session identifier that matches the session ID sent with Amplitude events
-   * Must match the Session ID passed as event properties to Amplitude
+   * Session identifier that matches the session ID sent with Amplitude events.
+   * Must match the Session ID passed as event properties to Amplitude.
+   * Under the hood this is mapped onto the native custom session id (as its
+   * string form); `getSessionId()` still returns this numeric value.
+   * To use an alphanumeric session id, call `setCustomSessionId()` after `init()`.
    * @default -1
    */
   sessionId?: number;
