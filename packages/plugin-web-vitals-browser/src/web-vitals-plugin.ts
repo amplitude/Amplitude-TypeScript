@@ -6,51 +6,11 @@ import {
   getGlobalScope,
   getDecodeURI,
 } from '@amplitude/analytics-core';
-import { PLUGIN_NAME, WEB_VITALS_EVENT_NAME } from './constants';
-import { onLCP, onINP, onCLS, onFCP, onTTFB, Metric } from 'web-vitals';
+import { PLUGIN_NAME, WEB_VITALS_EVENT_NAME, WebVitalsEventPayload } from './constants';
+import { onLCP, onINP, onCLS, onFCP, onTTFB } from 'web-vitals';
+import { processMetric } from './utils';
 
 export type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
-
-type WebVitalsMetricPayload = {
-  value: number;
-  rating: Metric['rating'];
-  delta: number;
-  navigationType: Metric['navigationType'];
-  id: string;
-  timestamp: number;
-  navigationStart: number;
-};
-
-type WebVitalsEventPayload = {
-  '[Amplitude] LCP'?: WebVitalsMetricPayload;
-  '[Amplitude] FCP'?: WebVitalsMetricPayload;
-  '[Amplitude] INP'?: WebVitalsMetricPayload;
-  '[Amplitude] CLS'?: WebVitalsMetricPayload;
-  '[Amplitude] TTFB'?: WebVitalsMetricPayload;
-  '[Amplitude] Page Domain'?: string;
-  '[Amplitude] Page Location'?: string;
-  '[Amplitude] Page Path'?: string;
-  '[Amplitude] Page Title'?: string;
-  '[Amplitude] Page URL'?: string;
-};
-
-function getMetricStartTime(metric: Metric) {
-  /* istanbul ignore next */
-  const startTime = metric.entries[0]?.startTime || 0;
-  return performance.timeOrigin + startTime;
-}
-
-function processMetric(metric: Metric) {
-  return {
-    value: metric.value,
-    rating: metric.rating,
-    delta: metric.delta,
-    navigationType: metric.navigationType,
-    id: metric.id,
-    timestamp: Math.floor(getMetricStartTime(metric)),
-    navigationStart: Math.floor(performance.timeOrigin),
-  };
-}
 
 export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
   let visibilityListener: ((this: Document, ev: Event) => void) | null = null;

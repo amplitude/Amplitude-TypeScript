@@ -1,12 +1,15 @@
 // vite.config.js
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 import glob from 'fast-glob';
 import { createMockApi } from './test-server/mock-api.js';
+import { createExtensionArchive } from './test-server/extension-archive.js';
 
 const packagesDir = path.resolve(__dirname, 'packages');
 const testServerDir = path.resolve(__dirname, 'test-server');
+const extensionDir = path.resolve(testServerDir, 'configurator-extension');
 
 const ignorePkg = (pkgName) => {
   return pkgName.startsWith('.') ||
@@ -152,9 +155,14 @@ export default defineConfig({
     // trc-e2e is a standalone React SPA with its own dedicated vite config (see `dev:trc`).
     // It references /main.jsx and must not be swept into the shared multi-page build.
     htmlEntriesPlugin('**/*.html', { cwd: testServerDir, ignore: ['**/trc-e2e/**'] }),
+    // Scoped to configurator/ so the babel + react-refresh transform stays off the other test pages
+    // and the packages/* builds they pull in.
+    react({ include: [/\/configurator\/.*\.[jt]sx?$/] }),
     gzipServePlugin(),
     fileListingPlugin(),
     spaRoutingPlugin(),
     createMockApi(),
+    // Offers the configurator's runner extension as a download, since it isn't in the Chrome Web Store.
+    createExtensionArchive(extensionDir),
   ],
 });

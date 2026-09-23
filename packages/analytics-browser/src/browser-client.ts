@@ -49,6 +49,7 @@ import {
   isPageViewTrackingEnabled,
   isNetworkTrackingEnabled,
   isWebVitalsEnabled,
+  getWebVitalsConfig,
   isFrustrationInteractionsEnabled,
   getFrustrationInteractionsConfig,
   isPerformanceTrackingEnabled,
@@ -176,13 +177,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Step 2.3: Initialize diagnostics client as early as possible
     // Now we have the sample rate from remote config (if fetched)
-    const diagnosticsClient = await autocaptureAdapter?.getDiagnosticsClient(
-      options,
-      loggerProvider,
+    const diagnosticsClient =
+      (await autocaptureAdapter?.getDiagnosticsClient(
+        options,
+        loggerProvider,
         serverZone,
         enableDiagnostics,
         diagnosticsSampleRate,
-      ) ?? undefined;
+      )) ?? undefined;
 
     // Step 2.4: Create browser config with diagnosticsClient and earlyConfig
     // earlyConfig ensures consistent logger/serverZone/diagnostics settings across all components
@@ -612,7 +614,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
         if (isWebVitalsEnabled(this.config.autocapture)) {
           this.config.loggerProvider.debug('Adding web vitals plugin');
-          await this.add(webVitalsPlugin()).promise;
+          await this.add(webVitalsPlugin(getWebVitalsConfig(this.config))).promise;
         }
 
         if (isPerformanceTrackingEnabled(this.config.autocapture)) {
