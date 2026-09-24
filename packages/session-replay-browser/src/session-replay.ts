@@ -531,6 +531,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const shouldRecord = this.getShouldRecord();
+
+    // Self-heal: if this session should be recording but there is no active recording
+    // (e.g. an external re-init/teardown called stopRecordingEvents and left us stopped)
+    // and a start isn't already in flight, resume recording. This runs on every event via
+    // the plugin's execute() path, so — unlike the targeting-config restart path — it
+    // restores recording even when no targeting config is set. Mirrors focusListener's
+    // reconcile, and is a no-op once recording is active (recordCancelCallback is set).
+    if (shouldRecord && !this.recordCancelCallback && !this.recordEventsInFlight) {
+      this.loggerProvider.log(
+        'Resuming Session Replay recording: session should be recorded but no ongoing recording.',
+      );
+      void this.recordEvents();
+    }
+
     let eventProperties: { [key: string]: string | null } = {};
 
     if (shouldRecord) {
