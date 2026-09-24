@@ -83,12 +83,12 @@ export interface SessionReplayConfig {
   /**
    * Session identifier that matches the session ID sent with Amplitude events.
    * Must match the Session ID passed as event properties to Amplitude.
-   * Under the hood this is mapped onto the native custom session id (as its
-   * string form); `getSessionId()` still returns this numeric value.
-   * To use an alphanumeric session id, call `setCustomSessionId()` after `init()`.
+   * Accepts a safe integer such as `Date.now()` or an alphanumeric string such
+   * as a UUID; pass 64-bit integers beyond `Number.MAX_SAFE_INTEGER` as strings.
+   * `null` means no session.
    * @default -1
    */
-  sessionId?: number;
+  sessionId?: string | number | null;
 }
 
 /**

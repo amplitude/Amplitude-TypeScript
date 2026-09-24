@@ -46,7 +46,7 @@ export interface NativeSessionReplayConfig {
   serverZone: 'US' | 'EU';
   /**
    * Alphanumeric session identifier — the only session id the native layer
-   * tracks. Always sent: the numeric `sessionId` in its string form, defaulting
+   * tracks. Always sent: the public `sessionId` in its string form, defaulting
    * to `"-1"` when no session is set.
    */
   customSessionId: string;
@@ -76,8 +76,8 @@ export interface NativeSessionReplaySpec {
 
   /**
    * Updates the alphanumeric session identifier used for session replay tracking.
-   * This is the only native session-id setter; the public numeric `setSessionId`
-   * maps onto it (as a string) in the JS layer.
+   * This is the only native session-id setter; the public `setSessionId` maps
+   * onto it (as a string) in the JS layer.
    * @param customSessionId - The custom session identifier string
    */
   setCustomSessionId(customSessionId: string): Promise<void>;

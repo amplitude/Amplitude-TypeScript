@@ -66,6 +66,11 @@ describe('Index Exports', () => {
       expect(sessionId).toBe(54321);
     });
 
+    it('should not export separate custom session id functions', () => {
+      expect(sessionReplay).not.toHaveProperty('setCustomSessionId');
+      expect(sessionReplay).not.toHaveProperty('getCustomSessionId');
+    });
+
     it('should not export getSessionReplayProperties', () => {
       expect(sessionReplay).not.toHaveProperty('getSessionReplayProperties');
     });

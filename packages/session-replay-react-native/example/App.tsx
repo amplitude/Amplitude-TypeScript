@@ -39,9 +39,7 @@ import {
   stop,
   flush,
   getSessionId,
-  getCustomSessionId,
   setSessionId,
-  setCustomSessionId,
   setDeviceId,
   setOptOut,
   teardown,
@@ -94,14 +92,12 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           enableRemoteConfig: false,
           logLevel: 4,
         });
-        await setCustomSessionId(String(Date.now()));
+        await setSessionId(Date.now());
         await start();
         const sessionId = await getSessionId();
-        const customSessionId = await getCustomSessionId();
         log('init() resolved deviceId=' + verificationDeviceId);
         log('start() resolved');
         log('getSessionId() -> ' + String(sessionId));
-        log('getCustomSessionId() -> ' + String(customSessionId));
 
         // init() swallows native setup failures and resolves without throwing;
         // verify the module is actually live before showing success.
@@ -162,14 +158,8 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
             onPress={runFn('setSessionId', () => setSessionId(Date.now()))}
           />
           <Button
-            title="Reset Custom Session Id"
-            onPress={runFn('setCustomSessionId', () =>
-              setCustomSessionId(String(Date.now())),
-            )}
-          />
-          <Button
-            title="Get Custom Session Id"
-            onPress={runFn('getCustomSessionId', getCustomSessionId)}
+            title="Reset String Session Id"
+            onPress={runFn('setSessionId', () => setSessionId(`session-${Date.now()}`))}
           />
           <Button
             title="setDeviceId"

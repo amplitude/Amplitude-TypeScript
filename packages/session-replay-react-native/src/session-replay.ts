@@ -30,14 +30,27 @@ function normalizeConfig(config: SessionReplayConfig): SessionReplayConfigIntern
 let isInitialized = false;
 let logger = createSessionReplayLogger();
 
-// Mirrors the native parse (`Int64(customSessionId) ?? -1` on iOS,
-// `toLongOrNull() ?: -1` on Android); `Number()` would accept whitespace,
-// hex and the empty string that both platforms reject.
-// Deliberately narrower than native: a JS `number` is an IEEE-754 double with
-// 53 bits of integer precision, not 64, so integers beyond
-// `Number.MAX_SAFE_INTEGER` resolve to `-1` instead of a rounded value.
-// Returning `bigint` would break the public `Promise<number | null>` contract.
-const INTEGER_SESSION_ID = /^[+-]?\d+$/;
+// Only canonical integers (no sign prefix, leading zeros, whitespace or hex)
+// become numbers, so `String(getSessionId())` always equals the native value.
+const CANONICAL_INTEGER = /^(0|-?[1-9]\d*)$/;
+
+function toNativeSessionId(sessionId: string | number | null): string {
+  return sessionId === null ? '-1' : String(sessionId);
+}
+
+// A JS `number` is an IEEE-754 double with 53 bits of integer precision, not
+// 64, so integers beyond `Number.MAX_SAFE_INTEGER` stay strings rather than
+// being rounded.
+function fromNativeSessionId(sessionId: string | null): string | number {
+  if (sessionId === null) {
+    return -1;
+  }
+  if (!CANONICAL_INTEGER.test(sessionId)) {
+    return sessionId;
+  }
+  const numericSessionId = Number(sessionId);
+  return Number.isSafeInteger(numericSessionId) ? numericSessionId : sessionId;
+}
 
 /**
  * Configure the SDK. Call `start()` explicitly to begin collecting replays.
@@ -88,58 +101,26 @@ export async function init(config: SessionReplayConfig): Promise<void> {
  * Call whenever the session ID changes.
  * The Session ID you pass to the SDK must match the Session ID sent as event properties to Amplitude.
  *
- * Under the hood the numeric session id is mapped onto the native custom session
- * id (as its string form) — the RN SDK never drives the native numeric session
- * id. `getSessionId()` still returns the numeric value you passed here.
+ * Accepts a numeric session ID such as `Date.now()` or an alphanumeric one such
+ * as a UUID. Numbers must be safe integers (see `Number.isSafeInteger`); pass
+ * 64-bit integers beyond `Number.MAX_SAFE_INTEGER` as strings.
  *
- * Use a safe integer (see `Number.isSafeInteger`), such as `Date.now()`.
- *
- * @param sessionId - The new session identifier number
+ * @param sessionId - The new session identifier
  * @returns Promise that resolves when the session ID is updated
  *
  * @example
  * ```typescript
  * await setSessionId(Date.now());
+ * // or an alphanumeric session ID
+ * await setSessionId('550e8400-e29b-41d4-a716-446655440000');
  * ```
  */
-export async function setSessionId(sessionId: number): Promise<void> {
+export async function setSessionId(sessionId: string | number): Promise<void> {
   if (!isInitialized) {
     logger.warn('SessionReplay is not initialized');
     return;
   }
-  await NativeSessionReplay.setCustomSessionId(String(sessionId));
-}
-
-/**
- * Call whenever the alphanumeric session ID changes.
- * The value must match the Session ID sent as event properties to Amplitude.
- * While a custom session ID is active, `getSessionId()` returns it as a number
- * when it parses as a safe integer, and `-1` otherwise.
- *
- * @param customSessionId - The new alphanumeric session identifier
- */
-export async function setCustomSessionId(customSessionId: string): Promise<void> {
-  if (!isInitialized) {
-    logger.warn('SessionReplay is not initialized');
-    return;
-  }
-  await NativeSessionReplay.setCustomSessionId(customSessionId);
-}
-
-/**
- * Get the current alphanumeric session identifier from the session replay SDK.
- * Mirrors `getSessionId()`: it resolves to `null` before initialization and to
- * the active custom session id (which the native layer may report as `null`)
- * afterwards.
- *
- * @returns Promise that resolves to the active custom session ID, or null if not initialized
- */
-export async function getCustomSessionId(): Promise<string | null> {
-  if (!isInitialized) {
-    logger.warn('SessionReplay is not initialized');
-    return null;
-  }
-  return await NativeSessionReplay.getCustomSessionId();
+  await NativeSessionReplay.setCustomSessionId(toNativeSessionId(sessionId));
 }
 
 /**
@@ -166,15 +147,15 @@ export async function setDeviceId(deviceId: string | null): Promise<void> {
 
 /**
  * Get the current session identifier from the session replay SDK.
- * Resolves to the active session id as a number when it parses as an integer,
- * and to `-1` otherwise — for example while an alphanumeric custom session id
- * is active.
+ * Resolves to a number when the active session ID is a safe integer, and to a
+ * string otherwise — for example a UUID. `-1` means no session is set.
  *
- * Integers beyond `Number.MAX_SAFE_INTEGER` (2^53 - 1) also resolve to `-1`,
- * even though native accepts the full 64-bit range: a JavaScript `number` is a
- * double with 53 bits of integer precision and cannot hold them exactly.
+ * 64-bit integers beyond `Number.MAX_SAFE_INTEGER` (2^53 - 1) resolve to their
+ * string form: a JavaScript `number` is a double with 53 bits of integer
+ * precision and cannot hold them exactly. A numeric string you set, such as
+ * `'123'`, resolves to the number `123`.
  *
- * @returns Promise that resolves to the current session ID number, or null if not initialized
+ * @returns Promise that resolves to the current session ID, or null if not initialized
  *
  * @example
  * ```typescript
@@ -184,17 +165,12 @@ export async function setDeviceId(deviceId: string | null): Promise<void> {
  * }
  * ```
  */
-export async function getSessionId(): Promise<number | null> {
+export async function getSessionId(): Promise<string | number | null> {
   if (!isInitialized) {
     logger.warn('SessionReplay is not initialized');
     return null;
   }
-  const customSessionId = await NativeSessionReplay.getCustomSessionId();
-  if (customSessionId == null || !INTEGER_SESSION_ID.test(customSessionId)) {
-    return -1;
-  }
-  const sessionId = Number(customSessionId);
-  return Number.isSafeInteger(sessionId) ? sessionId : -1;
+  return fromNativeSessionId(await NativeSessionReplay.getCustomSessionId());
 }
 
 /**
@@ -301,7 +277,7 @@ function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayC
     logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
     // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
     maskLevel: resolvedMaskLevel,
-    customSessionId: String(sessionId),
+    customSessionId: toNativeSessionId(sessionId),
   };
 }
 

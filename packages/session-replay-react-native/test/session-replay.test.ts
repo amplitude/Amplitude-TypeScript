@@ -229,108 +229,99 @@ describe('Session Replay Integration Tests', () => {
       expect(setupConfig).not.toHaveProperty('sessionId');
     });
 
-    it('forwards setCustomSessionId and getCustomSessionId after init', async () => {
-      const nativeModule = await runInIsolatedModule(
-        async ({ init: freshInit, setCustomSessionId: setCustom, getCustomSessionId: getCustom }) => {
-          await freshInit({ apiKey: 'test-api-key' });
-          await setCustom(CUSTOM_ID);
-          const id = await getCustom();
-          expect(id).toBe(CUSTOM_ID);
-        },
-      );
-
-      expect(nativeModule.setCustomSessionId).toHaveBeenCalledWith(CUSTOM_ID);
-      expect(nativeModule.getCustomSessionId).toHaveBeenCalled();
-    });
-
-    it('routes runtime setSessionId onto the native customSessionId as a string', async () => {
-      const nativeModule = await runInIsolatedModule(async ({ init: freshInit, setSessionId: setNumeric }) => {
-        await freshInit({ apiKey: 'test-api-key' });
-        await setNumeric(1234567890);
+    it.each([
+      [CUSTOM_ID, CUSTOM_ID],
+      ['9223372036854775807', '9223372036854775807'],
+      [null, '-1'],
+    ])('maps the init sessionId %p onto the native customSessionId %p', async (sessionId, expected) => {
+      const nativeModule = await runInIsolatedModule(async ({ init: freshInit }) => {
+        await freshInit({ apiKey: 'test-api-key', sessionId });
       });
 
-      expect(nativeModule.setCustomSessionId).toHaveBeenCalledWith('1234567890');
+      expect(nativeModule.setup).toHaveBeenCalledWith(expect.objectContaining({ customSessionId: expected }));
+    });
+
+    it.each([
+      [1234567890, '1234567890'],
+      [CUSTOM_ID, CUSTOM_ID],
+      ['9223372036854775807', '9223372036854775807'],
+    ])('routes setSessionId(%p) onto the native customSessionId %p', async (sessionId, expected) => {
+      const nativeModule = await runInIsolatedModule(async ({ init: freshInit, setSessionId: freshSetSessionId }) => {
+        await freshInit({ apiKey: 'test-api-key' });
+        await freshSetSessionId(sessionId);
+      });
+
+      expect(nativeModule.setCustomSessionId).toHaveBeenCalledWith(expected);
       // The RN SDK never drives the native numeric session id.
       expect(nativeModule.setSessionId).not.toHaveBeenCalled();
     });
 
-    it('derives getSessionId() from the active custom session id without the native numeric getter', async () => {
-      const observed: Array<number | null> = [];
+    it('reads back numeric and string session ids without the native numeric getter', async () => {
+      const observed: Array<string | number | null> = [];
       const nativeModule = await runInIsolatedModule(
-        async ({
-          init: freshInit,
-          setSessionId: setNumeric,
-          setCustomSessionId: setCustom,
-          getSessionId: getNumeric,
-        }) => {
+        async ({ init: freshInit, setSessionId: freshSetSessionId, getSessionId: freshGetSessionId }) => {
           await freshInit({ apiKey: 'test-api-key', sessionId: 777 });
-          observed.push(await getNumeric());
-          await setCustom(CUSTOM_ID);
-          observed.push(await getNumeric());
-          await setNumeric(888);
-          observed.push(await getNumeric());
+          observed.push(await freshGetSessionId());
+          await freshSetSessionId(CUSTOM_ID);
+          observed.push(await freshGetSessionId());
+          await freshSetSessionId(888);
+          observed.push(await freshGetSessionId());
         },
       );
 
-      expect(observed).toEqual([777, -1, 888]);
+      expect(observed).toEqual([777, CUSTOM_ID, 888]);
       expect(nativeModule.getSessionId).not.toHaveBeenCalled();
     });
 
-    // Both native SDKs parse the stored string with `Int64(_:)` / `toLongOrNull()`,
-    // which reject whitespace, hex and the empty string that `Number()` accepts.
-    // Above 2^53 - 1 JS intentionally returns -1: a `number` has 53 bits of
-    // integer precision, not 64, so native's larger values cannot be exact.
+    // Only canonical safe integers become numbers, so the result always
+    // stringifies back to the native value. Above 2^53 - 1 the id stays a
+    // string: a `number` has 53 bits of integer precision, not 64.
     it.each([
-      [CUSTOM_ID, -1],
+      [CUSTOM_ID, CUSTOM_ID],
       ['123', 123],
+      ['0', 0],
       ['-1', -1],
-      ['', -1],
-      ['0x10', -1],
-      [' 1 ', -1],
+      ['', ''],
+      ['0x10', '0x10'],
+      [' 1 ', ' 1 '],
+      ['+1', '+1'],
+      ['007', '007'],
+      ['-0', '-0'],
       ['9007199254740991', Number.MAX_SAFE_INTEGER],
-      ['9007199254740992', -1],
-      ['9223372036854775807', -1],
-      ['99999999999999999999', -1],
+      ['9007199254740992', '9007199254740992'],
+      ['9223372036854775807', '9223372036854775807'],
+      ['99999999999999999999', '99999999999999999999'],
       [null, -1],
-    ])('reports getSessionId() as %p -> %p, mirroring the native parse', async (nativeValue, expected) => {
-      let observed: number | null = null;
-      await runInIsolatedModule(async ({ init: freshInit, getSessionId: getNumeric }, nativeModule) => {
+    ])('reports getSessionId() for native %p as %p', async (nativeValue, expected) => {
+      let observed: string | number | null = null;
+      await runInIsolatedModule(async ({ init: freshInit, getSessionId: freshGetSessionId }, nativeModule) => {
         await freshInit({ apiKey: 'test-api-key' });
         nativeModule.getCustomSessionId.mockResolvedValueOnce(nativeValue);
-        observed = await getNumeric();
+        observed = await freshGetSessionId();
       });
 
       expect(observed).toBe(expected);
     });
 
-    it('resolves getSessionId() to null before initialization', async () => {
-      let observed: number | null = -1;
-      const nativeModule = await runInIsolatedModule(async ({ getSessionId: getNumeric }) => {
-        observed = await getNumeric();
-      });
-
-      expect(observed).toBeNull();
-      expect(nativeModule.getCustomSessionId).not.toHaveBeenCalled();
-    });
-
-    it('does not call custom session native methods before initialization', async () => {
+    it('does not call native session methods before initialization', async () => {
+      let observed: string | number | null = -1;
       const nativeModule = await runInIsolatedModule(
-        async ({ setCustomSessionId: setCustom, getCustomSessionId: getCustom }) => {
-          await setCustom(CUSTOM_ID);
-          const id = await getCustom();
-          expect(id).toBeNull();
+        async ({ setSessionId: freshSetSessionId, getSessionId: freshGetSessionId }) => {
+          await freshSetSessionId(CUSTOM_ID);
+          observed = await freshGetSessionId();
         },
       );
 
+      expect(observed).toBeNull();
       expect(nativeModule.setCustomSessionId).not.toHaveBeenCalled();
       expect(nativeModule.getCustomSessionId).not.toHaveBeenCalled();
     });
 
-    it('preserves custom session ID forwarding across opt-out toggle', async () => {
+    it('preserves session ID forwarding across opt-out toggle', async () => {
       const nativeModule = await runInIsolatedModule(
-        async ({ init: freshInit, setCustomSessionId: setCustom, setOptOut: freshSetOptOut }) => {
+        async ({ init: freshInit, setSessionId: freshSetSessionId, setOptOut: freshSetOptOut }) => {
           await freshInit({ apiKey: 'test-api-key' });
-          await setCustom(CUSTOM_ID);
+          await freshSetSessionId(CUSTOM_ID);
           await freshSetOptOut(true);
           await freshSetOptOut(false);
         },
@@ -340,20 +331,20 @@ describe('Session Replay Integration Tests', () => {
       expect(nativeModule.setOptOut).toHaveBeenCalledTimes(2);
     });
 
-    it('allows re-init after teardown with a new custom session ID', async () => {
+    it('allows re-init after teardown with a new session ID', async () => {
       const nativeModule = await runInIsolatedModule(
-        async ({ init: freshInit, setCustomSessionId: setCustom, teardown: freshTeardown }) => {
+        async ({ init: freshInit, setSessionId: freshSetSessionId, teardown: freshTeardown }) => {
           await freshInit({ apiKey: 'test-api-key', sessionId: 111 });
-          await setCustom(CUSTOM_ID);
+          await freshSetSessionId(CUSTOM_ID);
           await freshTeardown();
-          await freshInit({ apiKey: 'test-api-key', sessionId: 222 });
-          await setCustom('second-custom-id');
+          await freshInit({ apiKey: 'test-api-key', sessionId: 'second-session-id' });
         },
       );
 
       expect(nativeModule.setup).toHaveBeenCalledTimes(2);
-      expect(nativeModule.setup).toHaveBeenLastCalledWith(expect.objectContaining({ customSessionId: '222' }));
-      expect(nativeModule.setCustomSessionId).toHaveBeenLastCalledWith('second-custom-id');
+      expect(nativeModule.setup).toHaveBeenLastCalledWith(
+        expect.objectContaining({ customSessionId: 'second-session-id' }),
+      );
       expect(nativeModule.teardown).toHaveBeenCalled();
     });
   });
