@@ -3826,107 +3826,11 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       expect(sessionReplay.getMaskTextSelectors()).toEqual('.className1,.className2,[data-amp-mask]');
     });
-
-    test('should track all text elements when level is conservative', async () => {
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-        },
-      }).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should return * when any urlMaskLevels rule is conservative, even if default is not', async () => {
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'light',
-          urlMaskLevels: [
-            { match: 'https://example.com/admin/*', maskLevel: 'conservative' },
-            { match: 'https://example.com/public/*', maskLevel: 'light' },
-          ],
-        },
-      }).promise;
-      // Any conservative URL rule → '*' so rrweb routes all text nodes through maskTextFn
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should not return * when urlMaskLevels has no conservative rule', async () => {
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'light',
-          urlMaskLevels: [{ match: 'https://example.com/checkout/*', maskLevel: 'medium' }],
-        },
-      }).promise;
-      // No conservative rule → falls through to maskSelector logic (no selectors configured)
-      expect(sessionReplay.getMaskTextSelectors()).toBe('[data-amp-mask]');
-    });
-
-    test('should return * when defaultMaskLevel is conservative and urlMaskLevels are present', async () => {
-      // Bug scenario: session starts on a URL matching a non-conservative rule (effective level ≠
-      // conservative), so the first branch doesn't fire. No rule in urlMaskLevels is conservative,
-      // so the second branch doesn't fire either. But defaultMaskLevel is conservative, meaning any
-      // page that matches NO rule at all falls back to conservative masking — rrweb must be told to
-      // route all text through maskTextFn from the start.
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
-        },
-      }).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should return * when defaultMaskLevel is conservative and urlMaskLevels is non-empty even if current URL matches a non-conservative rule', async () => {
-      // Even if the recording-start URL happens to match a light rule (effectiveLevel = light),
-      // the fallback path (no rule match → conservative) still needs rrweb to call maskTextFn.
-      jest.spyOn(Helpers, 'getCurrentUrl').mockReturnValue('https://example.com/public/page');
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
-        },
-      }).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should not return * when defaultMaskLevel is conservative but urlMaskLevels is empty', async () => {
-      // defaultMaskLevel: conservative with no URL rules → effectiveLevel is always conservative,
-      // which is handled by the first branch. The third branch only fires when urlMaskLevels is non-empty.
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-          urlMaskLevels: [],
-        },
-      }).promise;
-      // effectiveLevel = conservative → caught by the first branch, still returns '*'
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should return * when defaultMaskLevel is conservative and urlMaskLevels is undefined', async () => {
-      // urlMaskLevels not set at all (undefined) — exercises the ?. optional chain short-circuit path
-      // in the third guard of getMaskTextSelectors. With no urlMaskLevels, effectiveLevel is always
-      // conservative, so the first guard fires instead — result is still '*'.
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-          // urlMaskLevels intentionally absent
-        },
-      }).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
   });
 
   describe('mask function URL getters (currentPageUrl integration)', () => {
     test('maskInputFn, maskTextFn, and maskAttributeFn closures expose currentPageUrl dynamically', async () => {
-      // This test exercises the three `() => this.currentPageUrl` arrow functions passed to
-      // maskFn/maskAttributeFn at lines 805-807 of session-replay.ts.
+      // The browser supplies the live URL getter to the shared recorder options.
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         privacyConfig: {

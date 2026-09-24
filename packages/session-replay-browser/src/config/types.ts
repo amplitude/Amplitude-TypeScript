@@ -1,5 +1,5 @@
 import type { PrivacyConfig } from '@amplitude/session-replay-dom-privacy';
-export { PrivacyConfig, MaskLevel, DEFAULT_MASK_LEVEL } from '@amplitude/session-replay-dom-privacy';
+export type { PrivacyConfig, MaskLevel } from '@amplitude/session-replay-dom-privacy';
 import { IConfig, LogLevel, ILogger } from '@amplitude/analytics-core';
 import { StoreType, ConsoleLogLevel } from '../typings/session-replay';
 import { TargetingFlag } from '@amplitude/targeting';

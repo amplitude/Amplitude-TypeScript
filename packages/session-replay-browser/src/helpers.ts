@@ -3,7 +3,6 @@ import { SessionReplayJoinedConfig, UGCFilterRule } from './config/types';
 import { KB_SIZE } from './constants';
 import { StorageData } from './typings/session-replay';
 import { globToRegex } from '@amplitude/session-replay-dom-privacy';
-export { getEffectiveMaskLevel, isMasked, maskFn, maskAttributeFn } from '@amplitude/session-replay-dom-privacy';
 export { getServerUrl } from './utils/server-url';
 
 type ChromeStorageEstimate = {

@@ -1,4 +1,4 @@
-import { getInputType, toLowerCase } from '../../src/utils/get-input-type';
+import { getInputType, toLowerCase } from '../src';
 
 describe('getInputType', () => {
   beforeEach(() => {
