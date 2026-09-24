@@ -117,6 +117,9 @@ importers:
       prettier:
         specifier: ^2.8.1
         version: 2.8.8
+      prismjs:
+        specifier: ^1.30.0
+        version: 1.30.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -989,8 +992,8 @@ importers:
         specifier: ^2.4.1
         version: 2.8.1
       web-vitals:
-        specifier: 5.1.0
-        version: 5.1.0
+        specifier: 6.2.1
+        version: 6.2.1
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
@@ -10711,6 +10714,11 @@ packages:
       { integrity: sha512-K6KiKMHTL4jjX4u3Kir2EW07nRfcqVTXIImx50wbjHQTcZPgg+gjVeNTIT3l3L1Rd4UefxfogquC9J37SoFyyw== }
     engines: { node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0 }
 
+  prismjs@1.30.0:
+    resolution:
+      { integrity: sha512-DEvV2ZF2r2/63V+tK8hQvrR2ZGn10srHbXviTlcv7Kpzw8jWiNTqbVgjO3IY8RxrrOUF8VPMQQFysYYYv0YZxw== }
+    engines: { node: '>=6' }
+
   proc-log@5.0.0:
     resolution:
       { integrity: sha512-Azwzvl90HaF0aCz1JrDdXQykFakSSNPaPoiZ9fm5qJIMHioDZEi7OAdRwSm6rSoPtY3Qutnm3L7ogmg3dc+wbQ== }
@@ -12518,6 +12526,10 @@ packages:
   web-vitals@5.1.0:
     resolution:
       { integrity: sha512-ArI3kx5jI0atlTtmV0fWU3fjpLmq/nD3Zr1iFFlJLaqa5wLBkUSzINwBPySCX/8jRyjlmy1Volw1kz1g9XE4Jg== }
+
+  web-vitals@6.2.1:
+    resolution:
+      { integrity: sha512-rLcLXA2sx6+9dE88NHFubwTtGxpK4yYBLj6qHPdFoCaLr0cXGb4efOqtKLlm4loGA4OEKHIQKMKzZkKyOh5ctw== }
 
   webidl-conversions@3.0.1:
     resolution:
@@ -14538,7 +14550,7 @@ snapshots:
       '@types/node': 20.5.1
       chalk: 4.1.2
       cosmiconfig: 8.3.6(typescript@4.9.5)
-      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@20.5.1)(typescript@4.9.5))(typescript@4.9.5)
+      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@4.9.5)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -19064,7 +19076,7 @@ snapshots:
 
   corser@2.0.1: {}
 
-  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@20.5.1)(typescript@4.9.5))(typescript@4.9.5):
+  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@4.9.5):
     dependencies:
       '@types/node': 20.5.1
       cosmiconfig: 8.3.6(typescript@4.9.5)
@@ -23685,6 +23697,8 @@ snapshots:
       react-is-18: react-is@18.3.1
       react-is-19: react-is@19.2.7
 
+  prismjs@1.30.0: {}
+
   proc-log@5.0.0: {}
 
   proc-log@6.0.0: {}
@@ -25386,6 +25400,8 @@ snapshots:
   web-streams-polyfill@3.3.3: {}
 
   web-vitals@5.1.0: {}
+
+  web-vitals@6.2.1: {}
 
   webidl-conversions@3.0.1: {}
 
