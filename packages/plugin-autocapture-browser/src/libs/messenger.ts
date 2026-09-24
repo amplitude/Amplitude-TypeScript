@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
 import { AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL, AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS } from '../constants';
-import type { BaseWindowMessenger } from '@amplitude/analytics-core';
+import type { BaseWindowMessenger, InitializeBackgroundCaptureData } from '@amplitude/analytics-core';
 import { ActionType } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 import { DataExtractor } from '../data-extractor';
@@ -53,7 +53,7 @@ export type ActionData = {
   'element-selected': ElementSelectedData;
   'track-selector-mode-changed': TrackSelectorModeChangedData;
   'track-selector-moved': TrackSelectorMovedData;
-  'initialize-background-capture': null | undefined;
+  'initialize-background-capture': InitializeBackgroundCaptureData | null | undefined;
   'close-background-capture': null | undefined;
   'background-capture-loaded': null | undefined;
   'background-capture-complete': { [key: string]: string | null };

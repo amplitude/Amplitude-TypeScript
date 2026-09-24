@@ -86,7 +86,14 @@ export { fallbackCssPath } from './fallback-css-path';
 export { legacyCssPath } from './legacy-css-path';
 
 // ===== Config resolver =====
-export { resolveSelectorConfig, DEFAULT_RESOLVED_CONFIG, normalizeResolvedConfig } from './config/resolve-config';
+export {
+  resolveSelectorConfig,
+  DEFAULT_RESOLVED_CONFIG,
+  normalizeResolvedConfig,
+  DEFAULT_SHADOW_DOM_ENABLED,
+  DEFAULT_MAX_SHADOW_DOM_DEPTH,
+  MAX_SHADOW_DOM_DEPTH,
+} from './config/resolve-config';
 
 // ===== Engine factory =====
 export { createSelectorEngine } from './engine';
