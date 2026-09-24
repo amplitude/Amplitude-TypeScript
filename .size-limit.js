@@ -1,10 +1,8 @@
 const limits = [
   {
     // analytics-browser bundle
-    // Bumped 66kb → 67kb for midpoint exposure, including overflow-container
-    // and clipping-ancestor support. Current: ~66.1kb gzipped.
     path: './packages/analytics-browser/lib/scripts/amplitude-min.js.gz',
-    limit: '67kb',
+    limit: '70kb',
     brotli: false,
   },
   {
@@ -16,7 +14,7 @@ const limits = [
   {
     // unified SDK bundle
     path: './packages/unified/lib/scripts/amplitude-min.umd.js.gz',
-    limit: '225kb',
+    limit: '235kb',
     brotli: false,
   },
   {

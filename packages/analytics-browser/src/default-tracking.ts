@@ -11,6 +11,7 @@ import {
   FrustrationInteractionsOptions,
   CustomEnrichmentOptions,
   PerformanceTrackingOptions,
+  WebVitalsOptions,
   isChromeExtension,
   normalizeNetworkCaptureRules,
 } from '@amplitude/analytics-core';
@@ -111,7 +112,7 @@ export const isElementInteractionsEnabled = (autocapture: AutocaptureOptions | b
 /**
  * Returns true if
  * 1. autocapture === true
- * 2. if autocapture.webVitals === true
+ * 2. if autocapture.webVitals === true or is an options object
  * otherwise returns false
  */
 export const isWebVitalsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
@@ -119,11 +120,32 @@ export const isWebVitalsEnabled = (autocapture: AutocaptureOptions | boolean | u
     return autocapture;
   }
 
-  if (typeof autocapture === 'object' && autocapture.webVitals === true) {
+  if (
+    typeof autocapture === 'object' &&
+    (autocapture.webVitals === true || (typeof autocapture.webVitals === 'object' && autocapture.webVitals !== null))
+  ) {
     return true;
   }
 
   return false;
+};
+
+/**
+ * Returns the web vitals options when autocapture.webVitals is configured with an options object,
+ * otherwise returns undefined so the plugin falls back to its defaults.
+ */
+export const getWebVitalsConfig = (config: BrowserOptions): WebVitalsOptions | undefined => {
+  if (typeof config.autocapture !== 'object') {
+    return undefined;
+  }
+
+  const webVitals = config.autocapture.webVitals;
+
+  if (typeof webVitals === 'object' && webVitals !== null) {
+    return webVitals;
+  }
+
+  return undefined;
 };
 
 export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
