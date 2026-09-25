@@ -90,6 +90,80 @@ describe('enableBackgroundCapture', () => {
       delete (window as any).amplitudeBackgroundCapture;
     });
 
+    test('should forward deviceMode to amplitudeBackgroundCapture', async () => {
+      const messenger = createMockMessenger();
+      (window as any).amplitudeBackgroundCapture = jest.fn().mockReturnValue({ close: jest.fn() });
+
+      enableBackgroundCapture(messenger);
+      const handler = getInitHandler(messenger);
+
+      handler({ deviceMode: 'tablet' });
+      await new Promise(process.nextTick);
+
+      expect((window as any).amplitudeBackgroundCapture).toHaveBeenCalledWith({
+        messenger,
+        onBackgroundCapture: expect.any(Function),
+        initialDeviceMode: 'tablet',
+      });
+
+      delete (window as any).amplitudeBackgroundCapture;
+    });
+
+    test('should omit initialDeviceMode when init data is null or not an object', async () => {
+      const messenger = createMockMessenger();
+      (window as any).amplitudeBackgroundCapture = jest.fn().mockReturnValue({ close: jest.fn() });
+
+      enableBackgroundCapture(messenger);
+      const handler = getInitHandler(messenger);
+
+      handler(null);
+      await new Promise(process.nextTick);
+
+      expect((window as any).amplitudeBackgroundCapture).toHaveBeenCalledWith({
+        messenger,
+        onBackgroundCapture: expect.any(Function),
+      });
+
+      delete (window as any).amplitudeBackgroundCapture;
+    });
+
+    test('should omit initialDeviceMode when deviceMode is invalid', async () => {
+      const messenger = createMockMessenger();
+      (window as any).amplitudeBackgroundCapture = jest.fn().mockReturnValue({ close: jest.fn() });
+
+      enableBackgroundCapture(messenger);
+      const handler = getInitHandler(messenger);
+
+      handler({ deviceMode: 'phablet' });
+      await new Promise(process.nextTick);
+
+      expect((window as any).amplitudeBackgroundCapture).toHaveBeenCalledWith({
+        messenger,
+        onBackgroundCapture: expect.any(Function),
+      });
+
+      delete (window as any).amplitudeBackgroundCapture;
+    });
+
+    test('should forward desktop deviceMode to amplitudeBackgroundCapture', async () => {
+      const messenger = createMockMessenger();
+      (window as any).amplitudeBackgroundCapture = jest.fn().mockReturnValue({ close: jest.fn() });
+
+      enableBackgroundCapture(messenger);
+      const handler = getInitHandler(messenger);
+
+      handler({ deviceMode: 'desktop' });
+      await new Promise(process.nextTick);
+
+      expect((window as any).amplitudeBackgroundCapture).toHaveBeenCalledWith({
+        messenger,
+        onBackgroundCapture: expect.any(Function),
+        initialDeviceMode: 'desktop',
+      });
+
+      delete (window as any).amplitudeBackgroundCapture;
+    });
+
     test('should use custom scriptUrl when provided', async () => {
       const messenger = createMockMessenger();
       (window as any).amplitudeBackgroundCapture = jest.fn().mockReturnValue(null);
