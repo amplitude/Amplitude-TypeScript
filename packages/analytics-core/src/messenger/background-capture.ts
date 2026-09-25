@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import type { BaseWindowMessenger } from './base-window-messenger';
+import { parseBackgroundCaptureDeviceMode } from './background-capture-types';
 import { AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL } from './constants';
 
 /**
@@ -34,9 +35,14 @@ export function enableBackgroundCapture(messenger: BaseWindowMessenger, options?
     }
   };
 
-  messenger.registerActionHandler('initialize-background-capture', () => {
+  messenger.registerActionHandler('initialize-background-capture', (data) => {
     messenger.logger?.debug?.('Initializing background capture (external script)');
     const resolvedUrl = new URL(scriptUrl, messenger.endpoint).toString();
+
+    const initialDeviceMode =
+      data && typeof data === 'object'
+        ? parseBackgroundCaptureDeviceMode((data as { deviceMode?: unknown }).deviceMode)
+        : undefined;
 
     messenger
       .loadScriptOnce(resolvedUrl)
@@ -48,6 +54,7 @@ export function enableBackgroundCapture(messenger: BaseWindowMessenger, options?
         )?.amplitudeBackgroundCapture?.({
           messenger,
           onBackgroundCapture,
+          ...(initialDeviceMode !== undefined ? { initialDeviceMode } : {}),
         });
         messenger.notify({ action: 'background-capture-loaded' });
       })
