@@ -223,6 +223,10 @@ export interface SessionReplayOptions {
    */
   sendTimeoutMs?: number;
   /**
+   * @see {@link StandaloneSessionReplayOptions.enableTransportCompression}
+   */
+  enableTransportCompression?: boolean;
+  /**
    * Optional custom transport for replay event uploads. Use to attach custom auth (e.g. a JWT
    * `Authorization` header) and route through an authenticated proxy.
    * @see {@link StandaloneSessionReplayOptions.handleSendEvents}
