@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.29.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.29.3...@amplitude/plugin-autocapture-browser@1.29.4) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
 ## [1.29.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.29.2...@amplitude/plugin-autocapture-browser@1.29.3) (2026-09-23)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
