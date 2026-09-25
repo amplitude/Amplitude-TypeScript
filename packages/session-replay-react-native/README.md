@@ -44,36 +44,6 @@ Session Replay does not capture anything until a valid session id is set — a
 positive number or a non-empty string. Until then the SDK stays configured but
 idle, even after `start()`.
 
-#### Numeric and alphanumeric session ids
-
-The `sessionId` config field and `setSessionId()` accept a number for Amplitude
-Analytics' numeric sessions, or a string for an alphanumeric session id such as
-a UUID. The config field also accepts `null` for no session.
-
-`getSessionId()` resolves to a number when the active session id is a safe
-integer and to a string otherwise, so a numeric string such as `'123'` reads
-back as `123`. `-1` means no session is set.
-
-Numbers must be safe integers (up to `Number.MAX_SAFE_INTEGER`, 2^53 - 1), such
-as `Date.now()`. A JavaScript `number` is a double with 53 bits of integer
-precision rather than a 64-bit integer, so pass larger 64-bit ids as strings;
-`getSessionId()` returns them as strings too, rather than rounding them.
-
-```js
-import { init, setSessionId, getSessionId } from '@amplitude/session-replay-react-native';
-
-await init({ apiKey: 'YOUR_API_KEY', deviceId: 'YOUR_DEVICE_ID', sessionId: Date.now() });
-
-await setSessionId(1717171717171);
-await getSessionId(); // 1717171717171
-
-await setSessionId('550e8400-e29b-41d4-a716-446655440000');
-await getSessionId(); // '550e8400-e29b-41d4-a716-446655440000'
-
-await setSessionId('9223372036854775807');
-await getSessionId(); // '9223372036854775807'
-```
-
 To use Amplitude Session Replay with Amplitude Analytics, use the [`@amplitude/plugin-session-replay-react-native`](https://www.npmjs.com/package/@amplitude/plugin-session-replay-react-native) plugin package.
 
 ## Masking views

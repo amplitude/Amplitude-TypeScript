@@ -15,7 +15,7 @@ export interface Spec extends TurboModule {
   // The RN SDK drives session identity through customSessionId only; the numeric
   // session id is mapped onto this (as a string) in the JS layer.
   setCustomSessionId(customSessionId: string): Promise<void>;
-  getCustomSessionId(): Promise<string | null>;
+  getCustomSessionId(): Promise<string>;
   setDeviceId(deviceId: string | null): Promise<void>;
   setOptOut(optOut: boolean): Promise<void>;
   start(): Promise<void>;

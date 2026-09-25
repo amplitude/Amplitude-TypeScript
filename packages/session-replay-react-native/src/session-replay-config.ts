@@ -85,10 +85,9 @@ export interface SessionReplayConfig {
    * Must match the Session ID passed as event properties to Amplitude.
    * Accepts a safe integer such as `Date.now()` or an alphanumeric string such
    * as a UUID; pass 64-bit integers beyond `Number.MAX_SAFE_INTEGER` as strings.
-   * `null` means no session.
    * @default -1
    */
-  sessionId?: string | number | null;
+  sessionId?: string | number;
 }
 
 /**

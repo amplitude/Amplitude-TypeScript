@@ -84,9 +84,9 @@ export interface NativeSessionReplaySpec {
 
   /**
    * Retrieves the current alphanumeric session identifier from the native module.
-   * @returns Promise resolving to the active custom session ID, or null when none is set
+   * @returns Promise resolving to the active custom session ID
    */
-  getCustomSessionId(): Promise<string | null>;
+  getCustomSessionId(): Promise<string>;
 
   /**
    * Updates whether session replay collection is disabled for the current user.

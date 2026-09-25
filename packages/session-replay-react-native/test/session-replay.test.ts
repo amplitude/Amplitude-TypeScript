@@ -232,7 +232,6 @@ describe('Session Replay Integration Tests', () => {
     it.each([
       [CUSTOM_ID, CUSTOM_ID],
       ['9223372036854775807', '9223372036854775807'],
-      [null, '-1'],
     ])('maps the init sessionId %p onto the native customSessionId %p', async (sessionId, expected) => {
       const nativeModule = await runInIsolatedModule(async ({ init: freshInit }) => {
         await freshInit({ apiKey: 'test-api-key', sessionId });
@@ -291,7 +290,6 @@ describe('Session Replay Integration Tests', () => {
       ['9007199254740992', '9007199254740992'],
       ['9223372036854775807', '9223372036854775807'],
       ['99999999999999999999', '99999999999999999999'],
-      [null, -1],
     ])('reports getSessionId() for native %p as %p', async (nativeValue, expected) => {
       let observed: string | number | null = null;
       await runInIsolatedModule(async ({ init: freshInit, getSessionId: freshGetSessionId }, nativeModule) => {

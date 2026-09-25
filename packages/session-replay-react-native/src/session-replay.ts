@@ -34,17 +34,10 @@ let logger = createSessionReplayLogger();
 // become numbers, so `String(getSessionId())` always equals the native value.
 const CANONICAL_INTEGER = /^(0|-?[1-9]\d*)$/;
 
-function toNativeSessionId(sessionId: string | number | null): string {
-  return sessionId === null ? '-1' : String(sessionId);
-}
-
 // A JS `number` is an IEEE-754 double with 53 bits of integer precision, not
 // 64, so integers beyond `Number.MAX_SAFE_INTEGER` stay strings rather than
 // being rounded.
-function fromNativeSessionId(sessionId: string | null): string | number {
-  if (sessionId === null) {
-    return -1;
-  }
+function fromNativeSessionId(sessionId: string): string | number {
   if (!CANONICAL_INTEGER.test(sessionId)) {
     return sessionId;
   }
@@ -120,7 +113,7 @@ export async function setSessionId(sessionId: string | number): Promise<void> {
     logger.warn('SessionReplay is not initialized');
     return;
   }
-  await NativeSessionReplay.setCustomSessionId(toNativeSessionId(sessionId));
+  await NativeSessionReplay.setCustomSessionId(String(sessionId));
 }
 
 /**
@@ -277,7 +270,7 @@ function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayC
     logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
     // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
     maskLevel: resolvedMaskLevel,
-    customSessionId: toNativeSessionId(sessionId),
+    customSessionId: String(sessionId),
   };
 }
 

@@ -3,7 +3,7 @@
 // Both native SDKs keep a single `customSessionId` string, seeded at setup and
 // replaced by setCustomSessionId. The mock holds it so `getSessionId()`, which
 // now reads back through the bridge, can be exercised end to end.
-let customSessionId: string | null = null;
+let customSessionId = '-1';
 
 const ampNativeSessionReplay = {
   setup: jest.fn((config: { customSessionId: string }) => {
@@ -13,7 +13,7 @@ const ampNativeSessionReplay = {
   start: jest.fn().mockResolvedValue(undefined),
   stop: jest.fn().mockResolvedValue(undefined),
   teardown: jest.fn(() => {
-    customSessionId = null;
+    customSessionId = '-1';
     return Promise.resolve();
   }),
   flush: jest.fn().mockResolvedValue(undefined),
