@@ -13,13 +13,13 @@ export type VideoHandler = {
 };
 
 export type VideoEvent = {
-  duration: number;
+  duration: number | undefined;
   start_time?: number;
   playback_id?: string | undefined;
   video_id?: string | undefined;
   video_title?: string | undefined;
   content_id?: string | undefined;
-  delivery_mode?: string | undefined;
+  media_type?: string | undefined;
   session_id?: string | undefined;
   mux_playback_id?: string | undefined | null;
   mux_video_id?: string | undefined | null;

@@ -8,7 +8,7 @@ import {
   BaseEvent,
   getHeartbeatInstance,
 } from '@amplitude/analytics-core';
-import { DEFAULT_CONTENT_STARTED_EVENT, DEFAULT_CONTENT_STOPPED_EVENT } from '../constants';
+import { DEFAULT_STREAM_STARTED_EVENT, DEFAULT_STREAM_STOPPED_EVENT } from '../constants';
 
 /** Playback states where a view session is still in progress (e.g. buffering). */
 const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 'waiting']);
@@ -95,7 +95,7 @@ export class VideoCapture {
   }
 
   /**
-   * Track a "[Amplitude] Content Started" event every time the video starts playing
+   * Track a "[Amplitude] Stream Started" event every time the video starts playing
    * @returns The VideoCapture instance.
    */
   captureVideoStarted(): VideoCapture {
@@ -107,7 +107,7 @@ export class VideoCapture {
         const now = new Date().getTime();
         const startEvent: BaseEvent = {
           insert_id: UUID(),
-          event_type: DEFAULT_CONTENT_STARTED_EVENT,
+          event_type: DEFAULT_STREAM_STARTED_EVENT,
           time: now,
           event_properties: {
             ...this.parseStartEventProperties(nextState),
@@ -118,13 +118,13 @@ export class VideoCapture {
         this.stopEvent = {
           ...startEvent,
           insert_id: UUID(),
-          event_type: DEFAULT_CONTENT_STOPPED_EVENT,
+          event_type: DEFAULT_STREAM_STOPPED_EVENT,
           time: now + 1,
           event_properties: {
-            ...this.parseStopEventProperties(nextState),
-            ...this.extraEventProperties,
             stop_reason: 'timeout',
             play_id: this.playId,
+            ...this.parseStopEventProperties(nextState),
+            ...this.extraEventProperties,
           },
         };
         this.heartbeat.trackNoDelay(startEvent).catch(this.stop.bind(this));
@@ -135,7 +135,7 @@ export class VideoCapture {
   }
 
   /**
-   * Track a "[Amplitude] Content Stopped" event every time the video stops playing
+   * Track a "[Amplitude] Stream Stopped" event every time the video stops playing
    * @returns The VideoCapture instance.
    */
   captureVideoStopped(): VideoCapture {
@@ -232,17 +232,17 @@ export class VideoCapture {
     this.flushStopEvent('untracked');
   }
 
-  parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
+  parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean | undefined> {
     return {
       ...parseVideoEventProperties(nextState.lastEvent),
-      duration: nextState.lastEvent?.duration ?? 0,
+      duration: nextState.lastEvent?.duration ?? undefined,
       start_time: nextState.lastEvent?.start_time ?? 0,
       position: nextState.position ?? 0,
-      delivery_mode: this.getDeliveryMode(),
+      media_type: this.getMediaType(),
     };
   }
 
-  private getDeliveryMode(): 'video' | 'audio' {
+  private getMediaType(): 'video' | 'audio' {
     return this.videoEl instanceof HTMLAudioElement ? 'audio' : 'video';
   }
 
@@ -252,7 +252,7 @@ export class VideoCapture {
       // lastEvent.start_time is the playhead at the time of the event, which for a stop event is
       // where playback ended, so the position captured when the play session began is preferred.
       start_time: this.playStartTime ?? nextState.lastEvent?.start_time ?? 0,
-      stream_duration: nextState.watchTime ?? 0,
+      play_time: nextState.watchTime ?? 0,
       percent_completed: calculatePercentCompleted(nextState.position ?? 0, nextState.lastEvent?.duration ?? 0),
       ...(nextState.errorMessage ? { error_message: nextState.errorMessage } : {}),
     };
@@ -278,7 +278,7 @@ export type TrackVideoResult = UntrackVideoResult | Error;
 /**
  * Track video analytics events for an HTML video or audio element or embedded video player.js instance.
  *
- * Captures [Amplitude] Content Started and [Amplitude] Content Stopped events.
+ * Captures [Amplitude] Stream Started and [Amplitude] Stream Stopped events.
  *
  * @experimental This function is experimental and may not be stable.
  * @param amplitude - The Amplitude client instance.
