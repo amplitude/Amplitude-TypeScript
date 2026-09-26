@@ -4,6 +4,7 @@ export type AmpCaptureProperties = {
   component?: string;
   element?: string;
   testID?: string;
+  _elementUniqueId?: string;
 };
 
 const callbacks: ((properties: AmpCaptureProperties) => void)[] = [];
@@ -27,11 +28,13 @@ export function ampCapture<Args extends unknown[], Return>(
   if (typeof func !== 'function') {
     return func;
   }
+  const elementUniqueId = Math.random().toString(36).substring(2, 15);
   return (...args: Args) => {
     if (!isAmpCapturing) {
       // only call "callbacks" if not nested inside another ampCapture
       try {
         isAmpCapturing = true;
+        properties._elementUniqueId = elementUniqueId;
         try {
           callbacks.forEach((callback) => callback(properties));
         } catch (error) {

@@ -26,6 +26,22 @@ describe('amp-capture', () => {
       testID: 'submit-button',
     };
 
+    test('reuses one element id for repeated calls and a new id per wrapper', () => {
+      const callback = jest.fn();
+      addSubscriber(callback);
+
+      const first = ampCapture(jest.fn(), { ...properties });
+      const second = ampCapture(jest.fn(), { ...properties });
+      first();
+      first();
+      second();
+
+      const firstId = callback.mock.calls[0][0]._elementUniqueId;
+      expect(firstId).toEqual(expect.any(String));
+      expect(callback.mock.calls[1][0]._elementUniqueId).toBe(firstId);
+      expect(callback.mock.calls[2][0]._elementUniqueId).not.toBe(firstId);
+    });
+
     test('notifies subscribers with properties when the wrapped function is called', () => {
       const callback = jest.fn();
       addSubscriber(callback);
