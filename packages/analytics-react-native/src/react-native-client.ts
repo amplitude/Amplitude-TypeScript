@@ -69,7 +69,9 @@ import {
   TARGET_COMPONENT,
   TARGET_ELEMENT,
   TARGET_TEST_ID,
+  DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
 } from './constants';
+import { createRageClickTracker } from './autocapture/rage-click';
 
 /**
  * Walks React Navigation state to the focused leaf route.
@@ -342,6 +344,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
     }
 
+    // TODO: put this behind a configuration too
+    const { registerClickEvent } = createRageClickTracker((clickData) => {
+      this.track(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, clickData.eventProperties);
+    });
+
     if (this.autocapture?.elementInteractions === true) {
       this.captureUnsubscribe = Capture.subscribe((properties) => {
         const analyticsProps = {
@@ -352,6 +359,9 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
           [TARGET_ELEMENT]: properties.element,
           [TARGET_TEST_ID]: properties.testID,
         };
+        if (properties._elementUniqueId) {
+          registerClickEvent(properties._elementUniqueId, analyticsProps);
+        }
         this.track(DEFAULT_ELEMENT_INTERACTED_EVENT, analyticsProps);
       });
     }
