@@ -22,6 +22,7 @@ import {
   DEFAULT_APPLICATION_BACKGROUNDED_EVENT,
   DEFAULT_APPLICATION_OPENED_EVENT,
   DEFAULT_ELEMENT_INTERACTED_EVENT,
+  DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
   DEFAULT_SCREEN_VIEWED_EVENT,
   DEFAULT_SESSION_END_EVENT,
   DEFAULT_SESSION_START_EVENT,
@@ -1636,6 +1637,72 @@ describe('react-native-client', () => {
           [TARGET_ELEMENT]: 'Button',
           [TARGET_TEST_ID]: 'my-button',
         });
+      });
+
+      test('should only use Press actions for rage click detection', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        trackSpy.mockClear();
+        jest.useFakeTimers();
+
+        try {
+          const pressEvent = { nativeEvent: { pageX: 100, pageY: 100 } };
+          for (let i = 0; i < core.DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+            Capture.ampCapture(jest.fn(), { action: 'ChangeText' })(pressEvent);
+          }
+          jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
+
+          expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, expect.anything());
+
+          for (let i = 0; i < core.DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+            Capture.ampCapture(jest.fn(), { action: 'Press' })(pressEvent);
+          }
+          jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
+
+          expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, expect.anything());
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      test('should track rage click with timing, click count, clicks and element properties', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        trackSpy.mockClear();
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+
+        try {
+          const start = Date.now();
+          const gap = 100;
+          const pressEvent = { nativeEvent: { pageX: 100, pageY: 100 } };
+          for (let i = 0; i < core.DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+            if (i > 0) {
+              jest.advanceTimersByTime(gap);
+            }
+            Capture.ampCapture(jest.fn(), { action: 'Press', testID: 'rage-button' })(pressEvent);
+          }
+          jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
+
+          const end = start + gap * (core.DEFAULT_RAGE_CLICK_THRESHOLD - 1);
+          expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, {
+            '[Amplitude] Begin Time': start,
+            '[Amplitude] End Time': end,
+            '[Amplitude] Duration': end - start,
+            '[Amplitude] Click Count': core.DEFAULT_RAGE_CLICK_THRESHOLD,
+            '[Amplitude] Clicks': Array.from({ length: core.DEFAULT_RAGE_CLICK_THRESHOLD }, (_, i) => ({
+              x: 100,
+              y: 100,
+              time: start + gap * i,
+            })),
+            [SCREEN_NAME]: undefined,
+            [TARGET_ACCESSIBILITY_LABEL]: undefined,
+            [TARGET_ACTION]: 'Press',
+            [TARGET_COMPONENT]: undefined,
+            [TARGET_ELEMENT]: undefined,
+            [TARGET_TEST_ID]: 'rage-button',
+          });
+        } finally {
+          jest.useRealTimers();
+        }
       });
 
       test('should not attach stale screen name to element interactions after re-init', async () => {

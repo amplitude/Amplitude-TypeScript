@@ -69,7 +69,10 @@ import {
   TARGET_COMPONENT,
   TARGET_ELEMENT,
   TARGET_TEST_ID,
+  DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
 } from './constants';
+import { createRageClickTracker, getRageClickEventProperties } from './autocapture/rage-click';
+import { AmpCaptureCoordinates } from './amp-capture';
 
 /**
  * Walks React Navigation state to the focused leaf route.
@@ -158,6 +161,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   userProperties: { [key: string]: any } | undefined;
   autocapture: ReactNativeAutocaptureOptions | null = null;
   captureUnsubscribe: (() => void) | undefined;
+  unregisterRageClickEvent: (() => void) | undefined;
 
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -300,6 +304,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         screenViews: true,
         elementInteractions: true,
         networkTracking: true,
+        frustrationInteractions: true,
       };
     } else if (autocaptureConfig && typeof autocaptureConfig === 'object') {
       this.autocapture = autocaptureConfig;
@@ -342,8 +347,20 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
     }
 
+    let registerRageClickEvent:
+      | ((coordinates: AmpCaptureCoordinates, eventProperties: Record<string, any>) => (() => void) | undefined)
+      | undefined;
+    if (this.autocapture?.frustrationInteractions === true) {
+      const rageClickTracker = createRageClickTracker((clickData) => {
+        this.track(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, getRageClickEventProperties(clickData), {
+          time: clickData.clicks[0].time,
+        });
+      });
+      registerRageClickEvent = rageClickTracker.registerClickEvent;
+    }
+
     if (this.autocapture?.elementInteractions === true) {
-      this.captureUnsubscribe = Capture.subscribe((properties) => {
+      this.captureUnsubscribe = Capture.subscribe((properties, coordinates) => {
         const analyticsProps = {
           [SCREEN_NAME]: this.currentScreenName,
           [TARGET_ACCESSIBILITY_LABEL]: properties.accessibilityLabel,
@@ -352,6 +369,9 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
           [TARGET_ELEMENT]: properties.element,
           [TARGET_TEST_ID]: properties.testID,
         };
+        if (properties.action === 'Press' && coordinates && registerRageClickEvent) {
+          this.unregisterRageClickEvent = registerRageClickEvent(coordinates, analyticsProps);
+        }
         this.track(DEFAULT_ELEMENT_INTERACTED_EVENT, analyticsProps);
       });
     }
@@ -396,6 +416,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   shutdown() {
     this.appStateChangeHandler?.remove();
     this.captureUnsubscribe?.();
+    this.unregisterRageClickEvent?.();
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
