@@ -81,11 +81,13 @@ export interface SessionReplayConfig {
   serverZone?: 'EU' | 'US';
 
   /**
-   * Session identifier that matches the session ID sent with Amplitude events
-   * Must match the Session ID passed as event properties to Amplitude
+   * Session identifier that matches the session ID sent with Amplitude events.
+   * Must match the Session ID passed as event properties to Amplitude.
+   * Accepts a safe integer such as `Date.now()` or an alphanumeric string such
+   * as a UUID; pass 64-bit integers beyond `Number.MAX_SAFE_INTEGER` as strings.
    * @default -1
    */
-  sessionId?: number;
+  sessionId?: string | number;
 }
 
 /**

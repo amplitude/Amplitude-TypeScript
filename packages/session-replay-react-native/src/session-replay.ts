@@ -30,6 +30,21 @@ function normalizeConfig(config: SessionReplayConfig): SessionReplayConfigIntern
 let isInitialized = false;
 let logger = createSessionReplayLogger();
 
+// Only canonical integers (no sign prefix, leading zeros, whitespace or hex)
+// become numbers, so `String(getSessionId())` always equals the native value.
+const CANONICAL_INTEGER = /^(0|-?[1-9]\d*)$/;
+
+// A JS `number` is an IEEE-754 double with 53 bits of integer precision, not
+// 64, so integers beyond `Number.MAX_SAFE_INTEGER` stay strings rather than
+// being rounded.
+function fromNativeSessionId(sessionId: string): string | number {
+  if (!CANONICAL_INTEGER.test(sessionId)) {
+    return sessionId;
+  }
+  const numericSessionId = Number(sessionId);
+  return Number.isSafeInteger(numericSessionId) ? numericSessionId : sessionId;
+}
+
 /**
  * Configure the SDK. Call `start()` explicitly to begin collecting replays.
  * This function must be called before any other session replay operations.
@@ -79,20 +94,26 @@ export async function init(config: SessionReplayConfig): Promise<void> {
  * Call whenever the session ID changes.
  * The Session ID you pass to the SDK must match the Session ID sent as event properties to Amplitude.
  *
- * @param sessionId - The new session identifier number
+ * Accepts a numeric session ID such as `Date.now()` or an alphanumeric one such
+ * as a UUID. Numbers must be safe integers (see `Number.isSafeInteger`); pass
+ * 64-bit integers beyond `Number.MAX_SAFE_INTEGER` as strings.
+ *
+ * @param sessionId - The new session identifier
  * @returns Promise that resolves when the session ID is updated
  *
  * @example
  * ```typescript
  * await setSessionId(Date.now());
+ * // or an alphanumeric session ID
+ * await setSessionId('550e8400-e29b-41d4-a716-446655440000');
  * ```
  */
-export async function setSessionId(sessionId: number): Promise<void> {
+export async function setSessionId(sessionId: string | number): Promise<void> {
   if (!isInitialized) {
     logger.warn('SessionReplay is not initialized');
     return;
   }
-  await NativeSessionReplay.setSessionId(sessionId);
+  await NativeSessionReplay.setCustomSessionId(String(sessionId));
 }
 
 /**
@@ -119,8 +140,15 @@ export async function setDeviceId(deviceId: string | null): Promise<void> {
 
 /**
  * Get the current session identifier from the session replay SDK.
+ * Resolves to a number when the active session ID is a safe integer, and to a
+ * string otherwise — for example a UUID. `-1` means no session is set.
  *
- * @returns Promise that resolves to the current session ID number, or null if not initialized
+ * 64-bit integers beyond `Number.MAX_SAFE_INTEGER` (2^53 - 1) resolve to their
+ * string form: a JavaScript `number` is a double with 53 bits of integer
+ * precision and cannot hold them exactly. A numeric string you set, such as
+ * `'123'`, resolves to the number `123`.
+ *
+ * @returns Promise that resolves to the current session ID, or null if not initialized
  *
  * @example
  * ```typescript
@@ -130,12 +158,12 @@ export async function setDeviceId(deviceId: string | null): Promise<void> {
  * }
  * ```
  */
-export async function getSessionId(): Promise<number | null> {
+export async function getSessionId(): Promise<string | number | null> {
   if (!isInitialized) {
     logger.warn('SessionReplay is not initialized');
     return null;
   }
-  return await NativeSessionReplay.getSessionId();
+  return fromNativeSessionId(await NativeSessionReplay.getCustomSessionId());
 }
 
 /**
@@ -235,13 +263,14 @@ function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayC
   // `undefined` (no user value and no baked-in default), so fall back to
   // `'medium'`. Strip `privacyConfig` from the spread because the native bridge
   // only takes a flat `maskLevel` string.
-  const { privacyConfig, ...rest } = config;
+  const { privacyConfig, sessionId, ...rest } = config;
   const resolvedMaskLevel: NativeSessionReplayConfig['maskLevel'] = privacyConfig.maskLevel ?? 'medium';
   return {
     ...rest,
     logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
     // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
     maskLevel: resolvedMaskLevel,
+    customSessionId: String(sessionId),
   };
 }
 
