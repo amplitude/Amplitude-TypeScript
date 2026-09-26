@@ -16,6 +16,7 @@ import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Config from '../src/config';
 import * as NetworkChecker from '../src/plugins/network-connectivity-checker';
+import { FRUSTRATION_PLUGIN_NAME } from '../src/plugins/frustration-plugin';
 import * as joinedConfig from '../src/config/joined-config';
 import { useDefaultConfig } from './helpers/default';
 import {
@@ -1417,7 +1418,14 @@ describe('react-native-client', () => {
     };
 
     const initOptions = (
-      autocapture: boolean | { sessions?: boolean; appLifecycles?: boolean; elementInteractions?: boolean },
+      autocapture:
+        | boolean
+        | {
+            sessions?: boolean;
+            appLifecycles?: boolean;
+            elementInteractions?: boolean;
+            frustrationInteractions?: boolean | { rageClick?: boolean };
+          },
     ) => ({
       autocapture,
       transportProvider: {
@@ -1640,7 +1648,8 @@ describe('react-native-client', () => {
       });
 
       test('should only use Press actions for rage click detection', async () => {
-        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true, frustrationInteractions: true }))
+          .promise;
         trackSpy.mockClear();
         jest.useFakeTimers();
 
@@ -1658,14 +1667,19 @@ describe('react-native-client', () => {
           }
           jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
 
-          expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, expect.anything());
+          expect(trackSpy).toHaveBeenCalledWith(
+            DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
+            expect.anything(),
+            expect.objectContaining({ time: expect.any(Number) }),
+          );
         } finally {
           jest.useRealTimers();
         }
       });
 
       test('should track rage click with timing, click count, clicks and element properties', async () => {
-        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true, frustrationInteractions: true }))
+          .promise;
         trackSpy.mockClear();
         jest.useFakeTimers();
         jest.setSystemTime(new Date('2026-01-01T00:00:00Z'));
@@ -1683,26 +1697,78 @@ describe('react-native-client', () => {
           jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
 
           const end = start + gap * (core.DEFAULT_RAGE_CLICK_THRESHOLD - 1);
-          expect(trackSpy).toHaveBeenCalledWith(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, {
-            '[Amplitude] Begin Time': start,
-            '[Amplitude] End Time': end,
-            '[Amplitude] Duration': end - start,
-            '[Amplitude] Click Count': core.DEFAULT_RAGE_CLICK_THRESHOLD,
-            '[Amplitude] Clicks': Array.from({ length: core.DEFAULT_RAGE_CLICK_THRESHOLD }, (_, i) => ({
-              x: 100,
-              y: 100,
-              time: start + gap * i,
-            })),
-            [SCREEN_NAME]: undefined,
-            [TARGET_ACCESSIBILITY_LABEL]: undefined,
-            [TARGET_ACTION]: 'Press',
-            [TARGET_COMPONENT]: undefined,
-            [TARGET_ELEMENT]: undefined,
-            [TARGET_TEST_ID]: 'rage-button',
-          });
+          expect(trackSpy).toHaveBeenCalledWith(
+            DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
+            {
+              '[Amplitude] Begin Time': start,
+              '[Amplitude] End Time': end,
+              '[Amplitude] Duration': end - start,
+              '[Amplitude] Click Count': core.DEFAULT_RAGE_CLICK_THRESHOLD,
+              '[Amplitude] Clicks': Array.from({ length: core.DEFAULT_RAGE_CLICK_THRESHOLD }, (_, i) => ({
+                x: 100,
+                y: 100,
+                time: start + gap * i,
+              })),
+              [SCREEN_NAME]: undefined,
+              [TARGET_ACCESSIBILITY_LABEL]: undefined,
+              [TARGET_ACTION]: 'Press',
+              [TARGET_COMPONENT]: undefined,
+              [TARGET_ELEMENT]: undefined,
+              [TARGET_TEST_ID]: 'rage-button',
+            },
+            { time: start },
+          );
         } finally {
           jest.useRealTimers();
         }
+      });
+
+      test('should install the frustration plugin and track rage clicks without elementInteractions', async () => {
+        await client.init(API_KEY, undefined, initOptions({ frustrationInteractions: true })).promise;
+        expect(client.timeline.plugins.map((plugin) => plugin.name)).toContain(FRUSTRATION_PLUGIN_NAME);
+        trackSpy.mockClear();
+        jest.useFakeTimers();
+
+        try {
+          const pressEvent = { nativeEvent: { pageX: 100, pageY: 100 } };
+          for (let i = 0; i < core.DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+            Capture.ampCapture(jest.fn(), { action: 'Press' })(pressEvent);
+          }
+          jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
+
+          expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_ELEMENT_INTERACTED_EVENT, expect.anything());
+          expect(trackSpy).toHaveBeenCalledWith(
+            DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
+            expect.anything(),
+            expect.objectContaining({ time: expect.any(Number) }),
+          );
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      test('should not track rage clicks when frustrationInteractions.rageClick is false', async () => {
+        await client.init(API_KEY, undefined, initOptions({ frustrationInteractions: { rageClick: false } })).promise;
+        expect(client.timeline.plugins.map((plugin) => plugin.name)).toContain(FRUSTRATION_PLUGIN_NAME);
+        trackSpy.mockClear();
+        jest.useFakeTimers();
+
+        try {
+          const pressEvent = { nativeEvent: { pageX: 100, pageY: 100 } };
+          for (let i = 0; i < core.DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+            Capture.ampCapture(jest.fn(), { action: 'Press' })(pressEvent);
+          }
+          jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
+
+          expect(trackSpy).not.toHaveBeenCalledWith(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, expect.anything());
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      test('should not install the frustration plugin when frustrationInteractions is disabled', async () => {
+        await client.init(API_KEY, undefined, initOptions({ elementInteractions: true })).promise;
+        expect(client.timeline.plugins.map((plugin) => plugin.name)).not.toContain(FRUSTRATION_PLUGIN_NAME);
       });
 
       test('should not attach stale screen name to element interactions after re-init', async () => {
@@ -1756,6 +1822,7 @@ describe('react-native-client', () => {
           screenViews: true,
           elementInteractions: true,
           networkTracking: true,
+          frustrationInteractions: true,
         });
       });
 

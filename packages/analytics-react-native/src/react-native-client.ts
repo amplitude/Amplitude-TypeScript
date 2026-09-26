@@ -41,6 +41,7 @@ import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-captur
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
+import { frustrationPlugin } from './plugins/frustration-plugin';
 import { ReactNativeDiagnosticsStorage } from './diagnostics/diagnostics-storage';
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
@@ -50,6 +51,7 @@ import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
 import { RemoteConfigCustomStorage } from './remote-config/remote-config-customstorage';
 import * as Capture from './amp-capture';
+import { getElementInteractionEventProperties } from './autocapture/element-interaction';
 import {
   APP_BUILD,
   APP_VERSION,
@@ -64,15 +66,7 @@ import {
   PREVIOUS_BUILD,
   PREVIOUS_VERSION,
   SCREEN_NAME,
-  TARGET_ACCESSIBILITY_LABEL,
-  TARGET_ACTION,
-  TARGET_COMPONENT,
-  TARGET_ELEMENT,
-  TARGET_TEST_ID,
-  DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
 } from './constants';
-import { createRageClickTracker, getRageClickEventProperties } from './autocapture/rage-click';
-import { AmpCaptureCoordinates } from './amp-capture';
 
 /**
  * Walks React Navigation state to the focused leaf route.
@@ -161,7 +155,6 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   userProperties: { [key: string]: any } | undefined;
   autocapture: ReactNativeAutocaptureOptions | null = null;
   captureUnsubscribe: (() => void) | undefined;
-  unregisterRageClickEvent: (() => void) | undefined;
 
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -347,32 +340,23 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
     }
 
-    let registerRageClickEvent:
-      | ((coordinates: AmpCaptureCoordinates, eventProperties: Record<string, any>) => (() => void) | undefined)
-      | undefined;
-    if (this.autocapture?.frustrationInteractions === true) {
-      const rageClickTracker = createRageClickTracker((clickData) => {
-        this.track(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, getRageClickEventProperties(clickData), {
-          time: clickData.clicks[0].time,
-        });
-      });
-      registerRageClickEvent = rageClickTracker.registerClickEvent;
+    const frustrationInteractions = this.autocapture?.frustrationInteractions;
+    if (frustrationInteractions) {
+      this.config.loggerProvider.debug('Adding frustration interactions plugin');
+      await this.add(
+        frustrationPlugin({
+          ...(typeof frustrationInteractions === 'object' ? frustrationInteractions : {}),
+          getScreenName: () => this.currentScreenName,
+        }),
+      ).promise;
     }
 
     if (this.autocapture?.elementInteractions === true) {
-      this.captureUnsubscribe = Capture.subscribe((properties, coordinates) => {
-        const analyticsProps = {
-          [SCREEN_NAME]: this.currentScreenName,
-          [TARGET_ACCESSIBILITY_LABEL]: properties.accessibilityLabel,
-          [TARGET_ACTION]: properties.action,
-          [TARGET_COMPONENT]: properties.component,
-          [TARGET_ELEMENT]: properties.element,
-          [TARGET_TEST_ID]: properties.testID,
-        };
-        if (properties.action === 'Press' && coordinates && registerRageClickEvent) {
-          this.unregisterRageClickEvent = registerRageClickEvent(coordinates, analyticsProps);
-        }
-        this.track(DEFAULT_ELEMENT_INTERACTED_EVENT, analyticsProps);
+      this.captureUnsubscribe = Capture.subscribe((properties) => {
+        this.track(
+          DEFAULT_ELEMENT_INTERACTED_EVENT,
+          getElementInteractionEventProperties(properties, this.currentScreenName),
+        );
       });
     }
 
@@ -416,7 +400,6 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   shutdown() {
     this.appStateChangeHandler?.remove();
     this.captureUnsubscribe?.();
-    this.unregisterRageClickEvent?.();
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {

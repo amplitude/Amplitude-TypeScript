@@ -166,6 +166,7 @@ export { NodeConfig, NodeOptions } from './types/config/node-config';
 export {
   ReactNativeConfig,
   ReactNativeAutocaptureOptions,
+  ReactNativeFrustrationInteractionsOptions,
   ReactNativeTrackingOptions,
   ReactNativeOptions,
   ReactNativeAttributionOptions,
