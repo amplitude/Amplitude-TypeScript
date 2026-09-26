@@ -4,6 +4,8 @@ import { IngestionMetadataEventProperty } from './ingestion-metadata';
 export interface Delay {
   id: string;
   timeout?: number;
+  // Do not drop this event when a send for the same insert_id completes.
+  skipRemoval?: true;
 }
 
 export interface BaseEvent extends EventOptions {

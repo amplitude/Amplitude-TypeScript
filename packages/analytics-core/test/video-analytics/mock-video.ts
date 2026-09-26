@@ -134,6 +134,17 @@ export function createMockVideo(options: { isMux: boolean } = { isMux: false }):
     }),
   });
 
+  Object.defineProperty(HTMLMediaElement.prototype, 'simulateError', {
+    configurable: true,
+    value: jest.fn(function (
+      this: HTMLVideoElement,
+      error: Partial<MediaError> | null = { code: 2, message: 'network' },
+    ) {
+      Object.defineProperty(this, 'error', { configurable: true, value: error });
+      this.dispatchEvent(new Event('error'));
+    }),
+  });
+
   Object.defineProperty(HTMLMediaElement.prototype, 'seeked', {
     configurable: true,
     value: jest.fn(function (this: HTMLVideoElement, time?: number) {

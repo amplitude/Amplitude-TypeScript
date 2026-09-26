@@ -13,19 +13,19 @@ export type VideoHandler = {
 };
 
 export type VideoEvent = {
-  duration: number;
+  duration: number | undefined;
   start_time?: number;
   playback_id?: string | undefined;
   video_id?: string | undefined;
   video_title?: string | undefined;
   content_id?: string | undefined;
-  content_type?: string | undefined;
+  media_type?: string | undefined;
   session_id?: string | undefined;
   mux_playback_id?: string | undefined | null;
   mux_video_id?: string | undefined | null;
   mux_video_title?: string | undefined | null;
   mux_session_id?: string | undefined | null;
-  last_position: number | undefined | null;
+  position: number | undefined | null;
   percent_completed?: number;
   stop_reason?: VideoStopReason;
 };
