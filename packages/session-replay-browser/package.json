@@ -47,7 +47,8 @@
     "@amplitude/rrweb-types": "2.0.0-alpha.40",
     "@amplitude/targeting": "workspace:*",
     "idb": "8.0.0",
-    "tslib": "^2.4.1"
+    "tslib": "^2.4.1",
+    "@amplitude/session-replay-dom-privacy": "workspace:*"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.229.0",
