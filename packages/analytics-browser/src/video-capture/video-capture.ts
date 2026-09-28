@@ -7,6 +7,7 @@ import {
   UUID,
   BaseEvent,
   getHeartbeatInstance,
+  getGlobalScope,
 } from '@amplitude/analytics-core';
 import { DEFAULT_STREAM_STARTED_EVENT, DEFAULT_STREAM_STOPPED_EVENT } from '../constants';
 
@@ -131,6 +132,13 @@ export class VideoCapture {
         this.heartbeat.track(this.stopEvent).catch(this.stop.bind(this));
       }
     });
+
+    // stop on pagehide
+    const win = getGlobalScope();
+    win?.addEventListener('pagehide', () => {
+      this.stop('pagehide');
+    });
+
     return this;
   }
 
@@ -226,10 +234,10 @@ export class VideoCapture {
    * Observers are detached first so no playback state change can race with the final
    * event, then any in-progress play session is closed out.
    */
-  stop() {
+  stop(stopReason: string = 'untracked') {
     this.onRemoveListeners.forEach((listener) => listener());
     this.onRemoveListeners = [];
-    this.flushStopEvent('untracked');
+    this.flushStopEvent(stopReason);
   }
 
   parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean | undefined> {
