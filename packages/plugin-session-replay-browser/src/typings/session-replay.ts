@@ -19,6 +19,12 @@ export type CrossOriginIframesConfig = NonNullable<StandaloneSessionReplayOption
  */
 export type FlushIntervalConfig = NonNullable<StandaloneSessionReplayOptions['flushIntervalConfig']>;
 
+/**
+ * Configuration for deferring the initial full snapshot past page load.
+ * Extracted from the standalone SDK's SessionReplayOptions.
+ */
+export type DeferFullSnapshotConfig = NonNullable<StandaloneSessionReplayOptions['deferFullSnapshot']>;
+
 export type MaskLevel =
   | 'light' // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
   | 'medium' // mask all inputs
@@ -210,6 +216,10 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.captureFullSnapshotOnFocus}
    */
   captureFullSnapshotOnFocus?: boolean;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.deferFullSnapshot}
+   */
+  deferFullSnapshot?: DeferFullSnapshotConfig;
   /**
    * @see {@link StandaloneSessionReplayOptions.maxPersistedEventsSizeBytes}
    */
