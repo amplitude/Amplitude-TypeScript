@@ -689,6 +689,39 @@ describe('pageUrlEnrichmentPlugin', () => {
       });
     });
 
+    test('should not log a malformed URI error when the previous page query contains an encoded percent sign', async () => {
+      const logger = new Logger();
+      logger.enable(LogLevel.Warn);
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      await plugin.setup?.({ ...mockConfig, loggerProvider: logger }, mockAmplitude);
+
+      const percentUrl = new URL(`https://www.example.com/a?${new URLSearchParams({ q: '20% off' }).toString()}`);
+      mockWindowLocationFromURL(percentUrl);
+      window.history.pushState(null, '', `${percentUrl.pathname}${percentUrl.search}`);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const nextUrl = new URL('https://www.example.com/b');
+      mockWindowLocationFromURL(nextUrl);
+      window.history.pushState(null, '', nextUrl.pathname);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const event = await plugin.execute?.({
+        event_type: 'any',
+      });
+
+      const malformedUriErrors = errorSpy.mock.calls.filter(([message]) =>
+        String(message).includes('Malformed URI sequence'),
+      );
+      expect(malformedUriErrors).toEqual([]);
+
+      expect(event?.event_properties).toMatchObject({
+        '[Amplitude] Page Location': 'https://www.example.com/b',
+        '[Amplitude] Previous Page Location': 'https://www.example.com/a?q=20%+off',
+        '[Amplitude] Previous Page Type': 'internal',
+      });
+    });
+
     test('should ignore event if it is one of the default event types to be excluded', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 

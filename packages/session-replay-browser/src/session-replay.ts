@@ -1,4 +1,9 @@
 import {
+  createPrivacyRecorderOptions,
+  getBlockSelectors,
+  getMaskTextSelectors,
+} from '@amplitude/session-replay-dom-privacy';
+import {
   getAnalyticsConnector,
   getGlobalScope,
   ILogger,
@@ -24,27 +29,16 @@ import {
   SessionReplayRemoteConfig,
 } from './config/types';
 import {
-  BLOCK_CLASS,
   CustomRRwebEvent,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   INTERACTION_MAX_INTERVAL,
   INTERACTION_MIN_INTERVAL,
-  MASK_TEXT_CLASS,
   SESSION_REPLAY_DEBUG_PROPERTY,
   SESSION_REPLAY_EU_URL,
   SESSION_REPLAY_SERVER_URL,
   SESSION_REPLAY_STAGING_URL,
 } from './constants';
-import {
-  getServerUrl,
-  getDebugConfig,
-  getEffectiveMaskLevel,
-  getPageUrl,
-  getStorageSize,
-  getCurrentUrl,
-  maskFn,
-  maskAttributeFn,
-} from './helpers';
+import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, getCurrentUrl } from './helpers';
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager, EventsManagerWithBeacon } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
@@ -845,46 +839,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getBlockSelectors(): string | string[] | undefined {
-    // For some reason, this defaults to empty array ([]) if undefined in the compiled script.
-    // Empty arrays cause errors when being evaluated in Safari.
-    // Force the selector to be undefined if it's an empty array.
-    const blockSelector = this.config?.privacyConfig?.blockSelector ?? [];
-    if (blockSelector.length === 0) {
-      return undefined;
-    }
-    return blockSelector;
+    return getBlockSelectors(this.config?.privacyConfig);
   }
 
   getMaskTextSelectors(): string | undefined {
-    const privacyConfig = this.config?.privacyConfig;
-    const effectiveLevel = privacyConfig ? getEffectiveMaskLevel(this.currentPageUrl, privacyConfig) : undefined;
-
-    if (effectiveLevel === 'conservative') {
-      return '*';
-    }
-
-    // If any urlMaskLevels rule uses 'conservative', always route all text nodes
-    // through maskTextFn so the dynamic URL getter can decide at call time.
-    // Without this, rrweb's static maskTextSelector would miss text nodes when
-    // the user navigates from a non-conservative page to a conservative one.
-    if (privacyConfig?.urlMaskLevels?.some((rule) => rule.maskLevel === 'conservative')) {
-      return '*';
-    }
-
-    // If defaultMaskLevel is 'conservative' and URL rules exist, always route text through
-    // maskTextFn — a page matching no rule falls back to the conservative default, and
-    // rrweb must be set up at start to call maskTextFn for those text nodes.
-    const urlMaskLevels = privacyConfig?.urlMaskLevels;
-    if (privacyConfig?.defaultMaskLevel === 'conservative' && urlMaskLevels && urlMaskLevels.length > 0) {
-      return '*';
-    }
-
-    const maskSelector = privacyConfig?.maskSelector;
-    if (!maskSelector) {
-      return;
-    }
-
-    return maskSelector as unknown as string;
+    return getMaskTextSelectors(this.config?.privacyConfig, this.currentPageUrl);
   }
 
   async getRecordingPlugins(loggingConfig: LoggingConfig | undefined) {
@@ -1127,15 +1086,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       inlineStylesheet: config.shouldInlineStylesheet,
       inlineImages: config.inlineImages,
       hooks,
-      maskAllInputs: true,
-      maskTextClass: MASK_TEXT_CLASS,
-      blockClass: BLOCK_CLASS,
-      blockSelector: this.getBlockSelectors() as string | undefined,
+      ...createPrivacyRecorderOptions(privacyConfig, () => this.currentPageUrl),
       applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
-      maskInputFn: maskFn('input', privacyConfig, () => this.currentPageUrl),
-      maskTextFn: maskFn('text', privacyConfig, () => this.currentPageUrl),
-      maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
-      maskTextSelector: this.getMaskTextSelectors(),
       ...(config.fullSnapshotIntervalMs !== undefined && { checkoutEveryNms: config.fullSnapshotIntervalMs }),
       recordCanvas: false,
       captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
