@@ -1747,6 +1747,46 @@ describe('react-native-client', () => {
         }
       });
 
+      test('should tear down all plugins on shutdown so rage clicks stop being tracked', async () => {
+        await client.init(API_KEY, undefined, initOptions({ frustrationInteractions: true })).promise;
+        const teardownSpies = client.timeline.plugins
+          .filter((plugin) => typeof plugin.teardown === 'function')
+          .map((plugin) => jest.spyOn(plugin, 'teardown'));
+        // At least the network connectivity checker and frustration plugins.
+        expect(teardownSpies.length).toBeGreaterThanOrEqual(2);
+        trackSpy.mockClear();
+        jest.useFakeTimers();
+
+        try {
+          const pressEvent = { nativeEvent: { pageX: 100, pageY: 100 } };
+          for (let i = 0; i < core.DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+            Capture.ampCapture(jest.fn(), { action: 'Press' })(pressEvent);
+          }
+
+          client.shutdown();
+
+          expect(client.timeline.plugins).toHaveLength(0);
+          for (const teardownSpy of teardownSpies) {
+            expect(teardownSpy).toHaveBeenCalledTimes(1);
+          }
+
+          // Pending rage click timer must not fire, and new presses must not be tracked.
+          jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
+          for (let i = 0; i < core.DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+            Capture.ampCapture(jest.fn(), { action: 'Press' })(pressEvent);
+          }
+          jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
+
+          expect(trackSpy).not.toHaveBeenCalledWith(
+            DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
+            expect.anything(),
+            expect.anything(),
+          );
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
       test('should not track rage clicks when frustrationInteractions.rageClick is false', async () => {
         await client.init(API_KEY, undefined, initOptions({ frustrationInteractions: { rageClick: false } })).promise;
         expect(client.timeline.plugins.map((plugin) => plugin.name)).toContain(FRUSTRATION_PLUGIN_NAME);

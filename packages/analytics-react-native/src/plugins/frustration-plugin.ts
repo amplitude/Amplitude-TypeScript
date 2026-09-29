@@ -6,7 +6,7 @@ import {
 } from '@amplitude/analytics-core';
 import * as Capture from '../amp-capture';
 import { getElementInteractionEventProperties } from '../autocapture/element-interaction';
-import { createRageClickTracker, getRageClickEventProperties } from '../autocapture/rage-click';
+import { createRageClickTracker, getRageClickEventProperties, getRageClickStartTime } from '../autocapture/rage-click';
 import { DEFAULT_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
 
 export const FRUSTRATION_PLUGIN_NAME = '@amplitude/plugin-frustration-react-native';
@@ -36,9 +36,9 @@ export const frustrationPlugin = (options: FrustrationPluginOptions = {}): React
   const setup: ReactNativeEnrichmentPlugin['setup'] = async (config, amplitude) => {
     if (rageClicksEnabled) {
       const rageClickTracker = createRageClickTracker((clickData) => {
-        amplitude.track(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, getRageClickEventProperties(clickData), {
-          time: clickData.clicks[0].time,
-        });
+        const time = getRageClickStartTime(clickData);
+        const eventProperties = getRageClickEventProperties(clickData);
+        amplitude.track(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, eventProperties, { time });
       });
 
       let unregisterRageClickEvent: (() => void) | undefined;

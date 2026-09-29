@@ -400,6 +400,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   shutdown() {
     this.appStateChangeHandler?.remove();
     this.captureUnsubscribe?.();
+    this.timeline.reset(this);
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
