@@ -24,7 +24,7 @@ on:
 
 jobs:
   authorize:
-    name: Authorize
+    name: Authorize and Verify Packages on NPM
     runs-on: ubuntu-latest
     steps:
       - name: Check branch protection
@@ -54,6 +54,22 @@ jobs:
           permission: 'write'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The package check reads packages/*/package.json from the ref being published
+      # and calls `pnpm view`, so it needs the repo on disk plus Node and pnpm.
+      # No dependency install is required.
+      - name: Check out git repository
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          install: 'false'
+
+      - name: Verify packages exist on npm
+        run: pnpm deploy:publish:check-packages
 
   e2e:
     name: E2E Tests
