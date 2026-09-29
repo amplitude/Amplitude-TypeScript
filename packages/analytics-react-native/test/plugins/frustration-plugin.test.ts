@@ -216,45 +216,37 @@ describe('frustrationPlugin', () => {
     await plugin.teardown?.();
   });
 
-  test('should track unhandled rejections after a press', async () => {
-    const listeners: Record<string, (event: Event) => void> = {};
-    const previousAddEventListener = (globalThis as any).addEventListener;
-    const previousRemoveEventListener = (globalThis as any).removeEventListener;
-    (globalThis as any).addEventListener = jest.fn();
-    (globalThis as any).removeEventListener = jest.fn();
-    const addEventListener = jest.spyOn(globalThis as any, 'addEventListener').mockImplementation((type, handler) => {
-      listeners[String(type)] = handler as (event: Event) => void;
-    });
-    const removeEventListener = jest
-      .spyOn(globalThis as any, 'removeEventListener')
-      .mockImplementation((type, handler) => {
-        const eventType = String(type);
-        if (listeners[eventType] === handler) {
-          delete listeners[eventType];
-        }
-      });
+  test('should track unhandled rejections reported through ErrorUtils after a press', async () => {
+    const addEventListener =
+      typeof (globalThis as any).addEventListener === 'function'
+        ? jest.spyOn(globalThis as any, 'addEventListener')
+        : jest.fn();
+    const removeEventListener =
+      typeof (globalThis as any).removeEventListener === 'function'
+        ? jest.spyOn(globalThis as any, 'removeEventListener')
+        : jest.fn();
     const plugin = frustrationPlugin();
     await plugin.setup?.(useDefaultConfig(), amplitude);
 
     withFakeTimers(() => {
+      const error = new Error('Promise failed');
       press(1, { action: 'Press', testID: 'rejection-button' });
-      listeners.unhandledrejection?.({ reason: new Error('Promise failed') } as PromiseRejectionEvent);
+      currentErrorHandler?.(error, false);
 
       expect(track).toHaveBeenCalledWith(
         DEFAULT_ELEMENT_ERROR_CLICKED_EVENT,
         expect.objectContaining({
-          '[Amplitude] Kind': 'unhandledrejection',
+          '[Amplitude] Kind': 'error',
           '[Amplitude] Message': 'Promise failed',
           [TARGET_TEST_ID]: 'rejection-button',
         }),
       );
+      expect(previousErrorHandler).toHaveBeenCalledWith(error, false);
     });
 
     await plugin.teardown?.();
-    expect(addEventListener).toHaveBeenCalledWith('unhandledrejection', expect.any(Function));
-    expect(removeEventListener).toHaveBeenCalledWith('unhandledrejection', expect.any(Function));
-    (globalThis as any).addEventListener = previousAddEventListener;
-    (globalThis as any).removeEventListener = previousRemoveEventListener;
+    expect(addEventListener).not.toHaveBeenCalled();
+    expect(removeEventListener).not.toHaveBeenCalled();
   });
 
   test('should not track console errors by default', async () => {
@@ -284,6 +276,38 @@ describe('frustrationPlugin', () => {
     });
 
     await plugin.teardown?.();
+  });
+
+  test('should remove each error observer independently of teardown order', async () => {
+    const firstTrack = jest.fn();
+    const secondTrack = jest.fn();
+    const firstPlugin = frustrationPlugin();
+    const secondPlugin = frustrationPlugin();
+
+    await firstPlugin.setup?.(useDefaultConfig(), { track: firstTrack } as unknown as ReactNativeClient);
+    const sharedErrorHandler = currentErrorHandler;
+    await secondPlugin.setup?.(useDefaultConfig(), { track: secondTrack } as unknown as ReactNativeClient);
+
+    expect(currentErrorHandler).toBe(sharedErrorHandler);
+
+    withFakeTimers(() => {
+      press(1);
+      currentErrorHandler?.(new Error('Both active'));
+      expect(firstTrack).toHaveBeenCalledTimes(1);
+      expect(secondTrack).toHaveBeenCalledTimes(1);
+
+      firstTrack.mockClear();
+      secondTrack.mockClear();
+      void firstPlugin.teardown?.();
+
+      press(1);
+      currentErrorHandler?.(new Error('Only second active'));
+      expect(firstTrack).not.toHaveBeenCalled();
+      expect(secondTrack).toHaveBeenCalledTimes(1);
+
+      void secondPlugin.teardown?.();
+      expect(currentErrorHandler).toBe(previousErrorHandler);
+    });
   });
 
   test('should stop tracking and cancel pending rage clicks on teardown', async () => {
