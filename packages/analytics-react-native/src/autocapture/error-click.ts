@@ -37,6 +37,18 @@ type ErrorUtilsLike = {
   setGlobalHandler?: (handler: ErrorUtilsGlobalHandler) => void;
 };
 
+type ErrorObserver = {
+  handler: (event: ReactNativeErrorEvent) => void;
+};
+
+type ErrorObserverState = {
+  observers: Set<ErrorObserver>;
+  previousHandler: ErrorUtilsGlobalHandler | undefined;
+  dispatcher: ErrorUtilsGlobalHandler;
+};
+
+const errorObserverStates = new WeakMap<ErrorUtilsLike, ErrorObserverState>();
+
 export function getErrorClickEventProperties(
   errorClickData: ErrorClickData,
 ): ErrorClickEventProperties & Record<string, any> {
@@ -113,99 +125,54 @@ const errorToEvent = (error: unknown): ReactNativeErrorEvent => {
   };
 };
 
-const errorEventToEvent = (event: Event): ReactNativeErrorEvent | undefined => {
-  if (typeof ErrorEvent !== 'undefined' && event instanceof ErrorEvent) {
-    const output = errorToEvent(event.error);
-    return {
-      ...output,
-      filename: event.filename,
-      lineNumber: event.lineno,
-      columnNumber: event.colno,
-    };
-  }
-
-  const candidate = event as Event & {
-    error?: unknown;
-    message?: unknown;
-    filename?: unknown;
-    lineno?: unknown;
-    colno?: unknown;
-  };
-  if (!('error' in candidate) && !('message' in candidate)) {
-    return undefined;
-  }
-
-  const output = errorToEvent(candidate.error ?? candidate.message);
-  return {
-    ...output,
-    filename: typeof candidate.filename === 'string' ? candidate.filename : undefined,
-    lineNumber: typeof candidate.lineno === 'number' ? candidate.lineno : undefined,
-    columnNumber: typeof candidate.colno === 'number' ? candidate.colno : undefined,
-  };
-};
-
 export const createUnhandledErrorObservable = (handler: (event: ReactNativeErrorEvent) => void): (() => void) => {
-  const subscriptions: (() => void)[] = [];
-  const globalScope = getGlobalScope();
-  const errorUtils = (globalThis as { ErrorUtils?: ErrorUtilsLike }).ErrorUtils;
+  const errorUtils = (getGlobalScope() as { ErrorUtils?: ErrorUtilsLike } | undefined)?.ErrorUtils;
 
-  if (globalScope?.addEventListener && globalScope?.removeEventListener) {
-    const errorHandler = (event: Event) => {
-      const errorEvent = errorEventToEvent(event);
-      if (errorEvent) {
-        handler(errorEvent);
-      }
-    };
-    globalScope.addEventListener('error', errorHandler);
-    subscriptions.push(() => globalScope.removeEventListener('error', errorHandler));
-  }
-
-  if (errorUtils?.setGlobalHandler && errorUtils?.getGlobalHandler) {
-    const previousHandler = errorUtils.getGlobalHandler();
-    const errorHandler: ErrorUtilsGlobalHandler = (error, isFatal) => {
-      handler(errorToEvent(error));
-      previousHandler?.(error, isFatal);
-    };
-    errorUtils.setGlobalHandler(errorHandler);
-    subscriptions.push(() => {
-      if (errorUtils.getGlobalHandler?.() === errorHandler) {
-        errorUtils.setGlobalHandler?.(previousHandler ?? (() => undefined));
-      }
-    });
-  }
-
-  return () => {
-    for (const unsubscribe of subscriptions) {
-      unsubscribe();
-    }
-  };
-};
-
-export const createUnhandledRejectionObservable = (handler: (event: ReactNativeErrorEvent) => void): (() => void) => {
-  const globalScope = getGlobalScope();
-  if (!globalScope?.addEventListener || !globalScope?.removeEventListener) {
+  if (!errorUtils?.setGlobalHandler || !errorUtils?.getGlobalHandler) {
     return () => undefined;
   }
 
-  const rejectionHandler = (event: Event) => {
-    const reason = (event as PromiseRejectionEvent).reason;
-    const output = errorToEvent(reason);
-    handler({
-      ...output,
-      kind: 'unhandledrejection',
-    });
-  };
-  globalScope.addEventListener('unhandledrejection', rejectionHandler);
+  let state = errorObserverStates.get(errorUtils);
+  if (!state) {
+    const previousHandler = errorUtils.getGlobalHandler();
+    const observers = new Set<ErrorObserver>();
+    state = {
+      observers,
+      previousHandler: errorUtils.getGlobalHandler(),
+      dispatcher: (error, isFatal) => {
+        const event = errorToEvent(error);
+        for (const observer of Array.from(observers)) {
+          observer.handler(event);
+        }
+        previousHandler?.(error, isFatal);
+      },
+    };
+    errorObserverStates.set(errorUtils, state);
+    errorUtils.setGlobalHandler(state.dispatcher);
+  }
+
+  const observerState = state;
+  const observer = { handler };
+  observerState.observers.add(observer);
+  let isSubscribed = true;
   return () => {
-    globalScope.removeEventListener('unhandledrejection', rejectionHandler);
+    if (!isSubscribed) {
+      return;
+    }
+    isSubscribed = false;
+    observerState.observers.delete(observer);
+    if (observerState.observers.size === 0) {
+      if (errorUtils.getGlobalHandler?.() === observerState.dispatcher) {
+        errorUtils.setGlobalHandler?.(observerState.previousHandler ?? (() => undefined));
+      }
+      errorObserverStates.delete(errorUtils);
+    }
   };
 };
 
 export const createErrorObservable = (handler: (event: ReactNativeErrorEvent) => void): (() => void) => {
   const unsubscribeUnhandledError = createUnhandledErrorObservable(handler);
-  const unsubscribeUnhandledRejection = createUnhandledRejectionObservable(handler);
   return () => {
     unsubscribeUnhandledError();
-    unsubscribeUnhandledRejection();
   };
 };
