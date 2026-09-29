@@ -7,6 +7,7 @@ import * as Capture from '../../src/amp-capture';
 import { frustrationPlugin, FRUSTRATION_PLUGIN_NAME } from '../../src/plugins/frustration-plugin';
 import {
   DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
+  DEFAULT_ELEMENT_ERROR_CLICKED_EVENT,
   SCREEN_NAME,
   TARGET_ACCESSIBILITY_LABEL,
   TARGET_ACTION,
@@ -21,6 +22,9 @@ describe('frustrationPlugin', () => {
 
   let amplitude: ReactNativeClient;
   let track: jest.Mock;
+  let previousErrorUtils: unknown;
+  let currentErrorHandler: ((error: unknown, isFatal?: boolean) => void) | undefined;
+  let previousErrorHandler: jest.Mock;
 
   const press = (count: number, properties: Capture.AmpCaptureProperties = { action: 'Press', testID: 'button' }) => {
     for (let i = 0; i < count; i++) {
@@ -46,6 +50,20 @@ describe('frustrationPlugin', () => {
   beforeEach(() => {
     track = jest.fn();
     amplitude = { track } as unknown as ReactNativeClient;
+    previousErrorHandler = jest.fn();
+    currentErrorHandler = previousErrorHandler;
+    previousErrorUtils = (globalThis as any).ErrorUtils;
+    (globalThis as any).ErrorUtils = {
+      getGlobalHandler: jest.fn(() => currentErrorHandler),
+      setGlobalHandler: jest.fn((handler) => {
+        currentErrorHandler = handler;
+      }),
+    };
+  });
+
+  afterEach(() => {
+    (globalThis as any).ErrorUtils = previousErrorUtils;
+    jest.restoreAllMocks();
   });
 
   test('should be an enrichment plugin with the expected name', () => {
@@ -147,13 +165,134 @@ describe('frustrationPlugin', () => {
     await plugin.teardown?.();
   });
 
+  test('should track an error click when a press is followed by an exception', async () => {
+    const plugin = frustrationPlugin({ getScreenName: () => 'Home' });
+    await plugin.setup?.(useDefaultConfig(), amplitude);
+
+    withFakeTimers(() => {
+      const error = new Error('Press failed');
+      press(1, { action: 'Press', testID: 'error-button', component: 'Button' });
+      currentErrorHandler?.(error, true);
+
+      expect(track).toHaveBeenCalledWith(DEFAULT_ELEMENT_ERROR_CLICKED_EVENT, {
+        '[Amplitude] Kind': 'error',
+        '[Amplitude] Message': 'Press failed',
+        '[Amplitude] Stack': error.stack,
+        '[Amplitude] Filename': undefined,
+        '[Amplitude] Line Number': undefined,
+        '[Amplitude] Column Number': undefined,
+        [SCREEN_NAME]: 'Home',
+        [TARGET_ACCESSIBILITY_LABEL]: undefined,
+        [TARGET_ACTION]: 'Press',
+        [TARGET_COMPONENT]: 'Button',
+        [TARGET_ELEMENT]: undefined,
+        [TARGET_TEST_ID]: 'error-button',
+      });
+      expect(previousErrorHandler).toHaveBeenCalledWith(error, true);
+    });
+
+    await plugin.teardown?.();
+  });
+
+  test('should track error clicks for long presses', async () => {
+    const plugin = frustrationPlugin();
+    await plugin.setup?.(useDefaultConfig(), amplitude);
+
+    withFakeTimers(() => {
+      Capture.ampCapture(jest.fn(), { action: 'LongPress', testID: 'long-press-button' })(pressEvent);
+      currentErrorHandler?.('Long press failed');
+
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_ELEMENT_ERROR_CLICKED_EVENT,
+        expect.objectContaining({
+          '[Amplitude] Kind': 'error',
+          '[Amplitude] Message': 'Long press failed',
+          [TARGET_ACTION]: 'LongPress',
+          [TARGET_TEST_ID]: 'long-press-button',
+        }),
+      );
+    });
+
+    await plugin.teardown?.();
+  });
+
+  test('should track unhandled rejections after a press', async () => {
+    const listeners: Record<string, (event: Event) => void> = {};
+    const previousAddEventListener = (globalThis as any).addEventListener;
+    const previousRemoveEventListener = (globalThis as any).removeEventListener;
+    (globalThis as any).addEventListener = jest.fn();
+    (globalThis as any).removeEventListener = jest.fn();
+    const addEventListener = jest.spyOn(globalThis as any, 'addEventListener').mockImplementation((type, handler) => {
+      listeners[String(type)] = handler as (event: Event) => void;
+    });
+    const removeEventListener = jest
+      .spyOn(globalThis as any, 'removeEventListener')
+      .mockImplementation((type, handler) => {
+        const eventType = String(type);
+        if (listeners[eventType] === handler) {
+          delete listeners[eventType];
+        }
+      });
+    const plugin = frustrationPlugin();
+    await plugin.setup?.(useDefaultConfig(), amplitude);
+
+    withFakeTimers(() => {
+      press(1, { action: 'Press', testID: 'rejection-button' });
+      listeners.unhandledrejection?.({ reason: new Error('Promise failed') } as PromiseRejectionEvent);
+
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_ELEMENT_ERROR_CLICKED_EVENT,
+        expect.objectContaining({
+          '[Amplitude] Kind': 'unhandledrejection',
+          '[Amplitude] Message': 'Promise failed',
+          [TARGET_TEST_ID]: 'rejection-button',
+        }),
+      );
+    });
+
+    await plugin.teardown?.();
+    expect(addEventListener).toHaveBeenCalledWith('unhandledrejection', expect.any(Function));
+    expect(removeEventListener).toHaveBeenCalledWith('unhandledrejection', expect.any(Function));
+    (globalThis as any).addEventListener = previousAddEventListener;
+    (globalThis as any).removeEventListener = previousRemoveEventListener;
+  });
+
+  test('should not track console errors by default', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const plugin = frustrationPlugin();
+    await plugin.setup?.(useDefaultConfig(), amplitude);
+
+    withFakeTimers(() => {
+      press(1, { action: 'Press', testID: 'console-button' });
+      console.error('Console failed');
+
+      expect(track).not.toHaveBeenCalledWith(DEFAULT_ELEMENT_ERROR_CLICKED_EVENT, expect.anything());
+    });
+
+    await plugin.teardown?.();
+  });
+
+  test('should not track error clicks when errorClick is disabled', async () => {
+    const plugin = frustrationPlugin({ errorClick: false });
+    await plugin.setup?.(useDefaultConfig(), amplitude);
+
+    withFakeTimers(() => {
+      press(1, { action: 'Press', testID: 'error-button' });
+      currentErrorHandler?.(new Error('Press failed'));
+
+      expect(track).not.toHaveBeenCalledWith(DEFAULT_ELEMENT_ERROR_CLICKED_EVENT, expect.anything());
+    });
+
+    await plugin.teardown?.();
+  });
+
   test('should stop tracking and cancel pending rage clicks on teardown', async () => {
     const plugin = frustrationPlugin();
     await plugin.setup?.(useDefaultConfig(), amplitude);
 
     withFakeTimers(() => {
       press(DEFAULT_RAGE_CLICK_THRESHOLD);
-      expect(jest.getTimerCount()).toBe(1);
+      expect(jest.getTimerCount()).toBe(2);
 
       // teardown() is async but its body runs synchronously before the first await boundary.
       void plugin.teardown?.();

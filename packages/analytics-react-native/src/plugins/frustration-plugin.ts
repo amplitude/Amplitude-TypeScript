@@ -5,15 +5,21 @@ import {
   ReactNativeFrustrationInteractionsOptions,
 } from '@amplitude/analytics-core';
 import * as Capture from '../amp-capture';
+import {
+  createErrorClickTracker,
+  createErrorObservable,
+  getErrorClickEventProperties,
+} from '../autocapture/error-click';
 import { getElementInteractionEventProperties } from '../autocapture/element-interaction';
-import { createRageClickTracker, getRageClickEventProperties } from '../autocapture/rage-click';
-import { DEFAULT_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
+import { createRageClickTracker, getRageClickEventProperties, getRageClickStartTime } from '../autocapture/rage-click';
+import { DEFAULT_ELEMENT_ERROR_CLICKED_EVENT, DEFAULT_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
 
 export const FRUSTRATION_PLUGIN_NAME = '@amplitude/plugin-frustration-react-native';
 
 type ReactNativeEnrichmentPlugin = EnrichmentPlugin<ReactNativeClient, ReactNativeConfig>;
 
 export interface FrustrationPluginOptions extends ReactNativeFrustrationInteractionsOptions {
+  errorClick?: boolean;
   /**
    * Returns the name of the screen currently being viewed so it can be attached to
    * frustration events as `[Amplitude] Screen Name`.
@@ -22,7 +28,7 @@ export interface FrustrationPluginOptions extends ReactNativeFrustrationInteract
 }
 
 /**
- * Tracks frustration interactions (currently `[Amplitude] Rage Click`) from presses
+ * Tracks frustration interactions from presses
  * captured through `ampCapture`.
  */
 export const frustrationPlugin = (options: FrustrationPluginOptions = {}): ReactNativeEnrichmentPlugin => {
@@ -30,15 +36,16 @@ export const frustrationPlugin = (options: FrustrationPluginOptions = {}): React
   const type = 'enrichment';
 
   const rageClicksEnabled = options.rageClick !== false;
+  const errorClicksEnabled = options.errorClick !== false;
 
   let subscriptions: (() => void)[] = [];
 
   const setup: ReactNativeEnrichmentPlugin['setup'] = async (config, amplitude) => {
     if (rageClicksEnabled) {
       const rageClickTracker = createRageClickTracker((clickData) => {
-        amplitude.track(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, getRageClickEventProperties(clickData), {
-          time: clickData.clicks[0].time,
-        });
+        const time = getRageClickStartTime(clickData);
+        const eventProperties = getRageClickEventProperties(clickData);
+        amplitude.track(DEFAULT_ELEMENT_RAGE_CLICKED_EVENT, eventProperties, { time });
       });
 
       let unregisterRageClickEvent: (() => void) | undefined;
@@ -53,6 +60,25 @@ export const frustrationPlugin = (options: FrustrationPluginOptions = {}): React
       });
 
       subscriptions.push(captureUnsubscribe, () => unregisterRageClickEvent?.());
+    }
+
+    if (errorClicksEnabled) {
+      const errorClickTracker = createErrorClickTracker((errorClickData) => {
+        amplitude.track(DEFAULT_ELEMENT_ERROR_CLICKED_EVENT, getErrorClickEventProperties(errorClickData));
+      });
+
+      let unregisterErrorClickEvent: (() => void) | undefined;
+      const captureUnsubscribe = Capture.subscribe((properties) => {
+        if (properties.action !== 'Press' && properties.action !== 'LongPress') {
+          return;
+        }
+        unregisterErrorClickEvent = errorClickTracker.registerClickEvent(
+          getElementInteractionEventProperties(properties, options.getScreenName?.()),
+        );
+      });
+      const errorUnsubscribe = createErrorObservable(errorClickTracker.registerErrorEvent);
+
+      subscriptions.push(captureUnsubscribe, errorUnsubscribe, () => unregisterErrorClickEvent?.());
     }
 
     /* istanbul ignore next */

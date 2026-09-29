@@ -1424,7 +1424,7 @@ describe('react-native-client', () => {
             sessions?: boolean;
             appLifecycles?: boolean;
             elementInteractions?: boolean;
-            frustrationInteractions?: boolean | { rageClick?: boolean };
+            frustrationInteractions?: boolean | { rageClick?: boolean; errorClick?: boolean };
           },
     ) => ({
       autocapture,
@@ -1741,6 +1741,46 @@ describe('react-native-client', () => {
             DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
             expect.anything(),
             expect.objectContaining({ time: expect.any(Number) }),
+          );
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      test('should tear down all plugins on shutdown so rage clicks stop being tracked', async () => {
+        await client.init(API_KEY, undefined, initOptions({ frustrationInteractions: true })).promise;
+        const teardownSpies = client.timeline.plugins
+          .filter((plugin) => typeof plugin.teardown === 'function')
+          .map((plugin) => jest.spyOn(plugin, 'teardown'));
+        // At least the network connectivity checker and frustration plugins.
+        expect(teardownSpies.length).toBeGreaterThanOrEqual(2);
+        trackSpy.mockClear();
+        jest.useFakeTimers();
+
+        try {
+          const pressEvent = { nativeEvent: { pageX: 100, pageY: 100 } };
+          for (let i = 0; i < core.DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+            Capture.ampCapture(jest.fn(), { action: 'Press' })(pressEvent);
+          }
+
+          client.shutdown();
+
+          expect(client.timeline.plugins).toHaveLength(0);
+          for (const teardownSpy of teardownSpies) {
+            expect(teardownSpy).toHaveBeenCalledTimes(1);
+          }
+
+          // Pending rage click timer must not fire, and new presses must not be tracked.
+          jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
+          for (let i = 0; i < core.DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+            Capture.ampCapture(jest.fn(), { action: 'Press' })(pressEvent);
+          }
+          jest.advanceTimersByTime(core.DEFAULT_RAGE_CLICK_WINDOW_MS);
+
+          expect(trackSpy).not.toHaveBeenCalledWith(
+            DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
+            expect.anything(),
+            expect.anything(),
           );
         } finally {
           jest.useRealTimers();

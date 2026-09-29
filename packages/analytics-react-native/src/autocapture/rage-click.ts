@@ -5,6 +5,8 @@ import {
 } from '@amplitude/analytics-core';
 import type { AmpCaptureCoordinates } from '../amp-capture';
 
+const CLICK_SIZE_LIMIT = 100;
+
 // Captures Rage Clicks (when a button is pressed repeatedly within a certain time window)
 type ClickEvent = {
   coordinates: AmpCaptureCoordinates;
@@ -61,6 +63,10 @@ export function getRageClickEventProperties(clickData: RageClickData): Record<st
     ['[Amplitude] Clicks']: clickData.clicks,
   };
   return { ...rageClickProperties, ...clickData.eventProperties };
+}
+
+export function getRageClickStartTime(clickData: RageClickData): number | undefined {
+  return clickData.clicks[0]?.time ?? undefined;
 }
 
 export function createRageClickTracker(rageClickHandler: (clickData: RageClickData) => void): RageClickTracker {
@@ -134,6 +140,9 @@ export function createRageClickTracker(rageClickHandler: (clickData: RageClickDa
     clickWindow.push(clickEvent);
     clickCount++;
     clicks.push({ x: coordinates.x, y: coordinates.y, time: now });
+    if (clicks.length > CLICK_SIZE_LIMIT) {
+      clicks.shift();
+    }
     if (clickWindow.length > DEFAULT_RAGE_CLICK_THRESHOLD) {
       clickWindow.shift();
     }

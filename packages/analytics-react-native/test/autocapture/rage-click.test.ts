@@ -115,6 +115,21 @@ describe('rage-click', () => {
       expect(clickData.clicks).toHaveLength(totalClicks);
     });
 
+    test('drops the oldest reported clicks once the burst exceeds 100 while still counting every click', () => {
+      const clickSizeLimit = 100;
+      const totalClicks = clickSizeLimit + 1;
+      const gap = 1;
+      const start = Date.now();
+      clickTimes(totalClicks, COORDINATES_A, gap);
+      jest.advanceTimersByTime(DEFAULT_RAGE_CLICK_WINDOW_MS);
+
+      const clickData = handler.mock.calls[0][0] as RageClickData;
+      expect(clickData.clickCount).toBe(totalClicks);
+      expect(clickData.clicks).toHaveLength(clickSizeLimit);
+      expect(clickData.clicks[0].time).toBe(start + gap);
+      expect(clickData.clicks[clickData.clicks.length - 1].time).toBe(start + gap * (totalClicks - 1));
+    });
+
     test('debounces: additional clicks after the threshold delay the handler and increase the count', () => {
       clickTimes(DEFAULT_RAGE_CLICK_THRESHOLD);
       // Keep clicking every 200ms; the handler should keep being pushed out.
