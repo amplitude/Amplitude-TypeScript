@@ -45,14 +45,25 @@ function fromNativeSessionId(sessionId: string): string | number {
   return Number.isSafeInteger(numericSessionId) ? numericSessionId : sessionId;
 }
 
-function toNativeSessionId(sessionId: string | number): string {
-  if (typeof sessionId === 'number' && !Number.isSafeInteger(sessionId)) {
+function normalizeNumericSessionId(sessionId: number): string {
+  if (sessionId === -1) {
+    return '-1';
+  }
+  if (!Number.isFinite(sessionId) || !Number.isInteger(sessionId) || sessionId <= 0) {
+    logger.warn('Invalid numeric sessionId; disabling session replay until a valid ID is set.', sessionId);
+    return '-1';
+  }
+  if (!Number.isSafeInteger(sessionId)) {
     logger.warn(
       'Unsafe numeric sessionId may already be rounded; forwarding its current value. Pass the exact ID as a string.',
       sessionId,
     );
   }
   return String(sessionId);
+}
+
+function toNativeSessionId(sessionId: string | number): string {
+  return typeof sessionId === 'number' ? normalizeNumericSessionId(sessionId) : sessionId;
 }
 
 /**
@@ -62,8 +73,9 @@ function toNativeSessionId(sessionId: string | number): string {
  * @param config - Configuration object containing API key, device ID, session ID, and other options
  * @returns Promise that resolves when initialization is complete. Native setup
  * failures are logged and do not reject the promise.
- * Unsafe numeric session IDs are logged and forwarded as their JavaScript value,
- * which may already be rounded. Pass exact large IDs as strings.
+ * Invalid numeric session IDs disable recording and are logged. Positive unsafe
+ * integers are logged and forwarded as their JavaScript value, which may already
+ * be rounded. Pass exact large IDs as strings.
  *
  * @example
  * ```typescript
@@ -106,11 +118,10 @@ export async function init(config: SessionReplayConfig): Promise<void> {
  * Call whenever the session ID changes.
  * The Session ID you pass to the SDK must match the Session ID sent as event properties to Amplitude.
  *
- * Accepts a numeric session ID such as `Date.now()` or an alphanumeric one such
- * as a UUID. Numbers must be safe integers (see `Number.isSafeInteger`); pass
- * 64-bit integers beyond `Number.MAX_SAFE_INTEGER` as strings. Unsafe numeric
- * inputs are logged and forwarded as their JavaScript value, which may already
- * be rounded.
+ * Accepts a positive integer such as `Date.now()` or an opaque string such as a
+ * UUID. Invalid numeric IDs are logged and mapped to `-1`, disabling recording.
+ * Positive integers beyond `Number.MAX_SAFE_INTEGER` are logged and forwarded
+ * as their JavaScript value, which may already be rounded; pass exact IDs as strings.
  *
  * @param sessionId - The new session identifier
  * @returns Promise that resolves when the session ID is updated
