@@ -110,9 +110,10 @@ export default function App() {
             },
             appLifecycles: true,
             sessions: true,
+            frustrationInteractions: true,
           },
           remoteConfig: {
-            fetchRemoteConfig: true,
+            fetchRemoteConfig: false,
           },
         }).promise;
         track('expo-app/react-native/test-event');

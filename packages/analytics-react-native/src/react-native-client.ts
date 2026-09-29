@@ -41,6 +41,7 @@ import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-captur
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
+import { frustrationPlugin } from './plugins/frustration-plugin';
 import { ReactNativeDiagnosticsStorage } from './diagnostics/diagnostics-storage';
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
@@ -50,6 +51,7 @@ import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
 import { RemoteConfigCustomStorage } from './remote-config/remote-config-customstorage';
 import * as Capture from './amp-capture';
+import { getElementInteractionEventProperties } from './autocapture/element-interaction';
 import {
   APP_BUILD,
   APP_VERSION,
@@ -64,11 +66,6 @@ import {
   PREVIOUS_BUILD,
   PREVIOUS_VERSION,
   SCREEN_NAME,
-  TARGET_ACCESSIBILITY_LABEL,
-  TARGET_ACTION,
-  TARGET_COMPONENT,
-  TARGET_ELEMENT,
-  TARGET_TEST_ID,
 } from './constants';
 
 /**
@@ -300,6 +297,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         screenViews: true,
         elementInteractions: true,
         networkTracking: true,
+        frustrationInteractions: true,
       };
     } else if (autocaptureConfig && typeof autocaptureConfig === 'object') {
       this.autocapture = autocaptureConfig;
@@ -342,17 +340,23 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
     }
 
+    const frustrationInteractions = this.autocapture?.frustrationInteractions;
+    if (frustrationInteractions) {
+      this.config.loggerProvider.debug('Adding frustration interactions plugin');
+      await this.add(
+        frustrationPlugin({
+          ...(typeof frustrationInteractions === 'object' ? frustrationInteractions : {}),
+          getScreenName: () => this.currentScreenName,
+        }),
+      ).promise;
+    }
+
     if (this.autocapture?.elementInteractions === true) {
       this.captureUnsubscribe = Capture.subscribe((properties) => {
-        const analyticsProps = {
-          [SCREEN_NAME]: this.currentScreenName,
-          [TARGET_ACCESSIBILITY_LABEL]: properties.accessibilityLabel,
-          [TARGET_ACTION]: properties.action,
-          [TARGET_COMPONENT]: properties.component,
-          [TARGET_ELEMENT]: properties.element,
-          [TARGET_TEST_ID]: properties.testID,
-        };
-        this.track(DEFAULT_ELEMENT_INTERACTED_EVENT, analyticsProps);
+        this.track(
+          DEFAULT_ELEMENT_INTERACTED_EVENT,
+          getElementInteractionEventProperties(properties, this.currentScreenName),
+        );
       });
     }
 
@@ -396,6 +400,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   shutdown() {
     this.appStateChangeHandler?.remove();
     this.captureUnsubscribe?.();
+    this.timeline.reset(this);
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {

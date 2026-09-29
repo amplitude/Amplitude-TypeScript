@@ -78,6 +78,7 @@ export function updateReactNativeConfigWithRemoteConfig(
             appLifecycles: reactNativeConfig.autocapture,
             elementInteractions: reactNativeConfig.autocapture,
             networkTracking: reactNativeConfig.autocapture,
+            frustrationInteractions: reactNativeConfig.autocapture,
             ...transformedAutocaptureRemoteConfig,
           };
         }

@@ -166,6 +166,7 @@ export { NodeConfig, NodeOptions } from './types/config/node-config';
 export {
   ReactNativeConfig,
   ReactNativeAutocaptureOptions,
+  ReactNativeFrustrationInteractionsOptions,
   ReactNativeTrackingOptions,
   ReactNativeOptions,
   ReactNativeAttributionOptions,
@@ -183,6 +184,11 @@ export { pruneJson } from './utils/json-query';
 export type { BaseWindowMessenger, ActionHandler } from './messenger/base-window-messenger';
 export { getOrCreateWindowMessenger } from './messenger/base-window-messenger';
 export { enableBackgroundCapture } from './messenger/background-capture';
+export type {
+  BackgroundCaptureDeviceMode,
+  InitializeBackgroundCaptureData,
+} from './messenger/background-capture-types';
+export { parseBackgroundCaptureDeviceMode } from './messenger/background-capture-types';
 export {
   AMPLITUDE_ORIGIN,
   AMPLITUDE_ORIGIN_EU,
