@@ -45,6 +45,16 @@ function fromNativeSessionId(sessionId: string): string | number {
   return Number.isSafeInteger(numericSessionId) ? numericSessionId : sessionId;
 }
 
+function toNativeSessionId(sessionId: string | number): string {
+  if (typeof sessionId === 'number' && !Number.isSafeInteger(sessionId)) {
+    logger.warn(
+      'Unsafe numeric sessionId may already be rounded; forwarding its current value. Pass the exact ID as a string.',
+      sessionId,
+    );
+  }
+  return String(sessionId);
+}
+
 /**
  * Configure the SDK. Call `start()` explicitly to begin collecting replays.
  * This function must be called before any other session replay operations.
@@ -52,6 +62,8 @@ function fromNativeSessionId(sessionId: string): string | number {
  * @param config - Configuration object containing API key, device ID, session ID, and other options
  * @returns Promise that resolves when initialization is complete. Native setup
  * failures are logged and do not reject the promise.
+ * Unsafe numeric session IDs are logged and forwarded as their JavaScript value,
+ * which may already be rounded. Pass exact large IDs as strings.
  *
  * @example
  * ```typescript
@@ -96,7 +108,9 @@ export async function init(config: SessionReplayConfig): Promise<void> {
  *
  * Accepts a numeric session ID such as `Date.now()` or an alphanumeric one such
  * as a UUID. Numbers must be safe integers (see `Number.isSafeInteger`); pass
- * 64-bit integers beyond `Number.MAX_SAFE_INTEGER` as strings.
+ * 64-bit integers beyond `Number.MAX_SAFE_INTEGER` as strings. Unsafe numeric
+ * inputs are logged and forwarded as their JavaScript value, which may already
+ * be rounded.
  *
  * @param sessionId - The new session identifier
  * @returns Promise that resolves when the session ID is updated
@@ -113,7 +127,7 @@ export async function setSessionId(sessionId: string | number): Promise<void> {
     logger.warn('SessionReplay is not initialized');
     return;
   }
-  await NativeSessionReplay.setCustomSessionId(String(sessionId));
+  await NativeSessionReplay.setCustomSessionId(toNativeSessionId(sessionId));
 }
 
 /**
@@ -270,7 +284,7 @@ function nativeConfig(config: ResolvedSessionReplayConfig): NativeSessionReplayC
     logLevel: rest.logLevel as NativeSessionReplayConfig['logLevel'],
     // TODO(SDKRN-15): Migrate native bridge to accept the full privacyConfig object instead of a flat maskLevel string.
     maskLevel: resolvedMaskLevel,
-    customSessionId: String(sessionId),
+    customSessionId: toNativeSessionId(sessionId),
   };
 }
 

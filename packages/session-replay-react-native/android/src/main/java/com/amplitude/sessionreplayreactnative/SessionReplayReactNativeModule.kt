@@ -108,7 +108,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun getCustomSessionId(promise: Promise) {
     try {
-      promise.resolve(sessionReplay?.getCustomSessionId() ?: nativeConfig?.customSessionId)
+      promise.resolve(sessionReplay?.getCustomSessionId() ?: nativeConfig?.customSessionId ?: "-1")
     } catch (e: Exception) {
       promise.reject("GET_CUSTOM_SESSION_ID_ERROR", e.message, e)
     }

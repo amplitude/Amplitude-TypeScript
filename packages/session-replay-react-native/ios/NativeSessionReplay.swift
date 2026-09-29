@@ -78,11 +78,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         reject: RCTPromiseRejectBlock
     ) {
         logger?.debug(message: "getCustomSessionId")
-        if let customSessionId = sessionReplay?.customSessionId {
-            resolve(customSessionId)
-        } else {
-            resolve(nil)
-        }
+        resolve(sessionReplay?.customSessionId ?? "-1")
     }
     
     @objc(setDeviceId:resolve:reject:)

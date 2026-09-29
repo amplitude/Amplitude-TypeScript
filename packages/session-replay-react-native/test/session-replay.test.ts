@@ -240,6 +240,22 @@ describe('Session Replay Integration Tests', () => {
       expect(nativeModule.setup).toHaveBeenCalledWith(expect.objectContaining({ customSessionId: expected }));
     });
 
+    it.each([Number.MAX_SAFE_INTEGER + 1, 1.5, NaN, Infinity])(
+      'logs and forwards an unsafe numeric sessionId %p during init',
+      async (sessionId) => {
+        const nativeModule = await runInIsolatedModule(async ({ init: freshInit }) => {
+          const { createSessionReplayLogger } = require('../src/logger') as typeof import('../src/logger');
+          const logger = createSessionReplayLogger();
+          await expect(freshInit({ apiKey: 'test-api-key', sessionId })).resolves.toBeUndefined();
+          expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Unsafe numeric sessionId'), sessionId);
+        });
+
+        expect(nativeModule.setup).toHaveBeenCalledWith(
+          expect.objectContaining({ customSessionId: String(sessionId) }),
+        );
+      },
+    );
+
     it.each([
       [1234567890, '1234567890'],
       [CUSTOM_ID, CUSTOM_ID],
@@ -254,6 +270,21 @@ describe('Session Replay Integration Tests', () => {
       // The RN SDK never drives the native numeric session id.
       expect(nativeModule.setSessionId).not.toHaveBeenCalled();
     });
+
+    it.each([Number.MAX_SAFE_INTEGER + 1, 1.5, NaN, Infinity])(
+      'logs and forwards an unsafe numeric sessionId %p during an update',
+      async (sessionId) => {
+        const nativeModule = await runInIsolatedModule(async ({ init: freshInit, setSessionId: freshSetSessionId }) => {
+          const { createSessionReplayLogger } = require('../src/logger') as typeof import('../src/logger');
+          const logger = createSessionReplayLogger();
+          await freshInit({ apiKey: 'test-api-key' });
+          await expect(freshSetSessionId(sessionId)).resolves.toBeUndefined();
+          expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Unsafe numeric sessionId'), sessionId);
+        });
+
+        expect(nativeModule.setCustomSessionId).toHaveBeenCalledWith(String(sessionId));
+      },
+    );
 
     it('reads back numeric and string session ids without the native numeric getter', async () => {
       const observed: Array<string | number | null> = [];
