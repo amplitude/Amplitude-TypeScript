@@ -29,6 +29,7 @@ declare global {
       isMidHeightLineVisible: (element: Element) => boolean;
       flush: () => void;
       setAutoFlush: (enabled: boolean) => void;
+      start: () => Promise<void>;
       exposedPaths: string[];
       payloads: { at: string; event: AmplitudeEvent }[];
       EXPOSURE_DURATION: number;
@@ -189,6 +190,71 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     expect(
       shown.flatMap((event) => (event.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []),
     ).toContain(TARGET_PATH);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('reports Min Page Y from the scroll offset where the SDK attached', async ({ page }) => {
+    await page.goto('/autocapture/viewport-exposure.html?deferInit=1');
+    await expect(page.locator('#status')).toHaveText('deferred');
+
+    const startScroll = await page.evaluate(() => {
+      window.scrollTo(0, 800);
+      return Math.floor(window.scrollY);
+    });
+    expect(startScroll).toBeGreaterThan(400);
+
+    await page.evaluate(() => window.__exposureHarness.start());
+    await expect(page.locator('#status')).toHaveText('initialized');
+
+    // Move below the attach point, then back above it but still below the top.
+    // Min stays at the highest point seen since attach; max follows the furthest scroll.
+    const peakScroll = await page.evaluate((start) => {
+      window.scrollTo(0, start + 350);
+      return Math.floor(window.scrollY);
+    }, startScroll);
+    // WebKit can deliver the scroll event on a later frame. Let the tracker
+    // sample the peak before scrolling back up, or the max is never recorded.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        }),
+    );
+    const lowScroll = await page.evaluate((start) => {
+      window.scrollTo(0, start - 220);
+      return Math.floor(window.scrollY);
+    }, startScroll);
+    expect(peakScroll).toBeGreaterThan(startScroll);
+    expect(lowScroll).toBeGreaterThan(0);
+    expect(lowScroll).toBeLessThan(startScroll);
+
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    const viewportHeight = await page.evaluate(() => window.innerHeight);
+    await page.evaluate(() => window.__exposureHarness.flush());
+
+    await expect
+      .poll(() => events.filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED).length, { timeout: 10_000 })
+      .toBeGreaterThan(0);
+
+    const payload = events.find(
+      (e) =>
+        e.event_type === VIEWPORT_CONTENT_UPDATED &&
+        e.event_properties?.['[Amplitude] Min Page Y'] === lowScroll &&
+        e.event_properties?.['[Amplitude] Max Page Y'] === peakScroll + viewportHeight,
+    );
+
+    expect(
+      payload,
+      `no payload matched min ${lowScroll} max ${peakScroll + viewportHeight}: ${JSON.stringify(events)}`,
+    ).toBeDefined();
+    expect(payload?.event_properties).toMatchObject({
+      '[Amplitude] Min Page Y': lowScroll,
+      '[Amplitude] Max Page Y': peakScroll + viewportHeight,
+      '[Amplitude] Viewport Height': viewportHeight,
+    });
+    // The harness readout is the same payload a person sees on the testing page.
+    await expect(page.locator('#scroll-range')).toContainText(`Min Page Y ${lowScroll}`);
+    await expect(page.locator('#scroll-range')).toContainText(`Max Page Y ${peakScroll + viewportHeight}`);
     expect(pageErrors).toEqual([]);
   });
 

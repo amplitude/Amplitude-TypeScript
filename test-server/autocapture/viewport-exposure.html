@@ -164,6 +164,7 @@
             <button id="scroll-oversized" type="button">#oversized-target 50%</button>
         </div>
         <div id="summary">exposed 0 of 0 zones</div>
+        <div class="hint" id="scroll-range">scroll range: waiting for the first Viewport Content Updated event</div>
         <div class="hint" id="duration-note"></div>
         <div id="zone-table"></div>
         <div id="status">ready</div>
@@ -254,8 +255,11 @@
         // Playwright spec size their waits off the same number. `?exposureDuration=`
         // stretches the dwell, which makes it observable by hand and lets timing
         // assertions keep a wide margin on a loaded CI runner.
-        const EXPOSURE_DURATION =
-            Number(new URLSearchParams(location.search).get('exposureDuration')) || 150;
+        const searchParams = new URLSearchParams(location.search);
+        const EXPOSURE_DURATION = Number(searchParams.get('exposureDuration')) || 150;
+        // `?deferInit=1` leaves the SDK unloaded so a test can scroll first and then
+        // call `__exposureHarness.start()`. That is how a late load is reproduced.
+        const DEFER_INIT = searchParams.get('deferInit') === '1';
         const AUTO_FLUSH_MS = 500;
 
         const zones = Array.from(document.querySelectorAll('.zone'));
@@ -403,6 +407,8 @@
             exposedPaths,
             payloads,
             EXPOSURE_DURATION,
+            // Assigned below, once the logger it depends on exists.
+            start: () => Promise.reject(new Error('harness start is not ready')),
         };
 
         const renderPayloads = () => {
@@ -523,6 +529,14 @@
                     });
                     // eslint-disable-next-line no-console
                     console.log('%c[Amplitude] Viewport Content Updated', 'color:#0a0', event.event_properties);
+                    const minPageY = event.event_properties?.['[Amplitude] Min Page Y'];
+                    const maxPageY = event.event_properties?.['[Amplitude] Max Page Y'];
+                    const scrollRange = document.getElementById('scroll-range');
+                    if (scrollRange && typeof minPageY === 'number' && typeof maxPageY === 'number') {
+                        scrollRange.textContent =
+                            `scroll range: Min Page Y ${minPageY} → Max Page Y ${maxPageY}` +
+                            (minPageY > 0 ? ' (tracking started below the top of the page)' : '');
+                    }
                     zones.forEach((zone) => {
                         if (paths.includes(`button#${zone.id}`)) {
                             zoneState.get(zone).exposed = true;
@@ -563,30 +577,42 @@
         // so the key value is irrelevant to the assertions.
         const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'viewport-exposure-e2e-key';
 
-        amplitude.init(apiKey, 'test-user', {
-            fetchRemoteConfig: false,
-            // Flush eagerly so exposure events reach the network quickly.
-            flushIntervalMillis: 300,
-            flushQueueSize: 1,
-            autocapture: {
-                pageViews: false,
-                sessions: false,
-                formInteractions: false,
-                fileDownloads: false,
-                elementInteractions: {
-                    viewportContentUpdated: { enabled: true, exposureDuration: EXPOSURE_DURATION },
+        let starting;
+        const start = () => {
+            if (starting) return starting;
+            starting = amplitude.init(apiKey, 'test-user', {
+                fetchRemoteConfig: false,
+                // Flush eagerly so exposure events reach the network quickly.
+                flushIntervalMillis: 300,
+                flushQueueSize: 1,
+                autocapture: {
+                    pageViews: false,
+                    sessions: false,
+                    formInteractions: false,
+                    fileDownloads: false,
+                    elementInteractions: {
+                        viewportContentUpdated: { enabled: true, exposureDuration: EXPOSURE_DURATION },
+                    },
                 },
-            },
-            logLevel: 0,
-        }).promise.then(() => {
-            amplitude.add(exposureLogger);
-            setAutoFlush(true);
-            document.getElementById('duration-note').textContent =
-                `dwell required: ${EXPOSURE_DURATION}ms (override with ?exposureDuration=)`;
-            render();
-            renderPayloads();
-            document.getElementById('status').textContent = 'initialized';
-        });
+                logLevel: 0,
+            }).promise.then(() => {
+                amplitude.add(exposureLogger);
+                // A deferred start is driven by the test, which flushes by hand.
+                setAutoFlush(!DEFER_INIT);
+                document.getElementById('duration-note').textContent =
+                    `dwell required: ${EXPOSURE_DURATION}ms (override with ?exposureDuration=)`;
+                render();
+                renderPayloads();
+                document.getElementById('status').textContent = 'initialized';
+            });
+            return starting;
+        };
+        window.__exposureHarness.start = start;
+        if (!DEFER_INIT) {
+            void start();
+        } else {
+            document.getElementById('status').textContent = 'deferred';
+        }
     </script>
 </body>
 </html>
