@@ -1761,6 +1761,10 @@ describe('autoTrackingPlugin', () => {
 
     beforeEach(async () => {
       mockWindowLocationFromURL(new URL('http://localhost/'));
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 0, writable: true, configurable: true });
 
       // Ensure navigation API is not present to test fallback (pushState proxy)
       Object.defineProperty(window, 'navigation', {
@@ -2178,7 +2182,71 @@ describe('autoTrackingPlugin', () => {
         expect.objectContaining({
           '[Amplitude] Max Page X': 100 + 1024,
           '[Amplitude] Max Page Y': 200 + 768,
+          '[Amplitude] Min Page Y': 0,
           '[Amplitude] Element Exposed': expect.any(Array),
+        }),
+      );
+    });
+
+    test('should report Min Page Y from the scroll offset where tracking started', async () => {
+      Object.defineProperty(window, 'scrollX', { value: 40, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 480, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 40, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 480, writable: true, configurable: true });
+
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Move down, then back up, so both edges of the tracked range differ from the seed.
+      simulateScroll(10, 700);
+      simulateScroll(0, 120);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 120,
+          '[Amplitude] Max Page Y': 700 + 768,
+          '[Amplitude] Max Page X': 40 + 1024,
+        }),
+      );
+    });
+
+    test('should re-seed Min Page Y from the scroll position after a client-side navigation', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      simulateScroll(0, 800);
+
+      history.pushState({}, 'test', '/next-page');
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 0,
+          '[Amplitude] Max Page Y': 800 + 768,
+        }),
+      );
+
+      track.mockClear();
+      // Let the page-end guard expire before the next flush. The quiet snapshot
+      // of the new page matches the re-seeded baseline and must not send.
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      simulateScroll(0, 100);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 100,
+          '[Amplitude] Max Page Y': 800 + 768,
         }),
       );
     });

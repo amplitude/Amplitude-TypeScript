@@ -360,8 +360,22 @@ export const autocapturePlugin = (
     subscriptions.push(scrollTracker);
 
     // Match post-navigation reset so an empty first snapshot is not treated as a scroll change.
-    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = {
+    // trackScroll seeds this from the scroll offset at attach time.
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number; minY: undefined | number } = {
       ...scrollTracker.getState(),
+    };
+
+    const syncScrollBaseline = () => {
+      // reset() zeros the range before history applies. Sample again once the
+      // next page's scroll position is current. seed() is a no-op when this
+      // page view was not reset, such as a suppressed duplicate page end.
+      if (!scrollTracker.seed()) {
+        return;
+      }
+      const seeded = scrollTracker.getState();
+      lastScroll.maxX = seeded.maxX;
+      lastScroll.maxY = seeded.maxY;
+      lastScroll.minY = seeded.minY;
     };
 
     const trackers: { exposure?: ExposureTracker & Unsubscribable } = {};
@@ -407,6 +421,7 @@ export const autocapturePlugin = (
 
       trackedPageUrl = currentPageUrl;
       handleViewportContentUpdated(true);
+      syncScrollBaseline();
     };
 
     const handleHistoryStateChange = (applyHistoryChange: () => void, nextUrl: string | URL | null | undefined) => {
@@ -423,6 +438,7 @@ export const autocapturePlugin = (
       // Flush the previous page before applying history so Page URL is not the destination.
       handleViewportContentUpdated(true);
       applyHistoryChange();
+      syncScrollBaseline();
     };
 
     const handleExposure = (elementPath: string) => {
@@ -499,6 +515,7 @@ export const autocapturePlugin = (
 
               trackedPageUrl = nextPageUrl;
               handleViewportContentUpdated(true);
+              syncScrollBaseline();
               return;
             }
 

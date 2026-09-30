@@ -180,6 +180,7 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
       '[Amplitude] Viewport Width': expect.any(Number),
       '[Amplitude] Max Page X': expect.any(Number),
       '[Amplitude] Max Page Y': expect.any(Number),
+      '[Amplitude] Min Page Y': expect.any(Number),
     });
 
     // The harness panel shows the same object, so what a human reads is what was sent.

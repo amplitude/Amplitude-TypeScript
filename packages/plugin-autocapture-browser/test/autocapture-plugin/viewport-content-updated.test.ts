@@ -438,6 +438,32 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
     );
   });
 
+  test('should track when minY changed even if no elements exposed', () => {
+    const currentElementExposed = new Set<string>();
+    const elementExposedForPage = new Set<string>();
+    mockScrollTracker.getState = jest.fn().mockReturnValue({ maxX: 100, maxY: 200, minY: 40 });
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: 100, maxY: 200, minY: 180 },
+    });
+
+    expect(trackSpy).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': [],
+        '[Amplitude] Min Page Y': 40,
+        '[Amplitude] Max Page Y': 200 + window.innerHeight,
+      }),
+    );
+  });
+
   test('should track when maxY changed even if no elements exposed', () => {
     const currentElementExposed = new Set<string>();
     const elementExposedForPage = new Set<string>();
@@ -696,14 +722,18 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
   });
 
   test('should reset lastScroll on page end so the next snapshot does not look like a scroll change', () => {
-    let scrollState = { maxX: 100, maxY: 200 };
+    let scrollState = { maxX: 100, maxY: 200, minY: 40 };
     const statefulScrollTracker: ScrollTracker = {
       getState: jest.fn(() => ({ ...scrollState })),
       reset: jest.fn(() => {
-        scrollState = { maxX: 0, maxY: 0 };
+        scrollState = { maxX: 0, maxY: 0, minY: 0 };
       }),
     };
-    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number; minY: undefined | number } = {
+      maxX: undefined,
+      maxY: undefined,
+      minY: undefined,
+    };
 
     fireViewportContentUpdated({
       amplitude: mockAmplitude,
@@ -719,6 +749,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
     expect(trackSpy).toHaveBeenCalledTimes(1);
     expect(lastScroll.maxX).toBe(0);
     expect(lastScroll.maxY).toBe(0);
+    expect(lastScroll.minY).toBe(0);
 
     trackSpy.mockClear();
 
