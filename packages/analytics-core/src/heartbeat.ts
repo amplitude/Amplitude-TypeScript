@@ -2,6 +2,7 @@ import { ILogger } from './logger';
 import { CoreClient } from './types/client/core-client';
 import { BaseEvent, Delay } from './types/event/base-event';
 import { Result } from './types/result';
+import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
 
 type DelayedEvent = BaseEvent & {
@@ -15,6 +16,9 @@ export class Heartbeat {
   private delayId: string;
   private interval: ReturnType<typeof setInterval> | null = null;
   private resetPromise: Promise<Result[]> | null = null;
+  private lifecycleListeners: (() => void)[] = [];
+  /** Updates queued events before pagehide snapshots them. */
+  private pageHidePreparers: (() => void)[] = [];
 
   constructor(
     private client: CoreClient,
@@ -26,7 +30,7 @@ export class Heartbeat {
     this.delayId = UUID();
   }
 
-  private async heartbeat(): Promise<Result[]> {
+  async heartbeat(flushClient = false): Promise<Result[]> {
     // stop sending heartbeats if no events are queued
     if (this.events.size === 0) {
       this.stop();
@@ -47,12 +51,18 @@ export class Heartbeat {
       }
       trackedEvents.push(eventPromise);
     }
-    return await Promise.all(trackedEvents);
+    const res = await Promise.all(trackedEvents);
+    if (flushClient) {
+      this.client.flush();
+    }
+    return res;
   }
 
-  async resetHeartbeat() {
+  private async resetHeartbeat() {
     // if a reset is already in progress, return the existing promise
     if (this.resetPromise) return await this.resetPromise;
+
+    this.setupPageLifecycleListeners();
 
     // reset the heartbeat interval
     if (this.interval) clearInterval(this.interval);
@@ -67,6 +77,44 @@ export class Heartbeat {
     this.resetPromise.finally(() => (this.resetPromise = null));
 
     return await this.resetPromise;
+  }
+
+  private setupPageLifecycleListeners() {
+    if (this.lifecycleListeners.length > 0) {
+      return;
+    }
+
+    // only browser-like environments expose page lifecycle events
+    const win = getGlobalScope();
+    if (!win || typeof win.addEventListener !== 'function' || !win.document) {
+      return;
+    }
+    const doc = win.document;
+
+    // When the user leaves the page, send the latest events and flush them immediately.
+    // Preparers update queued events (for example stop_reason) before this snapshot.
+    const onPageHide = (evt: PageTransitionEvent) => {
+      if (!evt.persisted) {
+        for (const prepare of [...this.pageHidePreparers]) {
+          prepare();
+        }
+        void this.heartbeat(true);
+      }
+    };
+
+    // when the tab becomes hidden, reset the heartbeat so the latest events are sent
+    const onVisibilityChange = () => {
+      if (doc.visibilityState === 'hidden') {
+        void this.resetHeartbeat();
+      }
+    };
+
+    win.addEventListener('pagehide', onPageHide);
+    doc.addEventListener('visibilitychange', onVisibilityChange);
+    this.lifecycleListeners.push(() => {
+      win.removeEventListener('pagehide', onPageHide);
+      doc.removeEventListener('visibilitychange', onVisibilityChange);
+    });
   }
 
   /**
@@ -115,13 +163,9 @@ export class Heartbeat {
    * @param event
    * @returns
    */
-  async trackNoDelay(event: BaseEvent, flush = false) {
+  async trackNoDelay(event: BaseEvent) {
     event.delay = { id: this.delayId };
-    const res = this.track(event);
-    if (flush) {
-      this.client.flush();
-    }
-    return res;
+    return this.track(event);
   }
 
   /**
@@ -142,10 +186,30 @@ export class Heartbeat {
     }
   }
 
+  /**
+   * Run `prepare` synchronously before pagehide snapshots the queue.
+   * Returns a function that unregisters it.
+   *
+   * The pagehide listener is installed on the first tracked event and reads the
+   * queue as soon as it runs. Register here so a capture started after that
+   * still updates queued events before they are sent.
+   */
+  beforePageHide(prepare: () => void): () => void {
+    this.pageHidePreparers.push(prepare);
+    return () => {
+      const index = this.pageHidePreparers.indexOf(prepare);
+      if (index !== -1) {
+        this.pageHidePreparers.splice(index, 1);
+      }
+    };
+  }
+
   stop(flush = false) {
     this.interval && clearInterval(this.interval);
     this.interval = null;
     this.events.clear();
+    this.lifecycleListeners.forEach((removeListener) => removeListener());
+    this.lifecycleListeners = [];
     if (flush) {
       this.client.flush();
     }

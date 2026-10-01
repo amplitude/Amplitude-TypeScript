@@ -5,6 +5,7 @@ import { VideoCapture, trackVideo } from '../../src/video-capture/video-capture'
 import { currentVideoObserver, resetMockVideoObserver } from './mock-video-observer';
 
 const mockGetHeartbeatInstance = jest.fn();
+const mockGetGlobalScope = jest.fn();
 
 jest.mock('@amplitude/analytics-core', () => {
   const actual = jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core');
@@ -14,6 +15,7 @@ jest.mock('@amplitude/analytics-core', () => {
     VideoObserver: MockVideoObserver,
     getHeartbeatInstance: (client: Parameters<typeof actual.getHeartbeatInstance>[0]) =>
       mockGetHeartbeatInstance(client),
+    getGlobalScope: () => mockGetGlobalScope(),
   };
 });
 
@@ -23,6 +25,8 @@ describe('VideoCapture', () => {
   /** Flush resetHeartbeat's setTimeout(0) macrotask before asserting track calls. */
   async function flushHeartbeat() {
     await jest.advanceTimersByTimeAsync(0);
+    await Promise.resolve();
+    await Promise.resolve();
   }
 
   beforeEach(() => {
@@ -31,8 +35,12 @@ describe('VideoCapture', () => {
     mockGetHeartbeatInstance.mockImplementation(
       jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core').getHeartbeatInstance,
     );
+    mockGetGlobalScope.mockImplementation(
+      jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core').getGlobalScope,
+    );
     mockAmplitude = {
       track: jest.fn().mockReturnValue({ promise: Promise.resolve({ event: {}, code: 200, message: 'success' }) }),
+      flush: jest.fn(),
     } as unknown as AmplitudeBrowser;
   });
 
@@ -623,6 +631,7 @@ describe('VideoCapture', () => {
         trackNoDelay,
         stop: jest.fn(),
         update: jest.fn(),
+        beforePageHide: jest.fn().mockReturnValue(jest.fn()),
       });
       capture = new VideoCapture(mockAmplitude)
         .withVideoElement(document.createElement('video'))
@@ -683,6 +692,124 @@ describe('VideoCapture', () => {
       // the capture must not send it a second time
       expect(trackNoDelay).toHaveBeenCalledTimes(2);
       expect(trackNoDelay).not.toHaveBeenCalledWith(untrackedStopEvent);
+    });
+  });
+
+  describe('page lifecycle', () => {
+    const idleState: VideoState = { playbackState: 'paused', lastEvent: undefined };
+    const playingState: VideoState = {
+      playbackState: 'playing',
+      lastEvent: { duration: 10, position: 0 },
+      position: 4,
+      watchTime: 4,
+    };
+
+    function dispatchPageHide(persisted: boolean) {
+      const event = new Event('pagehide');
+      Object.defineProperty(event, 'persisted', { value: persisted });
+      window.dispatchEvent(event);
+    }
+
+    function startCapture(extraEventProperties: Record<string, string> = {}) {
+      const capture = new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .withExtraEventProperties(extraEventProperties)
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+      return { capture, observer: currentVideoObserver! };
+    }
+
+    it('should flush a stream stopped event when the page is not persisted', async () => {
+      const { observer } = startCapture();
+      observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      dispatchPageHide(false);
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Amplitude] Stream Stopped',
+        expect.objectContaining({ stop_reason: 'ended', position: 4, play_time: 4 }),
+        expect.objectContaining({ delay: { id: expect.any(String) } }),
+      );
+    });
+
+    it('should end a capture that starts after the heartbeat is already listening', async () => {
+      const first = startCapture({ video: 'first' });
+      first.observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+
+      // the shared heartbeat registered pagehide while tracking the first play
+      const second = startCapture({ video: 'second' });
+      second.observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      dispatchPageHide(false);
+      await flushHeartbeat();
+
+      const stopped = mockAmplitude.track.mock.calls.filter(([eventType]) => eventType === '[Amplitude] Stream Stopped');
+      expect(stopped).toEqual(
+        expect.arrayContaining([
+          expect.arrayContaining([
+            '[Amplitude] Stream Stopped',
+            expect.objectContaining({ video: 'first', stop_reason: 'ended' }),
+          ]),
+          expect.arrayContaining([
+            '[Amplitude] Stream Stopped',
+            expect.objectContaining({ video: 'second', stop_reason: 'ended' }),
+          ]),
+        ]),
+      );
+      expect(stopped.every(([, properties]) => properties.stop_reason === 'ended')).toBe(true);
+    });
+
+    it('should not stop when the page is persisted in the back/forward cache', async () => {
+      const { observer } = startCapture();
+      observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      dispatchPageHide(true);
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).not.toHaveBeenCalled();
+    });
+
+    it('should stop listening to page lifecycle events once stopped', async () => {
+      const { capture, observer } = startCapture();
+      observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+      capture.stop();
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      dispatchPageHide(false);
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).not.toHaveBeenCalled();
+      expect(mockAmplitude.flush).not.toHaveBeenCalled();
+    });
+
+    it('should not listen to page lifecycle events when there is no global scope', async () => {
+      mockGetGlobalScope.mockReturnValue(undefined);
+      const { observer } = startCapture();
+      observer.emitStateChange(idleState, playingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      dispatchPageHide(false);
+      await flushHeartbeat();
+
+      // the heartbeat may still send its queued delayed stop event, but the capture
+      // itself never ends the play session
+      expect(mockAmplitude.track).not.toHaveBeenCalledWith(
+        '[Amplitude] Stream Stopped',
+        expect.objectContaining({ stop_reason: 'ended' }),
+        expect.anything(),
+      );
     });
   });
 
