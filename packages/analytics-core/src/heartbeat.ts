@@ -13,7 +13,7 @@ const EVENTS_SIZE_LIMIT = 4 * 10_000; // 4KB
 export class Heartbeat {
   private events: Map<string, DelayedEvent>;
   private delayId: string;
-  private interval: NodeJS.Timeout | null = null;
+  private interval: ReturnType<typeof setInterval> | null = null;
   private resetPromise: Promise<Result[]> | null = null;
 
   constructor(
@@ -50,7 +50,7 @@ export class Heartbeat {
     return await Promise.all(trackedEvents);
   }
 
-  private async resetHeartbeat() {
+  async resetHeartbeat() {
     // if a reset is already in progress, return the existing promise
     if (this.resetPromise) return await this.resetPromise;
 
@@ -115,9 +115,13 @@ export class Heartbeat {
    * @param event
    * @returns
    */
-  async trackNoDelay(event: BaseEvent) {
+  async trackNoDelay(event: BaseEvent, flush = false) {
     event.delay = { id: this.delayId };
-    return this.track(event);
+    const res = this.track(event);
+    if (flush) {
+      this.client.flush();
+    }
+    return res;
   }
 
   /**
@@ -138,10 +142,13 @@ export class Heartbeat {
     }
   }
 
-  stop() {
+  stop(flush = false) {
     this.interval && clearInterval(this.interval);
     this.interval = null;
     this.events.clear();
+    if (flush) {
+      this.client.flush();
+    }
   }
 }
 

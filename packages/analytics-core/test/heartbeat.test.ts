@@ -5,6 +5,7 @@ import { CoreClient } from '../src/types/client/core-client';
 describe('heartbeat', () => {
   let mockClient: CoreClient;
   let trackMock: jest.Mock;
+  let flushMock: jest.Mock;
   let heartbeat: Heartbeat;
 
   const mockLoggerProvider = {
@@ -30,8 +31,10 @@ describe('heartbeat', () => {
         message: 'success',
       }),
     }));
+    flushMock = jest.fn();
     mockClient = {
       track: trackMock,
+      flush: flushMock,
     } as unknown as CoreClient;
     heartbeat = new Heartbeat(mockClient, 1000, 1000, mockLoggerProvider);
   });
@@ -48,7 +51,7 @@ describe('heartbeat', () => {
   }
 
   /** Flush resetHeartbeat's setTimeout(0) macrotask before awaiting trackNoDelay(). */
-  async function trackNoDelayWithTimers(...args: Parameters<Heartbeat['track']>) {
+  async function trackNoDelayWithTimers(...args: Parameters<Heartbeat['trackNoDelay']>) {
     const promise = heartbeat.trackNoDelay(...args);
     await jest.advanceTimersByTimeAsync(0);
     return promise;
@@ -172,6 +175,18 @@ describe('heartbeat', () => {
         },
       );
       expect(event.delay.id).not.toBe('delay-1');
+    });
+
+    test('should call client.flush when trackNoDelay is called with flush true', async () => {
+      const event = {
+        insert_id: '1',
+        event_type: 'test',
+        event_properties: { test: 'test' },
+      };
+
+      await trackNoDelayWithTimers(event, true);
+
+      expect(flushMock).toHaveBeenCalledTimes(1);
     });
 
     test('should track via trackNoDelay when no other events are tracked', async () => {
@@ -305,6 +320,19 @@ describe('heartbeat', () => {
           delay: { id: expect.any(String) },
         },
       );
+    });
+
+    test('should call client.flush when stop is called with flush true', async () => {
+      const event = {
+        insert_id: '1',
+        event_type: 'test',
+        event_properties: { test: 'test' },
+      };
+      await trackWithTimers(event);
+
+      heartbeat.stop(true);
+
+      expect(flushMock).toHaveBeenCalledTimes(1);
     });
 
     test('should be a no-op when nothing has been tracked', () => {
