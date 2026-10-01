@@ -193,7 +193,7 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     expect(pageErrors).toEqual([]);
   });
 
-  test('reports Min Page Y from the scroll offset where the SDK attached', async ({ page }) => {
+  test('widens the scroll range after a late load when the user scrolls down and back up', async ({ page }) => {
     await page.goto('/autocapture/viewport-exposure.html?deferInit=1');
     await expect(page.locator('#status')).toHaveText('deferred');
 
@@ -255,6 +255,121 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     // The harness readout is the same payload a person sees on the testing page.
     await expect(page.locator('#scroll-range')).toContainText(`Min Page Y ${lowScroll}`);
     await expect(page.locator('#scroll-range')).toContainText(`Max Page Y ${peakScroll + viewportHeight}`);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('reports the scroll offset where the SDK attached when the user does not scroll again', async ({ page }) => {
+    await page.goto('/autocapture/viewport-exposure.html?deferInit=1');
+    await expect(page.locator('#status')).toHaveText('deferred');
+
+    const startScroll = await page.evaluate(() => {
+      window.scrollTo(0, 800);
+      return Math.floor(window.scrollY);
+    });
+    expect(startScroll).toBeGreaterThan(400);
+
+    await page.evaluate(() => window.__exposureHarness.start());
+    await expect(page.locator('#status')).toHaveText('initialized');
+
+    // Nothing moves after init. Min and max can only come from the sample taken
+    // when the tracker attached; a tracker that waits for a scroll event reports 0.
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    const viewportHeight = await page.evaluate(() => window.innerHeight);
+    await page.evaluate(() => window.__exposureHarness.flush());
+
+    await expect
+      .poll(() => events.filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED).length, { timeout: 10_000 })
+      .toBeGreaterThan(0);
+
+    const payload = events.find(
+      (e) =>
+        e.event_type === VIEWPORT_CONTENT_UPDATED &&
+        e.event_properties?.['[Amplitude] Min Page Y'] === startScroll &&
+        e.event_properties?.['[Amplitude] Max Page Y'] === startScroll + viewportHeight,
+    );
+
+    expect(payload, `no payload matched attach scroll ${startScroll}: ${JSON.stringify(events)}`).toBeDefined();
+    expect(payload?.event_properties).toMatchObject({
+      '[Amplitude] Min Page Y': startScroll,
+      '[Amplitude] Max Page Y': startScroll + viewportHeight,
+      '[Amplitude] Viewport Height': viewportHeight,
+    });
+    await expect(page.locator('#scroll-range')).toContainText(`Min Page Y ${startScroll}`);
+    await expect(page.locator('#scroll-range')).toContainText(`Max Page Y ${startScroll + viewportHeight}`);
+    expect(pageErrors).toEqual([]);
+  });
+
+  test('does not reconstruct scroll depth or exposures from movement before the SDK attached', async ({ page }) => {
+    await page.goto('/autocapture/viewport-exposure.html?deferInit=1');
+    await expect(page.locator('#status')).toHaveText('deferred');
+
+    const layout = await page.evaluate(() => {
+      const midpointInView = (element: Element) => {
+        const rect = element.getBoundingClientRect();
+        const mid = rect.top + rect.height * 0.5;
+        return rect.width > 0 && mid >= -1 && mid <= window.innerHeight + 1;
+      };
+
+      const zone = document.getElementById('zone-1');
+      if (!zone) {
+        throw new Error('zone-1 is missing');
+      }
+      const rect = zone.getBoundingClientRect();
+      window.scrollTo(0, Math.max(0, window.scrollY + rect.top + rect.height * 0.5 - window.innerHeight / 2));
+      const viewedWhilePassing = midpointInView(zone);
+
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      const peakScroll = Math.floor(window.scrollY);
+
+      // Stop below the zone so its box is fully above the viewport at attach time.
+      const zoneBottom = zone.getBoundingClientRect().bottom + window.scrollY;
+      window.scrollTo(0, zoneBottom + 80);
+      const attachScroll = Math.floor(window.scrollY);
+
+      return {
+        viewedWhilePassing,
+        peakScroll,
+        attachScroll,
+        zoneAboveViewport: zone.getBoundingClientRect().bottom < 0,
+      };
+    });
+
+    expect(layout.viewedWhilePassing).toBe(true);
+    expect(layout.zoneAboveViewport).toBe(true);
+    expect(layout.peakScroll).toBeGreaterThan(layout.attachScroll);
+    expect(layout.attachScroll).toBeGreaterThan(0);
+
+    await page.evaluate(() => window.__exposureHarness.start());
+    await expect(page.locator('#status')).toHaveText('initialized');
+
+    await page.waitForTimeout(EXPOSURE_SETTLE_MS);
+    const viewportHeight = await page.evaluate(() => window.innerHeight);
+    await page.evaluate(() => window.__exposureHarness.flush());
+
+    await expect
+      .poll(() => events.filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED).length, { timeout: 10_000 })
+      .toBeGreaterThan(0);
+
+    const payload = events.find(
+      (e) =>
+        e.event_type === VIEWPORT_CONTENT_UPDATED &&
+        e.event_properties?.['[Amplitude] Min Page Y'] === layout.attachScroll &&
+        e.event_properties?.['[Amplitude] Max Page Y'] === layout.attachScroll + viewportHeight,
+    );
+    expect(
+      payload,
+      `expected the range at attach ${layout.attachScroll}, not the pre-load peak ${
+        layout.peakScroll
+      }: ${JSON.stringify(events)}`,
+    ).toBeDefined();
+
+    const exposed = events
+      .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
+      .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []);
+    // The zone was on screen before the SDK loaded and is above the viewport now.
+    // There is no record of that, so it must not be backfilled into Element Exposed.
+    expect(exposed).not.toContain('button#zone-1');
+    expect(exposed).toContain(SITE_HEADER_PATH);
     expect(pageErrors).toEqual([]);
   });
 

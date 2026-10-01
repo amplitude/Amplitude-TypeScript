@@ -134,6 +134,37 @@ describe('trackScroll', () => {
     expect(tracker.getState().minY).toBe(0);
   });
 
+  test('should record only the scroll position at attach, not positions from before the tracker existed', () => {
+    // A visitor can scroll to the bottom and back before the SDK loads. There is
+    // no scroll listener yet, so the earlier peak is gone; the sample at attach
+    // is the whole range.
+    setScroll(80, 1600);
+    setScroll(20, 480);
+
+    const tracker = trackScroll({
+      amplitude,
+      allObservables,
+    });
+    unsubscribe = tracker.unsubscribe;
+
+    expect(tracker.getState()).toEqual({ maxX: 20, maxY: 480, minY: 480 });
+  });
+
+  test('should seed from page offsets when scrollX and scrollY are missing', () => {
+    Object.defineProperty(window, 'scrollX', { value: undefined, writable: true });
+    Object.defineProperty(window, 'scrollY', { value: undefined, writable: true });
+    Object.defineProperty(window, 'pageXOffset', { value: 12, writable: true });
+    Object.defineProperty(window, 'pageYOffset', { value: 340, writable: true });
+
+    const tracker = trackScroll({
+      amplitude,
+      allObservables,
+    });
+    unsubscribe = tracker.unsubscribe;
+
+    expect(tracker.getState()).toEqual({ maxX: 12, maxY: 340, minY: 340 });
+  });
+
   test('should seed min and max from the scroll position at attach time', () => {
     setScroll(25, 480);
 

@@ -2215,6 +2215,33 @@ describe('autoTrackingPlugin', () => {
       );
     });
 
+    test('should keep the pre-init scroll as Max Page Y when the user only scrolls up', async () => {
+      Object.defineProperty(window, 'scrollX', { value: 40, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 480, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 40, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 480, writable: true, configurable: true });
+
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // No downward scroll after attach. Max Page Y can only come from the seed;
+      // a tracker that stays at 0 until the next scroll event would report 200.
+      simulateScroll(0, 200);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 200,
+          '[Amplitude] Max Page Y': 480 + window.innerHeight,
+          '[Amplitude] Max Page X': 40 + window.innerWidth,
+        }),
+      );
+    });
+
     test('should re-seed Min Page Y from the scroll position after a client-side navigation', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
@@ -2247,6 +2274,58 @@ describe('autoTrackingPlugin', () => {
         expect.objectContaining({
           '[Amplitude] Min Page Y': 100,
           '[Amplitude] Max Page Y': 800 + 768,
+        }),
+      );
+    });
+
+    test('should re-seed from the scroll position already restored when popstate fires', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      simulateScroll(0, 800);
+
+      history.pushState({}, 'test', '/next-page');
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 0,
+          '[Amplitude] Max Page Y': 800 + window.innerHeight,
+        }),
+      );
+
+      track.mockClear();
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      // Browsers restore scroll and then fire popstate. The offset is already
+      // the new page's position, and no scroll event has been delivered for it.
+      mockWindowLocationFromURL(new URL('http://localhost/restored-page'));
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 240, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 240, writable: true, configurable: true });
+      window.dispatchEvent(new Event('popstate'));
+
+      // The page being left did not scroll; its range must not absorb 240.
+      expect(track).not.toHaveBeenCalled();
+
+      track.mockClear();
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      // Scroll up from the restored offset. Max stays at the re-seed, not at 800.
+      simulateScroll(0, 180);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Page URL': expect.stringContaining('/restored-page'),
+          '[Amplitude] Min Page Y': 180,
+          '[Amplitude] Max Page Y': 240 + window.innerHeight,
         }),
       );
     });
