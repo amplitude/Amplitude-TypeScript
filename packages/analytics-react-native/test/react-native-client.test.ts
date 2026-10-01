@@ -1424,7 +1424,7 @@ describe('react-native-client', () => {
             sessions?: boolean;
             appLifecycles?: boolean;
             elementInteractions?: boolean;
-            frustrationInteractions?: boolean | { rageClick?: boolean };
+            frustrationInteractions?: boolean | { rageClick?: boolean; errorClick?: boolean };
           },
     ) => ({
       autocapture,
