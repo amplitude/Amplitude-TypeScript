@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.10.2...@amplitude/analytics-react-native@1.11.0) (2026-09-29)
+
+
+### Features
+
+* **analytics-react-native:** support Rage Clicks ([#2014](https://github.com/amplitude/Amplitude-TypeScript/issues/2014)) ([a7ca1dd](https://github.com/amplitude/Amplitude-TypeScript/commit/a7ca1ddf1711ee0160ce6f314a1535d9a6a9fd0e))
+
+
+
+
+
 ## [1.10.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.10.1...@amplitude/analytics-react-native@1.10.2) (2026-09-25)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

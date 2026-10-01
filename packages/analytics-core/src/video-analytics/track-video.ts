@@ -125,8 +125,9 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
   };
   videoEl.addEventListener('timeupdate', timeupdateHandler);
 
-  // a media element that is already playing when tracking begins won't fire another `play`
   const media = videoEl as HTMLMediaElement;
+
+  // if the media is already playing when tracking begins, emit a play event
   if (media.paused === false && media.ended !== true) {
     playHandler();
   }
@@ -264,7 +265,7 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     player.on('timeupdate', timeupdateHandler);
     onUnsubscribe.push(() => player.off('timeupdate', timeupdateHandler));
 
-    // a player that is already playing when tracking begins won't fire another `play`
+    // if the player is already playing when tracking begins, emit a play event
     if (player.getPaused) {
       try {
         player.getPaused((paused) => {

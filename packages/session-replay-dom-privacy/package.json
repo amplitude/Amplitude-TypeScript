@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/session-replay-dom-privacy",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared DOM privacy policy and rrweb options for Amplitude Session Replay",
   "license": "MIT",
   "main": "lib/cjs/index.js",

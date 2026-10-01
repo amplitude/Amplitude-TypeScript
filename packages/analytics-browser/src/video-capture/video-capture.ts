@@ -128,26 +128,8 @@ export class VideoCapture {
             ...this.extraEventProperties,
           },
         };
-        this.heartbeat.trackNoDelay(startEvent).catch(this.stop.bind(this));
-        this.heartbeat.track(this.stopEvent).catch(this.stop.bind(this));
-      }
-    });
-
-    // stop on pagehide
-    const win = getGlobalScope();
-    const doc = win?.document;
-
-    // when user leaves tab, attempt to track a viewend event
-    win?.addEventListener('pagehide', (evt) => {
-      if (evt.persisted) {
-        this.stop('viewend', true);
-      }
-    });
-
-    // when tab becomes hidden, reset heartbeat so we get latest events
-    win?.addEventListener('visibilitychange', () => {
-      if (doc?.visibilityState === 'hidden') {
-        void this.heartbeat.resetHeartbeat();
+        this.heartbeat.trackNoDelay(startEvent).catch(() => this.stop());
+        this.heartbeat.track(this.stopEvent).catch(() => this.stop());
       }
     });
 
@@ -189,7 +171,7 @@ export class VideoCapture {
    * Flushing also drops the event from the heartbeat queue once ingested, so the interval
    * winds down on its own. No-op when no play session is in progress.
    */
-  private flushStopEvent(stopReason: string, flush = false) {
+  private flushStopEvent(stopReason: string) {
     const stopEvent = this.stopEvent;
     if (!stopEvent) {
       return;
@@ -201,7 +183,7 @@ export class VideoCapture {
       ...stopEvent.event_properties,
       stop_reason: stopReason,
     };
-    this.heartbeat.trackNoDelay(stopEvent, flush).catch(this.stop.bind(this));
+    this.heartbeat.trackNoDelay(stopEvent).catch(() => this.stop());
   }
 
   // Placeholder: may need a generic state change listener to capture unusual events or to have
@@ -237,6 +219,16 @@ export class VideoCapture {
     this.onRemoveListeners.push(() => {
       videoObserver.destroy();
     });
+
+    if (getGlobalScope()) {
+      this.onRemoveListeners.push(
+        this.heartbeat.beforePageHide(() => {
+          // if the page is exited, emit a final 'ended' stop event
+          this.stop('ended');
+        }),
+      );
+    }
+
     return this;
   }
 
@@ -246,10 +238,10 @@ export class VideoCapture {
    * Observers are detached first so no playback state change can race with the final
    * event, then any in-progress play session is closed out.
    */
-  stop(stopReason = 'untracked', flush = false) {
+  stop(stopReason = 'untracked') {
     this.onRemoveListeners.forEach((listener) => listener());
     this.onRemoveListeners = [];
-    this.flushStopEvent(stopReason, flush);
+    this.flushStopEvent(stopReason);
   }
 
   parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean | undefined> {

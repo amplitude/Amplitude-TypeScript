@@ -26,6 +26,16 @@ describe('amp-capture', () => {
       testID: 'submit-button',
     };
 
+    test('notifies subscribers with the press coordinates', () => {
+      const callback = jest.fn();
+      addSubscriber(callback);
+
+      const wrapped = ampCapture(jest.fn(), properties);
+      wrapped({ nativeEvent: { pageX: 25, pageY: 75 } });
+
+      expect(callback).toHaveBeenCalledWith(properties, { x: 25, y: 75 });
+    });
+
     test('notifies subscribers with properties when the wrapped function is called', () => {
       const callback = jest.fn();
       addSubscriber(callback);

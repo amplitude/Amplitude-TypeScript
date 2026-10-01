@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/session-replay-browser",
-  "version": "1.50.4",
+  "version": "1.51.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -45,10 +45,10 @@
     "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.40",
     "@amplitude/rrweb-record": "2.0.0-alpha.40",
     "@amplitude/rrweb-types": "2.0.0-alpha.40",
+    "@amplitude/session-replay-dom-privacy": "workspace:*",
     "@amplitude/targeting": "workspace:*",
     "idb": "8.0.0",
-    "tslib": "^2.4.1",
-    "@amplitude/session-replay-dom-privacy": "workspace:*"
+    "tslib": "^2.4.1"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.229.0",

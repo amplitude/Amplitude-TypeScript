@@ -22,6 +22,11 @@ export interface ReactNativeAutocaptureOptions {
   elementInteractions?: boolean;
   networkTracking?: boolean | NetworkTrackingOptions;
   screenViews?: boolean;
+  frustrationInteractions?: boolean | ReactNativeFrustrationInteractionsOptions;
+}
+
+export interface ReactNativeFrustrationInteractionsOptions {
+  rageClick?: boolean;
 }
 
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {

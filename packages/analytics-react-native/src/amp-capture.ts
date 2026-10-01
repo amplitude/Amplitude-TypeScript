@@ -6,9 +6,16 @@ export type AmpCaptureProperties = {
   testID?: string;
 };
 
-const callbacks: ((properties: AmpCaptureProperties) => void)[] = [];
+export type AmpCaptureCoordinates = {
+  x: number;
+  y: number;
+};
 
-export function subscribe(callback: (properties: AmpCaptureProperties) => void) {
+type AmpCaptureCallback = (properties: AmpCaptureProperties, coordinates?: AmpCaptureCoordinates) => void;
+
+const callbacks: AmpCaptureCallback[] = [];
+
+export function subscribe(callback: AmpCaptureCallback) {
   callbacks.push(callback);
   return () => {
     const index = callbacks.indexOf(callback);
@@ -32,8 +39,11 @@ export function ampCapture<Args extends unknown[], Return>(
       // only call "callbacks" if not nested inside another ampCapture
       try {
         isAmpCapturing = true;
+        const event = args[0] as { nativeEvent?: { pageX?: unknown; pageY?: unknown } } | undefined;
+        const { pageX, pageY } = event?.nativeEvent ?? {};
+        const coordinates = typeof pageX === 'number' && typeof pageY === 'number' ? { x: pageX, y: pageY } : undefined;
         try {
-          callbacks.forEach((callback) => callback(properties));
+          callbacks.forEach((callback) => (coordinates ? callback(properties, coordinates) : callback(properties)));
         } catch (error) {
           // swallow errors
         }

@@ -88,11 +88,11 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
         await init({
           apiKey: 'YOUR_AMPLITUDE_API_KEY',
           deviceId: verificationDeviceId,
-          sessionId: Date.now(),
           sampleRate: 1,
           enableRemoteConfig: false,
           logLevel: 4,
         });
+        await setSessionId(Date.now());
         await start();
         const sessionId = await getSessionId();
         log('init() resolved deviceId=' + verificationDeviceId);
@@ -154,15 +154,19 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           <Button title="stop" onPress={runFn('stop', stop)} />
           <Button title="flush" onPress={runFn('flush', flush)} />
           <Button
-            title="setSessionId"
+            title="Reset Session Id"
             onPress={runFn('setSessionId', () => setSessionId(Date.now()))}
+          />
+          <Button
+            title="Reset String Session Id"
+            onPress={runFn('setSessionId', () => setSessionId(`session-${Date.now()}`))}
           />
           <Button
             title="setDeviceId"
             onPress={runFn('setDeviceId', () => setDeviceId(verificationDeviceId))}
           />
           <Button
-            title="getSessionId"
+            title="Get Session Id"
             onPress={runFn('getSessionId', getSessionId)}
           />
           <Button
