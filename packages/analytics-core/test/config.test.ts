@@ -33,6 +33,7 @@ describe('config', () => {
       plan: undefined,
       ingestionMetadata: undefined,
       serverUrl: 'https://api2.amplitude.com/2/httpapi',
+      delayedEventsServerUrl: undefined,
       serverZone: 'US',
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
@@ -40,6 +41,18 @@ describe('config', () => {
       requestMetadata: undefined,
     });
     expect(config.optOut).toBe(false);
+  });
+
+  test('should set delayedEventsServerUrl', () => {
+    const defaultConfig = useDefaultConfig();
+    const delayedEventsServerUrl = 'https://example.com/2/httpapi/delayed';
+    const config = new Config({
+      apiKey: API_KEY,
+      delayedEventsServerUrl,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+    });
+    expect(config.delayedEventsServerUrl).toBe(delayedEventsServerUrl);
   });
 
   test('should overwrite default config', () => {
@@ -77,6 +90,7 @@ describe('config', () => {
         sourceVersion: '2.0.0',
       },
       serverUrl: 'https://api2.amplitude.com/batch',
+      delayedEventsServerUrl: undefined,
       serverZone: 'US',
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,

@@ -2,7 +2,7 @@ const limits = [
   {
     // analytics-browser bundle
     path: './packages/analytics-browser/lib/scripts/amplitude-min.js.gz',
-    limit: '70kb',
+    limit: '72kb',
     brotli: false,
   },
   {
