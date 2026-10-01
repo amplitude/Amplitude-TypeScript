@@ -10,10 +10,10 @@ import com.facebook.react.bridge.ReadableMap
 abstract class SessionReplayReactNativeSpec(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
   abstract fun setup(config: ReadableMap, promise: Promise)
-  abstract fun setSessionId(sessionId: Double, promise: Promise)
+  abstract fun setCustomSessionId(customSessionId: String, promise: Promise)
+  abstract fun getCustomSessionId(promise: Promise)
   abstract fun setDeviceId(deviceId: String?, promise: Promise)
   abstract fun setOptOut(optOut: Boolean, promise: Promise)
-  abstract fun getSessionId(promise: Promise)
   abstract fun start(promise: Promise)
   abstract fun stop(promise: Promise)
   abstract fun flush(promise: Promise)

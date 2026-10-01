@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.19](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.18...@amplitude/plugin-event-property-attribution-browser@0.2.19) (2026-09-29)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.18](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.17...@amplitude/plugin-event-property-attribution-browser@0.2.18) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
 ## [0.2.17](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.16...@amplitude/plugin-event-property-attribution-browser@0.2.17) (2026-09-23)
 
 **Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser

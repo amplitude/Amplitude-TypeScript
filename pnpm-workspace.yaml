@@ -20,4 +20,4 @@ onlyBuiltDependencies:
   - nx
   - unrs-resolver
 
-trustPolicy: true
+trustPolicy: no-downgrade
