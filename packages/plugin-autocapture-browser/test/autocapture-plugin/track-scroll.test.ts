@@ -199,7 +199,9 @@ describe('trackScroll', () => {
     tracker.reset();
 
     setScroll(15, 640);
+    expect(tracker.isAwaitingSeed()).toBe(true);
     expect(tracker.seed()).toBe(true);
+    expect(tracker.isAwaitingSeed()).toBe(false);
     expect(tracker.getState()).toEqual({ maxX: 15, maxY: 640, minY: 640 });
     expect(tracker.seed()).toBe(false);
     expect(tracker.getState().maxY).toBe(640);

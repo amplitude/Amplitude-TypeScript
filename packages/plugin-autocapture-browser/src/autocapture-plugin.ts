@@ -365,17 +365,41 @@ export const autocapturePlugin = (
       ...scrollTracker.getState(),
     };
 
-    const syncScrollBaseline = () => {
-      // reset() zeros the range before history applies. Sample again once the
-      // next page's scroll position is current. seed() is a no-op when this
-      // page view was not reset, such as a suppressed duplicate page end.
-      if (!scrollTracker.seed()) {
-        return;
-      }
+    const writeScrollBaseline = () => {
+      // seed() is a no-op when this page view was not reset, or when a scroll
+      // event already took the baseline. Either way the stored range is what
+      // the next event should compare against.
+      scrollTracker.seed();
       const seeded = scrollTracker.getState();
       lastScroll.maxX = seeded.maxX;
       lastScroll.maxY = seeded.maxY;
       lastScroll.minY = seeded.minY;
+    };
+
+    const syncScrollBaseline = () => {
+      // reset() zeros the range before history applies. pushState / replaceState
+      // and popstate run after that position is current, so sample immediately.
+      if (!scrollTracker.isAwaitingSeed()) {
+        return;
+      }
+      writeScrollBaseline();
+    };
+
+    // The Navigation API fires `navigate` before a back/forward traversal
+    // commits and restores scroll. Mark the page view here and sample from
+    // `navigatesuccess`, which runs after that restoration.
+    let awaitingNavigationBaseline = false;
+    const markNavigationScrollBaseline = () => {
+      if (scrollTracker.isAwaitingSeed()) {
+        awaitingNavigationBaseline = true;
+      }
+    };
+    const publishNavigationScrollBaseline = () => {
+      if (!awaitingNavigationBaseline) {
+        return;
+      }
+      awaitingNavigationBaseline = false;
+      writeScrollBaseline();
     };
 
     const trackers: { exposure?: ExposureTracker & Unsubscribable } = {};
@@ -413,7 +437,7 @@ export const autocapturePlugin = (
 
     let trackedPageUrl = getNormalizedPageUrl(globalScope);
 
-    const handleSpaNavigation = () => {
+    const handleSpaNavigation = (options?: { deferScrollBaseline?: boolean }) => {
       const currentPageUrl = getNormalizedPageUrl(globalScope);
       if (currentPageUrl === trackedPageUrl) {
         return;
@@ -421,6 +445,10 @@ export const autocapturePlugin = (
 
       trackedPageUrl = currentPageUrl;
       handleViewportContentUpdated(true);
+      if (options?.deferScrollBaseline) {
+        markNavigationScrollBaseline();
+        return;
+      }
       syncScrollBaseline();
     };
 
@@ -515,13 +543,27 @@ export const autocapturePlugin = (
 
               trackedPageUrl = nextPageUrl;
               handleViewportContentUpdated(true);
-              syncScrollBaseline();
+              markNavigationScrollBaseline();
               return;
             }
 
-            handleSpaNavigation();
+            handleSpaNavigation({ deferScrollBaseline: true });
           }),
         );
+
+        const navigation = window.navigation;
+        if (navigation) {
+          const onNavigateSuccess = () => {
+            publishNavigationScrollBaseline();
+          };
+          navigation.addEventListener('navigatesuccess', onNavigateSuccess);
+          subscriptions.push({
+            unsubscribe: () => {
+              awaitingNavigationBaseline = false;
+              navigation.removeEventListener('navigatesuccess', onNavigateSuccess);
+            },
+          });
+        }
       } else if (globalScope) {
         const popstateHandler = () => {
           handleSpaNavigation();

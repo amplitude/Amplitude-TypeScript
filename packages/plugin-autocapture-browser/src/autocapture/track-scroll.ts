@@ -77,6 +77,12 @@ export function trackScroll({
       needsSeed = true;
     },
     /**
+     * True after reset() until the next page view's scroll position is sampled.
+     * A suppressed page end leaves this false, so a later seed cannot wipe a
+     * range that is already in progress.
+     */
+    isAwaitingSeed: () => needsSeed,
+    /**
      * Sample the current scroll position as the start of this page view.
      * No-op unless reset() marked the tracker, so a suppressed page end
      * cannot wipe a range that is already in progress.

@@ -2329,6 +2329,144 @@ describe('autoTrackingPlugin', () => {
         }),
       );
     });
+
+    test('should seed a Navigation API traversal from the scroll position restored before navigatesuccess', async () => {
+      const listeners = new Map<string, Array<(event: Event) => void>>();
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (type: string, listener: (event: Event) => void) => {
+            const group = listeners.get(type) ?? [];
+            group.push(listener);
+            listeners.set(type, group);
+          },
+          removeEventListener: jest.fn(),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      simulateScroll(0, 900);
+
+      listeners.get('navigate')?.forEach((listener) => {
+        listener({
+          destination: { url: 'http://localhost/next-page' },
+          navigationType: 'traverse',
+        } as unknown as Event);
+      });
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 0,
+          '[Amplitude] Max Page Y': 900 + window.innerHeight,
+        }),
+      );
+
+      track.mockClear();
+      // `navigate` has returned and the browser has restored scroll, but the
+      // scroll event has not been delivered. Seeding inside `navigate` would
+      // still see 900.
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 220, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 220, writable: true, configurable: true });
+      listeners.get('navigatesuccess')?.forEach((listener) => {
+        listener(new Event('navigatesuccess'));
+      });
+
+      // A second traversal inside the page-end guard does not reset the tracker,
+      // so it must not arm another baseline over the one just published.
+      listeners.get('navigate')?.forEach((listener) => {
+        listener({
+          destination: { url: 'http://localhost/later-page' },
+          navigationType: 'traverse',
+        } as unknown as Event);
+      });
+      listeners.get('navigatesuccess')?.forEach((listener) => {
+        listener(new Event('navigatesuccess'));
+      });
+
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      simulateScroll(0, 80);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 80,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should keep a scroll event that arrives before navigatesuccess as the new page baseline', async () => {
+      const listeners = new Map<string, Array<(event: Event) => void>>();
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (type: string, listener: (event: Event) => void) => {
+            const group = listeners.get(type) ?? [];
+            group.push(listener);
+            listeners.set(type, group);
+          },
+          removeEventListener: jest.fn(),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      simulateScroll(0, 900);
+
+      listeners.get('navigate')?.forEach((listener) => {
+        listener({
+          destination: { url: 'http://localhost/next-page' },
+          navigationType: 'traverse',
+        } as unknown as Event);
+      });
+      track.mockClear();
+
+      // Restoration can be delivered as a scroll event before navigatesuccess.
+      // That event is the new page's baseline, not an extension of the old max.
+      simulateScroll(0, 220);
+      listeners.get('navigatesuccess')?.forEach((listener) => {
+        listener(new Event('navigatesuccess'));
+      });
+
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      simulateScroll(0, 400);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 400 + window.innerHeight,
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
   });
 
   describe('teardown', () => {
