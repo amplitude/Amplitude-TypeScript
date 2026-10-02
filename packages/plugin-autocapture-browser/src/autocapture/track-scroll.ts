@@ -4,11 +4,7 @@ import { BrowserClient, getGlobalScope } from '@amplitude/analytics-core';
 export interface ScrollState {
   maxX: number;
   maxY: number;
-  /**
-   * Smallest scrollY since tracking started for this page view, including the
-   * offset at the moment the tracker attached. This is the top of the viewport,
-   * not scrollY plus viewport height.
-   */
+  /** Smallest scrollY since this page view started. Not scrollY plus viewport height. */
   minY: number;
 }
 
@@ -33,9 +29,6 @@ export function trackScroll({
 
   const { scrollObservable } = allObservables;
   const state: ScrollState = { maxX: 0, maxY: 0, minY: 0 };
-  // Set by reset() until the next page view's scroll position is sampled.
-  // Starts true so the offset at attach time becomes the first sample — a late
-  // SDK load should report where the viewport already was, not 0.
   let needsSeed = true;
 
   const seedFromCurrentPosition = () => {
@@ -51,7 +44,6 @@ export function trackScroll({
   const scrollSubscription = scrollObservable.subscribe(() => {
     const { x, y } = readScrollPosition();
 
-    // A scroll that arrives before the post-navigation seed is the new baseline.
     if (needsSeed) {
       state.maxX = x;
       state.maxY = y;
@@ -76,17 +68,8 @@ export function trackScroll({
       state.minY = 0;
       needsSeed = true;
     },
-    /**
-     * True after reset() until the next page view's scroll position is sampled.
-     * A suppressed page end leaves this false, so a later seed cannot wipe a
-     * range that is already in progress.
-     */
     isAwaitingSeed: () => needsSeed,
-    /**
-     * Sample the current scroll position as the start of this page view.
-     * No-op unless reset() marked the tracker, so a suppressed page end
-     * cannot wipe a range that is already in progress.
-     */
+    /** Samples the current offset. No-op unless reset() is waiting for that sample. */
     seed: (): boolean => {
       if (!needsSeed) {
         return false;

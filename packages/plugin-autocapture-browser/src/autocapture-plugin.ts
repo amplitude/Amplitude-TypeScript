@@ -359,16 +359,12 @@ export const autocapturePlugin = (
     });
     subscriptions.push(scrollTracker);
 
-    // Match post-navigation reset so an empty first snapshot is not treated as a scroll change.
-    // trackScroll seeds this from the scroll offset at attach time.
+    // Seeded at attach so an empty first snapshot is not a scroll change.
     const lastScroll: { maxX: undefined | number; maxY: undefined | number; minY: undefined | number } = {
       ...scrollTracker.getState(),
     };
 
     const writeScrollBaseline = () => {
-      // seed() is a no-op when this page view was not reset, or when a scroll
-      // event already took the baseline. Either way the stored range is what
-      // the next event should compare against.
       scrollTracker.seed();
       const seeded = scrollTracker.getState();
       lastScroll.maxX = seeded.maxX;
@@ -377,29 +373,18 @@ export const autocapturePlugin = (
     };
 
     const syncScrollBaseline = () => {
-      // reset() zeros the range before history applies. pushState / replaceState
-      // and popstate run after that position is current, so sample immediately.
       if (!scrollTracker.isAwaitingSeed()) {
         return;
       }
       writeScrollBaseline();
     };
 
-    // The Navigation API fires `navigate` before a back/forward traversal
-    // commits and restores scroll. Mark the page view here and sample from
-    // `navigatesuccess`, which runs after that restoration.
     let awaitingNavigationBaseline = false;
+    let deferredViewportFlush = false;
     const markNavigationScrollBaseline = () => {
       if (scrollTracker.isAwaitingSeed()) {
         awaitingNavigationBaseline = true;
       }
-    };
-    const publishNavigationScrollBaseline = () => {
-      if (!awaitingNavigationBaseline) {
-        return;
-      }
-      awaitingNavigationBaseline = false;
-      writeScrollBaseline();
     };
 
     const trackers: { exposure?: ExposureTracker & Unsubscribable } = {};
@@ -414,6 +399,10 @@ export const autocapturePlugin = (
         initialExposureSnapshotScheduler?.reset();
       }
       if (isPageEnd && pageViewEndFired) {
+        return;
+      }
+      if (!isPageEnd && awaitingNavigationBaseline) {
+        deferredViewportFlush = true;
         return;
       }
       if (isPageEnd) {
@@ -433,6 +422,20 @@ export const autocapturePlugin = (
         isPageEnd,
         lastScroll,
       });
+    };
+
+    /** Samples the restored offset, then sends a snapshot that arrived during `navigate`. */
+    const publishNavigationScrollBaseline = () => {
+      if (!awaitingNavigationBaseline) {
+        return;
+      }
+      awaitingNavigationBaseline = false;
+      writeScrollBaseline();
+      if (!deferredViewportFlush) {
+        return;
+      }
+      deferredViewportFlush = false;
+      handleViewportContentUpdated(false);
     };
 
     let trackedPageUrl = getNormalizedPageUrl(globalScope);
@@ -560,6 +563,7 @@ export const autocapturePlugin = (
           subscriptions.push({
             unsubscribe: () => {
               awaitingNavigationBaseline = false;
+              deferredViewportFlush = false;
               navigation.removeEventListener('navigatesuccess', onNavigateSuccess);
             },
           });

@@ -206,14 +206,11 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     await page.evaluate(() => window.__exposureHarness.start());
     await expect(page.locator('#status')).toHaveText('initialized');
 
-    // Move below the attach point, then back above it but still below the top.
-    // Min stays at the highest point seen since attach; max follows the furthest scroll.
     const peakScroll = await page.evaluate((start) => {
       window.scrollTo(0, start + 350);
       return Math.floor(window.scrollY);
     }, startScroll);
-    // WebKit can deliver the scroll event on a later frame. Let the tracker
-    // sample the peak before scrolling back up, or the max is never recorded.
+    // WebKit delivers the scroll event on a later frame.
     await page.evaluate(
       () =>
         new Promise<void>((resolve) => {
@@ -271,8 +268,6 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     await page.evaluate(() => window.__exposureHarness.start());
     await expect(page.locator('#status')).toHaveText('initialized');
 
-    // Nothing moves after init. Min and max can only come from the sample taken
-    // when the tracker attached; a tracker that waits for a scroll event reports 0.
     await page.waitForTimeout(EXPOSURE_SETTLE_MS);
     const viewportHeight = await page.evaluate(() => window.innerHeight);
     await page.evaluate(() => window.__exposureHarness.flush());
@@ -366,8 +361,6 @@ test.describe('autocapture viewport exposure (mid-height line)', () => {
     const exposed = events
       .filter((e) => e.event_type === VIEWPORT_CONTENT_UPDATED)
       .flatMap((e) => (e.event_properties?.[ELEMENT_EXPOSED_PROP] as string[] | undefined) ?? []);
-    // The zone was on screen before the SDK loaded and is above the viewport now.
-    // There is no record of that, so it must not be backfilled into Element Exposed.
     expect(exposed).not.toContain('button#zone-1');
     expect(exposed).toContain(SITE_HEADER_PATH);
     expect(pageErrors).toEqual([]);

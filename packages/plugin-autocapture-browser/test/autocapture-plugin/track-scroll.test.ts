@@ -135,9 +135,6 @@ describe('trackScroll', () => {
   });
 
   test('should record only the scroll position at attach, not positions from before the tracker existed', () => {
-    // A visitor can scroll to the bottom and back before the SDK loads. There is
-    // no scroll listener yet, so the earlier peak is gone; the sample at attach
-    // is the whole range.
     setScroll(80, 1600);
     setScroll(20, 480);
 
@@ -175,7 +172,6 @@ describe('trackScroll', () => {
     unsubscribe = tracker.unsubscribe;
 
     expect(tracker.getState()).toEqual({ maxX: 25, maxY: 480, minY: 480 });
-    // Already seeded; a second seed must not run and cannot clear the range.
     expect(tracker.seed()).toBe(false);
 
     setScroll(10, 120);

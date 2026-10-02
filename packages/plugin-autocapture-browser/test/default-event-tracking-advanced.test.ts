@@ -2200,7 +2200,6 @@ describe('autoTrackingPlugin', () => {
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      // Move down, then back up, so both edges of the tracked range differ from the seed.
       simulateScroll(10, 700);
       simulateScroll(0, 120);
       window.dispatchEvent(new Event('beforeunload'));
@@ -2227,8 +2226,6 @@ describe('autoTrackingPlugin', () => {
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
-      // No downward scroll after attach. Max Page Y can only come from the seed;
-      // a tracker that stays at 0 until the next scroll event would report 200.
       simulateScroll(0, 200);
       window.dispatchEvent(new Event('beforeunload'));
 
@@ -2261,8 +2258,6 @@ describe('autoTrackingPlugin', () => {
       );
 
       track.mockClear();
-      // Let the page-end guard expire before the next flush. The quiet snapshot
-      // of the new page matches the re-seeded baseline and must not send.
       jest.advanceTimersByTime(150);
       expect(track).not.toHaveBeenCalled();
 
@@ -2300,8 +2295,6 @@ describe('autoTrackingPlugin', () => {
       jest.advanceTimersByTime(150);
       expect(track).not.toHaveBeenCalled();
 
-      // Browsers restore scroll and then fire popstate. The offset is already
-      // the new page's position, and no scroll event has been delivered for it.
       mockWindowLocationFromURL(new URL('http://localhost/restored-page'));
       Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
       Object.defineProperty(window, 'scrollY', { value: 240, writable: true, configurable: true });
@@ -2309,14 +2302,12 @@ describe('autoTrackingPlugin', () => {
       Object.defineProperty(window, 'pageYOffset', { value: 240, writable: true, configurable: true });
       window.dispatchEvent(new Event('popstate'));
 
-      // The page being left did not scroll; its range must not absorb 240.
       expect(track).not.toHaveBeenCalled();
 
       track.mockClear();
       jest.advanceTimersByTime(150);
       expect(track).not.toHaveBeenCalled();
 
-      // Scroll up from the restored offset. Max stays at the re-seed, not at 800.
       simulateScroll(0, 180);
       window.dispatchEvent(new Event('beforeunload'));
 
@@ -2371,9 +2362,6 @@ describe('autoTrackingPlugin', () => {
       );
 
       track.mockClear();
-      // `navigate` has returned and the browser has restored scroll, but the
-      // scroll event has not been delivered. Seeding inside `navigate` would
-      // still see 900.
       Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
       Object.defineProperty(window, 'scrollY', { value: 220, writable: true, configurable: true });
       Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
@@ -2382,8 +2370,6 @@ describe('autoTrackingPlugin', () => {
         listener(new Event('navigatesuccess'));
       });
 
-      // A second traversal inside the page-end guard does not reset the tracker,
-      // so it must not arm another baseline over the one just published.
       listeners.get('navigate')?.forEach((listener) => {
         listener({
           destination: { url: 'http://localhost/later-page' },
@@ -2444,8 +2430,6 @@ describe('autoTrackingPlugin', () => {
       });
       track.mockClear();
 
-      // Restoration can be delivered as a scroll event before navigatesuccess.
-      // That event is the new page's baseline, not an extension of the old max.
       simulateScroll(0, 220);
       listeners.get('navigatesuccess')?.forEach((listener) => {
         listener(new Event('navigatesuccess'));
@@ -2462,6 +2446,77 @@ describe('autoTrackingPlugin', () => {
         expect.objectContaining({
           '[Amplitude] Min Page Y': 220,
           '[Amplitude] Max Page Y': 400 + window.innerHeight,
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should report the restored scroll when an exposure snapshot finishes before navigatesuccess', async () => {
+      const listeners = new Map<string, Array<(event: Event) => void>>();
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (type: string, listener: (event: Event) => void) => {
+            const group = listeners.get(type) ?? [];
+            group.push(listener);
+            listeners.set(type, group);
+          },
+          removeEventListener: jest.fn(),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      simulateScroll(0, 900);
+
+      listeners.get('navigate')?.forEach((listener) => {
+        listener({
+          destination: { url: 'http://localhost/next-page' },
+          navigationType: 'traverse',
+        } as unknown as Event);
+      });
+      track.mockClear();
+
+      const element = document.createElement('button');
+      element.id = 'late-zone';
+      document.body.appendChild(element);
+      setMidHeightLineVisible(element);
+      intersectionCallback([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1,
+          target: element,
+        },
+      ]);
+
+      jest.advanceTimersByTime(
+        constants.EXPOSURE_SNAPSHOT_QUIET_MS + 150 + constants.EXPOSURE_SNAPSHOT_FLUSH_BUFFER_MS + 10,
+      );
+      expect(track).not.toHaveBeenCalled();
+
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 220, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 220, writable: true, configurable: true });
+      listeners.get('navigatesuccess')?.forEach((listener) => {
+        listener(new Event('navigatesuccess'));
+      });
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#late-zone']),
         }),
       );
 

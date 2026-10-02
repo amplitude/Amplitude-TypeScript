@@ -30,7 +30,6 @@ export const AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT = '[Amplitude] Viewport Height
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH = '[Amplitude] Viewport Width';
 export const AMPLITUDE_EVENT_PROP_MAX_PAGE_X = '[Amplitude] Max Page X';
 export const AMPLITUDE_EVENT_PROP_MAX_PAGE_Y = '[Amplitude] Max Page Y';
-/** Top edge of the highest viewport seen since tracking started for this page view. */
 export const AMPLITUDE_EVENT_PROP_MIN_PAGE_Y = '[Amplitude] Min Page Y';
 
 export const AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID = '[Amplitude] Page View ID';
