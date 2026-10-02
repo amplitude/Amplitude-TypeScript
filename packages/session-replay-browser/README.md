@@ -502,6 +502,8 @@ This approach ensures that:
 
 The dynamic imports happen asynchronously and won't block your application's initialization. If the imports fail for any reason, the SDK will not initiate capture.
 
+To also defer Session Replay **init** until after `window` `load` (so sampling/remote config still apply, but capture starts after load), use `deferInitUntilPageLoad: true` on `@amplitude/plugin-session-replay-browser`. See that package README for sample-rate implications.
+
 ## Privacy
 By default, the session replay will mask all inputs, meaning the text in inputs will appear in a session replay as asterisks: `***`. You may require more specific masking controls based on your use case, so we offer the following controls:
 
