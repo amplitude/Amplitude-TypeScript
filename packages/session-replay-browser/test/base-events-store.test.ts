@@ -1,5 +1,6 @@
 import { ILogger } from '@amplitude/analytics-core';
 import { InMemoryEventsStore } from '../src/events/events-memory-store';
+import { utf8ByteLength } from '../src/utils/utf8-byte-length';
 
 describe('BaseEventsStore', () => {
   beforeEach(() => {
@@ -135,6 +136,64 @@ describe('BaseEventsStore', () => {
       await store.addEventToCurrentSequence(1, 'a');
       jest.advanceTimersByTime(5_001);
       expect(store.shouldSplitEventsList(['a'], 'b')).toBe(true);
+    });
+  });
+
+  describe('incremental UTF-8 size cache', () => {
+    const cap = 500;
+
+    // Independent of the store cache: sums every string on every call.
+    const sizeSplit = (events: string[], next: string): boolean => {
+      let content = 0;
+      for (const event of events) content += utf8ByteLength(event);
+      const overhead = 2 + Math.max(0, events.length - 1) + events.length * 2;
+      return content + overhead + utf8ByteLength(next) >= cap;
+    };
+
+    const store = () =>
+      new InMemoryEventsStore({
+        loggerProvider: mockLoggerProvider,
+        maxPersistedEventsSize: cap,
+        minInterval: 60_000_000,
+      });
+
+    test('matches a full recount as the same array is appended', () => {
+      const eventsStore = store();
+      const events: string[] = [];
+      const incoming = ['a'.repeat(40), 'é'.repeat(20), '€'.repeat(10), '🎉'.repeat(5), '\uD800', '\uDC00', 'tail'];
+      const batch = Array.from({ length: 12 }, () => incoming).flat();
+      for (const next of batch) {
+        expect(eventsStore.shouldSplitEventsList(events, next)).toBe(sizeSplit(events, next));
+        events.push(next);
+      }
+    });
+
+    test('matches a full recount when more than one event is appended between checks', () => {
+      const eventsStore = store();
+      const events: string[] = [];
+      for (let i = 0; i < 30; i++) {
+        const next = i % 2 === 0 ? 'é'.repeat(i + 1) : 'a'.repeat(i + 1);
+        expect(eventsStore.shouldSplitEventsList(events, next)).toBe(sizeSplit(events, next));
+        events.push(next, `${next}x`);
+      }
+    });
+
+    test('reuses the cached size when the same array is checked again', () => {
+      const eventsStore = store();
+      const events: string[] = [];
+      expect(eventsStore.shouldSplitEventsList(events, 'a')).toBe(false);
+      expect(eventsStore.shouldSplitEventsList(events, 'a')).toBe(false);
+      events.push('é'.repeat(10));
+      expect(eventsStore.shouldSplitEventsList(events, 'a')).toBe(sizeSplit(events, 'a'));
+      expect(eventsStore.shouldSplitEventsList(events, 'a')).toBe(sizeSplit(events, 'a'));
+    });
+
+    test('recounts when the last event string is replaced in place', () => {
+      const eventsStore = store();
+      const events = ['abcd'];
+      expect(eventsStore.shouldSplitEventsList(events, 'z')).toBe(false);
+      events[0] = 'é'.repeat(400);
+      expect(eventsStore.shouldSplitEventsList(events, 'z')).toBe(true);
     });
   });
 });

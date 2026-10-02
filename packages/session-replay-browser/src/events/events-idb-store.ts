@@ -380,6 +380,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         events: [],
         tabId: this.tabId,
       });
+      this.rememberSequenceContentBytes(sessionId, []);
 
       this.recordSuccess();
       cancelTimeout();
@@ -390,6 +391,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sequenceId,
       };
     } catch (e) {
+      this.forgetSequenceContentBytes(sessionId);
       if (!timedOut) {
         errorLogged = true;
         logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
@@ -443,7 +445,9 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
             tabId: sequenceEvents.tabId,
           });
         }
-        await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
+        const nextEvents = [event];
+        await tx.objectStore(currentSequenceKey).put({ sessionId, events: nextEvents, tabId: this.tabId });
+        this.rememberSequenceContentBytes(sessionId, nextEvents);
         this.recordSuccess();
         cancelTimeout();
         return undefined;
@@ -453,16 +457,21 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       const ownedSequence = sequenceEvents;
 
       if (!ownedSequence) {
-        await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
+        const nextEvents = [event];
+        await tx.objectStore(currentSequenceKey).put({ sessionId, events: nextEvents, tabId: this.tabId });
+        this.rememberSequenceContentBytes(sessionId, nextEvents);
         this.recordSuccess();
         cancelTimeout();
         return undefined;
       }
 
+      // The array just loaded from IDB is a new object. Seed it from the session's
+      // running total so shouldSplitEventsList does not rescan the whole buffer.
+      this.recallSequenceContentBytes(sessionId, ownedSequence.events);
       if (!this.shouldSplitEventsList(ownedSequence.events, event)) {
-        await tx
-          .objectStore(currentSequenceKey)
-          .put({ sessionId, events: ownedSequence.events.concat(event), tabId: this.tabId });
+        const nextEvents = ownedSequence.events.concat(event);
+        await tx.objectStore(currentSequenceKey).put({ sessionId, events: nextEvents, tabId: this.tabId });
+        this.rememberSequenceContentBytes(sessionId, nextEvents);
         this.recordSuccess();
         cancelTimeout();
         return undefined;
@@ -482,13 +491,17 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
       // (vs. only seeing leftover-state hits at the get/storeCurrentSequence layers).
       if (eventsToSend.length === 0) {
         this.maybeLogEmptyFiltered('addEventToCurrentSequence');
-        await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
+        const nextEvents = [event];
+        await tx.objectStore(currentSequenceKey).put({ sessionId, events: nextEvents, tabId: this.tabId });
+        this.rememberSequenceContentBytes(sessionId, nextEvents);
         this.recordSuccess();
         cancelTimeout();
         return undefined;
       }
 
-      await tx.objectStore(currentSequenceKey).put({ sessionId, events: [event], tabId: this.tabId });
+      const nextEvents = [event];
+      await tx.objectStore(currentSequenceKey).put({ sessionId, events: nextEvents, tabId: this.tabId });
+      this.rememberSequenceContentBytes(sessionId, nextEvents);
       const sequenceId = await tx.objectStore(sequencesToSendKey).put({
         sessionId,
         events: eventsToSend,
@@ -503,6 +516,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         sequenceId,
       };
     } catch (e) {
+      this.forgetSequenceContentBytes(sessionId);
       if (!timedOut) {
         errorLogged = true;
         logIdbError(this.loggerProvider, `${STORAGE_FAILURE}: ${e as string}`, e);
