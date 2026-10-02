@@ -2522,6 +2522,235 @@ describe('autoTrackingPlugin', () => {
 
       await plugin?.teardown?.();
     });
+
+    const installNavigation = () => {
+      const listeners = new Map<string, Array<(event: Event) => void>>();
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (type: string, listener: (event: Event) => void) => {
+            const group = listeners.get(type) ?? [];
+            group.push(listener);
+            listeners.set(type, group);
+          },
+          removeEventListener: (type: string, listener: (event: Event) => void) => {
+            listeners.set(
+              type,
+              (listeners.get(type) ?? []).filter((candidate) => candidate !== listener),
+            );
+          },
+        },
+        configurable: true,
+        writable: true,
+      });
+      return listeners;
+    };
+
+    const setupWithNavigation = async () => {
+      const listeners = installNavigation();
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      return listeners;
+    };
+
+    const dispatchNavigation = (listeners: Map<string, Array<(event: Event) => void>>, type: string, event: Event) => {
+      listeners.get(type)?.forEach((listener) => listener(event));
+    };
+
+    const exposeButton = (id: string) => {
+      const element = document.createElement('button');
+      element.id = id;
+      document.body.appendChild(element);
+      setMidHeightLineVisible(element);
+      intersectionCallback([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1,
+          target: element,
+        },
+      ]);
+    };
+
+    const advanceExposureSnapshot = () => {
+      jest.advanceTimersByTime(
+        constants.EXPOSURE_SNAPSHOT_QUIET_MS + 150 + constants.EXPOSURE_SNAPSHOT_FLUSH_BUFFER_MS + 10,
+      );
+    };
+
+    const setScrollQuiet = (y: number) => {
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: y, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: y, writable: true, configurable: true });
+    };
+
+    test('should send a deferred viewport snapshot when the navigation fails', async () => {
+      const listeners = await setupWithNavigation();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+      } as unknown as Event);
+      track.mockClear();
+
+      exposeButton('failed-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigateerror', new Event('navigateerror'));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#failed-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should send a deferred viewport snapshot when the navigation is aborted', async () => {
+      const listeners = await setupWithNavigation();
+      const controller = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: controller.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      exposeButton('aborted-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      controller.abort();
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#aborted-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should sample scroll immediately when the navigation is already aborted', async () => {
+      const listeners = await setupWithNavigation();
+      const controller = new AbortController();
+      controller.abort();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: controller.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      exposeButton('already-aborted-zone');
+      advanceExposureSnapshot();
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 900,
+          '[Amplitude] Max Page Y': 900 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#already-aborted-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should keep the newer navigation deferred when an older one aborts', async () => {
+      const listeners = await setupWithNavigation();
+      const first = new AbortController();
+      const second = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: first.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      jest.advanceTimersByTime(40);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/later-page' },
+        signal: second.signal,
+      } as unknown as Event);
+      first.abort();
+
+      exposeButton('newer-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      second.abort();
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#newer-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should clear a pending navigation signal on teardown', async () => {
+      const listeners = await setupWithNavigation();
+      const controller = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: controller.signal,
+      } as unknown as Event);
+      const callsAfterNavigate = track.mock.calls.length;
+
+      await plugin?.teardown?.();
+      controller.abort();
+      advanceExposureSnapshot();
+
+      expect(track).toHaveBeenCalledTimes(callsAfterNavigate);
+    });
+
+    test('should defer the scroll baseline when the navigation event is missing', async () => {
+      const listeners = await setupWithNavigation();
+      mockWindowLocationFromURL(new URL('http://localhost/fallback-page'));
+      dispatchNavigation(listeners, 'navigate', undefined as unknown as Event);
+
+      exposeButton('missing-event-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#missing-event-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
   });
 
   describe('teardown', () => {

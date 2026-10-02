@@ -381,6 +381,7 @@ export const autocapturePlugin = (
 
     let awaitingNavigationBaseline = false;
     let deferredViewportFlush = false;
+    let pendingNavigationSignal: AbortSignal | undefined;
     const markNavigationScrollBaseline = () => {
       if (scrollTracker.isAwaitingSeed()) {
         awaitingNavigationBaseline = true;
@@ -424,8 +425,10 @@ export const autocapturePlugin = (
       });
     };
 
-    /** Samples the restored offset, then sends a snapshot that arrived during `navigate`. */
+    /** Samples the current offset and sends a snapshot deferred during `navigate`. */
     const publishNavigationScrollBaseline = () => {
+      pendingNavigationSignal?.removeEventListener('abort', publishNavigationScrollBaseline);
+      pendingNavigationSignal = undefined;
       if (!awaitingNavigationBaseline) {
         return;
       }
@@ -438,21 +441,39 @@ export const autocapturePlugin = (
       handleViewportContentUpdated(false);
     };
 
+    const watchNavigationSignal = (signal: AbortSignal | undefined) => {
+      if (!awaitingNavigationBaseline) {
+        return;
+      }
+      pendingNavigationSignal?.removeEventListener('abort', publishNavigationScrollBaseline);
+      pendingNavigationSignal = undefined;
+      if (!signal) {
+        return;
+      }
+      if (signal.aborted) {
+        publishNavigationScrollBaseline();
+        return;
+      }
+      pendingNavigationSignal = signal;
+      signal.addEventListener('abort', publishNavigationScrollBaseline, { once: true });
+    };
+
     let trackedPageUrl = getNormalizedPageUrl(globalScope);
 
     const handleSpaNavigation = (options?: { deferScrollBaseline?: boolean }) => {
       const currentPageUrl = getNormalizedPageUrl(globalScope);
       if (currentPageUrl === trackedPageUrl) {
-        return;
+        return false;
       }
 
       trackedPageUrl = currentPageUrl;
       handleViewportContentUpdated(true);
       if (options?.deferScrollBaseline) {
         markNavigationScrollBaseline();
-        return;
+        return true;
       }
       syncScrollBaseline();
+      return false;
     };
 
     const handleHistoryStateChange = (applyHistoryChange: () => void, nextUrl: string | URL | null | undefined) => {
@@ -547,24 +568,28 @@ export const autocapturePlugin = (
               trackedPageUrl = nextPageUrl;
               handleViewportContentUpdated(true);
               markNavigationScrollBaseline();
+              watchNavigationSignal(timestampedEvent.event.signal);
               return;
             }
 
-            handleSpaNavigation({ deferScrollBaseline: true });
+            if (handleSpaNavigation({ deferScrollBaseline: true })) {
+              watchNavigationSignal(timestampedEvent.event?.signal);
+            }
           }),
         );
 
         const navigation = window.navigation;
         if (navigation) {
-          const onNavigateSuccess = () => {
-            publishNavigationScrollBaseline();
-          };
-          navigation.addEventListener('navigatesuccess', onNavigateSuccess);
+          navigation.addEventListener('navigatesuccess', publishNavigationScrollBaseline);
+          navigation.addEventListener('navigateerror', publishNavigationScrollBaseline);
           subscriptions.push({
             unsubscribe: () => {
+              pendingNavigationSignal?.removeEventListener('abort', publishNavigationScrollBaseline);
+              pendingNavigationSignal = undefined;
               awaitingNavigationBaseline = false;
               deferredViewportFlush = false;
-              navigation.removeEventListener('navigatesuccess', onNavigateSuccess);
+              navigation.removeEventListener('navigatesuccess', publishNavigationScrollBaseline);
+              navigation.removeEventListener('navigateerror', publishNavigationScrollBaseline);
             },
           });
         }
