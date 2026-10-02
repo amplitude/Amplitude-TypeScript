@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Replay Events Store Perf</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 960px;
+        margin: 40px auto;
+        padding: 20px;
+        color: #222;
+      }
+      h1 {
+        margin-bottom: 4px;
+      }
+      p.lead {
+        color: #555;
+        margin-top: 0;
+      }
+      fieldset {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 12px 0;
+      }
+      label {
+        display: inline-block;
+        margin: 6px 14px 6px 0;
+        font-size: 14px;
+      }
+      input[type='number'] {
+        width: 80px;
+        padding: 4px;
+      }
+      button {
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        margin: 8px 6px 8px 0;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 15px;
+      }
+      button:disabled {
+        background: #999;
+        cursor: default;
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        background: #f0f0f0;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+        margin-top: 10px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 6px 8px;
+        text-align: right;
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      .pass {
+        color: #0a7d1f;
+        font-weight: bold;
+      }
+      .fail {
+        color: #b00020;
+        font-weight: bold;
+      }
+      #spinner {
+        width: 40px;
+        height: 40px;
+        margin: 10px 0;
+        border-radius: 50%;
+        background: conic-gradient(#0066cc 0 25%, #e0e0e0 25% 100%);
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Events Store: size-check cost vs buffer size</h1>
+    <p class="lead">
+      Fills a session replay events store one event at a time and times each
+      <code>addEventToCurrentSequence</code> call. Before the running-size cache,
+      <code>shouldSplitEventsList</code> re-scanned every buffered string on every add, so the per-add cost grew with
+      the buffer (up to ~17 ms at the 6 MB default cap). The legacy check is reproduced inline below so both can be
+      run against the same events. The spinner stalls whenever the main thread is blocked.
+    </p>
+
+    <fieldset>
+      <legend>Workload</legend>
+      <label>Event size (KB) <input type="number" id="eventKb" value="2" min="1" /></label>
+      <label>Fill to (MB) <input type="number" id="fillMb" value="2" min="0.1" step="0.1" /></label>
+      <label>Buffer cap (MB) <input type="number" id="capMb" value="6" min="0.1" step="0.1" /></label>
+      <label>Events per frame <input type="number" id="perFrame" value="25" min="1" /></label>
+      <label><input type="checkbox" id="nonAscii" /> Non-ASCII payload (é / emoji)</label>
+      <label>
+        Store
+        <select id="storeType">
+          <option value="memory">in-memory</option>
+          <option value="idb">IndexedDB</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <button id="runNew">Run current store</button>
+    <button id="runLegacy">Run legacy size check</button>
+    <button id="runBoth">Run both + compare splits</button>
+
+    <div id="spinner"></div>
+    <div class="status" id="status">Status: ready</div>
+    <div
+      id="perf-results"
+      data-state="idle"
+      data-new-total-ms=""
+      data-new-max-ms=""
+      data-new-tail-avg-ms=""
+      data-new-long-tasks=""
+      data-legacy-total-ms=""
+      data-legacy-max-ms=""
+      data-legacy-tail-avg-ms=""
+      data-legacy-long-tasks=""
+      data-splits-match=""
+      data-flat=""
+    ></div>
+
+    <table id="results">
+      <thead>
+        <tr>
+          <th>Run</th>
+          <th>Events</th>
+          <th>Buffer (MB)</th>
+          <th>Total (ms)</th>
+          <th>Avg/add (ms)</th>
+          <th>First 100 avg (ms)</th>
+          <th>Last 100 avg (ms)</th>
+          <th>Max/add (ms)</th>
+          <th>Long tasks</th>
+          <th>Slow frames (&gt;50ms)</th>
+          <th>Splits</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script type="module">
+      import { InMemoryEventsStore } from '@amplitude/session-replay-browser/src/events/events-memory-store.ts';
+      import { SessionReplayEventsIDBStore } from '@amplitude/session-replay-browser/src/events/events-idb-store.ts';
+
+      const statusEl = document.getElementById('status');
+      const resultsEl = document.getElementById('perf-results');
+      const tbody = document.querySelector('#results tbody');
+      const buttons = ['runNew', 'runLegacy', 'runBoth'].map((id) => document.getElementById(id));
+      const API_KEY = 'sr-events-store-perf';
+      // Large enough that the time-based split never fires; only the size cap splits.
+      const NEVER_MS = 1e12;
+
+      const logger = {
+        log: () => {},
+        debug: () => {},
+        warn: (...a) => console.warn(...a),
+        error: (...a) => console.error(...a),
+        enable: () => {},
+        disable: () => {},
+      };
+
+      let longTasks = 0;
+      new PerformanceObserver((list) => {
+        longTasks += list.getEntries().length;
+      }).observe({ entryTypes: ['longtask'] });
+
+      function setStatus(text) {
+        statusEl.textContent = `Status: ${text}`;
+      }
+
+      function readConfig() {
+        return {
+          eventBytes: Number(document.getElementById('eventKb').value) * 1024,
+          fillBytes: Number(document.getElementById('fillMb').value) * 1e6,
+          capBytes: Number(document.getElementById('capMb').value) * 1e6,
+          perFrame: Number(document.getElementById('perFrame').value),
+          nonAscii: document.getElementById('nonAscii').checked,
+          storeType: document.getElementById('storeType').value,
+        };
+      }
+
+      // rrweb-ish incremental mutation payloads; a unique suffix keeps every string distinct.
+      function buildEvents({ eventBytes, fillBytes, nonAscii }) {
+        const count = Math.ceil(fillBytes / eventBytes);
+        const filler = nonAscii ? 'héllo wörld 😀 ' : 'lorem ipsum dolor ';
+        const base = JSON.stringify({
+          type: 3,
+          data: { source: 0, adds: [{ parentId: 1, node: { type: 3, textContent: '' } }] },
+          timestamp: 0,
+        });
+        const text = filler.repeat(Math.ceil((eventBytes - base.length) / filler.length));
+        const events = new Array(count);
+        for (let i = 0; i < count; i++) {
+          events[i] = JSON.stringify({
+            type: 3,
+            data: { source: 0, adds: [{ parentId: 1, node: { type: 3, textContent: text } }] },
+            timestamp: 1700000000000 + i,
+          });
+        }
+        return events;
+      }
+
+      // --- Legacy implementation (pre running-size cache), reproduced for comparison. ---
+      function legacyStringSize(str) {
+        let bytes = 0;
+        for (let i = 0; i < str.length; i++) {
+          const code = str.charCodeAt(i);
+          if (code <= 0x7f) bytes++;
+          else if (code <= 0x7ff) bytes += 2;
+          else if (code >= 0xd800 && code <= 0xdbff) {
+            const next = i + 1 < str.length ? str.charCodeAt(i + 1) : NaN;
+            if (next >= 0xdc00 && next <= 0xdfff) {
+              bytes += 4;
+              i++;
+            } else bytes += 3;
+          } else bytes += 3;
+        }
+        return bytes;
+      }
+
+      class LegacyStore {
+        constructor(capBytes) {
+          this.capBytes = capBytes;
+          this.events = [];
+        }
+        shouldSplit(events, next) {
+          let total = 0;
+          for (const e of events) total += legacyStringSize(e);
+          total += 2 + Math.max(0, events.length - 1) + events.length * 2;
+          return total + legacyStringSize(next) >= this.capBytes;
+        }
+        async addEventToCurrentSequence(_sessionId, event) {
+          let out;
+          if (this.shouldSplit(this.events, event) && this.events.length > 0) {
+            out = { events: this.events };
+            this.events = [];
+          }
+          this.events.push(event);
+          return out;
+        }
+      }
+
+      async function createCurrentStore({ storeType, capBytes }) {
+        const args = { loggerProvider: logger, minInterval: NEVER_MS, maxInterval: NEVER_MS, maxPersistedEventsSize: capBytes };
+        if (storeType === 'memory') return new InMemoryEventsStore(args);
+        await new Promise((resolve) => {
+          const req = indexedDB.deleteDatabase(`${API_KEY.substring(0, 10)}_amp_session_replay_events`);
+          req.onsuccess = req.onerror = req.onblocked = () => resolve();
+        });
+        const store = await SessionReplayEventsIDBStore.new('replay', { ...args, apiKey: API_KEY });
+        if (!store) throw new Error('IDB store failed to open');
+        return store;
+      }
+
+      const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
+
+      async function fill(label, store, events, perFrame) {
+        const sessionId = Date.now();
+        const perAdd = new Float64Array(events.length);
+        const splitAt = [];
+        let slowFrames = 0;
+        const longTasksBefore = longTasks;
+        const start = performance.now();
+        for (let i = 0; i < events.length; ) {
+          const frameStart = performance.now();
+          for (let j = 0; j < perFrame && i < events.length; j++, i++) {
+            const t0 = performance.now();
+            const split = await store.addEventToCurrentSequence(sessionId, events[i]);
+            perAdd[i] = performance.now() - t0;
+            if (split) splitAt.push(i);
+          }
+          if (performance.now() - frameStart > 50) slowFrames++;
+          setStatus(`${label}: ${i}/${events.length} events`);
+          await nextFrame();
+        }
+        const total = performance.now() - start;
+        await nextFrame();
+        const avg = (arr) => arr.reduce((s, v) => s + v, 0) / (arr.length || 1);
+        const window = Math.min(100, Math.floor(events.length / 2));
+        return {
+          label,
+          count: events.length,
+          bufferMb: (events.length * events[0].length) / 1e6,
+          total,
+          avg: avg(perAdd),
+          head: avg(perAdd.subarray(0, window)),
+          tail: avg(perAdd.subarray(events.length - window)),
+          max: Math.max(...perAdd),
+          longTasks: longTasks - longTasksBefore,
+          slowFrames,
+          splitAt,
+        };
+      }
+
+      function render(r) {
+        const row = document.createElement('tr');
+        const fmt = (v) => (typeof v === 'number' ? v.toFixed(3) : v);
+        row.innerHTML = [
+          r.label,
+          r.count,
+          r.bufferMb.toFixed(2),
+          r.total.toFixed(1),
+          fmt(r.avg),
+          fmt(r.head),
+          fmt(r.tail),
+          fmt(r.max),
+          r.longTasks,
+          r.slowFrames,
+          r.splitAt.length,
+        ]
+          .map((c) => `<td>${c}</td>`)
+          .join('');
+        tbody.appendChild(row);
+      }
+
+      function publish(prefix, r) {
+        resultsEl.dataset[`${prefix}TotalMs`] = r.total.toFixed(1);
+        resultsEl.dataset[`${prefix}MaxMs`] = r.max.toFixed(3);
+        resultsEl.dataset[`${prefix}TailAvgMs`] = r.tail.toFixed(3);
+        resultsEl.dataset[`${prefix}LongTasks`] = String(r.longTasks);
+      }
+
+      async function run(which) {
+        buttons.forEach((b) => (b.disabled = true));
+        resultsEl.dataset.state = 'running';
+        const cfg = readConfig();
+        try {
+          setStatus('building events…');
+          await nextFrame();
+          const events = buildEvents(cfg);
+          let current;
+          let legacy;
+          if (which !== 'legacy') {
+            const store = await createCurrentStore(cfg);
+            current = await fill(`current (${cfg.storeType})`, store, events, cfg.perFrame);
+            render(current);
+            publish('new', current);
+          }
+          if (which !== 'new') {
+            legacy = await fill('legacy size check', new LegacyStore(cfg.capBytes), events, cfg.perFrame);
+            render(legacy);
+            publish('legacy', legacy);
+          }
+
+          const lines = [];
+          if (current) {
+            // The in-memory store's per-add cost should not grow with the buffer. IDB adds carry
+            // transaction overhead, so allow more slack there but still expect no linear growth.
+            const limit = cfg.storeType === 'memory' ? 3 : 5;
+            const flat = current.tail <= Math.max(current.head * limit, 0.05);
+            resultsEl.dataset.flat = String(flat);
+            lines.push(
+              `${flat ? 'PASS' : 'FAIL'}: current store last-100 avg ${current.tail.toFixed(3)} ms vs first-100 avg ${current.head.toFixed(3)} ms`,
+            );
+          }
+          if (current && legacy) {
+            const match = JSON.stringify(current.splitAt) === JSON.stringify(legacy.splitAt);
+            resultsEl.dataset.splitsMatch = String(match);
+            lines.push(
+              `${match ? 'PASS' : 'FAIL'}: split points ${match ? 'match' : 'differ'} (current ${JSON.stringify(current.splitAt)}, legacy ${JSON.stringify(legacy.splitAt)})`,
+            );
+            lines.push(`speedup: ${(legacy.total / current.total).toFixed(1)}x total, ${(legacy.max / current.max).toFixed(1)}x worst add`);
+          }
+          setStatus(lines.length ? lines.join('\n') : 'done');
+          statusEl.className = `status ${lines.some((l) => l.startsWith('FAIL')) ? 'fail' : 'pass'}`;
+          resultsEl.dataset.state = 'done';
+        } catch (e) {
+          console.error(e);
+          setStatus(`error: ${e && e.message ? e.message : e}`);
+          statusEl.className = 'status fail';
+          resultsEl.dataset.state = 'error';
+        } finally {
+          buttons.forEach((b) => (b.disabled = false));
+        }
+      }
+
+      document.getElementById('runNew').addEventListener('click', () => run('new'));
+      document.getElementById('runLegacy').addEventListener('click', () => run('legacy'));
+      document.getElementById('runBoth').addEventListener('click', () => run('both'));
+
+      const auto = new URLSearchParams(location.search).get('auto');
+      if (auto) run(auto);
+    </script>
+  </body>
+</html>
