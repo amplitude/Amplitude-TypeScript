@@ -79,6 +79,32 @@ describe('trackHtmlVideo', () => {
     expect(handler.onPause).toHaveBeenCalledTimes(1);
   });
 
+  test('should report a play event when the video is already playing when tracked', () => {
+    Object.defineProperty(video, 'paused', { configurable: true, value: false });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 3 });
+
+    trackHtmlVideo(video, handler);
+
+    expect(handler.onPlay).toHaveBeenCalledTimes(1);
+    expect(handler.onPlay).toHaveBeenCalledWith({
+      duration: 10,
+      start_time: 3,
+      position: 3,
+      percent_completed: 30,
+    });
+  });
+
+  test('should not report a play event when the video is paused or ended when tracked', () => {
+    trackHtmlVideo(video, handler);
+    expect(handler.onPlay).not.toHaveBeenCalled();
+
+    Object.defineProperty(video, 'paused', { configurable: true, value: false });
+    Object.defineProperty(video, 'ended', { configurable: true, value: true });
+    trackHtmlVideo(video, handler);
+    expect(handler.onPlay).not.toHaveBeenCalled();
+  });
+
   test('should track seeking events', () => {
     const untrack = trackHtmlVideo(video, handler);
 
@@ -326,6 +352,49 @@ describe('trackEmbeddedVideo', () => {
       player.emit('play');
       await jest.runAllTimersAsync();
       expect(handler.onPlay).not.toHaveBeenCalled();
+    });
+
+    test('should report a play event when the player is already playing when ready', async () => {
+      player.setPaused(false);
+      player.setCurrentTime(4);
+      trackEmbeddedVideo(player, handler);
+      player.emit('ready');
+      await jest.runAllTimersAsync();
+      expect(handler.onPlay).toHaveBeenCalledTimes(1);
+      expect(handler.onPlay).toHaveBeenCalledWith({
+        position: 4,
+        start_time: 4,
+        percent_completed: 40,
+        duration: 10,
+      });
+    });
+
+    test('should not report a play event when the player is paused when ready', async () => {
+      trackEmbeddedVideo(player, handler);
+      player.emit('ready');
+      await jest.runAllTimersAsync();
+      expect(handler.onPlay).not.toHaveBeenCalled();
+    });
+
+    test('should not check the paused state when the player does not support getPaused', async () => {
+      player.setPaused(false);
+      delete (player as Partial<typeof player>).getPaused;
+      trackEmbeddedVideo(player, handler);
+      player.emit('ready');
+      await jest.runAllTimersAsync();
+      expect(handler.onPlay).not.toHaveBeenCalled();
+      expect(handler.onError).not.toHaveBeenCalled();
+    });
+
+    test('should call the error handler when getPaused throws', async () => {
+      player.getPaused = jest.fn().mockImplementation(() => {
+        throw new Error('Error getting paused state');
+      });
+      trackEmbeddedVideo(player, handler);
+      player.emit('ready');
+      await jest.runAllTimersAsync();
+      expect(handler.onPlay).not.toHaveBeenCalled();
+      expect(handler.onError).toHaveBeenCalledWith(expect.stringContaining("from 'ready' handler"));
     });
 
     test('should track seeking events', async () => {
