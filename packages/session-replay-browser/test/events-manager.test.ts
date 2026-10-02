@@ -266,7 +266,7 @@ describe('createEventsManager', () => {
 
     test('drops oversized events and warns before sending the rest', async () => {
       (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
-        { events: [mockEventString, oversizedEvent], sequenceId: 1, sessionId: 123 },
+        { events: [mockEventString, oversizedEvent, mockEventString], sequenceId: 1, sessionId: 123 },
       ]);
       const eventsManager = await createEventsManager<'replay'>({
         config,
@@ -279,9 +279,11 @@ describe('createEventsManager', () => {
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
       const mockSendEventsList = trackDestinationInstance.sendEventsList;
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('oversized'));
-      // Valid event is still sent
+      // Events on both sides of the dropped one are still sent, in order.
       expect(mockSendEventsList).toHaveBeenCalledTimes(1);
-      expect(mockSendEventsList).toHaveBeenCalledWith(expect.objectContaining({ events: [mockEventString] }));
+      expect(mockSendEventsList).toHaveBeenCalledWith(
+        expect.objectContaining({ events: [mockEventString, mockEventString] }),
+      );
     });
 
     test('skips send and calls cleanUpSessionEventsStore when all events are oversized', async () => {
