@@ -101,8 +101,8 @@
       Fills a session replay events store one event at a time and times each
       <code>addEventToCurrentSequence</code> call. Before the running-size cache,
       <code>shouldSplitEventsList</code> re-scanned every buffered string on every add, so the per-add cost grew with
-      the buffer (up to ~17 ms at the 6 MB default cap). The legacy check is reproduced inline below so both can be
-      run against the same events. The spinner stalls whenever the main thread is blocked.
+      the buffer (up to ~17 ms at the 6 MB default cap). The legacy check is reproduced inline and installed on the
+      same store so both runs differ only in the size check. The spinner stalls whenever the main thread is blocked.
     </p>
 
     <fieldset>
@@ -130,11 +130,11 @@
     <div
       id="perf-results"
       data-state="idle"
-      data-new-total-ms=""
+      data-new-store-ms=""
       data-new-max-ms=""
       data-new-tail-avg-ms=""
       data-new-long-tasks=""
-      data-legacy-total-ms=""
+      data-legacy-store-ms=""
       data-legacy-max-ms=""
       data-legacy-tail-avg-ms=""
       data-legacy-long-tasks=""
@@ -148,7 +148,8 @@
           <th>Run</th>
           <th>Events</th>
           <th>Buffer (MB)</th>
-          <th>Total (ms)</th>
+          <th>Store time (ms)</th>
+          <th>Wall (ms)</th>
           <th>Avg/add (ms)</th>
           <th>First 100 avg (ms)</th>
           <th>Last 100 avg (ms)</th>
@@ -223,7 +224,8 @@
         return events;
       }
 
-      // --- Legacy implementation (pre running-size cache), reproduced for comparison. ---
+      // --- Legacy shouldSplitEventsList (pre running-size cache), installed on the same store so the
+      // two runs differ only in the size check. ---
       function legacyStringSize(str) {
         let bytes = 0;
         for (let i = 0; i < str.length; i++) {
@@ -241,37 +243,35 @@
         return bytes;
       }
 
-      class LegacyStore {
-        constructor(capBytes) {
-          this.capBytes = capBytes;
-          this.events = [];
-        }
-        shouldSplit(events, next) {
-          let total = 0;
-          for (const e of events) total += legacyStringSize(e);
-          total += 2 + Math.max(0, events.length - 1) + events.length * 2;
-          return total + legacyStringSize(next) >= this.capBytes;
-        }
-        async addEventToCurrentSequence(_sessionId, event) {
-          let out;
-          if (this.shouldSplit(this.events, event) && this.events.length > 0) {
-            out = { events: this.events };
-            this.events = [];
+      function installLegacySizeCheck(store) {
+        store.shouldSplitEventsList = (events, nextEventString) => {
+          let sizeOfEventsList = 0;
+          for (const event of events) sizeOfEventsList += legacyStringSize(event);
+          sizeOfEventsList += 2 + Math.max(0, events.length - 1) + events.length * 2;
+          if (sizeOfEventsList + legacyStringSize(nextEventString) >= store.maxPersistedEventsSize) return true;
+          if (Date.now() - store.timeAtLastSplit > store.interval && events.length) {
+            store.interval = Math.min(store.maxInterval, store.interval + store.minInterval);
+            store._timeAtLastSplit = Date.now();
+            return true;
           }
-          this.events.push(event);
-          return out;
-        }
+          return false;
+        };
+        return store;
       }
 
-      async function createCurrentStore({ storeType, capBytes }) {
+      let openIdbStore;
+      async function createStore({ storeType, capBytes }) {
         const args = { loggerProvider: logger, minInterval: NEVER_MS, maxInterval: NEVER_MS, maxPersistedEventsSize: capBytes };
         if (storeType === 'memory') return new InMemoryEventsStore(args);
+        // An open connection blocks deleteDatabase, which would then stall the next openDB.
+        openIdbStore?.db.close();
         await new Promise((resolve) => {
           const req = indexedDB.deleteDatabase(`${API_KEY.substring(0, 10)}_amp_session_replay_events`);
           req.onsuccess = req.onerror = req.onblocked = () => resolve();
         });
         const store = await SessionReplayEventsIDBStore.new('replay', { ...args, apiKey: API_KEY });
         if (!store) throw new Error('IDB store failed to open');
+        openIdbStore = store;
         return store;
       }
 
@@ -296,15 +296,17 @@
           setStatus(`${label}: ${i}/${events.length} events`);
           await nextFrame();
         }
-        const total = performance.now() - start;
+        const wall = performance.now() - start;
         await nextFrame();
-        const avg = (arr) => arr.reduce((s, v) => s + v, 0) / (arr.length || 1);
+        const sum = (arr) => arr.reduce((s, v) => s + v, 0);
+        const avg = (arr) => sum(arr) / (arr.length || 1);
         const window = Math.min(100, Math.floor(events.length / 2));
         return {
           label,
           count: events.length,
           bufferMb: (events.length * events[0].length) / 1e6,
-          total,
+          wall,
+          storeMs: sum(perAdd),
           avg: avg(perAdd),
           head: avg(perAdd.subarray(0, window)),
           tail: avg(perAdd.subarray(events.length - window)),
@@ -322,7 +324,8 @@
           r.label,
           r.count,
           r.bufferMb.toFixed(2),
-          r.total.toFixed(1),
+          r.storeMs.toFixed(1),
+          r.wall.toFixed(0),
           fmt(r.avg),
           fmt(r.head),
           fmt(r.tail),
@@ -337,7 +340,7 @@
       }
 
       function publish(prefix, r) {
-        resultsEl.dataset[`${prefix}TotalMs`] = r.total.toFixed(1);
+        resultsEl.dataset[`${prefix}StoreMs`] = r.storeMs.toFixed(1);
         resultsEl.dataset[`${prefix}MaxMs`] = r.max.toFixed(3);
         resultsEl.dataset[`${prefix}TailAvgMs`] = r.tail.toFixed(3);
         resultsEl.dataset[`${prefix}LongTasks`] = String(r.longTasks);
@@ -354,26 +357,26 @@
           let current;
           let legacy;
           if (which !== 'legacy') {
-            const store = await createCurrentStore(cfg);
+            const store = await createStore(cfg);
             current = await fill(`current (${cfg.storeType})`, store, events, cfg.perFrame);
             render(current);
             publish('new', current);
           }
           if (which !== 'new') {
-            legacy = await fill('legacy size check', new LegacyStore(cfg.capBytes), events, cfg.perFrame);
+            const store = installLegacySizeCheck(await createStore(cfg));
+            legacy = await fill(`legacy size check (${cfg.storeType})`, store, events, cfg.perFrame);
             render(legacy);
             publish('legacy', legacy);
           }
 
           const lines = [];
-          if (current) {
-            // The in-memory store's per-add cost should not grow with the buffer. IDB adds carry
-            // transaction overhead, so allow more slack there but still expect no linear growth.
-            const limit = cfg.storeType === 'memory' ? 3 : 5;
-            const flat = current.tail <= Math.max(current.head * limit, 0.05);
+          if (current && cfg.storeType === 'memory') {
+            // In-memory adds are just the size check plus a push, so the cost must not grow with the
+            // buffer. (IDB adds rewrite the whole sequence on every put, which is O(n) on its own.)
+            const flat = current.tail <= Math.max(current.head * 3, 0.05);
             resultsEl.dataset.flat = String(flat);
             lines.push(
-              `${flat ? 'PASS' : 'FAIL'}: current store last-100 avg ${current.tail.toFixed(3)} ms vs first-100 avg ${current.head.toFixed(3)} ms`,
+              `${flat ? 'PASS' : 'FAIL'}: per-add cost stays flat: last-100 avg ${current.tail.toFixed(3)} ms vs first-100 avg ${current.head.toFixed(3)} ms`,
             );
           }
           if (current && legacy) {
@@ -382,7 +385,13 @@
             lines.push(
               `${match ? 'PASS' : 'FAIL'}: split points ${match ? 'match' : 'differ'} (current ${JSON.stringify(current.splitAt)}, legacy ${JSON.stringify(legacy.splitAt)})`,
             );
-            lines.push(`speedup: ${(legacy.total / current.total).toFixed(1)}x total, ${(legacy.max / current.max).toFixed(1)}x worst add`);
+            const faster = current.tail < legacy.tail;
+            lines.push(
+              `${faster ? 'PASS' : 'FAIL'}: current is cheaper at full buffer: last-100 avg ${current.tail.toFixed(3)} ms vs legacy ${legacy.tail.toFixed(3)} ms (worst add ${current.max.toFixed(2)} vs ${legacy.max.toFixed(2)} ms)`,
+            );
+            lines.push(
+              `speedup: ${(legacy.storeMs / current.storeMs).toFixed(1)}x store time, ${(legacy.max / current.max).toFixed(1)}x worst add`,
+            );
           }
           setStatus(lines.length ? lines.join('\n') : 'done');
           statusEl.className = `status ${lines.some((l) => l.startsWith('FAIL')) ? 'fail' : 'pass'}`;
