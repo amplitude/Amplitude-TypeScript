@@ -1761,6 +1761,10 @@ describe('autoTrackingPlugin', () => {
 
     beforeEach(async () => {
       mockWindowLocationFromURL(new URL('http://localhost/'));
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 0, writable: true, configurable: true });
 
       // Ensure navigation API is not present to test fallback (pushState proxy)
       Object.defineProperty(window, 'navigation', {
@@ -2178,9 +2182,574 @@ describe('autoTrackingPlugin', () => {
         expect.objectContaining({
           '[Amplitude] Max Page X': 100 + 1024,
           '[Amplitude] Max Page Y': 200 + 768,
+          '[Amplitude] Min Page Y': 0,
           '[Amplitude] Element Exposed': expect.any(Array),
         }),
       );
+    });
+
+    test('should report Min Page Y from the scroll offset where tracking started', async () => {
+      Object.defineProperty(window, 'scrollX', { value: 40, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 480, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 40, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 480, writable: true, configurable: true });
+
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      simulateScroll(10, 700);
+      simulateScroll(0, 120);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 120,
+          '[Amplitude] Max Page Y': 700 + 768,
+          '[Amplitude] Max Page X': 40 + 1024,
+        }),
+      );
+    });
+
+    test('should keep the pre-init scroll as Max Page Y when the user only scrolls up', async () => {
+      Object.defineProperty(window, 'scrollX', { value: 40, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 480, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 40, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 480, writable: true, configurable: true });
+
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      simulateScroll(0, 200);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 200,
+          '[Amplitude] Max Page Y': 480 + window.innerHeight,
+          '[Amplitude] Max Page X': 40 + window.innerWidth,
+        }),
+      );
+    });
+
+    test('should re-seed Min Page Y from the scroll position after a client-side navigation', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      simulateScroll(0, 800);
+
+      history.pushState({}, 'test', '/next-page');
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 0,
+          '[Amplitude] Max Page Y': 800 + 768,
+        }),
+      );
+
+      track.mockClear();
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      simulateScroll(0, 100);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 100,
+          '[Amplitude] Max Page Y': 800 + 768,
+        }),
+      );
+    });
+
+    test('should re-seed from the scroll position already restored when popstate fires', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      simulateScroll(0, 800);
+
+      history.pushState({}, 'test', '/next-page');
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 0,
+          '[Amplitude] Max Page Y': 800 + window.innerHeight,
+        }),
+      );
+
+      track.mockClear();
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      mockWindowLocationFromURL(new URL('http://localhost/restored-page'));
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 240, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 240, writable: true, configurable: true });
+      window.dispatchEvent(new Event('popstate'));
+
+      expect(track).not.toHaveBeenCalled();
+
+      track.mockClear();
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      simulateScroll(0, 180);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Page URL': expect.stringContaining('/restored-page'),
+          '[Amplitude] Min Page Y': 180,
+          '[Amplitude] Max Page Y': 240 + window.innerHeight,
+        }),
+      );
+    });
+
+    test('should seed a Navigation API traversal from the scroll position restored before navigatesuccess', async () => {
+      const listeners = new Map<string, Array<(event: Event) => void>>();
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (type: string, listener: (event: Event) => void) => {
+            const group = listeners.get(type) ?? [];
+            group.push(listener);
+            listeners.set(type, group);
+          },
+          removeEventListener: jest.fn(),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      simulateScroll(0, 900);
+
+      listeners.get('navigate')?.forEach((listener) => {
+        listener({
+          destination: { url: 'http://localhost/next-page' },
+          navigationType: 'traverse',
+        } as unknown as Event);
+      });
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 0,
+          '[Amplitude] Max Page Y': 900 + window.innerHeight,
+        }),
+      );
+
+      track.mockClear();
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 220, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 220, writable: true, configurable: true });
+      listeners.get('navigatesuccess')?.forEach((listener) => {
+        listener(new Event('navigatesuccess'));
+      });
+
+      listeners.get('navigate')?.forEach((listener) => {
+        listener({
+          destination: { url: 'http://localhost/later-page' },
+          navigationType: 'traverse',
+        } as unknown as Event);
+      });
+      listeners.get('navigatesuccess')?.forEach((listener) => {
+        listener(new Event('navigatesuccess'));
+      });
+
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      simulateScroll(0, 80);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 80,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should keep a scroll event that arrives before navigatesuccess as the new page baseline', async () => {
+      const listeners = new Map<string, Array<(event: Event) => void>>();
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (type: string, listener: (event: Event) => void) => {
+            const group = listeners.get(type) ?? [];
+            group.push(listener);
+            listeners.set(type, group);
+          },
+          removeEventListener: jest.fn(),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      simulateScroll(0, 900);
+
+      listeners.get('navigate')?.forEach((listener) => {
+        listener({
+          destination: { url: 'http://localhost/next-page' },
+          navigationType: 'traverse',
+        } as unknown as Event);
+      });
+      track.mockClear();
+
+      simulateScroll(0, 220);
+      listeners.get('navigatesuccess')?.forEach((listener) => {
+        listener(new Event('navigatesuccess'));
+      });
+
+      jest.advanceTimersByTime(150);
+      expect(track).not.toHaveBeenCalled();
+
+      simulateScroll(0, 400);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 400 + window.innerHeight,
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should report the restored scroll when an exposure snapshot finishes before navigatesuccess', async () => {
+      const listeners = new Map<string, Array<(event: Event) => void>>();
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (type: string, listener: (event: Event) => void) => {
+            const group = listeners.get(type) ?? [];
+            group.push(listener);
+            listeners.set(type, group);
+          },
+          removeEventListener: jest.fn(),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      simulateScroll(0, 900);
+
+      listeners.get('navigate')?.forEach((listener) => {
+        listener({
+          destination: { url: 'http://localhost/next-page' },
+          navigationType: 'traverse',
+        } as unknown as Event);
+      });
+      track.mockClear();
+
+      const element = document.createElement('button');
+      element.id = 'late-zone';
+      document.body.appendChild(element);
+      setMidHeightLineVisible(element);
+      intersectionCallback([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1,
+          target: element,
+        },
+      ]);
+
+      jest.advanceTimersByTime(
+        constants.EXPOSURE_SNAPSHOT_QUIET_MS + 150 + constants.EXPOSURE_SNAPSHOT_FLUSH_BUFFER_MS + 10,
+      );
+      expect(track).not.toHaveBeenCalled();
+
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 220, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 220, writable: true, configurable: true });
+      listeners.get('navigatesuccess')?.forEach((listener) => {
+        listener(new Event('navigatesuccess'));
+      });
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#late-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    const installNavigation = () => {
+      const listeners = new Map<string, Array<(event: Event) => void>>();
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (type: string, listener: (event: Event) => void) => {
+            const group = listeners.get(type) ?? [];
+            group.push(listener);
+            listeners.set(type, group);
+          },
+          removeEventListener: (type: string, listener: (event: Event) => void) => {
+            listeners.set(
+              type,
+              (listeners.get(type) ?? []).filter((candidate) => candidate !== listener),
+            );
+          },
+        },
+        configurable: true,
+        writable: true,
+      });
+      return listeners;
+    };
+
+    const setupWithNavigation = async () => {
+      const listeners = installNavigation();
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      return listeners;
+    };
+
+    const dispatchNavigation = (listeners: Map<string, Array<(event: Event) => void>>, type: string, event: Event) => {
+      listeners.get(type)?.forEach((listener) => listener(event));
+    };
+
+    const exposeButton = (id: string) => {
+      const element = document.createElement('button');
+      element.id = id;
+      document.body.appendChild(element);
+      setMidHeightLineVisible(element);
+      intersectionCallback([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1,
+          target: element,
+        },
+      ]);
+    };
+
+    const advanceExposureSnapshot = () => {
+      jest.advanceTimersByTime(
+        constants.EXPOSURE_SNAPSHOT_QUIET_MS + 150 + constants.EXPOSURE_SNAPSHOT_FLUSH_BUFFER_MS + 10,
+      );
+    };
+
+    const setScrollQuiet = (y: number) => {
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: y, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: y, writable: true, configurable: true });
+    };
+
+    test('should send a deferred viewport snapshot when the navigation fails', async () => {
+      const listeners = await setupWithNavigation();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+      } as unknown as Event);
+      track.mockClear();
+
+      exposeButton('failed-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigateerror', new Event('navigateerror'));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#failed-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should send a deferred viewport snapshot when the navigation is aborted', async () => {
+      const listeners = await setupWithNavigation();
+      const controller = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: controller.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      exposeButton('aborted-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      controller.abort();
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#aborted-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should sample scroll immediately when the navigation is already aborted', async () => {
+      const listeners = await setupWithNavigation();
+      const controller = new AbortController();
+      controller.abort();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: controller.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      exposeButton('already-aborted-zone');
+      advanceExposureSnapshot();
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 900,
+          '[Amplitude] Max Page Y': 900 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#already-aborted-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should keep the newer navigation deferred when an older one aborts', async () => {
+      const listeners = await setupWithNavigation();
+      const first = new AbortController();
+      const second = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: first.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      jest.advanceTimersByTime(40);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/later-page' },
+        signal: second.signal,
+      } as unknown as Event);
+      first.abort();
+
+      exposeButton('newer-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      second.abort();
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#newer-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should clear a pending navigation signal on teardown', async () => {
+      const listeners = await setupWithNavigation();
+      const controller = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: controller.signal,
+      } as unknown as Event);
+      const callsAfterNavigate = track.mock.calls.length;
+
+      await plugin?.teardown?.();
+      controller.abort();
+      advanceExposureSnapshot();
+
+      expect(track).toHaveBeenCalledTimes(callsAfterNavigate);
+    });
+
+    test('should defer the scroll baseline when the navigation event is missing', async () => {
+      const listeners = await setupWithNavigation();
+      mockWindowLocationFromURL(new URL('http://localhost/fallback-page'));
+      dispatchNavigation(listeners, 'navigate', undefined as unknown as Event);
+
+      exposeButton('missing-event-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#missing-event-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
     });
   });
 
