@@ -27,6 +27,7 @@ export interface ReactNativeAutocaptureOptions {
 
 export interface ReactNativeFrustrationInteractionsOptions {
   rageClick?: boolean;
+  errorClick?: boolean;
 }
 
 export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
