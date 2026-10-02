@@ -139,8 +139,6 @@ export const createEventsManager = async <Type extends EventType>({
     // addCompressedEventToManager (e.g. stored by a previous SDK version or via
     // storeCurrentSequence/sendStoredEvents which bypass the capture-time check).
     // Compare UTF-8 byte size, not JS char count, to match the server-side limit.
-    // One pass, and only strings that can actually exceed the cap are measured —
-    // the common all-under-cap flush keeps `rawEvents` and allocates nothing.
     let events = rawEvents;
     const oversizedSizes: number[] = [];
     for (let i = 0; i < rawEvents.length; i++) {

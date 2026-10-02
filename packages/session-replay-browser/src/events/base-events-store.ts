@@ -3,13 +3,6 @@ import { DEFAULT_MAX_PERSISTED_EVENTS_SIZE_BYTES, MAX_INTERVAL, MIN_INTERVAL } f
 import { Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
 import { utf8ByteLength } from '../utils/utf8-byte-length';
 
-/**
- * Running UTF-8 content size of an events list.
- * `tail` is the last string when `length > 0`, so a same-length rewrite of that
- * element (or an append whose prefix no longer matches) misses the cache and
- * is measured again. Earlier elements are assumed append-only: the stores
- * either push or replace the whole list.
- */
 type ContentByteCacheEntry = {
   length: number;
   contentBytes: number;
@@ -34,12 +27,9 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   // for the very first split.
   private interval!: number;
   private _timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
-  // Keyed by the events array object. The in-memory store reuses one array and
-  // appends, so each shouldSplitEventsList call measures only the new tail
-  // instead of re-walking the whole buffer (up to maxPersistedEventsSize, 6 MB).
+  // Running UTF-8 sizes so shouldSplitEventsList only measures newly appended events.
+  // The IDB store loads a fresh array on every add, so it also keeps a per-session entry.
   private readonly eventsContentBytes = new WeakMap<Events, ContentByteCacheEntry>();
-  // IDB reloads a fresh array on every add, so array identity does not survive
-  // across calls. This map keeps the same running total keyed by session.
   private readonly sequenceContentBytes = new Map<string | number, ContentByteCacheEntry>();
 
   public get timeAtLastSplit() {
@@ -63,38 +53,31 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   abstract storeSendingEvents(sessionId: string | number, events: Events): Promise<KeyType | undefined>;
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
-  private cacheMatches(cached: ContentByteCacheEntry, events: Events): boolean {
-    if (cached.length !== events.length) return false;
-    if (cached.length === 0) return true;
-    return events[cached.length - 1] === cached.tail;
+  // `prev` is only reused when `events` still starts with the list it measured; the tail
+  // check catches a same-length rewrite of the last element.
+  private isPrefixOf(prev: ContentByteCacheEntry, events: Events): boolean {
+    if (events.length < prev.length) return false;
+    return prev.length === 0 || events[prev.length - 1] === prev.tail;
   }
 
-  /**
-   * UTF-8 byte size of the event strings only (no JSON array overhead).
-   * Reuses a cached total when `events` has only grown by append since the
-   * last call on this same array.
-   */
-  private getEventsContentBytes(events: Events): number {
-    const cached = this.eventsContentBytes.get(events);
-    if (cached && this.cacheMatches(cached, events)) {
-      return cached.contentBytes;
-    }
-
+  private measureContentBytes(prev: ContentByteCacheEntry | undefined, events: Events): ContentByteCacheEntry {
+    if (prev && prev.length === events.length && this.isPrefixOf(prev, events)) return prev;
     let contentBytes = 0;
     let start = 0;
-    if (cached && events.length > cached.length && (cached.length === 0 || events[cached.length - 1] === cached.tail)) {
-      contentBytes = cached.contentBytes;
-      start = cached.length;
+    if (prev && this.isPrefixOf(prev, events)) {
+      contentBytes = prev.contentBytes;
+      start = prev.length;
     }
     for (let i = start; i < events.length; i++) {
       contentBytes += utf8ByteLength(events[i]);
     }
-    this.eventsContentBytes.set(events, {
-      length: events.length,
-      contentBytes,
-      tail: events.length > 0 ? events[events.length - 1] : undefined,
-    });
-    return contentBytes;
+    return { length: events.length, contentBytes, tail: events.length > 0 ? events[events.length - 1] : undefined };
+  }
+
+  private getEventsContentBytes(events: Events): number {
+    const entry = this.measureContentBytes(this.eventsContentBytes.get(events), events);
+    this.eventsContentBytes.set(events, entry);
+    return entry.contentBytes;
   }
 
   /**
@@ -116,47 +99,18 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
     return totalSize + overhead;
   }
 
-  /**
-   * Copies a session's running content size onto `events` so the next
-   * getEventsArraySize call on this (newly loaded) array is O(1).
-   * No-op when the stored length or tail does not match — the caller then
-   * pays for one full scan and rememberSequenceContentBytes replaces the entry.
-   */
   protected recallSequenceContentBytes(sessionId: string | number, events: Events): void {
     const cached = this.sequenceContentBytes.get(sessionId);
-    if (!cached || !this.cacheMatches(cached, events)) return;
+    if (!cached || cached.length !== events.length || !this.isPrefixOf(cached, events)) return;
     this.eventsContentBytes.set(events, cached);
   }
 
-  /**
-   * Records the content size of the sequence just written for `sessionId`.
-   * An append of one or more events onto the previously remembered list only
-   * measures the new tail.
-   */
   protected rememberSequenceContentBytes(sessionId: string | number, events: Events): void {
-    const prev = this.sequenceContentBytes.get(sessionId);
-    let contentBytes = 0;
-    let start = 0;
-    // Only trust a longer list when it still ends with the previous tail, i.e. it
-    // was produced by append. A shorter replacement (split, or a cleared slot)
-    // falls through and is measured from scratch.
-    if (prev && events.length > prev.length && (prev.length === 0 || events[prev.length - 1] === prev.tail)) {
-      contentBytes = prev.contentBytes;
-      start = prev.length;
-    }
-    for (let i = start; i < events.length; i++) {
-      contentBytes += utf8ByteLength(events[i]);
-    }
-    const entry: ContentByteCacheEntry = {
-      length: events.length,
-      contentBytes,
-      tail: events.length > 0 ? events[events.length - 1] : undefined,
-    };
+    const entry = this.measureContentBytes(this.sequenceContentBytes.get(sessionId), events);
     this.sequenceContentBytes.set(sessionId, entry);
     this.eventsContentBytes.set(events, entry);
   }
 
-  /** Drops the session size cache after a failed write so the next read recounts. */
   protected forgetSequenceContentBytes(sessionId: string | number): void {
     this.sequenceContentBytes.delete(sessionId);
   }
@@ -169,9 +123,7 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
    */
   shouldSplitEventsList = (events: Events, nextEventString: string): boolean => {
     const sizeOfEventsList = this.getEventsArraySize(events);
-    // A UTF-16 code unit is between 1 and 3 UTF-8 bytes, so most events decide
-    // the cap check from `length` alone. Only the band where the min and max
-    // disagree needs an exact scan of the incoming string.
+    // 1–3 UTF-8 bytes per code unit: only scan the event when `length` alone cannot decide.
     const room = this.maxPersistedEventsSize - sizeOfEventsList;
     let exceedsCap = nextEventString.length >= room;
     if (!exceedsCap && nextEventString.length * 3 >= room) {

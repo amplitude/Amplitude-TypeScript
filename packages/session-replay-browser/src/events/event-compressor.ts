@@ -160,7 +160,6 @@ export class EventCompressor {
   private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
     // UTF-8 byte size, not JS char count: a 9 M-char string of CJK/emoji can be 18–27 MB
     // on the wire and would otherwise slip past a char-count guard.
-    // Events well under the cap skip the scan (a code unit is at most 3 UTF-8 bytes).
     const maxEventBytes = this.config.maxSingleEventSizeBytes ?? MAX_SINGLE_EVENT_SIZE;
     const eventSizeBytes = utf8ByteLengthIfOver(compressedEvent, maxEventBytes);
     if (eventSizeBytes !== undefined) {

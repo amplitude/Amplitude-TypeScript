@@ -465,8 +465,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         return undefined;
       }
 
-      // The array just loaded from IDB is a new object. Seed it from the session's
-      // running total so shouldSplitEventsList does not rescan the whole buffer.
+      // Freshly loaded array: seed it with the session's running size so the split check is O(1).
       this.recallSequenceContentBytes(sessionId, ownedSequence.events);
       if (!this.shouldSplitEventsList(ownedSequence.events, event)) {
         const nextEvents = ownedSequence.events.concat(event);

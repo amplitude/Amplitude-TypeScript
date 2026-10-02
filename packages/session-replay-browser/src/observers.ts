@@ -61,8 +61,6 @@ function serializeRequestBody(body: BodyInit | null | undefined): string | undef
 }
 
 function truncateToByteLimit(str: string, maxBytes: number): { value: string; truncated: boolean } {
-  // Single forward scan. The previous binary search allocated a Blob (and a
-  // sliced copy) on every probe just to read the UTF-8 length.
   return truncateUtf8(str, maxBytes);
 }
 
