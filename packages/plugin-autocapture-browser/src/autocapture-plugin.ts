@@ -383,11 +383,6 @@ export const autocapturePlugin = (
     let deferredViewportFlush = false;
     let deferredPageEnd = false;
     let pendingNavigationSignal: AbortSignal | undefined;
-    const markNavigationScrollBaseline = () => {
-      if (scrollTracker.isAwaitingSeed()) {
-        awaitingNavigationBaseline = true;
-      }
-    };
 
     const trackers: { exposure?: ExposureTracker & Unsubscribable } = {};
 
@@ -409,6 +404,14 @@ export const autocapturePlugin = (
       trackers.exposure?.reset();
       /* istanbul ignore next */
       initialExposureSnapshotScheduler?.reset();
+    };
+
+    // A page end inside 100ms is not emitted again, so this reset runs when that guard skipped it.
+    const markNavigationScrollBaseline = () => {
+      if (!scrollTracker.isAwaitingSeed()) {
+        rearmDeferredPageView();
+      }
+      awaitingNavigationBaseline = true;
     };
 
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
@@ -500,9 +503,6 @@ export const autocapturePlugin = (
     };
 
     const watchNavigationSignal = (signal: AbortSignal | undefined) => {
-      if (!awaitingNavigationBaseline) {
-        return;
-      }
       clearAbortPublishTimer();
       pendingNavigationSignal?.removeEventListener('abort', scheduleAbortPublish);
       pendingNavigationSignal = undefined;

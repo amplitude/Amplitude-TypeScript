@@ -2563,6 +2563,49 @@ describe('autoTrackingPlugin', () => {
       await plugin?.teardown?.();
     });
 
+    test('should re-seed when another navigation starts within the page-end guard', async () => {
+      const listeners = await setupWithNavigation();
+      const first = new AbortController();
+      const second = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: first.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/later-page' },
+        signal: second.signal,
+      } as unknown as Event);
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(40);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+      exposeButton('rapid-nav-zone');
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 40,
+          '[Amplitude] Max Page Y': 40 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#rapid-nav-zone']),
+        }),
+      );
+      expect(track).not.toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
     test('should keep a scroll event that arrives before navigatesuccess as the new page baseline', async () => {
       const listeners = new Map<string, Array<(event: Event) => void>>();
       Object.defineProperty(window, 'navigation', {
