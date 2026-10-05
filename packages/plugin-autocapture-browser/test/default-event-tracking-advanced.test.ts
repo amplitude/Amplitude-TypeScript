@@ -2182,8 +2182,64 @@ describe('autoTrackingPlugin', () => {
         expect.objectContaining({
           '[Amplitude] Max Page X': 100 + 1024,
           '[Amplitude] Max Page Y': 200 + 768,
+          // Tracking started at scrollY 0, so Min stays 0 even after scrolling down.
           '[Amplitude] Min Page Y': 0,
           '[Amplitude] Element Exposed': expect.any(Array),
+        }),
+      );
+    });
+
+    test('should keep Min Page Y at 0 for a page view that started at the top', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      simulateScroll(0, 800);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 0,
+          '[Amplitude] Max Page Y': 800 + window.innerHeight,
+        }),
+      );
+    });
+
+    test('should report a non-zero Min Page Y when the SDK attaches below the top of the page', async () => {
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 480, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 480, writable: true, configurable: true });
+
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      const element = document.createElement('button');
+      element.id = 'late-load-zone';
+      document.body.appendChild(element);
+      setMidHeightLineVisible(element);
+      intersectionCallback([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1,
+          target: element,
+        },
+      ]);
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 480,
+          '[Amplitude] Max Page Y': 480 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#late-load-zone']),
         }),
       );
     });
@@ -2319,6 +2375,116 @@ describe('autoTrackingPlugin', () => {
           '[Amplitude] Max Page Y': 240 + window.innerHeight,
         }),
       );
+    });
+
+    test('should report a non-zero Min Page Y from a restored scroll position after popstate', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      simulateScroll(0, 800);
+      history.pushState({}, 'test', '/next-page');
+      track.mockClear();
+      jest.advanceTimersByTime(150);
+
+      mockWindowLocationFromURL(new URL('http://localhost/restored-page'));
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 240, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 240, writable: true, configurable: true });
+      window.dispatchEvent(new Event('popstate'));
+
+      const element = document.createElement('button');
+      element.id = 'restored-zone';
+      document.body.appendChild(element);
+      setMidHeightLineVisible(element);
+      intersectionCallback([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1,
+          target: element,
+        },
+      ]);
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Page URL': expect.stringContaining('/restored-page'),
+          '[Amplitude] Min Page Y': 240,
+          '[Amplitude] Max Page Y': 240 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#restored-zone']),
+        }),
+      );
+    });
+
+    test('should report a non-zero Min Page Y from a restored scroll position after navigatesuccess', async () => {
+      const listeners = new Map<string, Array<(event: Event) => void>>();
+      Object.defineProperty(window, 'navigation', {
+        value: {
+          addEventListener: (type: string, listener: (event: Event) => void) => {
+            const group = listeners.get(type) ?? [];
+            group.push(listener);
+            listeners.set(type, group);
+          },
+          removeEventListener: jest.fn(),
+        },
+        configurable: true,
+        writable: true,
+      });
+
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup?.(
+        {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        } as BrowserConfig,
+        instance,
+      );
+      simulateScroll(0, 900);
+
+      listeners.get('navigate')?.forEach((listener) => {
+        listener({
+          destination: { url: 'http://localhost/next-page' },
+          navigationType: 'traverse',
+        } as unknown as Event);
+      });
+      track.mockClear();
+
+      Object.defineProperty(window, 'scrollX', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'scrollY', { value: 220, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageXOffset', { value: 0, writable: true, configurable: true });
+      Object.defineProperty(window, 'pageYOffset', { value: 220, writable: true, configurable: true });
+      listeners.get('navigatesuccess')?.forEach((listener) => {
+        listener(new Event('navigatesuccess'));
+      });
+
+      const element = document.createElement('button');
+      element.id = 'saved-scroll-zone';
+      document.body.appendChild(element);
+      setMidHeightLineVisible(element);
+      intersectionCallback([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1,
+          target: element,
+        },
+      ]);
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#saved-scroll-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
     });
 
     test('should seed a Navigation API traversal from the scroll position restored before navigatesuccess', async () => {
