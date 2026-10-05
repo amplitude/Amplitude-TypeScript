@@ -147,8 +147,8 @@
             <strong>Min Page Y</strong> is the lowest <code>scrollY</code> seen on this page view.
             Open with <code>?deferInit=1</code> to start below the top: scroll first, then
             <em>Start SDK</em>, then <em>Flush now</em> — Min Page Y should match the live scrollY.
-            Or load normally, jump to 800, <em>Client navigate at current scroll</em>, then flush —
-            the new page's Min Page Y should be ~800 (saved/restored offset), not 0.
+            Or load normally, jump to 800, <em>Client navigate at current scroll</em> (changes the hash),
+            then flush — the new page's Min Page Y should be ~800, not 0.
         </div>
         <div class="controls">
             <label>
@@ -670,7 +670,7 @@
         });
         document.getElementById('spa-navigate').addEventListener('click', () => {
             const url = new URL(location.href);
-            url.searchParams.set('manualNav', String(Date.now()));
+            url.hash = `manual-nav-${Date.now()}`;
             history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
             renderLiveScroll();
             updateMinPageYHint();

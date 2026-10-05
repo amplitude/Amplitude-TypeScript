@@ -2917,6 +2917,72 @@ describe('autoTrackingPlugin', () => {
 
       await plugin?.teardown?.();
     });
+
+    test('should seed scroll before a page end that happens while navigation is in flight', async () => {
+      const listeners = await setupWithNavigation();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+      } as unknown as Event);
+      track.mockClear();
+
+      exposeButton('unload-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#unload-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should ignore a superseded navigation error after a newer navigation starts', async () => {
+      const listeners = await setupWithNavigation();
+      const first = new AbortController();
+      const second = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: first.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      jest.advanceTimersByTime(150);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/later-page' },
+        signal: second.signal,
+      } as unknown as Event);
+      dispatchNavigation(listeners, 'navigateerror', new Event('navigateerror'));
+
+      exposeButton('superseded-zone');
+      advanceExposureSnapshot();
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      second.abort();
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#superseded-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
   });
 
   describe('teardown', () => {

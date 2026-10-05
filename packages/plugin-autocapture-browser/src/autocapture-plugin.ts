@@ -381,6 +381,7 @@ export const autocapturePlugin = (
 
     let awaitingNavigationBaseline = false;
     let deferredViewportFlush = false;
+    let deferredPageEnd = false;
     let pendingNavigationSignal: AbortSignal | undefined;
     const markNavigationScrollBaseline = () => {
       if (scrollTracker.isAwaitingSeed()) {
@@ -395,15 +396,20 @@ export const autocapturePlugin = (
     let initialExposureSnapshotScheduler: ReturnType<typeof createInitialExposureSnapshotScheduler> | undefined;
 
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
+      if (awaitingNavigationBaseline) {
+        if (isPageEnd) {
+          /* istanbul ignore next */
+          initialExposureSnapshotScheduler?.reset();
+          deferredPageEnd = true;
+        }
+        deferredViewportFlush = true;
+        return;
+      }
       if (isPageEnd) {
         /* istanbul ignore next */
         initialExposureSnapshotScheduler?.reset();
       }
       if (isPageEnd && pageViewEndFired) {
-        return;
-      }
-      if (!isPageEnd && awaitingNavigationBaseline) {
-        deferredViewportFlush = true;
         return;
       }
       if (isPageEnd) {
@@ -434,11 +440,21 @@ export const autocapturePlugin = (
       }
       awaitingNavigationBaseline = false;
       writeScrollBaseline();
-      if (!deferredViewportFlush) {
+      const shouldFlush = deferredViewportFlush;
+      const pageEnd = deferredPageEnd;
+      deferredViewportFlush = false;
+      deferredPageEnd = false;
+      if (!shouldFlush) {
         return;
       }
-      deferredViewportFlush = false;
-      handleViewportContentUpdated(false);
+      handleViewportContentUpdated(pageEnd);
+    };
+
+    const onNavigateError = () => {
+      if (pendingNavigationSignal && !pendingNavigationSignal.aborted) {
+        return;
+      }
+      publishNavigationScrollBaseline();
     };
 
     const watchNavigationSignal = (signal: AbortSignal | undefined) => {
@@ -541,6 +557,12 @@ export const autocapturePlugin = (
       });
 
       const beforeUnloadHandler = () => {
+        if (awaitingNavigationBaseline) {
+          deferredPageEnd = true;
+          deferredViewportFlush = true;
+          publishNavigationScrollBaseline();
+          return;
+        }
         handleViewportContentUpdated(true);
       };
       /* istanbul ignore next */
@@ -581,15 +603,16 @@ export const autocapturePlugin = (
         const navigation = window.navigation;
         if (navigation) {
           navigation.addEventListener('navigatesuccess', publishNavigationScrollBaseline);
-          navigation.addEventListener('navigateerror', publishNavigationScrollBaseline);
+          navigation.addEventListener('navigateerror', onNavigateError);
           subscriptions.push({
             unsubscribe: () => {
               pendingNavigationSignal?.removeEventListener('abort', publishNavigationScrollBaseline);
               pendingNavigationSignal = undefined;
               awaitingNavigationBaseline = false;
               deferredViewportFlush = false;
+              deferredPageEnd = false;
               navigation.removeEventListener('navigatesuccess', publishNavigationScrollBaseline);
-              navigation.removeEventListener('navigateerror', publishNavigationScrollBaseline);
+              navigation.removeEventListener('navigateerror', onNavigateError);
             },
           });
         }

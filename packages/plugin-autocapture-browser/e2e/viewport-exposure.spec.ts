@@ -60,7 +60,8 @@ function parseRequestBody(request: Request): Record<string, unknown> | undefined
  * and a live visibility readout. From the repo root, after `pnpm build`:
  *   npx vite dev   # then open http://localhost:5173/autocapture/viewport-exposure.html
  * For non-zero Min Page Y by hand: open `?deferInit=1`, jump to scrollY 800, click
- * Start SDK, then Flush; or load normally, jump to 800, Client navigate, then Flush.
+ * Start SDK, then Flush; or load normally, jump to 800, Client navigate (hash
+ * change), then Flush.
  * `pnpm start` serves the same pages, but only after `pnpm build:vite`.
  */
 test.describe('autocapture viewport exposure (mid-height line)', () => {
