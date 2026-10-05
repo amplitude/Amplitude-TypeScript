@@ -432,9 +432,27 @@ export const autocapturePlugin = (
       });
     };
 
+    let abortPublishTimer: ReturnType<typeof setTimeout> | undefined;
+    const clearAbortPublishTimer = () => {
+      if (abortPublishTimer) {
+        clearTimeout(abortPublishTimer);
+        abortPublishTimer = undefined;
+      }
+    };
+
+    // Abort fires before the next navigate event, so defer the seed until a redirect can cancel it.
+    const scheduleAbortPublish = () => {
+      clearAbortPublishTimer();
+      abortPublishTimer = setTimeout(() => {
+        abortPublishTimer = undefined;
+        publishNavigationScrollBaseline();
+      }, 0);
+    };
+
     /** Samples the current offset and sends a snapshot deferred during `navigate`. */
     const publishNavigationScrollBaseline = () => {
-      pendingNavigationSignal?.removeEventListener('abort', publishNavigationScrollBaseline);
+      clearAbortPublishTimer();
+      pendingNavigationSignal?.removeEventListener('abort', scheduleAbortPublish);
       pendingNavigationSignal = undefined;
       if (!awaitingNavigationBaseline) {
         return;
@@ -452,7 +470,8 @@ export const autocapturePlugin = (
     };
 
     const clearPendingNavigationWait = () => {
-      pendingNavigationSignal?.removeEventListener('abort', publishNavigationScrollBaseline);
+      clearAbortPublishTimer();
+      pendingNavigationSignal?.removeEventListener('abort', scheduleAbortPublish);
       pendingNavigationSignal = undefined;
       deferredViewportFlush = false;
       deferredPageEnd = false;
@@ -469,7 +488,8 @@ export const autocapturePlugin = (
       if (!awaitingNavigationBaseline) {
         return;
       }
-      pendingNavigationSignal?.removeEventListener('abort', publishNavigationScrollBaseline);
+      clearAbortPublishTimer();
+      pendingNavigationSignal?.removeEventListener('abort', scheduleAbortPublish);
       pendingNavigationSignal = undefined;
       if (!signal) {
         return;
@@ -479,7 +499,7 @@ export const autocapturePlugin = (
         return;
       }
       pendingNavigationSignal = signal;
-      signal.addEventListener('abort', publishNavigationScrollBaseline, { once: true });
+      signal.addEventListener('abort', scheduleAbortPublish, { once: true });
     };
 
     let trackedPageUrl = getNormalizedPageUrl(globalScope);

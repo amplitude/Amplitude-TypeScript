@@ -2799,6 +2799,7 @@ describe('autoTrackingPlugin', () => {
 
       setScrollQuiet(220);
       controller.abort();
+      jest.advanceTimersByTime(0);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenCalledWith(
@@ -2864,6 +2865,7 @@ describe('autoTrackingPlugin', () => {
 
       setScrollQuiet(220);
       second.abort();
+      jest.advanceTimersByTime(0);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenCalledWith(
@@ -2970,6 +2972,7 @@ describe('autoTrackingPlugin', () => {
 
       setScrollQuiet(220);
       second.abort();
+      jest.advanceTimersByTime(0);
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenCalledWith(
@@ -2978,6 +2981,50 @@ describe('autoTrackingPlugin', () => {
           '[Amplitude] Min Page Y': 220,
           '[Amplitude] Max Page Y': 220 + window.innerHeight,
           '[Amplitude] Element Exposed': expect.arrayContaining(['button#superseded-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should re-seed after a redirect aborts the previous navigation before navigate', async () => {
+      const listeners = await setupWithNavigation();
+      const first = new AbortController();
+      const second = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: first.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      first.abort();
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/redirected-page' },
+        signal: second.signal,
+      } as unknown as Event);
+      jest.advanceTimersByTime(0);
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+
+      exposeButton('redirect-abort-zone');
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#redirect-abort-zone']),
+        }),
+      );
+      expect(track).not.toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 900,
         }),
       );
 
