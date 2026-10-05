@@ -397,10 +397,11 @@ export const autocapturePlugin = (
 
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
       if (awaitingNavigationBaseline) {
+        // Redirect page-ends must not become deferredPageEnd or the seed is reset.
         if (isPageEnd) {
           /* istanbul ignore next */
           initialExposureSnapshotScheduler?.reset();
-          deferredPageEnd = true;
+          return;
         }
         deferredViewportFlush = true;
         return;
@@ -450,6 +451,13 @@ export const autocapturePlugin = (
       handleViewportContentUpdated(pageEnd);
     };
 
+    const clearPendingNavigationWait = () => {
+      pendingNavigationSignal?.removeEventListener('abort', publishNavigationScrollBaseline);
+      pendingNavigationSignal = undefined;
+      deferredViewportFlush = false;
+      deferredPageEnd = false;
+    };
+
     const onNavigateError = () => {
       if (pendingNavigationSignal && !pendingNavigationSignal.aborted) {
         return;
@@ -480,6 +488,12 @@ export const autocapturePlugin = (
       const currentPageUrl = getNormalizedPageUrl(globalScope);
       if (currentPageUrl === trackedPageUrl) {
         return false;
+      }
+
+      if (awaitingNavigationBaseline && options && options.deferScrollBaseline) {
+        clearPendingNavigationWait();
+        trackedPageUrl = currentPageUrl;
+        return true;
       }
 
       trackedPageUrl = currentPageUrl;
@@ -587,6 +601,15 @@ export const autocapturePlugin = (
                 return;
               }
 
+              if (awaitingNavigationBaseline) {
+                deferredViewportFlush = false;
+                deferredPageEnd = false;
+                trackedPageUrl = nextPageUrl;
+                handleViewportContentUpdated(true);
+                watchNavigationSignal(timestampedEvent.event.signal);
+                return;
+              }
+
               trackedPageUrl = nextPageUrl;
               handleViewportContentUpdated(true);
               markNavigationScrollBaseline();
@@ -606,11 +629,8 @@ export const autocapturePlugin = (
           navigation.addEventListener('navigateerror', onNavigateError);
           subscriptions.push({
             unsubscribe: () => {
-              pendingNavigationSignal?.removeEventListener('abort', publishNavigationScrollBaseline);
-              pendingNavigationSignal = undefined;
+              clearPendingNavigationWait();
               awaitingNavigationBaseline = false;
-              deferredViewportFlush = false;
-              deferredPageEnd = false;
               navigation.removeEventListener('navigatesuccess', publishNavigationScrollBaseline);
               navigation.removeEventListener('navigateerror', onNavigateError);
             },

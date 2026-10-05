@@ -2983,6 +2983,72 @@ describe('autoTrackingPlugin', () => {
 
       await plugin?.teardown?.();
     });
+
+    test('should keep the restored scroll after a redirect during an in-flight navigation', async () => {
+      const listeners = await setupWithNavigation();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+      } as unknown as Event);
+      track.mockClear();
+
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/redirected-page' },
+      } as unknown as Event);
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+
+      exposeButton('redirect-zone');
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#redirect-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should keep the restored scroll when a deferred navigation redirects via location', async () => {
+      const listeners = await setupWithNavigation();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: new AbortController().signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      mockWindowLocationFromURL(new URL('http://localhost/redirected-page'));
+      dispatchNavigation(listeners, 'navigate', {
+        signal: new AbortController().signal,
+      } as unknown as Event);
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+
+      exposeButton('fallback-redirect-zone');
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#fallback-redirect-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
   });
 
   describe('teardown', () => {
