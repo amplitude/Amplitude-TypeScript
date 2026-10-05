@@ -3118,6 +3118,116 @@ describe('autoTrackingPlugin', () => {
       await plugin?.teardown?.();
     });
 
+    const qualifyThenHide = (id: string) => {
+      const element = document.createElement('button');
+      element.id = id;
+      document.body.appendChild(element);
+      setMidHeightLineVisible(element);
+      intersectionCallback([
+        {
+          isIntersecting: true,
+          intersectionRatio: 1,
+          target: element,
+        },
+      ]);
+      jest.advanceTimersByTime(150);
+      intersectionCallback([
+        {
+          isIntersecting: false,
+          intersectionRatio: 0,
+          target: element,
+        },
+      ]);
+    };
+
+    test('should not report elements from an abandoned navigation on the redirect destination', async () => {
+      const listeners = await setupWithNavigation();
+      const first = new AbortController();
+      const second = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: first.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      qualifyThenHide('abandoned-zone');
+      first.abort();
+      mockWindowLocationFromURL(new URL('http://localhost/redirected-page'));
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/redirected-page' },
+        signal: second.signal,
+      } as unknown as Event);
+      jest.advanceTimersByTime(0);
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+      exposeButton('destination-zone');
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Page URL': expect.stringContaining('/redirected-page'),
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Element Exposed': ['button#destination-zone'],
+        }),
+      );
+      expect(track).not.toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#abandoned-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should not report elements from an abandoned navigation on a location redirect', async () => {
+      const listeners = await setupWithNavigation();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: new AbortController().signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      qualifyThenHide('abandoned-fallback-zone');
+      mockWindowLocationFromURL(new URL('http://localhost/redirected-page'));
+      dispatchNavigation(listeners, 'navigate', {
+        signal: new AbortController().signal,
+      } as unknown as Event);
+      jest.advanceTimersByTime(
+        constants.EXPOSURE_SNAPSHOT_QUIET_MS + 150 + constants.EXPOSURE_SNAPSHOT_FLUSH_BUFFER_MS,
+      );
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+      exposeButton('destination-fallback-zone');
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Page URL': expect.stringContaining('/redirected-page'),
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Element Exposed': ['button#destination-fallback-zone'],
+        }),
+      );
+      expect(track).not.toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#abandoned-fallback-zone']),
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
     test('should keep the restored scroll after a redirect during an in-flight navigation', async () => {
       const listeners = await setupWithNavigation();
       simulateScroll(0, 900);

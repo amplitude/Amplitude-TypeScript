@@ -379,15 +379,6 @@ export const autocapturePlugin = (
       writeScrollBaseline();
     };
 
-    /** Drops a sample taken during the previous navigation wait. */
-    const rearmScrollBaseline = () => {
-      scrollTracker.reset();
-      const resetScroll = scrollTracker.getState();
-      lastScroll.maxX = resetScroll.maxX;
-      lastScroll.maxY = resetScroll.maxY;
-      lastScroll.minY = resetScroll.minY;
-    };
-
     let awaitingNavigationBaseline = false;
     let deferredViewportFlush = false;
     let deferredPageEnd = false;
@@ -404,13 +395,27 @@ export const autocapturePlugin = (
 
     let initialExposureSnapshotScheduler: ReturnType<typeof createInitialExposureSnapshotScheduler> | undefined;
 
+    /** Drops scroll and exposure samples taken during the previous navigation wait. */
+    const rearmDeferredPageView = () => {
+      scrollTracker.reset();
+      const resetScroll = scrollTracker.getState();
+      lastScroll.maxX = resetScroll.maxX;
+      lastScroll.maxY = resetScroll.maxY;
+      lastScroll.minY = resetScroll.minY;
+      currentElementExposed.clear();
+      elementExposedForPage.clear();
+      elementExposedInSentEvents.clear();
+      /* istanbul ignore next */
+      trackers.exposure?.reset();
+      /* istanbul ignore next */
+      initialExposureSnapshotScheduler?.reset();
+    };
+
     const handleViewportContentUpdated = (isPageEnd: boolean) => {
       if (awaitingNavigationBaseline) {
         // Redirect page-ends must not become deferredPageEnd or the seed is reset.
         if (isPageEnd) {
-          /* istanbul ignore next */
-          initialExposureSnapshotScheduler?.reset();
-          rearmScrollBaseline();
+          rearmDeferredPageView();
           return;
         }
         deferredViewportFlush = true;
@@ -522,7 +527,7 @@ export const autocapturePlugin = (
 
       if (awaitingNavigationBaseline && options && options.deferScrollBaseline) {
         clearPendingNavigationWait();
-        rearmScrollBaseline();
+        rearmDeferredPageView();
         trackedPageUrl = currentPageUrl;
         return true;
       }
