@@ -9,6 +9,11 @@
 
 Official Amplitude SDK for Web
 
+> [!TIP]
+> **Starting a new web install?** Use [`@amplitude/unified`](https://www.npmjs.com/package/@amplitude/unified) (analytics, Session Replay, Experiment & Guides in one package). See the [Browser Unified SDK docs](https://amplitude.com/docs/sdks/analytics/browser/browser-unified-sdk).
+>
+> Use this package (`@amplitude/analytics-browser`) if you only need analytics.
+
 # Doc
 
 See our [Analytics SDK for Browser](https://amplitude.github.io/Amplitude-TypeScript/modules/_amplitude_analytics_browser.html) Reference for a list and description of all available SDK methods.
