@@ -9,6 +9,8 @@
 
 Official Amplitude SDK for Web analytics, experiment, session replay, Guides and Surveys, and more.
 
+This is the recommended package for new web installs. Full docs: [Browser Unified SDK](https://amplitude.com/docs/sdks/analytics/browser/browser-unified-sdk). If you only need analytics, you can use [`@amplitude/analytics-browser`](https://www.npmjs.com/package/@amplitude/analytics-browser) instead.
+
 ## Installation
 
 This package is published on NPM registry and is available to be installed using npm and yarn.
@@ -93,15 +95,15 @@ const activeGuidesAndSurveys = window.engagement.gs.list();
 
 ### Analytics Options
 
-All options from `@amplitude/analytics-browser` are supported. See the [Analytics Browser SDK documentation](https://www.docs.developers.amplitude.com/analytics/browser/) for details.
+All options from `@amplitude/analytics-browser` are supported. See the [Analytics Browser SDK documentation](https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2) for details.
 
 ### Session Replay Options
 
-All options from `@amplitude/plugin-session-replay-browser` are supported. See the [Session Replay documentation](https://www.docs.developers.amplitude.com/session-replay/) for details.
+All options from `@amplitude/plugin-session-replay-browser` are supported. See the [Session Replay documentation](https://amplitude.com/docs/sdks/session-replay/session-replay-plugin) for details.
 
 ### Experiment Options
 
-All options from `@amplitude/plugin-experiment-browser` are supported. See the [Experiment documentation](https://www.docs.developers.amplitude.com/experiment/) for details.
+All options from `@amplitude/plugin-experiment-browser` are supported. See the [Experiment documentation](https://amplitude.com/docs/sdks/experiment-sdks/experiment-javascript) for details.
 
 ### Guides and Surveys Options
 

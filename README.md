@@ -29,9 +29,9 @@ Check our guidelines for repo contributions on [CONTRIBUTING.md](https://github.
 ## Projects
 
 * Amplitude SDK for Web
-  * [@amplitude/analytics-browser@^2](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-browser)
+  * [@amplitude/unified](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/unified) (recommended for new web installs): analytics, Session Replay, Experiment, and Guides and Surveys in one package. [Installation and Quick Start](https://amplitude.com/docs/sdks/analytics/browser/browser-unified-sdk)
+  * [@amplitude/analytics-browser@^2](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-browser) (analytics only). [Installation and Quick Start](https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2)
   * [@amplitude/analytics-browser@^1](https://github.com/amplitude/Amplitude-TypeScript/tree/v1.x/packages/analytics-browser)
-  * [Installation and Quick Start](https://www.docs.developers.amplitude.com/data/sdks/browser-2/)
 * Amplitude SDK for Node.js
   * [@amplitude/analytics-node](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-node)
   * [Installation and Quick Start](https://www.docs.developers.amplitude.com/data/sdks/typescript-node/)
