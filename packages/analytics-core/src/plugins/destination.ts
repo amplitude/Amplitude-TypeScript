@@ -437,10 +437,7 @@ export class Destination implements DestinationPlugin {
    * This is called on response comes back for a request
    */
   removeEvents(eventsToRemove: Context[]) {
-    // Remove only the exact Context instances that were fulfilled, not every
-    // queued event that happens to share an insert_id. Comparing by insert_id
-    // would silently drop a duplicate queued during an in-flight upload and
-    // leave its track() promise hanging (see #2024).
+    // Remove only the exact fulfilled Context instances so duplicate insert_id events remain queued.
     const toRemove = new Set(eventsToRemove);
     this.queue = this.queue.filter((queuedContext) => !toRemove.has(queuedContext));
 
