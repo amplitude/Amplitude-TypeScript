@@ -379,6 +379,15 @@ export const autocapturePlugin = (
       writeScrollBaseline();
     };
 
+    /** Drops a sample taken during the previous navigation wait. */
+    const rearmScrollBaseline = () => {
+      scrollTracker.reset();
+      const resetScroll = scrollTracker.getState();
+      lastScroll.maxX = resetScroll.maxX;
+      lastScroll.maxY = resetScroll.maxY;
+      lastScroll.minY = resetScroll.minY;
+    };
+
     let awaitingNavigationBaseline = false;
     let deferredViewportFlush = false;
     let deferredPageEnd = false;
@@ -401,6 +410,7 @@ export const autocapturePlugin = (
         if (isPageEnd) {
           /* istanbul ignore next */
           initialExposureSnapshotScheduler?.reset();
+          rearmScrollBaseline();
           return;
         }
         deferredViewportFlush = true;
@@ -512,6 +522,7 @@ export const autocapturePlugin = (
 
       if (awaitingNavigationBaseline && options && options.deferScrollBaseline) {
         clearPendingNavigationWait();
+        rearmScrollBaseline();
         trackedPageUrl = currentPageUrl;
         return true;
       }

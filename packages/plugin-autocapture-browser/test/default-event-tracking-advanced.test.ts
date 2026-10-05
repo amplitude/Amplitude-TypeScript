@@ -3031,6 +3031,93 @@ describe('autoTrackingPlugin', () => {
       await plugin?.teardown?.();
     });
 
+    test('should drop scroll sampled during an abandoned navigation when a redirect follows', async () => {
+      const listeners = await setupWithNavigation();
+      const first = new AbortController();
+      const second = new AbortController();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: first.signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      simulateScroll(0, 640);
+      first.abort();
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/redirected-page' },
+        signal: second.signal,
+      } as unknown as Event);
+      jest.advanceTimersByTime(0);
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+
+      exposeButton('redirect-rearm-zone');
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#redirect-rearm-zone']),
+        }),
+      );
+      expect(track).not.toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 640,
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
+    test('should drop a resize sample from an abandoned navigation when a location redirect follows', async () => {
+      const listeners = await setupWithNavigation();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: new AbortController().signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      setScrollQuiet(640);
+      window.dispatchEvent(new Event('resize'));
+      mockWindowLocationFromURL(new URL('http://localhost/redirected-page'));
+      dispatchNavigation(listeners, 'navigate', {
+        signal: new AbortController().signal,
+      } as unknown as Event);
+      expect(track).not.toHaveBeenCalled();
+
+      setScrollQuiet(220);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+
+      exposeButton('fallback-rearm-zone');
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 220,
+          '[Amplitude] Max Page Y': 220 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#fallback-rearm-zone']),
+        }),
+      );
+      expect(track).not.toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 640,
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
     test('should keep the restored scroll after a redirect during an in-flight navigation', async () => {
       const listeners = await setupWithNavigation();
       simulateScroll(0, 900);
