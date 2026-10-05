@@ -467,7 +467,7 @@ export const autocapturePlugin = (
       }, 0);
     };
 
-    /** Samples the current offset and sends a snapshot deferred during `navigate`. */
+    /** Samples the current offset, replacing any sample taken during the wait. */
     const publishNavigationScrollBaseline = () => {
       clearAbortPublishTimer();
       pendingNavigationSignal?.removeEventListener('abort', scheduleAbortPublish);
@@ -476,6 +476,7 @@ export const autocapturePlugin = (
         return;
       }
       awaitingNavigationBaseline = false;
+      scrollTracker.reset();
       writeScrollBaseline();
       const shouldFlush = deferredViewportFlush;
       const pageEnd = deferredPageEnd;

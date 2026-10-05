@@ -2661,6 +2661,41 @@ describe('autoTrackingPlugin', () => {
       await plugin?.teardown?.();
     });
 
+    test('should replace a wait-time scroll sample with the restored offset', async () => {
+      const listeners = await setupWithNavigation();
+      simulateScroll(0, 900);
+      dispatchNavigation(listeners, 'navigate', {
+        destination: { url: 'http://localhost/next-page' },
+        signal: new AbortController().signal,
+      } as unknown as Event);
+      track.mockClear();
+
+      window.dispatchEvent(new Event('resize'));
+      simulateScroll(0, 220);
+      setScrollQuiet(80);
+      dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+      exposeButton('restored-after-resize-zone');
+      jest.advanceTimersByTime(150);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 80,
+          '[Amplitude] Max Page Y': 80 + window.innerHeight,
+          '[Amplitude] Element Exposed': expect.arrayContaining(['button#restored-after-resize-zone']),
+        }),
+      );
+      expect(track).not.toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Max Page Y': 900 + window.innerHeight,
+        }),
+      );
+
+      await plugin?.teardown?.();
+    });
+
     test('should report the restored scroll when an exposure snapshot finishes before navigatesuccess', async () => {
       const listeners = new Map<string, Array<(event: Event) => void>>();
       Object.defineProperty(window, 'navigation', {
