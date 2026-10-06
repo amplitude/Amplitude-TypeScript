@@ -2329,6 +2329,34 @@ describe('autoTrackingPlugin', () => {
       );
     });
 
+    test('should re-seed when a second history navigation lands within the page-end guard', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+      simulateScroll(0, 800);
+      history.pushState({}, 'test', '/intermediate-page');
+      track.mockClear();
+
+      simulateScroll(0, 300);
+      jest.advanceTimersByTime(50);
+      history.replaceState({}, 'test', '/redirected-page');
+      expect(track).not.toHaveBeenCalled();
+
+      jest.advanceTimersByTime(150);
+      simulateScroll(0, 400);
+      window.dispatchEvent(new Event('beforeunload'));
+
+      expect(track).toHaveBeenCalledWith(
+        '[Amplitude] Viewport Content Updated',
+        expect.objectContaining({
+          '[Amplitude] Min Page Y': 300,
+          '[Amplitude] Max Page Y': 400 + window.innerHeight,
+        }),
+      );
+    });
+
     test('should re-seed from the scroll position already restored when popstate fires', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,

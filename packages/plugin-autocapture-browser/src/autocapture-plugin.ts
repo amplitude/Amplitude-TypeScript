@@ -372,13 +372,6 @@ export const autocapturePlugin = (
       lastScroll.minY = seeded.minY;
     };
 
-    const syncScrollBaseline = () => {
-      if (!scrollTracker.isAwaitingSeed()) {
-        return;
-      }
-      writeScrollBaseline();
-    };
-
     let awaitingNavigationBaseline = false;
     let deferredViewportFlush = false;
     let deferredPageEnd = false;
@@ -406,11 +399,7 @@ export const autocapturePlugin = (
       initialExposureSnapshotScheduler?.reset();
     };
 
-    // A page end inside 100ms is not emitted again, so this reset runs when that guard skipped it.
     const markNavigationScrollBaseline = () => {
-      if (!scrollTracker.isAwaitingSeed()) {
-        rearmDeferredPageView();
-      }
       awaitingNavigationBaseline = true;
     };
 
@@ -428,7 +417,9 @@ export const autocapturePlugin = (
         /* istanbul ignore next */
         initialExposureSnapshotScheduler?.reset();
       }
+      // A page end inside 100ms is not emitted again, but the next page view still starts fresh.
       if (isPageEnd && pageViewEndFired) {
+        rearmDeferredPageView();
         return;
       }
       if (isPageEnd) {
@@ -539,7 +530,7 @@ export const autocapturePlugin = (
         markNavigationScrollBaseline();
         return true;
       }
-      syncScrollBaseline();
+      writeScrollBaseline();
       return false;
     };
 
@@ -557,7 +548,7 @@ export const autocapturePlugin = (
       // Flush the previous page before applying history so Page URL is not the destination.
       handleViewportContentUpdated(true);
       applyHistoryChange();
-      syncScrollBaseline();
+      writeScrollBaseline();
     };
 
     const handleExposure = (elementPath: string) => {
