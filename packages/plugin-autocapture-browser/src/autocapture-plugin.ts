@@ -49,6 +49,7 @@ import { Observable, Unsubscribable } from '@amplitude/analytics-core';
 import { trackExposure } from './autocapture/track-exposure';
 import { fireViewportContentUpdated, onExposure, ExposureTracker } from './autocapture/track-viewport-content-updated';
 import { createInitialExposureSnapshotScheduler } from './autocapture/schedule-initial-exposure-snapshot';
+import { DEFAULT_MAX_SHADOW_DOM_DEPTH } from '@amplitude/element-selector';
 
 type NavigationType = {
   addEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
@@ -299,6 +300,13 @@ export const autocapturePlugin = (
           recomputePageActionsData(remoteConfig as ElementInteractionsOptions['pageActions']);
         });
       }
+    }
+    if (options.shadowDomEnabled === true) {
+      let maxShadowDomDepth = options.maxShadowDomDepth;
+      if (typeof maxShadowDomDepth !== 'number') {
+        maxShadowDomDepth = DEFAULT_MAX_SHADOW_DOM_DEPTH;
+      }
+      dataExtractor.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth });
     }
 
     // Keep the data extractor's selector engine in sync with element-selector

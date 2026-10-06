@@ -26,7 +26,7 @@ yarn add @amplitude/plugin-autocapture-browser@beta
 
 This plugin works on top of the Amplitude Browser SDK, generating auto-tracked events and sending to Amplitude.
 
-**Shadow DOM:** optional support via remote config (`shadowDomEnabled`). See [SHADOW-DOM.md](./SHADOW-DOM.md).
+**Shadow DOM:** optional support via the `shadowDomEnabled` option (locally on `elementInteractions`, or via remote config). See [SHADOW-DOM.md](./SHADOW-DOM.md).
 
 To use this plugin, you need to install `@amplitude/analytics-browser` version `v1.9.1` or later.
 

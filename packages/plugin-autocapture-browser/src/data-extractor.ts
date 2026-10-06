@@ -8,6 +8,7 @@ import {
   TEXT_MASK_ATTRIBUTE,
   getPageTitle,
   replaceSensitiveString,
+  RemoteConfig,
 } from '@amplitude/analytics-core';
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import * as constants from './constants';
@@ -203,6 +204,31 @@ export class DataExtractor {
     this.diagnosticsClient?.recordHistogram('autocapturePlugin.getElementPath', endTime - startTime);
 
     return elementPath;
+  };
+
+  updateRemoteConfig = (remoteConfig?: RemoteConfig | null, logger?: ElementSelectorLogger): void => {
+    if (remoteConfig === null || remoteConfig === undefined) {
+      return;
+    }
+    let remoteElementSelector = remoteConfig['elementSelector'] as ElementSelectorRemoteConfig | undefined;
+    // Remote payloads are untrusted; narrow via `typeof` below rather than trusting the shape.
+    const remoteElementInteractions = (remoteConfig['elementInteractions'] ?? {}) as {
+      shadowDomEnabled?: unknown;
+      maxShadowDomDepth?: unknown;
+    };
+    if (typeof remoteElementInteractions.shadowDomEnabled === 'boolean') {
+      remoteElementSelector = {
+        ...(remoteElementSelector ?? {}),
+        shadowDomEnabled: remoteElementInteractions.shadowDomEnabled,
+      };
+    }
+    if (typeof remoteElementInteractions.maxShadowDomDepth === 'number') {
+      remoteElementSelector = {
+        ...(remoteElementSelector ?? {}),
+        maxShadowDomDepth: remoteElementInteractions.maxShadowDomDepth,
+      };
+    }
+    return this.updateSelectorConfig(remoteElementSelector, logger);
   };
 
   /**
