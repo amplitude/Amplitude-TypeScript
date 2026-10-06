@@ -16,7 +16,7 @@
 
     <script type="module">
         import * as amplitude from '@amplitude/analytics-browser';
-        import { DataExtractor } from '@amplitude/plugin-autocapture-browser';
+        import { armSelectorConfig } from './helpers/selector-config.js';
 
         const params = new URLSearchParams(window.location.search);
         const shadowOn = params.get('shadow') === 'on';
@@ -217,14 +217,6 @@
             buildBaseline();
 
             if (!skipAutocapture) {
-                if (shadowOn) {
-                    new DataExtractor({}).updateSelectorConfig({
-                        enabled: true,
-                        shadowDomEnabled: true,
-                        maxShadowDomDepth: 3,
-                    });
-                }
-
                 await amplitude.init('shadow-dom-perf-key', 'test-user', {
                     fetchRemoteConfig: false,
                     flushIntervalMillis: 60_000,
@@ -238,6 +230,17 @@
                     },
                     logLevel: 0,
                 }).promise;
+
+                // Arm piercing on this instance once the baseline DOM exists and before the
+                // workload starts, so the arming scan covers the baseline (as setup-time
+                // discovery did) and the measured window covers the piercing walks.
+                if (shadowOn) {
+                    await armSelectorConfig(amplitude, {
+                        enabled: true,
+                        shadowDomEnabled: true,
+                        maxShadowDomDepth: 3,
+                    });
+                }
             }
 
             document.getElementById('status').textContent = 'perf-running';

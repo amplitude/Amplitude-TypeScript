@@ -8,6 +8,7 @@ import {
 } from '../../src/remote-config/remote-config';
 import { ILogger } from '../../src/logger';
 import { RemoteConfigLocalStorage } from '../../src/remote-config/remote-config-localstorage';
+import { translateRemoteConfigToLocal } from '../../src/config/joined-config';
 
 jest.mock('../../src/remote-config/remote-config-localstorage');
 const mockUuid = 'uuid123456789';
@@ -441,7 +442,7 @@ describe('RemoteConfigClient', () => {
       const fetch = jest.spyOn(client, 'fetch');
       const sendCallback = jest.spyOn(client, 'sendCallback');
       const remoteConfigInfo = {
-        remoteConfig: null,
+        remoteConfig: { a: { b: 1 } },
         lastFetch: new Date(),
       };
       const fetchPromise = Promise.resolve(remoteConfigInfo);
@@ -565,6 +566,54 @@ describe('RemoteConfigClient', () => {
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteFetchResult, 'remote');
       expect(sendCallback).not.toHaveBeenCalledWith(callbackInfo, emptyCacheResult, 'cache');
       expect(mockStorage.setConfig).toHaveBeenCalledTimes(1);
+    });
+
+    test('should keep the cached config when the remote fetch fails', async () => {
+      const cachedConfig = {
+        remoteConfig: { a: { b: 1 } },
+        lastFetch: new Date(),
+      };
+      const failedFetch = {
+        remoteConfig: null,
+        lastFetch: new Date(),
+      };
+      jest.spyOn(client, 'fetch').mockResolvedValue(failedFetch);
+      storageFetchConfig.mockResolvedValue(cachedConfig);
+
+      await client.subscribeAll({
+        id: mockUuid,
+        key: testKey,
+        deliveryMode: 'all' as DeliveryMode,
+        callback: jest.fn(),
+      });
+
+      expect(mockStorage.setConfig).not.toHaveBeenCalled();
+      expect(loggerDebug).toHaveBeenCalledWith(
+        'Remote config client skipping storage update: Fetch returned no config',
+      );
+    });
+
+    test('should not persist a subscriber mutation of the delivered config', async () => {
+      const remoteConfigInfo = {
+        remoteConfig: { a: { enabled: true, b: 1 } },
+        lastFetch: new Date(),
+      };
+      jest.spyOn(client, 'fetch').mockResolvedValue(remoteConfigInfo);
+      storageFetchConfig.mockResolvedValue({ remoteConfig: null, lastFetch: new Date() });
+
+      await client.subscribeAll({
+        id: mockUuid,
+        key: 'a',
+        deliveryMode: 'all' as DeliveryMode,
+        // Mirrors `translateRemoteConfigToLocal`, which normalizes the payload
+        // it is handed by deleting `enabled`.
+        callback: (config) => delete (config as { enabled?: boolean }).enabled,
+      });
+
+      expect(mockStorage.setConfig).toHaveBeenCalledWith({
+        remoteConfig: { a: { enabled: true, b: 1 } },
+        lastFetch: remoteConfigInfo.lastFetch,
+      });
     });
   });
 
@@ -851,6 +900,99 @@ describe('RemoteConfigClient', () => {
 
       expect(callback).toHaveBeenCalledWith(remoteConfigInfo.remoteConfig, 'remote', remoteConfigInfo.lastFetch);
       expect(callbackInfo.lastCallback).toBeDefined();
+    });
+
+    test('should not let one subscriber mutation reach another subscriber or the source config', () => {
+      remoteConfigInfo = {
+        remoteConfig: { a: { b: { enabled: true, c: 1 } } },
+        lastFetch: new Date(),
+      };
+      const mutatingCallbackInfo: CallbackInfo = {
+        id: 'mutating',
+        key: 'a',
+        deliveryMode: 'all' as DeliveryMode,
+        callback: (config) => delete (config as { b: { enabled?: boolean } }).b.enabled,
+      };
+      const observingCallbackInfo: CallbackInfo = {
+        id: 'observing',
+        key: 'a.b',
+        deliveryMode: 'all' as DeliveryMode,
+        callback,
+      };
+
+      client.sendCallback(mutatingCallbackInfo, remoteConfigInfo, 'remote');
+      client.sendCallback(observingCallbackInfo, remoteConfigInfo, 'remote');
+
+      expect(callback).toHaveBeenCalledWith({ enabled: true, c: 1 }, 'remote', remoteConfigInfo.lastFetch);
+      expect(remoteConfigInfo.remoteConfig).toEqual({ a: { b: { enabled: true, c: 1 } } });
+    });
+
+    test('should deliver the config as-is when it cannot be cloned', () => {
+      const circular: Record<string, unknown> = { enabled: true };
+      circular.self = circular;
+      remoteConfigInfo = {
+        remoteConfig: { a: circular },
+        lastFetch: new Date(),
+      };
+      const callbackInfo: CallbackInfo = {
+        id: mockUuid,
+        key: 'a',
+        deliveryMode: 'all' as DeliveryMode,
+        callback,
+      };
+
+      client.sendCallback(callbackInfo, remoteConfigInfo, 'remote');
+
+      expect(callback).toHaveBeenCalledWith(circular, 'remote', remoteConfigInfo.lastFetch);
+    });
+  });
+
+  // The browser SDK subscribes to `configs.analyticsSDK.browserSDK` and runs
+  // `translateRemoteConfigToLocal` on the delivery, which strips `enabled` from
+  // every node it normalizes. Autocapture's element-selector engine subscribes
+  // to a key nested under it and arms only on an explicit `enabled`, so both
+  // subscribers must see the payload as the server sent it.
+  describe('delivery to nested keys alongside a normalizing subscriber', () => {
+    const elementSelectorKey = 'configs.analyticsSDK.browserSDK.autocapture.elementSelector';
+
+    test('should deliver enabled, and cache it, after another subscriber normalizes its copy', async () => {
+      const remoteConfigInfo = {
+        remoteConfig: {
+          configs: {
+            analyticsSDK: {
+              browserSDK: {
+                autocapture: {
+                  elementSelector: { enabled: true, explicitTrackingAttribute: 'data-amp-track-id' },
+                },
+              },
+            },
+          },
+        },
+        lastFetch: new Date(),
+      };
+      jest.spyOn(client, 'fetch').mockResolvedValue(remoteConfigInfo);
+      storageFetchConfig.mockResolvedValue({ remoteConfig: null, lastFetch: new Date() });
+
+      const elementSelectorDeliveries: unknown[] = [];
+      await client.subscribeAll({
+        id: 'browser-sdk',
+        key: 'configs.analyticsSDK.browserSDK',
+        deliveryMode: 'all' as DeliveryMode,
+        callback: (config) => translateRemoteConfigToLocal(config as Record<string, unknown>),
+      });
+      await client.subscribeAll({
+        id: 'element-selector',
+        key: elementSelectorKey,
+        deliveryMode: 'all' as DeliveryMode,
+        callback: (config) => elementSelectorDeliveries.push(config),
+      });
+
+      expect(elementSelectorDeliveries).toEqual([{ enabled: true, explicitTrackingAttribute: 'data-amp-track-id' }]);
+      expect(mockStorage.setConfig).toHaveBeenLastCalledWith(remoteConfigInfo);
+      expect(remoteConfigInfo.remoteConfig.configs.analyticsSDK.browserSDK.autocapture.elementSelector).toEqual({
+        enabled: true,
+        explicitTrackingAttribute: 'data-amp-track-id',
+      });
     });
   });
 

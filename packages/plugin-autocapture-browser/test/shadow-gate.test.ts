@@ -6,18 +6,12 @@
  * setup, and remote config arrives afterwards. The observables must end up
  * observing the same shadow roots either way.
  */
-import { type IDiagnosticsClient } from '@amplitude/analytics-core';
+import { type BrowserConfig, type IDiagnosticsClient } from '@amplitude/analytics-core';
 import { createMutationObservable, createExposureObservable } from '../src/observables';
 import { DataExtractor } from '../src/data-extractor';
 import { TimestampedEvent } from '../src/helpers';
 import { Observable } from '@amplitude/analytics-core';
-import {
-  createShadowGate,
-  shadowModeFromConfig,
-  SHADOW_OFF,
-  resetSharedShadowGateForTesting,
-  type ShadowOn,
-} from '../src/shadow-mode';
+import { createShadowGate, shadowModeFromConfig, SHADOW_OFF, type ShadowOn } from '../src/shadow-mode';
 
 function attachOpen(host: Element, html: string): ShadowRoot {
   const root = host.attachShadow({ mode: 'open' });
@@ -31,8 +25,6 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 const ON = (maxDepth: number): ShadowOn => ({ enabled: true, maxDepth });
 
 afterEach(() => {
-  resetSharedShadowGateForTesting();
-  new DataExtractor({}).updateSelectorConfig(undefined);
   document.body.innerHTML = '';
   jest.clearAllMocks();
 });
@@ -275,15 +267,31 @@ describe('DataExtractor — latch wiring', () => {
     expect(extractor.getElementPath(inner)).toContain('>>>');
   });
 
-  it('shares one latch across separate DataExtractor instances', () => {
+  it('shares one latch across extractors bound to the same SDK config', () => {
     // autocapture-plugin and frustration-plugin build separate extractors and
-    // subscribe independently; they must never disagree about the gate.
+    // subscribe independently; setup binds both to their SDK's BrowserConfig.
+    const config = {} as BrowserConfig;
     const autocapture = new DataExtractor({});
     const frustration = new DataExtractor({});
+    autocapture.bindSelectorRuntime(config);
+    frustration.bindSelectorRuntime(config);
 
     autocapture.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth: 1 });
     expect(frustration.getShadowMode()).toEqual({ enabled: true, maxDepth: 1 });
     expect(frustration.shadowGate).toBe(autocapture.shadowGate);
+  });
+
+  it('isolates latches for extractors bound to different SDK configs', () => {
+    const autocapture = new DataExtractor({});
+    const otherInstance = new DataExtractor({});
+    autocapture.bindSelectorRuntime({} as BrowserConfig);
+    otherInstance.bindSelectorRuntime({} as BrowserConfig);
+
+    autocapture.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth: 2 });
+
+    expect(autocapture.getShadowMode()).toEqual({ enabled: true, maxDepth: 2 });
+    expect(otherInstance.getShadowMode()).toEqual({ enabled: false, maxDepth: 0 });
+    expect(otherInstance.shadowGate).not.toBe(autocapture.shadowGate);
   });
 
   it('tags diagnostics once, when the gate arms', () => {
