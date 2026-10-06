@@ -1,6 +1,7 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
 
 import { type BodyCaptureRuleConfig, captureSerializedBody, isBodyCaptureEnabled } from './network-body-capture';
+import { truncateUtf8 } from './utils/utf8-byte-length';
 
 export type ResponseBodyStatus = 'captured' | 'truncated' | 'skipped_binary' | 'error';
 
@@ -60,27 +61,7 @@ function serializeRequestBody(body: BodyInit | null | undefined): string | undef
 }
 
 function truncateToByteLimit(str: string, maxBytes: number): { value: string; truncated: boolean } {
-  if (new Blob([str]).size <= maxBytes) {
-    return { value: str, truncated: false };
-  }
-  // Binary search for the longest prefix whose UTF-8 byte length fits within maxBytes.
-  // Cap hi at maxBytes since each UTF-8 character is at least 1 byte, so no more than
-  // maxBytes characters can ever fit — this avoids large intermediate Blob allocations.
-  let lo = 0;
-  let hi = Math.min(str.length, maxBytes);
-  while (lo < hi) {
-    const mid = Math.ceil((lo + hi) / 2);
-    if (new Blob([str.slice(0, mid)]).size <= maxBytes) {
-      lo = mid;
-    } else {
-      hi = mid - 1;
-    }
-  }
-  // Avoid splitting a surrogate pair: if lo landed after a high surrogate, back up one position
-  if (lo > 0 && str.charCodeAt(lo - 1) >= 0xd800 && str.charCodeAt(lo - 1) <= 0xdbff) {
-    lo -= 1;
-  }
-  return { value: str.slice(0, lo), truncated: true };
+  return truncateUtf8(str, maxBytes);
 }
 
 export class NetworkObservers {
