@@ -1,0 +1,11 @@
+This package provides custom event enrichment for the Amplitude Browser SDK.
+
+When a customer enables custom enrichment, the SDK receives a JavaScript function
+body through Amplitude remote configuration and evaluates it in the browser. The
+function can change an analytics event before the SDK sends it. This lets the
+customer apply their own event enrichment logic without shipping a new version
+of their application.
+
+Evaluating remotely configured JavaScript is a security-sensitive capability.
+The intended use is to run enrichment code configured by the customer for their
+own application. It is not intended to run code from untrusted third parties.
