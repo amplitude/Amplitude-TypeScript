@@ -171,6 +171,10 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
       frustrationInteractions.deadClicks = frustrationInteractions.deadClick;
       delete frustrationInteractions.deadClick;
     }
+    if (frustrationInteractions.errorClick) {
+      frustrationInteractions.errorClicks = frustrationInteractions.errorClick;
+      delete frustrationInteractions.errorClick;
+    }
   }
 
   // normalize viewportContentUpdated inside elementInteractions
