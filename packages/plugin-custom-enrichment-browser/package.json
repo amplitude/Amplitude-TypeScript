@@ -6,6 +6,9 @@
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "license": "MIT",
+  "contentPolicy": {
+    "class": "dual-use"
+  },
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "types": "lib/esm/index.d.ts",
@@ -51,6 +54,7 @@
     "rollup-plugin-terser": "^7.0.2"
   },
   "files": [
-    "lib"
+    "lib",
+    "DISCLOSURE"
   ]
 }
