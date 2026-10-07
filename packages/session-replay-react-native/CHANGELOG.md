@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@1.0.2...@amplitude/session-replay-react-native@1.1.0) (2026-10-07)
+
+
+### Features
+
+* **session-replay-react-native:** support string session IDs (SDKRN-73) ([#1992](https://github.com/amplitude/Amplitude-TypeScript/issues/1992)) ([7e19593](https://github.com/amplitude/Amplitude-TypeScript/commit/7e195931259bb624a4ad35a97da4ef5e58621a9f))
+
+
+
+
+
 ## [1.0.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-react-native@1.0.1...@amplitude/session-replay-react-native@1.0.2) (2026-09-16)
 
 

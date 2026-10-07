@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.60.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.59.0...@amplitude/analytics-core@2.60.0) (2026-10-07)
+
+
+### Bug Fixes
+
+* **analytics-core:** resolve hung promises for duplicate insert_id during upload ([#2029](https://github.com/amplitude/Amplitude-TypeScript/issues/2029)) ([ee67ead](https://github.com/amplitude/Amplitude-TypeScript/commit/ee67ead46f1624c1bfa697f70e71ef064a0bf641))
+
+
+### Features
+
+* **analytics-react-native:** experimental -- error clicks ([#2017](https://github.com/amplitude/Amplitude-TypeScript/issues/2017)) ([17e9da4](https://github.com/amplitude/Amplitude-TypeScript/commit/17e9da421df456c50c88273c1d4cc3fb9db36040))
+* **plugin-autocapture-browser:** support shadow dom in elementInteractions ([#2035](https://github.com/amplitude/Amplitude-TypeScript/issues/2035)) ([02ec439](https://github.com/amplitude/Amplitude-TypeScript/commit/02ec439d5768fe2c4f707d217299ece19bdbe348))
+
+
+
+
+
 # [2.59.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.58.1...@amplitude/analytics-core@2.59.0) (2026-09-29)
 
 
