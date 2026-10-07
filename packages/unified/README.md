@@ -93,15 +93,15 @@ const activeGuidesAndSurveys = window.engagement.gs.list();
 
 ### Analytics Options
 
-All options from `@amplitude/analytics-browser` are supported. See the [Analytics Browser SDK documentation](https://www.docs.developers.amplitude.com/analytics/browser/) for details.
+All options from `@amplitude/analytics-browser` are supported. See the [Analytics Browser SDK documentation](https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2) for details.
 
 ### Session Replay Options
 
-All options from `@amplitude/plugin-session-replay-browser` are supported. See the [Session Replay documentation](https://www.docs.developers.amplitude.com/session-replay/) for details.
+All options from `@amplitude/plugin-session-replay-browser` are supported. See the [Session Replay plugin documentation](https://amplitude.com/docs/sdks/session-replay/session-replay-plugin) for details.
 
 ### Experiment Options
 
-All options from `@amplitude/plugin-experiment-browser` are supported. See the [Experiment documentation](https://www.docs.developers.amplitude.com/experiment/) for details.
+All options from `@amplitude/plugin-experiment-browser` are supported. See the [Experiment documentation](https://amplitude.com/docs/sdks/experiment-sdks/experiment-javascript) for details.
 
 ### Guides and Surveys Options
 
@@ -110,6 +110,6 @@ All options from `@amplitude/engagement-browser` are supported. See the [Guides 
 ## Learn More
 
 - [Analytics Browser SDK Documentation](https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2)
-- [Session Replay Documentation](https://amplitude.com/docs/session-replay/session-replay-standalone-sdk)
+- [Session Replay Documentation](https://amplitude.com/docs/sdks/session-replay/session-replay-standalone-sdk)
 - [Experiment Documentation](https://amplitude.com/docs/sdks/experiment-sdks/experiment-javascript)
 - [Guides and Surveys SDK Documentation](https://amplitude.com/docs/guides-and-surveys/sdk)

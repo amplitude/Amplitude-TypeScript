@@ -3,7 +3,7 @@ import * as constants from '../constants';
 import { getCurrentPageViewId, getNormalizedPageUrl } from '../helpers';
 
 export interface ScrollTracker {
-  getState: () => { maxX: number; maxY: number };
+  getState: () => { maxX: number; maxY: number; minY: number };
   reset: () => void;
 }
 
@@ -28,7 +28,7 @@ export function fireViewportContentUpdated({
   elementExposedInSentEvents: Set<string>;
   exposureTracker: ExposureTracker | undefined;
   isPageEnd: boolean;
-  lastScroll: { maxX: undefined | number; maxY: undefined | number };
+  lastScroll: { maxX: undefined | number; maxY: undefined | number; minY?: undefined | number };
 }): void {
   const pageScrollMaxState = scrollTracker.getState();
   const globalScope = getGlobalScope();
@@ -46,6 +46,7 @@ export function fireViewportContentUpdated({
     [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: getNormalizedPageUrl(globalScope),
     [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_X]: pageScrollMaxState.maxX + viewportWidth,
     [constants.AMPLITUDE_EVENT_PROP_MAX_PAGE_Y]: pageScrollMaxState.maxY + viewportHeight,
+    [constants.AMPLITUDE_EVENT_PROP_MIN_PAGE_Y]: pageScrollMaxState.minY,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: viewportHeight,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: viewportWidth,
     '[Amplitude] Element Exposed': newExposures,
@@ -61,6 +62,7 @@ export function fireViewportContentUpdated({
     const resetScroll = scrollTracker.getState();
     lastScroll.maxX = resetScroll.maxX;
     lastScroll.maxY = resetScroll.maxY;
+    lastScroll.minY = resetScroll.minY;
     elementExposedForPage.clear();
     elementExposedInSentEvents.clear();
     exposureTracker?.reset();
@@ -70,7 +72,8 @@ export function fireViewportContentUpdated({
   if (
     newExposures.length === 0 &&
     pageScrollMaxState.maxX === lastScroll.maxX &&
-    pageScrollMaxState.maxY === lastScroll.maxY
+    pageScrollMaxState.maxY === lastScroll.maxY &&
+    pageScrollMaxState.minY === lastScroll.minY
   ) {
     if (isPageEnd) {
       resetPageViewState();
@@ -82,6 +85,7 @@ export function fireViewportContentUpdated({
   amplitude?.track('[Amplitude] Viewport Content Updated', eventProperties);
   lastScroll.maxX = pageScrollMaxState.maxX;
   lastScroll.maxY = pageScrollMaxState.maxY;
+  lastScroll.minY = pageScrollMaxState.minY;
 
   newExposures.forEach((elementPath) => {
     elementExposedInSentEvents.add(elementPath);
