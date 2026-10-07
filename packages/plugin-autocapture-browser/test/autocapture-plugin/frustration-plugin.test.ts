@@ -130,7 +130,7 @@ describe('frustrationPlugin', () => {
       );
 
       expect(subscribe).toHaveBeenCalledWith(
-        'configs.analyticsSDK.browserSDK.autocapture.elementSelector',
+        'configs.analyticsSDK.browserSDK.autocapture',
         'all',
         expect.any(Function),
       );
