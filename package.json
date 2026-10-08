@@ -84,7 +84,7 @@
     "lint-staged": "^15.2.0",
     "morgan": "^1.10.0",
     "nodemon": "^3.0.1",
-    "nx": "^21.2.1",
+    "nx": "^22.7.0",
     "prettier": "^2.8.1",
     "prismjs": "^1.30.0",
     "react": "^18.3.1",
@@ -108,7 +108,7 @@
   "dependencies": {
     "tslib": "^2.4.1"
   },
-  "packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa",
+  "packageManager": "pnpm@12.10.1+sha512.ba40a37eb1a370d60fea8c4cf1d364c13bcccef518e98ad2bcee954f539d38da37458e58261a3fa55e06523450ea0ffff9f497b135be41f2c15c1642bacace6c",
   "pnpm": {
     "overrides": {
       "typescript": "^4.9.4",

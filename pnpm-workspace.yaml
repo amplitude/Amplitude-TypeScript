@@ -4,6 +4,11 @@ packages:
   - examples/react-native/app
   - examples/unified/react-native-app
 
+allowBuilds:
+  esbuild: true
+  msw: true
+  nx: true
+  unrs-resolver: true
 blockExoticSubdeps: true
 
 minimumReleaseAge: 4320
@@ -13,11 +18,13 @@ minimumReleaseAgeExclude:
 
 # These are dependencies that run the postinstall script
 # Only add dependencies to this if they have been vetted for security
-onlyBuiltDependencies:
-  - core-js
-  - esbuild
-  - msw
-  - nx
-  - unrs-resolver
-
 trustPolicy: no-downgrade
+trustPolicyExclude:
+  # Packages confirmed to not be compromised and safe to downgrade to
+  - semver@6.3.1
+  - semver@5.7.2
+  - "@octokit/endpoint@9.0.6"
+  - eslint-config-prettier@8.10.2
+  - eslint-plugin-prettier@4.2.5
+  - rollup@2.80.0
+  # Do not add to this list without a review of these packages
