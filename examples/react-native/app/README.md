@@ -5,7 +5,7 @@ This is a minimal [**React Native**](https://reactnative.dev) example that exerc
 
 # Prerequisites
 
-- **Node `>=22`** (CI uses Node 22 and newer) — check: `node -v`
+- **Node `>=22`** (repo default is Node 24; CI also checks Node 22) — check: `node -v`
 - **[pnpm](https://pnpm.io/installation)** — check: `pnpm -v`
 - **Xcode + iOS Simulator** (for iOS) — check: `xcodebuild -version && xcrun simctl list devices iOS available | head`
 - **Ruby 3.2.x** and Bundler — used for CocoaPods. Matches CI. macOS system Ruby (2.6) hits an `activesupport` `Logger` load-order bug, and Ruby 4.x is too new for the pinned cocoapods (`< 1.15`). Install with `brew install ruby@3.2`. **brew's `ruby@3.2` is keg-only** — installing it does NOT put it on your PATH automatically. You must export PATH in every shell that runs `bundle`/`pod` commands, or add the export to `~/.zshrc` to make it persistent. See [Setup](#setup) step 3 for the exact commands. Check: `ruby -v` (expect `3.2.x`) and `bundle -v`.
