@@ -4,6 +4,8 @@ This repository uses GitHub Actions for continuous integration. Contributors sho
 
 ## Local Environment Setup
 
+Use Node.js 24 (the default in `.nvmrc`). The development toolchain requires Node.js >=22.13 because the repository pins pnpm 11; Node.js 20 is no longer supported for development.
+
 Before running any tests or scripts, install dependencies and build the packages:
 
 ```bash
@@ -25,5 +27,4 @@ These steps must pass before you submit your PR.
 ## Pull Request Requirements
 
 - PR titles must follow the [conventional commit](https://www.conventionalcommits.org/ ) format and, when possible, include the affected module name. Examples: `feat(browser): add feature` or `fix(plugin): correct bug`.
-- The CI matrix runs on Node.js `20.x`, `22.x`, and `24.x`. Ensure your code is compatible with these versions. Node 18 is no longer supported: `lerna`, which backs `pnpm build`/`test`/`lint`, requires `^20.19.0 || ^22.12.0 || >=24.0.0`.
-
+- The CI matrix runs on Node.js `22.x`, `24.x`, and `26.x`. Ensure your code is compatible with these versions. Use Node.js >=22.13 for the pnpm 11 development toolchain.
