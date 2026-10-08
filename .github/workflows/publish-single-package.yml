@@ -72,10 +72,6 @@ jobs:
       # Verify the specified package exists and has the required structure
       - name: Verify package exists
         run: |
-          if [ "$PACKAGE_NAME" = "plugin-custom-enrichment-browser" ]; then
-            echo "Custom enrichment is dual-use. Use publish-v2 staged publishing instead."
-            exit 1
-          fi
           if [ ! -d "$PACKAGE_PATH" ]; then
             echo "❌ Package directory $PACKAGE_PATH does not exist"
             exit 1
