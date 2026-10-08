@@ -7,4 +7,4 @@
 
 # @amplitude/analytics-core
 
-Internal Node package for Amplitude 
+Internal package shared by Amplitude SDKs.
