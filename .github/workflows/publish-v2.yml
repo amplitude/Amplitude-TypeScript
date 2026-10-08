@@ -189,7 +189,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        node-version: [24.x] # pnpm 11 requires Node.js 22 or newer.
+        node-version: [24.x] # Node 24.6+ bundles npm 11.5.1+ for OIDC; pnpm 11 needs Node 22+.
 
     steps:
       - name: Validate protected branch
@@ -302,7 +302,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        node-version: [24.x] # pnpm 11 requires Node.js 22 or newer.
+        node-version: [24.x] # Node 24.6+ bundles npm 11.5.1+ for OIDC; pnpm 11 needs Node 22+.
 
     steps:
       - name: Determine branch to use
