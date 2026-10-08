@@ -1,14 +1,12 @@
 import { BrowserConfig } from '@amplitude/analytics-core';
-import { ElementSelectorRemoteConfig } from '@amplitude/element-selector';
 import { DataExtractor } from './data-extractor';
 
 /**
- * Remote-config key for the element-selector engine payload. Nested under the
- * browser SDK autocapture namespace alongside other autocapture toggles
- * (elementInteractions, frustrationInteractions, etc.). The payload shape is
+ * Remote-config key for remote config autocapture payload.
+ *
  * `ElementSelectorRemoteConfig`.
  */
-export const ELEMENT_SELECTOR_REMOTE_CONFIG_KEY = 'configs.analyticsSDK.browserSDK.autocapture.elementSelector';
+const REMOTE_CONFIG_KEY = 'configs.analyticsSDK.browserSDK.autocapture';
 
 /**
  * Subscribe a plugin's {@link DataExtractor} to element-selector remote config.
@@ -30,22 +28,16 @@ export function subscribeToElementSelectorConfig(
     return undefined;
   }
 
-  const subscriptionId = remoteConfigClient.subscribe(
-    ELEMENT_SELECTOR_REMOTE_CONFIG_KEY,
-    'all',
-    (remoteConfig, source) => {
-      // Diagnostic: log every delivery with its source ('cache' | 'remote') and
-      // payload. In 'all' mode the client delivers cache then remote, and any
-      // delivery whose payload is null / missing a boolean `enabled` resolves to
-      // disabled — which is how a live engine gets silently turned back off.
-      config.loggerProvider.debug(
-        `@amplitude/element-selector: remote-config delivery (source=${String(source)}) ${JSON.stringify(
-          remoteConfig,
-        )}`,
-      );
-      dataExtractor.updateSelectorConfig(remoteConfig as ElementSelectorRemoteConfig | null, config.loggerProvider);
-    },
-  );
+  const subscriptionId = remoteConfigClient.subscribe(REMOTE_CONFIG_KEY, 'all', (remoteConfig, source) => {
+    // Diagnostic: log every delivery with its source ('cache' | 'remote') and
+    // payload. In 'all' mode the client delivers cache then remote, and any
+    // delivery whose payload is null / missing a boolean `enabled` resolves to
+    // disabled — which is how a live engine gets silently turned back off.
+    config.loggerProvider.debug(
+      `@amplitude/element-selector: remote-config delivery (source=${String(source)}) ${JSON.stringify(remoteConfig)}`,
+    );
+    dataExtractor.updateRemoteConfig(remoteConfig, config.loggerProvider);
+  });
 
   return () => {
     remoteConfigClient.unsubscribe(subscriptionId);

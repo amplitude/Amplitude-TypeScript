@@ -1395,6 +1395,36 @@ describe('destination', () => {
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event]));
     });
+
+    test('should keep a queued duplicate insert_id that was not in the fulfilled list', () => {
+      // Regression for #2024: when a second event with the same insert_id is
+      // queued while the first is uploading, fulfillRequest must not remove the
+      // second context (or its promise hangs forever).
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.storageProvider = undefined;
+
+      const sharedInsertId = 'same-insert-id';
+      const first = {
+        event: { event_type: 'event', insert_id: sharedInsertId },
+        attempts: 0,
+        callback: jest.fn(),
+        timeout: 0,
+      };
+      const second = {
+        event: { event_type: 'event', insert_id: sharedInsertId },
+        attempts: 0,
+        callback: jest.fn(),
+        timeout: 0,
+      };
+      destination.queue = [first, second];
+
+      destination.removeEvents([first]);
+
+      expect(destination.queue).toEqual([second]);
+      expect(first.callback).not.toHaveBeenCalled();
+      expect(second.callback).not.toHaveBeenCalled();
+    });
   });
 
   describe('module level integration', () => {

@@ -577,12 +577,10 @@ export class Destination implements DestinationPlugin {
   removeEvents(eventsToRemove: Context[]) {
     const insertIdsBeingRemoved = new Set(eventsToRemove.map((context) => context.event.insert_id));
 
+    // Remove only the exact fulfilled Context instances so duplicate insert_id events remain queued.
+    const toRemove = new Set(eventsToRemove);
     this.queue = this.queue.filter(
-      (queuedContext) =>
-        !eventsToRemove.some(
-          (context) =>
-            context.event.insert_id === queuedContext.event.insert_id && !queuedContext.event.delay?.skipRemoval,
-        ),
+      (queuedContext) => !toRemove.has(queuedContext) || queuedContext.event.delay?.skipRemoval,
     );
 
     this.queue.forEach((context) => {

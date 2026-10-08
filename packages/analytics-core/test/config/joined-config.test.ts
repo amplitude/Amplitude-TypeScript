@@ -222,6 +222,18 @@ describe('joined-config', () => {
         translateRemoteConfigToLocal(remoteConfig);
         expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toEqual({ deadClicks: true });
       });
+
+      test('should translate errorClick to errorClicks', () => {
+        const remoteConfig = {
+          browserSDK: {
+            autocapture: {
+              frustrationInteractions: { errorClick: true },
+            },
+          },
+        };
+        translateRemoteConfigToLocal(remoteConfig);
+        expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toEqual({ errorClicks: true });
+      });
     });
 
     describe('networkTracking headers', () => {
