@@ -306,8 +306,8 @@ importers:
         specifier: workspace:*
         version: link:../plugin-autocapture-browser
       '@amplitude/plugin-custom-enrichment-browser':
-        specifier: workspace:*
-        version: link:../plugin-custom-enrichment-browser
+        specifier: 0.1.22
+        version: 0.1.22
       '@amplitude/plugin-event-property-attribution-browser':
         specifier: workspace:*
         version: link:../plugin-event-property-attribution-browser

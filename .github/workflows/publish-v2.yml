@@ -175,15 +175,11 @@ jobs:
           new-arch: ${{ matrix.new-arch }}
 
   deploy:
-    name: Publish independent packages and stage custom enrichment
+    name: Deploy
     runs-on: ubuntu-latest
     environment: npm-release
     needs: [authorize, build-and-test, e2e, e2e-react-native]
     if: ${{ github.event.inputs.releaseType == 'release' }}
-    outputs:
-      release_sha: ${{ steps.release-ref.outputs.sha }}
-      plugin_version: ${{ steps.stage-plugin.outputs.version }}
-      stage_required: ${{ steps.stage-plugin.outputs.required }}
     permissions:
       id-token: write # Required for OIDC
       contents: write
@@ -271,35 +267,48 @@ jobs:
 
           echo "✅ Successfully created release version"
 
-      - name: Capture release commit
-        id: release-ref
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      # Core and other packages outside the plugin's dependent graph can go live now.
-      - name: Publish independent packages to NPM
+      # Publish to NPM (also uploads minified JS and source maps to S3)
+      - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:publish:phase independent
+          GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:publish
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
-      - name: Install npm CLI with staged publishing
-        run: npm install --global npm@11.21.0
+      # Record the published release in Linear (continuous pipeline). Runs only after a
+      # successful npm publish, so each Linear release maps 1:1 to a real release, named
+      # after the analytics-browser version. Because lerna versions packages independently,
+      # only sync when this release actually bumped analytics-browser (its package.json
+      # changed in the lerna release commit) — otherwise its unchanged version would collide
+      # with the label of a previous Linear release. Tracking is best-effort: a Linear
+      # failure must not fail an already-published release.
+      - name: Determine analytics-browser release
+        id: linear-version
+        run: |
+          version=$(node -p "require('./packages/analytics-browser/package.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git diff --name-only HEAD~1 HEAD -- packages/analytics-browser/package.json | grep -q .; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "analytics-browser bumped to $version in this release; will sync to Linear"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "analytics-browser not part of this release; skipping Linear sync"
+          fi
 
-      - name: Stage custom enrichment through Trusted Publishing
-        id: stage-plugin
-        run: bash scripts/publish/stage-custom-enrichment.sh
+      - name: Sync release to Linear
+        if: ${{ steps.linear-version.outputs.published == 'true' }}
+        continue-on-error: true
+        uses: linear/linear-release-action@3b634623620454bac33390451a1dd15ba78e3dc4 # v0
+        with:
+          access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
+          command: sync
+          version: ${{ steps.linear-version.outputs.version }}
 
   prerelease:
-    name: Prerelease independent packages and stage custom enrichment
+    name: Prerelease feature branch
     runs-on: ubuntu-latest
     environment: npm-release
     needs: [authorize, build-and-test, e2e, e2e-react-native]
     if: ${{ github.event.inputs.releaseType == 'prerelease' || github.event.inputs.releaseType == 'dry-run' }}
-    outputs:
-      release_sha: ${{ steps.release-ref.outputs.sha }}
-      plugin_version: ${{ steps.stage-plugin.outputs.version }}
-      stage_required: ${{ steps.stage-plugin.outputs.required }}
-      preid: ${{ steps.prerelease-id.outputs.preid }}
     permissions:
       id-token: write # Required for OIDC
       contents: write
@@ -354,13 +363,10 @@ jobs:
       #   - fix_bug_123 -> fixbug123
       #   - user@company.com -> usercompanycom
       - name: Transform feature branch name
-        id: prerelease-id
         env:
           BRANCH: ${{ steps.determine-branch.outputs.branch }}
         run: |
-          preid=$(echo "$BRANCH" | tr -cd '[:alnum:]-')
-          echo "PREID=$preid" >> "$GITHUB_ENV"
-          echo "preid=$preid" >> "$GITHUB_OUTPUT"
+          echo "PREID=$(echo "$BRANCH" | tr -cd '[:alnum:]-')" >> "$GITHUB_ENV"
 
       # Use --no-push to prevent pushing to remote
       # Version example: 1.0.0 -> 1.1.0-{preid}.0
@@ -381,30 +387,15 @@ jobs:
         run: |
           pnpm deploy:version -y --no-private --conventional-prerelease --preid "$PREID" --allow-branch "$BRANCH" --create-release github
 
-      - name: Capture prerelease commit
-        id: release-ref
-        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Publish independent prerelease packages to NPM
+      # Publish to NPM (also uploads minified JS and source maps to S3)
+      - name: Publish Pre-release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PREID: ${{ env.PREID }}
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         run: |
-          pnpm deploy:publish:phase independent --ignore-scripts --tag "$PREID"
-
-      - name: Install npm CLI with staged publishing
-        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
-        run: npm install --global npm@11.21.0
-
-      - name: Stage custom enrichment prerelease through Trusted Publishing
-        id: stage-plugin
-        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
-        env:
-          PREID: ${{ env.PREID }}
-        run: bash scripts/publish/stage-custom-enrichment.sh
+          pnpm deploy:publish --no-git-checks --ignore-scripts --tag "$PREID"
 
       - name: Dry run publish release to NPM
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
@@ -412,101 +403,3 @@ jobs:
           DRY_RUN: true
         run: |
           pnpm deploy:publish:dry-run
-
-  approve-plugin:
-    name: Confirm custom enrichment approval on npm
-    runs-on: ubuntu-latest
-    needs: [deploy, prerelease]
-    if: >-
-      ${{ always() &&
-      ((needs.deploy.result == 'success' && needs.deploy.outputs.stage_required == 'true') ||
-      (needs.prerelease.result == 'success' && needs.prerelease.outputs.stage_required == 'true')) }}
-    environment: npm-custom-enrichment-approval
-    steps:
-      - name: Check out release commit
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
-        with:
-          ref: ${{ needs.deploy.outputs.release_sha || needs.prerelease.outputs.release_sha }}
-
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 24.x
-
-      - name: Verify approved plugin version is live
-        env:
-          PLUGIN_VERSION: ${{ needs.deploy.outputs.plugin_version || needs.prerelease.outputs.plugin_version }}
-        run: bash scripts/publish/verify-custom-enrichment.sh "$PLUGIN_VERSION"
-
-  publish-dependents:
-    name: Publish analytics-browser and dependents
-    runs-on: ubuntu-latest
-    environment: npm-release
-    needs: [deploy, prerelease, approve-plugin]
-    if: >-
-      ${{ always() && github.event.inputs.releaseType != 'dry-run' &&
-      (needs.deploy.result == 'success' || needs.prerelease.result == 'success') &&
-      (needs.approve-plugin.result == 'success' || needs.approve-plugin.result == 'skipped') }}
-    permissions:
-      id-token: write
-      contents: write
-    steps:
-      - name: Generate GitHub App token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          app-id: ${{ secrets.AMPLITUDE_DEV_EXP_APP_ID }}
-          private-key: ${{ secrets.AMPLITUDE_DEV_EXP_PRIVATE_KEY }}
-
-      - name: Check out release commit
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
-        with:
-          fetch-depth: 2
-          ref: ${{ needs.deploy.outputs.release_sha || needs.prerelease.outputs.release_sha }}
-
-      - name: Build release packages
-        uses: ./.github/actions/build-and-test
-        with:
-          node-version: 24.x
-          run-tests: 'false'
-          run-lint: 'false'
-          configure-git: 'false'
-
-      - name: Verify plugin version is live before publishing dependents
-        env:
-          PLUGIN_VERSION: ${{ needs.deploy.outputs.plugin_version || needs.prerelease.outputs.plugin_version }}
-        run: bash scripts/publish/verify-custom-enrichment.sh "$PLUGIN_VERSION"
-
-      - name: Publish dependent packages
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-          PREID: ${{ needs.prerelease.outputs.preid }}
-          RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
-        run: |
-          if [ "$RELEASE_TYPE" = prerelease ]; then
-            pnpm deploy:publish:phase dependent --ignore-scripts --tag "$PREID"
-          else
-            pnpm deploy:publish:phase dependent
-          fi
-
-      - name: Determine analytics-browser release
-        if: ${{ github.event.inputs.releaseType == 'release' }}
-        id: linear-version
-        run: |
-          version=$(node -p "require('./packages/analytics-browser/package.json').version")
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          if git diff --name-only HEAD~1 HEAD -- packages/analytics-browser/package.json | grep -q .; then
-            echo "published=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "published=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Sync release to Linear
-        if: ${{ steps.linear-version.outputs.published == 'true' }}
-        continue-on-error: true
-        uses: linear/linear-release-action@3b634623620454bac33390451a1dd15ba78e3dc4 # v0
-        with:
-          access_key: ${{ secrets.LINEAR_ACCESS_KEY }}
-          command: sync
-          version: ${{ steps.linear-version.outputs.version }}
