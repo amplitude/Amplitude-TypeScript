@@ -482,8 +482,9 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
           PREID: ${{ needs.prerelease.outputs.preid }}
+          RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
         run: |
-          if [ "${{ github.event.inputs.releaseType }}" = prerelease ]; then
+          if [ "$RELEASE_TYPE" = prerelease ]; then
             pnpm deploy:publish:phase dependent --ignore-scripts --tag "$PREID"
           else
             pnpm deploy:publish:phase dependent
