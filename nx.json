@@ -38,5 +38,6 @@
     ],
     "sharedGlobals": ["{workspaceRoot}/nx.json"]
   },
-  "defaultBase": "main"
+  "defaultBase": "main",
+  "analytics": false
 }

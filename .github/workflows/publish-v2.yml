@@ -126,7 +126,7 @@ jobs:
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
         uses: ./.github/actions/build-and-test
         with:
-          node-version: 20.x
+          node-version: 24.x
           configure-git: 'false'
           configure-aws: 'false'
 
@@ -270,7 +270,9 @@ jobs:
       # Publish to NPM (also uploads minified JS and source maps to S3)
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:publish
+          GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm -r --filter \"./packages/**\" stage publish --no-git-checks --json > staging-summary.json
+          STAGE_IDS=$(jq -r '[.[] | .stageId] | join(" ")' staging-summary.json)
+          pnpm stage approve $STAGE_IDS
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
