@@ -86,6 +86,15 @@ jobs:
           fi
           echo "✅ Package $PACKAGE_NAME found at $PACKAGE_PATH"
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+
       # Check if latest published version is stable to prevent beta/alpha publishing
       - name: Validate version publishing rules
         run: |
@@ -96,8 +105,8 @@ jobs:
           echo "Package name: $PACKAGE_JSON_NAME"
 
           # Check if package exists on npm and get latest version
-          if npm view "$PACKAGE_JSON_NAME" version 2>/dev/null; then
-            LATEST_VERSION=$(npm view "$PACKAGE_JSON_NAME" version 2>/dev/null)
+          if pnpm view "$PACKAGE_JSON_NAME" version 2>/dev/null; then
+            LATEST_VERSION=$(pnpm view "$PACKAGE_JSON_NAME" version 2>/dev/null)
             echo "Latest published version: $LATEST_VERSION"
 
             # Check if latest version is stable (doesn't contain beta or alpha)
@@ -116,16 +125,6 @@ jobs:
             echo "✅ Package not found on npm, this appears to be a new package"
             echo "New packages can publish beta/alpha versions with latest tag"
           fi
-
-      - name: Setup PNPM
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-
-      # Setup Node.js environment
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: "pnpm"
 
       # Install all project dependencies
       - name: Install project dependencies
@@ -161,7 +160,7 @@ jobs:
           echo "✅ New version would be: $CURRENT_VERSION → $NEW_VERSION"
 
           # Update version in package.json immediately (needed for build)
-          npm pkg set version="$NEW_VERSION"
+          pnpm pkg set version="$NEW_VERSION"
 
           # Update version in src/version.ts - this file must exist
           if [ -f "src/version.ts" ]; then
@@ -210,7 +209,7 @@ jobs:
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
-          npm whoami
+          pnpm whoami
 
       # Temporarily make package public for publishing (will be restored to private later)
       - name: Make package public for publishing
@@ -220,7 +219,7 @@ jobs:
           echo "Making package public for publishing"
 
           # Set private to false (version already updated)
-          npm pkg set private=false --json
+          pnpm pkg set private=false --json
 
           echo "✅ Made package public for publishing"
           echo "Current package.json settings:"
@@ -268,11 +267,11 @@ jobs:
         if: ${{ env.DRY_RUN == 'false' && always() }}
         run: |
           cd $PACKAGE_PATH
-          npm pkg set private=true --json
+          pnpm pkg set private=true --json
           echo "✅ Set package back to private"
 
           # Update version in the restored package.json (but keep private: true)
-          npm pkg set version="$NEW_VERSION"
+          pnpm pkg set version="$NEW_VERSION"
 
           # Now commit the changes with the correct private setting
           echo "Committing version and changelog changes"
