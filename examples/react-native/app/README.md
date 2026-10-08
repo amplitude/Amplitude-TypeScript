@@ -102,7 +102,7 @@ Yoga headers, wipe `ios/Pods ios/build` and re-run `pod install` (see
 Three pieces make the workspace setup work — keep them in sync if you change any of them:
 
 - [`package.json`](package.json) declares `"@amplitude/analytics-react-native": "workspace:*"` so the example consumes local SDK source instead of the published version.
-- [`pnpm-workspace.yaml`](../../../pnpm-workspace.yaml) at the repo root hoists `react-native`, `@babel/*`, `@react-native*`, and `metro*` packages. Metro cannot traverse pnpm's nested `.pnpm` store, so these need to be visible from a flat `node_modules`.
+- [`pnpm-workspace.yaml`](../../../pnpm-workspace.yaml) at the repo root configures pnpm 11 to hoist `react-native`, `@babel/*`, `@react-native*`, and `metro*` packages. Metro cannot traverse pnpm's nested `.pnpm` store, so these need to be visible from the root `node_modules`. The separate Expo example keeps its hoisted layout in its own [`pnpm-workspace.yaml`](../expo-app/pnpm-workspace.yaml).
 - [`metro.config.js`](metro.config.js) sets `watchFolders` and `nodeModulesPaths` to include the workspace root so Metro picks up SDK edits and resolves the hoisted deps.
 
 The app is registered as a workspace package in [`pnpm-workspace.yaml`](../../../pnpm-workspace.yaml).
