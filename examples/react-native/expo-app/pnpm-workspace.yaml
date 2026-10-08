@@ -1,3 +1,17 @@
 packages:
   - '.'
   - '../../../packages/*'
+
+# Metro and Expo resolve dependencies from a flat node_modules layout.
+nodeLinker: hoisted
+publicHoistPattern:
+  - '*react-native*'
+  - '@react-native-async-storage/*'
+  - '@amplitude/*'
+  - '@babel/*'
+  - '@react-native/*'
+  - '@react-native-community/*'
+  - '@react-navigation/*'
+  - '@expo/*'
+  - metro
+  - 'metro-*'

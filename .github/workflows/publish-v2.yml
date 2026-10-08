@@ -126,7 +126,7 @@ jobs:
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
         uses: ./.github/actions/build-and-test
         with:
-          node-version: 20.x
+          node-version: 22.x
           configure-git: 'false'
           configure-aws: 'false'
 
@@ -189,7 +189,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        node-version: [24.x] # Ensure npm 11.5.1 or later is installed for OIDC, node 24.6 is minimal 
+        node-version: [24.x] # pnpm 11 requires Node.js 22 or newer.
 
     steps:
       - name: Validate protected branch
@@ -282,9 +282,6 @@ jobs:
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
-      - name: Install npm CLI with staged publishing
-        run: npm install --global npm@11.21.0
-
       - name: Stage custom enrichment through Trusted Publishing
         id: stage-plugin
         run: bash scripts/publish/stage-custom-enrichment.sh
@@ -305,7 +302,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        node-version: [24.x] # Ensure npm 11.5.1 or later is installed for OIDC, node 24.6 is minimal
+        node-version: [24.x] # pnpm 11 requires Node.js 22 or newer.
 
     steps:
       - name: Determine branch to use
@@ -395,10 +392,6 @@ jobs:
         run: |
           pnpm deploy:publish:phase independent --ignore-scripts --tag "$PREID"
 
-      - name: Install npm CLI with staged publishing
-        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
-        run: npm install --global npm@11.21.0
-
       - name: Stage custom enrichment prerelease through Trusted Publishing
         id: stage-plugin
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
@@ -428,10 +421,11 @@ jobs:
         with:
           ref: ${{ needs.deploy.outputs.release_sha || needs.prerelease.outputs.release_sha }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - name: Set up Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
         with:
           node-version: 24.x
+          install: 'false'
 
       - name: Verify approved plugin version is live
         env:

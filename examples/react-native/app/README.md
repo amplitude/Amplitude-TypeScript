@@ -5,7 +5,7 @@ This is a minimal [**React Native**](https://reactnative.dev) example that exerc
 
 # Prerequisites
 
-- **Node `>=18`** (CI uses Node 20) — check: `node -v`
+- **Node `>=22`** (CI uses Node 22 and newer) — check: `node -v`
 - **[pnpm](https://pnpm.io/installation)** — check: `pnpm -v`
 - **Xcode + iOS Simulator** (for iOS) — check: `xcodebuild -version && xcrun simctl list devices iOS available | head`
 - **Ruby 3.2.x** and Bundler — used for CocoaPods. Matches CI. macOS system Ruby (2.6) hits an `activesupport` `Logger` load-order bug, and Ruby 4.x is too new for the pinned cocoapods (`< 1.15`). Install with `brew install ruby@3.2`. **brew's `ruby@3.2` is keg-only** — installing it does NOT put it on your PATH automatically. You must export PATH in every shell that runs `bundle`/`pod` commands, or add the export to `~/.zshrc` to make it persistent. See [Setup](#setup) step 3 for the exact commands. Check: `ruby -v` (expect `3.2.x`) and `bundle -v`.
@@ -102,7 +102,7 @@ Yoga headers, wipe `ios/Pods ios/build` and re-run `pod install` (see
 Three pieces make the workspace setup work — keep them in sync if you change any of them:
 
 - [`package.json`](package.json) declares `"@amplitude/analytics-react-native": "workspace:*"` so the example consumes local SDK source instead of the published version.
-- [`.npmrc`](../../../.npmrc) at the repo root hoists `react-native`, `@babel/*`, `@react-native*`, and `metro*` packages. Metro cannot traverse pnpm's nested `.pnpm` store, so these need to be visible from a flat `node_modules`.
+- [`pnpm-workspace.yaml`](../../../pnpm-workspace.yaml) at the repo root hoists `react-native`, `@babel/*`, `@react-native*`, and `metro*` packages. Metro cannot traverse pnpm's nested `.pnpm` store, so these need to be visible from a flat `node_modules`.
 - [`metro.config.js`](metro.config.js) sets `watchFolders` and `nodeModulesPaths` to include the workspace root so Metro picks up SDK edits and resolves the hoisted deps.
 
 The app is registered as a workspace package in [`pnpm-workspace.yaml`](../../../pnpm-workspace.yaml).
