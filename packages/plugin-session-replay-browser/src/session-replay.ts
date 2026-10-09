@@ -35,7 +35,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
     this.srInitOptions = this.options;
   }
 
-  private async loadSessionReplay(): Promise<AmplitudeSessionReplay> {
+  private loadSessionReplay(): Promise<AmplitudeSessionReplay> {
     if (!this.sessionReplayPromise) {
       this.sessionReplayPromise = import('@amplitude/session-replay-browser').then(
         ({
@@ -65,13 +65,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
       );
     }
 
-    try {
-      return await this.sessionReplayPromise;
-    } catch (error) {
-      // Allow a later setup attempt to retry if loading the chunk failed.
-      this.sessionReplayPromise = undefined;
-      throw error;
-    }
+    return this.sessionReplayPromise;
   }
 
   async setup(config: BrowserConfig, _client: BrowserClient) {
@@ -154,10 +148,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   }
 
   async onSessionIdChanged(sessionId: number): Promise<void> {
+    const sessionReplay = await this.loadSessionReplay();
     this.config?.loggerProvider.debug(
-      `Analytics session id is changed to ${sessionId}, SR session id is ${String(this.sessionReplay.getSessionId())}.`,
+      `Analytics session id is changed to ${sessionId}, SR session id is ${String(sessionReplay.getSessionId())}.`,
     );
-    await this.sessionReplay.setSessionId(sessionId).promise;
+    await sessionReplay.setSessionId(sessionId).promise;
   }
 
   async onOptOutChanged(optOut: boolean): Promise<void> {
