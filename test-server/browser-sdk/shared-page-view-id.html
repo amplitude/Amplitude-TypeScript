@@ -267,17 +267,21 @@
         window.dispatchEvent(new Event('beforeunload'));
       });
 
-      try {
-        await Promise.all([
-          amplitude.init(SAME_API_KEY, 'shared-page-view-id-test', sdkOptions('$default_instance')).promise,
-          second.init(SAME_API_KEY, 'shared-page-view-id-test', sdkOptions('second-instance')).promise,
-          otherProject.init(OTHER_API_KEY, 'shared-page-view-id-test', sdkOptions('other-project')).promise,
-        ]);
-        status.textContent = 'Three SDK instances are running. Use the buttons above, then read the checks.';
-      } catch (error) {
-        status.textContent = `SDK init failed: ${error instanceof Error ? error.message : String(error)}`;
-      }
-      render();
+      const start = async () => {
+        try {
+          await Promise.all([
+            amplitude.init(SAME_API_KEY, 'shared-page-view-id-test', sdkOptions('$default_instance')).promise,
+            second.init(SAME_API_KEY, 'shared-page-view-id-test', sdkOptions('second-instance')).promise,
+            otherProject.init(OTHER_API_KEY, 'shared-page-view-id-test', sdkOptions('other-project')).promise,
+          ]);
+          status.textContent = 'Three SDK instances are running. Use the buttons above, then read the checks.';
+        } catch (error) {
+          status.textContent = `SDK init failed: ${error instanceof Error ? error.message : String(error)}`;
+        }
+        render();
+      };
+
+      void start();
     </script>
   </body>
 </html>
