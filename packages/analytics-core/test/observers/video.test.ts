@@ -213,25 +213,6 @@ describe('VideoObserver', () => {
         );
       });
 
-      it('should keep counting watch time from time updates after the video has ended', () => {
-        internalHandler.onPlay({ duration: 10, position: 0 });
-        internalHandler.onTimeUpdate({ position: 8, isSeeking: false });
-        internalHandler.onEnded({
-          duration: 10,
-          position: 10,
-          percent_completed: 100,
-          stop_reason: 'ended',
-        });
-        onStateChange.mockClear();
-
-        internalHandler.onTimeUpdate({ position: 10, isSeeking: false });
-
-        expect(onStateChange).toHaveBeenCalledWith(
-          expect.objectContaining({ playbackState: 'ended', position: 10, watchTime: 8 }),
-          expect.objectContaining({ playbackState: 'playing', position: 10, watchTime: 8 }),
-        );
-      });
-
       it('should use position on lastEvent as the previous position when present', () => {
         internalHandler.onPlay({ duration: 10, position: 0 });
         internalHandler.onTimeUpdate({ position: 3, isSeeking: false });

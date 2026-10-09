@@ -7,6 +7,7 @@ import {
   UUID,
   BaseEvent,
   getHeartbeatInstance,
+  getGlobalScope,
 } from '@amplitude/analytics-core';
 import { DEFAULT_STREAM_STARTED_EVENT, DEFAULT_STREAM_STOPPED_EVENT } from '../constants';
 
@@ -104,6 +105,7 @@ export class VideoCapture {
       const nextPlayback = nextState.playbackState;
       if (prevPlayback === 'ended') {
         this.extraEventProperties.stream_session_id = UUID();
+        nextState.watchTime = 0;
       }
       if (!ACTIVE_PLAYBACK_STATES.has(prevPlayback) && nextPlayback === 'playing') {
         this.playId = UUID();
@@ -132,10 +134,11 @@ export class VideoCapture {
             ...this.extraEventProperties,
           },
         };
-        this.heartbeat.trackNoDelay(startEvent).catch(this.stop.bind(this));
-        this.heartbeat.track(this.stopEvent).catch(this.stop.bind(this));
+        this.heartbeat.trackNoDelay(startEvent).catch(() => this.stop());
+        this.heartbeat.track(this.stopEvent).catch(() => this.stop());
       }
     });
+
     return this;
   }
 
@@ -186,7 +189,7 @@ export class VideoCapture {
       ...stopEvent.event_properties,
       stop_reason: stopReason,
     };
-    this.heartbeat.trackNoDelay(stopEvent).catch(this.stop.bind(this));
+    this.heartbeat.trackNoDelay(stopEvent).catch(() => this.stop());
   }
 
   // Placeholder: may need a generic state change listener to capture unusual events or to have
@@ -222,6 +225,16 @@ export class VideoCapture {
     this.onRemoveListeners.push(() => {
       videoObserver.destroy();
     });
+
+    if (getGlobalScope()) {
+      this.onRemoveListeners.push(
+        this.heartbeat.beforePageHide(() => {
+          // if the page is exited, emit a final 'ended' stop event
+          this.stop('ended');
+        }),
+      );
+    }
+
     return this;
   }
 
@@ -231,10 +244,10 @@ export class VideoCapture {
    * Observers are detached first so no playback state change can race with the final
    * event, then any in-progress play session is closed out.
    */
-  stop() {
+  stop(stopReason = 'untracked') {
     this.onRemoveListeners.forEach((listener) => listener());
     this.onRemoveListeners = [];
-    this.flushStopEvent('untracked');
+    this.flushStopEvent(stopReason);
   }
 
   parseStartEventProperties(nextState: VideoState): Record<string, string | number | boolean | undefined> {
