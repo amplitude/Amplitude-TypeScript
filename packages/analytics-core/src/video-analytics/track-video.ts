@@ -125,6 +125,13 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
   };
   videoEl.addEventListener('timeupdate', timeupdateHandler);
 
+  const media = videoEl as HTMLMediaElement;
+
+  // if the media is already playing when tracking begins, emit a play event
+  if (media.paused === false && media.ended !== true) {
+    playHandler();
+  }
+
   return () => {
     videoEl.removeEventListener('play', playHandler);
     videoEl.removeEventListener('ended', endedHandler);
@@ -257,6 +264,19 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     };
     player.on('timeupdate', timeupdateHandler);
     onUnsubscribe.push(() => player.off('timeupdate', timeupdateHandler));
+
+    // if the player is already playing when tracking begins, emit a play event
+    if (player.getPaused) {
+      try {
+        player.getPaused((paused) => {
+          if (paused === false) {
+            playHandler();
+          }
+        });
+      } catch (error) {
+        handlers.onError(`Error getting paused state from 'ready' handler: ${error as string}`);
+      }
+    }
   };
   player.on('ready', readyHandler);
 

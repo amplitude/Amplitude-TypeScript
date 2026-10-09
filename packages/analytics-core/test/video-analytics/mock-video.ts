@@ -3,6 +3,7 @@ import type { EmbeddedVideoPlayer, VideoHandler } from '../../src/video-analytic
 export type MockEmbeddedVideoPlayer = EmbeddedVideoPlayer & {
   emit: (event: string) => void;
   setCurrentTime: (time: number) => void;
+  setPaused: (paused: boolean) => void;
 };
 
 /**
@@ -26,6 +27,7 @@ export function createMockEmbeddedVideoPlayer(options?: {
 
   const listeners = new Map<string, Set<() => void>>();
   let currentTime = 0;
+  let paused = true;
   const duration = 10;
 
   const on = (event: string, callback: () => void) => {
@@ -64,9 +66,15 @@ export function createMockEmbeddedVideoPlayer(options?: {
     off,
     getDuration,
     getCurrentTime,
+    getPaused(cb: (p: boolean) => void) {
+      cb(paused);
+    },
     emit,
     setCurrentTime(t: number) {
       currentTime = t;
+    },
+    setPaused(p: boolean) {
+      paused = p;
     },
   };
 
