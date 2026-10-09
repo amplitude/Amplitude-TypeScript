@@ -3792,6 +3792,142 @@ describe('SessionReplay', () => {
     });
   });
 
+  describe('deferFullSnapshot', () => {
+    const deferredOptions: SessionReplayOptions = {
+      ...mockOptions,
+      deferFullSnapshot: { enabled: true, until: 'load' },
+    };
+
+    /** Fires the window `load` listener the deferral installed on the mocked global scope. */
+    function fireLoad() {
+      const loadCalls = addEventListenerMock.mock.calls.filter((call) => call[0] === 'load');
+      expect(loadCalls.length).toBeGreaterThan(0);
+      for (const call of loadCalls) {
+        (call[1] as () => void)();
+      }
+    }
+
+    test('holds the rrweb start until the page load event fires', async () => {
+      const addCustomEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
+      await sessionReplay.init(apiKey, deferredOptions).promise;
+      // Let every non-timer microtask settle: without deferral this is enough for record() to run.
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+      expect(addEventListenerMock).toHaveBeenCalledWith('load', expect.any(Function));
+      expect((sessionReplay as any).recordEventsInFlight).toBe(true);
+
+      fireLoad();
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+      expect((sessionReplay as any).recordEventsInFlight).toBe(false);
+      // The outcome is surfaced in the debug-info custom event for the replay.
+      expect(addCustomEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.DEBUG_INFO, {
+        deferredStart: expect.objectContaining({ resolvedBy: 'load', waitedMs: expect.any(Number) }),
+      });
+    });
+
+    test("until: 'idle' waits for load and then a further idle tick", async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, deferFullSnapshot: { enabled: true, until: 'idle' } }).promise;
+      fireLoad();
+      // Load alone is not enough: the (setTimeout-fallback) idle tick has not run yet.
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not defer by default (option omitted)', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+      expect(addEventListenerMock).not.toHaveBeenCalledWith('load', expect.any(Function));
+    });
+
+    test('does not defer when enabled is false', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, deferFullSnapshot: { enabled: false } }).promise;
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+      expect(addEventListenerMock).not.toHaveBeenCalledWith('load', expect.any(Function));
+    });
+
+    test('maxWaitMs releases the start even when load never fires', async () => {
+      const addCustomEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        deferFullSnapshot: { enabled: true, until: 'load', maxWaitMs: 2000 },
+      }).promise;
+      await jest.advanceTimersByTimeAsync(1999);
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+
+      await jest.advanceTimersByTimeAsync(1);
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+      expect(addCustomEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.DEBUG_INFO, {
+        deferredStart: expect.objectContaining({ resolvedBy: 'max-wait', waitedMs: 2000 }),
+      });
+    });
+
+    test('stop() during the deferral prevents rrweb from starting after load', async () => {
+      await sessionReplay.init(apiKey, deferredOptions).promise;
+      await jest.advanceTimersByTimeAsync(0);
+      sessionReplay.stop();
+
+      fireLoad();
+      await jest.advanceTimersByTimeAsync(0);
+
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBeNull();
+    });
+
+    test('a session change during the deferral starts a single recording for the new session', async () => {
+      await sessionReplay.init(apiKey, deferredOptions).promise;
+      await jest.advanceTimersByTimeAsync(0);
+
+      await sessionReplay.setSessionId(456).promise;
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+
+      fireLoad();
+      await jest.advanceTimersByTimeAsync(0);
+
+      // The stale (session 123) start was superseded; only the session-456 start ran.
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+      const enqueueSpy = jest.spyOn(sessionReplay.eventCompressor!, 'enqueueEvent');
+      const recordArg = mockRecordFunction.mock.calls[0][0] as { emit: (event: unknown) => void };
+      recordArg.emit(mockEvent);
+      expect(enqueueSpy).toHaveBeenCalledWith(mockEvent, 456);
+    });
+
+    test('restarts after the deferral has elapsed are not deferred again', async () => {
+      await sessionReplay.init(apiKey, deferredOptions).promise;
+      fireLoad();
+      await jest.advanceTimersByTimeAsync(0);
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+      addEventListenerMock.mockClear();
+
+      await sessionReplay.recordEvents();
+
+      expect(mockRecordFunction).toHaveBeenCalledTimes(2);
+      expect(addEventListenerMock).not.toHaveBeenCalledWith('load', expect.any(Function));
+    });
+
+    test('coordinated cross-origin child iframes install the parent listener without waiting for load', async () => {
+      (mockIsInIframe as jest.Mock).mockReturnValue(true);
+      (mockListenForParentSignals as jest.Mock).mockReturnValue(jest.fn());
+      try {
+        await sessionReplay.init(apiKey, { ...deferredOptions, crossOriginIframes: { enabled: true } }).promise;
+        await jest.advanceTimersByTimeAsync(0);
+
+        expect(addEventListenerMock).not.toHaveBeenCalledWith('load', expect.any(Function));
+        expect(mockListenForParentSignals).toHaveBeenCalledTimes(1);
+      } finally {
+        (mockIsInIframe as jest.Mock).mockReturnValue(false);
+      }
+    });
+  });
+
   describe('getCurrentUrl', () => {
     test('returns url if exists', () => {
       globalSpy.mockImplementation(() => ({

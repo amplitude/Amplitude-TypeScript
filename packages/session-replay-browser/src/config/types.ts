@@ -147,6 +147,46 @@ export interface CrossOriginIframesConfig {
   coordinateChildren?: boolean;
 }
 
+/**
+ * Controls whether (and how long) the SDK waits before taking the initial rrweb full
+ * snapshot on a fresh page load. See {@link SessionReplayLocalConfig.deferFullSnapshot}.
+ */
+export interface DeferFullSnapshotConfig {
+  /**
+   * When true, recording (and therefore the initial full snapshot) does not start until the
+   * page has finished loading. When false the snapshot is taken as soon as the SDK is ready.
+   */
+  enabled: boolean;
+  /**
+   * The page-lifecycle milestone to wait for before starting recording.
+   *
+   * - `'load'`: wait for the window `load` event (resolves immediately when the document is
+   *   already `complete`).
+   * - `'idle'`: wait for `load`, then for the next `requestIdleCallback` so the snapshot lands
+   *   in a main-thread gap after the browser has painted. Falls back to a `setTimeout(0)` after
+   *   `load` on browsers without `requestIdleCallback` (e.g. Safari).
+   *
+   * @defaultValue 'idle'
+   */
+  until?: 'load' | 'idle';
+  /**
+   * Additional fixed delay in milliseconds applied after `until` is satisfied. Useful for apps
+   * that hydrate or render their main content shortly after `load`. Negative and non-finite
+   * values are treated as `0`.
+   *
+   * @defaultValue 0
+   */
+  delayMs?: number;
+  /**
+   * Upper bound in milliseconds on the total deferral, measured from the moment the SDK was
+   * ready to record. Recording starts once this elapses even if `load`/`idle` has not fired
+   * (e.g. a page held open by a slow third-party resource). Clamped to a 30 s ceiling.
+   *
+   * @defaultValue 5000
+   */
+  maxWaitMs?: number;
+}
+
 export interface SessionReplayLocalConfig extends IConfig {
   apiKey: string;
   loggerProvider: ILogger;
@@ -362,6 +402,28 @@ export interface SessionReplayLocalConfig extends IConfig {
    * prior to that change.
    */
   captureFullSnapshotOnFocus?: boolean;
+  /**
+   * Defers the initial rrweb full snapshot — the synchronous serialization of the entire DOM
+   * that runs when recording starts — until the page has finished loading. The snapshot is the
+   * single most expensive piece of main-thread work the SDK performs, and by default it runs as
+   * soon as the SDK is ready, typically while the page is still rendering and competing for the
+   * main thread with LCP, hydration and first-input handling.
+   *
+   * When enabled, the SDK holds off on loading `rrweb-record` and starting recording until the
+   * milestone in {@link DeferFullSnapshotConfig.until} fires (`load` + idle by default), with
+   * {@link DeferFullSnapshotConfig.maxWaitMs} as a safety cap. The deferral is anchored to the
+   * page load: only recording starts requested *before* the milestone are held; later restarts
+   * (session rotation, `start()`, focus) proceed immediately. Coordinated cross-origin child
+   * iframes are never deferred — they follow the parent's (possibly deferred) start signal.
+   *
+   * Trade-off: DOM changes and interactions that happen before the deferred start are not
+   * recorded; the replay begins from the post-load state instead. Sessions that leave the page
+   * before the deferral elapses produce no replay.
+   *
+   * @defaultValue undefined — deferral disabled; the snapshot is taken as soon as the SDK is
+   * ready to record.
+   */
+  deferFullSnapshot?: DeferFullSnapshotConfig;
   /**
    * Raw (uncompressed) UTF-8 byte cap for a single buffered events list before the store
    * splits it into its own request. Larger values produce fewer, larger requests (the primary

@@ -18,4 +18,5 @@ export {
   FetchConfigRequest,
   SessionReplaySendEventsHandler,
   SessionReplayFetchConfigHandler,
+  DeferFullSnapshotConfig,
 } from './config/types';

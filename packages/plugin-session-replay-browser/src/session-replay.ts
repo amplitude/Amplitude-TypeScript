@@ -117,6 +117,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         flushIntervalConfig: this.options.flushIntervalConfig,
         eagerFullSnapshotSend: this.options.eagerFullSnapshotSend,
         captureFullSnapshotOnFocus: this.options.captureFullSnapshotOnFocus,
+        deferFullSnapshot: this.options.deferFullSnapshot,
         maxPersistedEventsSizeBytes: this.options.maxPersistedEventsSizeBytes,
         maxSingleEventSizeBytes: this.options.maxSingleEventSizeBytes,
         sendTimeoutMs: this.options.sendTimeoutMs,

@@ -30,6 +30,7 @@ import {
 } from './config/types';
 import {
   CustomRRwebEvent,
+  DEFAULT_DEFER_FULL_SNAPSHOT_MAX_WAIT_MS,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   INTERACTION_MAX_INTERVAL,
   INTERACTION_MIN_INTERVAL,
@@ -70,6 +71,7 @@ import { VERSION } from './version';
 import type { NetworkObservers, NetworkRequestEvent } from './observers';
 import { createUrlTrackingPlugin, subscribeToUrlChanges } from './plugins/url-tracking-plugin';
 import type { RecordFunction } from './utils/rrweb';
+import { waitForDeferredRecordStart, DeferredRecordStartResult } from './utils/deferred-record-start';
 import { isInIframe, CrossOriginIframeCoordinator, listenForParentSignals } from './cross-origin-iframes';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
@@ -122,6 +124,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * passed `getShouldRecord()` cannot start rrweb after capture was paused.
    */
   private recordingGeneration = 0;
+  /**
+   * Bumped on every `recordEvents()` request. A `_recordEvents()` that was parked on the
+   * `deferFullSnapshot` wait compares its captured id against this after waking so a newer
+   * request (e.g. a session change that arrived mid-deferral) wins instead of the stale one
+   * starting rrweb with an outdated session id and then being torn down again.
+   */
+  private latestRecordRequestId = 0;
+  /**
+   * Shared page-load deferral. Every recording start requested before the milestone waits
+   * on the same promise; once it settles (`deferredRecordStartResult` set) later starts
+   * proceed immediately, so the deferral is anchored to this page load rather than
+   * re-applied on session rotation / focus / `start()`.
+   */
+  private deferredRecordStartPromise: Promise<DeferredRecordStartResult> | null = null;
+  private deferredRecordStartResult: DeferredRecordStartResult | null = null;
   /**
    * Set by customer `start()` so coordinated child iframes self-start instead of
    * waiting for a parent signal that may never be resent. Kept until recording
@@ -903,6 +920,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async recordEvents(shouldLogMetadata = true) {
+    this.latestRecordRequestId++;
     if (this.recordEventsInFlight) {
       this.recordEventsPendingShouldLogMetadata = shouldLogMetadata;
       return;
@@ -925,6 +943,38 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return !this.recordingEnabled || generation !== this.recordingGeneration;
   }
 
+  /**
+   * Returns the shared page-load deferral promise when this start must be held back by
+   * `deferFullSnapshot`, or `null` synchronously when no wait applies (feature off, or the
+   * page-load milestone already passed). Returning `null` rather than a resolved promise keeps
+   * the non-deferred start path free of an extra microtask hop.
+   */
+  private getDeferredRecordStart(config: SessionReplayJoinedConfig): Promise<DeferredRecordStartResult> | null {
+    const deferConfig = config.deferFullSnapshot;
+    if (!deferConfig?.enabled || this.deferredRecordStartResult) {
+      return null;
+    }
+    if (!this.deferredRecordStartPromise) {
+      const until = deferConfig.until ?? 'idle';
+      this.loggerProvider.log(
+        `Deferring Session Replay full snapshot until page ${until} (max ${String(deferConfig.maxWaitMs)}ms).`,
+      );
+      this.deferredRecordStartPromise = waitForDeferredRecordStart({
+        enabled: true,
+        until,
+        delayMs: deferConfig.delayMs ?? 0,
+        maxWaitMs: deferConfig.maxWaitMs ?? DEFAULT_DEFER_FULL_SNAPSHOT_MAX_WAIT_MS,
+      }).then((result) => {
+        this.deferredRecordStartResult = result;
+        this.loggerProvider.log(
+          `Deferred Session Replay full snapshot released after ${result.waitedMs}ms (${result.resolvedBy}).`,
+        );
+        return result;
+      });
+    }
+    return this.deferredRecordStartPromise;
+  }
+
   private async _recordEvents(shouldLogMetadata = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
@@ -934,6 +984,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
     const generation = this.recordingGeneration;
+    const requestId = this.latestRecordRequestId;
+
+    const crossOriginIframesEnabled = !!config.crossOriginIframes?.enabled;
+    const coordinateChildren = config.crossOriginIframes?.coordinateChildren !== false;
+    const childMode = crossOriginIframesEnabled && isInIframe();
+
+    // Hold the whole start — including the rrweb-record import — until the page has loaded when
+    // deferral is configured. Coordinated children skip it: they never snapshot on their own and
+    // must be listening when the parent's (itself possibly deferred) start signal arrives.
+    const deferral = childMode && coordinateChildren ? null : this.getDeferredRecordStart(config);
+    const deferredStart = deferral ? await deferral : null;
+    if (deferredStart && (this.shouldAbandonRecordStart(generation) || requestId !== this.latestRecordRequestId)) {
+      this.loggerProvider.log('Deferred Session Replay start superseded or cancelled before it ran.');
+      return;
+    }
 
     const recordFunction = await this.getRecordFunction();
 
@@ -978,10 +1043,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
     try {
-      const crossOriginIframesEnabled = !!config.crossOriginIframes?.enabled;
-      const coordinateChildren = config.crossOriginIframes?.coordinateChildren !== false;
-      const childMode = crossOriginIframesEnabled && isInIframe();
-
       if (childMode && coordinateChildren) {
         // Child mode: don't self-start; wait for a start signal from the parent.
         // (The previous listener, if any, was already removed by stopRecordingEvents above.)
@@ -1065,7 +1126,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.crossOriginIframeCoordinator.start();
       }
 
-      void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
+      // Surface the deferral outcome in the replay itself so a late-starting recording can be
+      // told apart from a slow page when debugging.
+      void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO, deferredStart ? { deferredStart } : {});
       if (shouldLogMetadata) {
         void this.addCustomRRWebEvent(CustomRRwebEvent.METADATA, this.metadata);
       }
