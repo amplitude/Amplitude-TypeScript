@@ -108,6 +108,22 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('setup', () => {
+    test('should load the session replay package during setup', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+
+      expect(sessionReplay.sessionReplay).toBeUndefined();
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(sessionReplay.sessionReplay).toEqual(
+        expect.objectContaining({
+          init,
+          setSessionId,
+          getSessionReplayProperties,
+        }),
+      );
+    });
+
     test('should setup plugin', async () => {
       const customDeviceId = randomUUID();
       const sessionReplay = new SessionReplayPlugin({
