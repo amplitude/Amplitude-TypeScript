@@ -87,37 +87,17 @@
       const nextButton = document.getElementById('next-video');
       nextButton.addEventListener('click', () => {
         nextButton.disabled = true;
-
-        // report the current video as ended while the player can still answer
-        // getCurrentTime/getDuration, then navigate once that round trip returns
-        iframe.dispatchEvent(new Event('srcchange'));
-
-        let advanced = false;
-        const advance = () => {
-          if (advanced) {
-            return;
-          }
-          advanced = true;
-          // let the tracker's metadata promise settle before tearing the capture down
-          window.setTimeout(() => {
-            stopVideoCapture();
-            currentIndex = (currentIndex + 1) % playlist.length;
-            iframe.addEventListener(
-              'load',
-              () => {
-                nextButton.disabled = false;
-              },
-              { once: true },
-            );
-            iframe.src = playerSrc(playlist[currentIndex]);
-            startTracking();
-          }, 0);
-        };
-
-        // sent after the tracker's own getCurrentTime/getDuration, so this
-        // callback means that playhead read has already been answered
-        player.getCurrentTime(advance);
-        window.setTimeout(advance, 300);
+        stopVideoCapture();
+        currentIndex = (currentIndex + 1) % playlist.length;
+        iframe.addEventListener(
+          'load',
+          () => {
+            nextButton.disabled = false;
+          },
+          { once: true },
+        );
+        iframe.src = playerSrc(playlist[currentIndex]);
+        startTracking();
       });
 
       document.getElementById('stop-video').addEventListener('click', () => {

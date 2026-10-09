@@ -38,6 +38,7 @@ export type TimeUpdateEvent = {
 type EmbeddedVideoPlayer = {
   getCurrentTime: (cb: (time: number) => void) => void;
   getDuration: (cb: (duration: number) => void) => void;
+  getPaused?: (cb: (paused: boolean) => void) => void;
   on: (event: string, callback: () => void) => void;
   off: (event: string, callback: () => void) => void;
   elem: HTMLIFrameElement;

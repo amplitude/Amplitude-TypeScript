@@ -98,12 +98,19 @@ export class VideoObserver {
   }
 
   private updatePlaybackState(playbackState: PlaybackState, event: VideoEvent) {
+    const previousPlayback = this.state.playbackState;
+    // Aborting a load does not emit `seeked`. A seek still open when this media
+    // ends, or when the replacement starts, must not stick to the next stream.
+    const clearSeeking =
+      !!this.state.isSeeking &&
+      (playbackState === 'ended' || (playbackState === 'playing' && previousPlayback === 'ended'));
     const nextState: State = {
       ...this.state,
       playbackState,
       errorMessage: undefined,
       lastEvent: event,
       position: event.position,
+      ...(clearSeeking ? { isSeeking: false } : {}),
     };
     this.updateState(nextState);
 
@@ -136,9 +143,7 @@ export class VideoObserver {
     const lastVideoEvent = this.state.lastEvent;
     const isWaiting = this.state.playbackState === 'waiting';
     const isPlaying = this.state.playbackState === 'playing';
-    const isEnded = this.state.playbackState === 'ended';
-
-    if (!lastVideoEvent || (!isPlaying && !isWaiting && !isEnded)) {
+    if (!lastVideoEvent || (!isPlaying && !isWaiting)) {
       return;
     }
     const isSeeking = event.isSeeking || this.state.isSeeking;

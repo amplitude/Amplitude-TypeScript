@@ -156,6 +156,60 @@ describe('VideoObserver', () => {
       );
     });
 
+    it('should keep isSeeking when playback resumes before seeked', () => {
+      internalHandler.onPlay({ duration: 10, position: 0 });
+      internalHandler.onSeeking({ duration: 10, position: 1 });
+      internalHandler.onPause({
+        duration: 10,
+        position: 1,
+        stop_reason: 'paused',
+      });
+      internalHandler.onPlay({ duration: 10, position: 1 });
+      expect(onStateChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ playbackState: 'paused', isSeeking: true }),
+        expect.objectContaining({ playbackState: 'playing', isSeeking: true }),
+      );
+
+      onStateChange.mockClear();
+      internalHandler.onTimeUpdate({ position: 40, isSeeking: false });
+      expect(onStateChange).not.toHaveBeenCalled();
+    });
+
+    it('should clear an outstanding seek when media ends so the replacement accumulates watch time', () => {
+      internalHandler.onPlay({ duration: 10, position: 0 });
+      internalHandler.onSeeking({
+        duration: 10,
+        position: 4,
+        stop_reason: 'seeking',
+      });
+      internalHandler.onEnded({
+        duration: 10,
+        position: 4,
+        percent_completed: 40,
+        stop_reason: 'ended',
+      });
+      expect(onStateChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ playbackState: 'playing', isSeeking: true }),
+        expect.objectContaining({ playbackState: 'ended', isSeeking: false, position: 4 }),
+      );
+
+      // a seek event that lands after the source change is still dropped when the replacement starts
+      internalHandler.onSeeking({ duration: 8, position: 0, stop_reason: 'seeking' });
+      internalHandler.onPlay({ duration: 8, position: 0 });
+      expect(onStateChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ playbackState: 'ended', isSeeking: true }),
+        expect.objectContaining({ playbackState: 'playing', isSeeking: false, position: 0 }),
+      );
+
+      onStateChange.mockClear();
+      internalHandler.onTimeUpdate({ position: 2, isSeeking: false });
+      expect(onStateChange).toHaveBeenCalledTimes(1);
+      expect(onStateChange).toHaveBeenCalledWith(
+        expect.objectContaining({ playbackState: 'playing', isSeeking: false, position: 0 }),
+        expect.objectContaining({ playbackState: 'playing', isSeeking: false, position: 2, watchTime: 2 }),
+      );
+    });
+
     it('should clear isSeeking and sync position on onSeeked', () => {
       internalHandler.onSeeking({
         duration: 10,
@@ -210,25 +264,6 @@ describe('VideoObserver', () => {
         expect(onStateChange).toHaveBeenLastCalledWith(
           expect.objectContaining({ playbackState: 'playing', watchTime: 5 }),
           expect.objectContaining({ playbackState: 'playing', watchTime: 8 }),
-        );
-      });
-
-      it('should keep counting watch time from time updates after the video has ended', () => {
-        internalHandler.onPlay({ duration: 10, position: 0 });
-        internalHandler.onTimeUpdate({ position: 8, isSeeking: false });
-        internalHandler.onEnded({
-          duration: 10,
-          position: 10,
-          percent_completed: 100,
-          stop_reason: 'ended',
-        });
-        onStateChange.mockClear();
-
-        internalHandler.onTimeUpdate({ position: 10, isSeeking: false });
-
-        expect(onStateChange).toHaveBeenCalledWith(
-          expect.objectContaining({ playbackState: 'ended', position: 10, watchTime: 8 }),
-          expect.objectContaining({ playbackState: 'playing', position: 10, watchTime: 8 }),
         );
       });
 
