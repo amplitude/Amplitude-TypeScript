@@ -61,9 +61,22 @@ export const SHADOW_BOUNDARY_DELIMITER = ' >>> ';
  */
 export const SHADOW_CHILD_CHAIN_PREFIX = ':scope > ';
 
-/** Narrowing guard that tolerates environments without a `ShadowRoot` global. */
+/**
+ * Narrowing guard for shadow roots. Tries `instanceof` first, then falls back
+ * to a structural check so shadow roots from another realm (e.g. a same-origin
+ * iframe, as in a replay mirror) are recognized too: there the calling page's
+ * `ShadowRoot` constructor does not match. Safe in environments without a
+ * `ShadowRoot` global, and `null`/`undefined` return `false`.
+ */
 export function isShadowRoot(node: Node): node is ShadowRoot {
-  return typeof ShadowRoot !== 'undefined' && node instanceof ShadowRoot;
+  if (typeof ShadowRoot !== 'undefined' && node instanceof ShadowRoot) {
+    return true;
+  }
+  return (
+    node != null &&
+    node.nodeType === 11 /* DOCUMENT_FRAGMENT_NODE */ &&
+    (node as ShadowRoot).host?.nodeType === 1 /* ELEMENT_NODE */
+  );
 }
 
 /**
