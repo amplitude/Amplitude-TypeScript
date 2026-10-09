@@ -244,6 +244,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
       return;
     }
 
+    dataExtractor.setPageViewApiKey(config.apiKey);
+
     // Create observables for events on the window
     const allObservables = createObservables();
 

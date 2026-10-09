@@ -21,6 +21,12 @@ export { getQueryParams } from './query-params';
 export { returnWrapper, AmplitudeReturn } from './utils/return-wrapper';
 export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug';
 export { UUID } from './utils/uuid';
+export {
+  PAGE_VIEW_SESSION_STORAGE_KEY,
+  getOrCreatePageViewId,
+  getCurrentPageViewId,
+  clearPageViewState,
+} from './page-view-id';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';

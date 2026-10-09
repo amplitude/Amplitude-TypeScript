@@ -79,6 +79,10 @@ import {
   EXCLUDE_INTERNAL_REFERRERS_CONDITIONS,
   omitUndefined,
   pruneJson,
+  PAGE_VIEW_SESSION_STORAGE_KEY,
+  getOrCreatePageViewId,
+  getCurrentPageViewId,
+  clearPageViewState,
 } from '../src/index';
 
 describe('index', () => {
@@ -179,6 +183,10 @@ describe('index', () => {
     expect(typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).toBe('object');
     expect(typeof omitUndefined).toBe('function');
     expect(typeof pruneJson).toBe('function');
+    expect(PAGE_VIEW_SESSION_STORAGE_KEY).toBe('AMP_PAGE_VIEW');
+    expect(typeof getOrCreatePageViewId).toBe('function');
+    expect(typeof getCurrentPageViewId).toBe('function');
+    expect(typeof clearPageViewState).toBe('function');
   });
 
   describe('EXCLUDE_INTERNAL_REFERRERS_CONDITIONS export', () => {
