@@ -680,6 +680,34 @@ describe('heartbeat', () => {
         message: 'success',
       });
     });
+
+    test('should trigger a new heartbeat if called while a heartbeat is in flight', async () => {
+      let resolveFirst: (value: unknown) => void = () => undefined;
+      trackMock.mockImplementationOnce(() => ({
+        promise: new Promise((resolve) => {
+          resolveFirst = resolve;
+        }),
+      }));
+      const heartbeatMock = jest.spyOn(heartbeat as any, 'heartbeat');
+
+      const res1 = heartbeat.trackNoDelay({ insert_id: '1', event_type: 'test', event_properties: { test: 'test1' } });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(heartbeatMock).toHaveBeenCalledTimes(1);
+
+      // first heartbeat is still in flight
+      const res2 = heartbeat.trackNoDelay({ insert_id: '2', event_type: 'test', event_properties: { test: 'test2' } });
+      await jest.advanceTimersByTimeAsync(0);
+      expect(heartbeatMock).toHaveBeenCalledTimes(2);
+      expect(trackMock).toHaveBeenLastCalledWith(
+        'test',
+        { test: 'test2' },
+        expect.objectContaining({ insert_id: '2' }),
+      );
+      expect(await res2).toMatchObject({ event: { insert_id: '2' } });
+
+      resolveFirst({ event: { insert_id: '1' }, code: 200, message: 'success' });
+      expect(await res1).toMatchObject({ event: { insert_id: '1' } });
+    });
   });
 
   describe('kitchen sink', () => {

@@ -36,6 +36,11 @@ function getMediaErrorMessage(error: MediaError | null | undefined) {
   return `Media element error (code ${error.code})${error.message ? `: ${error.message}` : ''}`;
 }
 
+function getEffectiveSource(videoEl: HTMLMediaElement | MuxElement): MediaProvider | string | null {
+  const media = videoEl as Partial<HTMLMediaElement>;
+  return media.srcObject || media.currentSrc || media.src || videoEl.getAttribute('src');
+}
+
 function getMuxMetadata(videoEl: MuxElement) {
   return {
     mux_playback_id: videoEl.getAttribute('playback-id'),
@@ -115,16 +120,63 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
   };
   videoEl.addEventListener('error', errorHandler);
 
+  let videoData: VideoEvent | null = null;
   const timeupdateHandler = () => {
     const media = videoEl as HTMLMediaElement;
+
+    // if the video is playing again after being previously ended, resume playback
+    const duration = videoEl.duration;
+    const isUnloadedTick = typeof duration !== 'number' || Number.isNaN(duration);
+    const isPlayheadMoving = !isUnloadedTick && media.ended !== true && media.paused === false;
+    if (hasReportedEnded && videoData === null && isPlayheadMoving) {
+      playHandler();
+    }
+
     const timeupdateEvent: TimeUpdateEvent = {
       position: videoEl.currentTime,
       isSeeking: !!media.seeking,
     };
     handlers.onTimeUpdate(timeupdateEvent);
+
+    if (hasReportedEnded && isUnloadedTick) {
+      return;
+    }
+    // if a new video is loaded in place of the previous one, reset the ended flag
+    if (hasReportedEnded && videoData === null && media.ended !== true) {
+      hasReportedEnded = false;
+    }
+
+    // save the current video state to be used in 'ended' events if current video is unloadedWhen a source is replaced while the previous media is seeking, this onEnded transition preserves VideoObserver.state.isSeeking, and the subsequent onPlay transition preserves it again. Because aborting the old load need not emit seeked, every time update for the replacement then follows event.isSeeking || this.state.isSeeking and is treated as a seek indefinitely, so the new stream's play_time remains zero and its queued stop event is not updated. Clear the outstanding seeking state at the source-change boundary or when the replacement starts.
+    videoData = getVideoData(videoEl);
+    if (vendor === 'mux') {
+      videoData = { ...videoData, ...getMuxMetadata(videoEl) };
+    }
   };
   videoEl.addEventListener('timeupdate', timeupdateHandler);
 
+  // report the media that was playing before a source change as over, using the last
+  // timeupdate because the element has already been reset by the time we hear about it
+  const endCurrentMedia = () => {
+    if (videoData && !hasReportedEnded) {
+      hasReportedEnded = true;
+      handlers.onEnded(videoData);
+    }
+    videoData = null;
+  };
+
+  let currentSource = getEffectiveSource(videoEl);
+  const loadStartHandler = () => {
+    const nextSource = getEffectiveSource(videoEl);
+    if (nextSource !== currentSource) {
+      currentSource = nextSource;
+      endCurrentMedia();
+    }
+  };
+  videoEl.addEventListener('loadstart', loadStartHandler);
+
+  // `emptied` fires whenever loaded media is torn down, which also covers swaps that keep the
+  // same URL (e.g. hls.js re-attaching a MediaSource), `srcObject` and `<source>` changes
+  videoEl.addEventListener('emptied', endCurrentMedia);
   const media = videoEl as HTMLMediaElement;
 
   // if the media is already playing when tracking begins, emit a play event
@@ -140,6 +192,8 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
     videoEl.removeEventListener('seeked', seekedHandler);
     videoEl.removeEventListener('error', errorHandler);
     videoEl.removeEventListener('timeupdate', timeupdateHandler);
+    videoEl.removeEventListener('loadstart', loadStartHandler);
+    videoEl.removeEventListener('emptied', endCurrentMedia);
   };
 }
 

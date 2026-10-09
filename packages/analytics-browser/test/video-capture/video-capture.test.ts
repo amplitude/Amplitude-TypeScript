@@ -302,6 +302,87 @@ describe('VideoCapture', () => {
       expect(mockAmplitude.track).toHaveBeenCalledTimes(3);
     });
 
+    it('should start a new stream session when playback restarts after ending', async () => {
+      trackVideo(mockAmplitude, document.createElement('video'));
+      const endedState: VideoState = {
+        playbackState: 'ended',
+        lastEvent: { duration: 10, position: 10, start_time: 10, stop_reason: 'ended' },
+        position: 10,
+        watchTime: 10,
+      };
+
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: 0, start_time: 0 } },
+      );
+      await flushHeartbeat();
+      const firstSessionId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].stream_session_id as string;
+
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'playing', lastEvent: { duration: 10, position: 0, start_time: 0 } },
+        endedState,
+      );
+      await flushHeartbeat();
+
+      currentVideoObserver!.emitStateChange(endedState, {
+        playbackState: 'playing',
+        lastEvent: { duration: 10, position: 0, start_time: 0 },
+      });
+      await flushHeartbeat();
+
+      const restartCall = (mockAmplitude.track as jest.Mock).mock.calls.find(
+        (call) => call[0] === '[Amplitude] Stream Started' && call[1].stream_session_id !== firstSessionId,
+      );
+      expect(restartCall?.[1].stream_session_id).toEqual(expect.any(String));
+      expect(restartCall?.[1].stream_session_id).not.toBe(firstSessionId);
+    });
+
+    it('should reset watch time when playback restarts after ending', async () => {
+      trackVideo(mockAmplitude, document.createElement('video'));
+      const endedState: VideoState = {
+        playbackState: 'ended',
+        lastEvent: { duration: 10, position: 10, start_time: 0, stop_reason: 'ended' },
+        position: 10,
+        watchTime: 10,
+      };
+
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: 0, start_time: 0 }, watchTime: 0 },
+      );
+      await flushHeartbeat();
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'playing', lastEvent: { duration: 10, position: 0, start_time: 0 }, watchTime: 0 },
+        endedState,
+      );
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Amplitude] Stream Stopped',
+        expect.objectContaining({ play_time: 10, stop_reason: 'ended' }),
+        expect.any(Object),
+      );
+      jest.clearAllMocks();
+
+      // the observer spreads the ended session forward, so the replay state still carries its watch time
+      const replayState: VideoState = {
+        playbackState: 'playing',
+        lastEvent: { duration: 10, position: 0, start_time: 0 },
+        position: 0,
+        watchTime: 10,
+      };
+      currentVideoObserver!.emitStateChange(endedState, replayState);
+      await flushHeartbeat();
+
+      expect(replayState.watchTime).toBe(0);
+      expect(mockAmplitude.track).toHaveBeenNthCalledWith(
+        2,
+        '[Amplitude] Stream Stopped',
+        expect.objectContaining({ play_time: 0, stop_reason: 'timeout' }),
+        expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
+      );
+    });
+
     it('should capture start and stop events with embedded video player', async () => {
       const stopVideoCapture = trackVideo(mockAmplitude, {
         onPlay: jest.fn(),
