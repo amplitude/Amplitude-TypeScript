@@ -13,6 +13,7 @@
       allow="autoplay; encrypted-media; picture-in-picture;"
       allowfullscreen
     ></iframe>
+    <button id="next-video">Skip to Next Video</button>
     <button id="stop-video">Stop Capturing</button>
     <script src="https://cdn.jsdelivr.net/npm/player.js@latest/dist/player.min.js"></script>
     <script type="module">
@@ -25,10 +26,33 @@
       // the User ID of the logged-in user (if available)
       // (do not use an ID with PII)
       const userId = 'random-user-id';
-      
+
+      const playlist = [
+        {
+          playbackId: 'dE02GfTAlJD4RcqNAlgiS2m00LqbdFqlBm',
+          title: 'All about thumbnails',
+          id: 'video-1138',
+        },
+        {
+          playbackId: 'iBXEG00ifc9cPSv005eKgQ01g3w42LUGdlFWlmeosVuGfU',
+          title: 'My Video',
+          id: 'video-123',
+        },
+      ];
+      let currentIndex = 0;
+
       const iframe = document.getElementById('player');
-      const player = new playerjs.Player(iframe);
-      
+      let player;
+
+      const playerSrc = (entry) => {
+        const params = new URLSearchParams({
+          'metadata-video-title': entry.title,
+          'metadata-video-id': entry.id,
+          'metadata-user-id': userId,
+        });
+        return `https://player.mux.com/${entry.playbackId}?${params.toString()}`;
+      };
+
       // AMPLITUDE VIDEO ANALYTICS
 
       // initialize Amplitude
@@ -45,12 +69,55 @@
       });
 
       // capture analytics events for Video Start and Video Stop
-      const stopVideoCapture = amplitude.trackVideo(amplitude, player, {
-        vendor: 'mux',
-        extraEventProperties: {
-          // capture this so client and server events can be linked together
-          mux_view_session_id: muxViewSessionId,
-        },
+      // player.js only handshakes once, so a new player is bound each time the iframe src changes
+      let stopVideoCapture = () => {};
+      const startTracking = () => {
+        player = new playerjs.Player(iframe);
+        const result = amplitude.trackVideo(amplitude, player, {
+          vendor: 'mux',
+          extraEventProperties: {
+            // capture this so client and server events can be linked together
+            mux_view_session_id: muxViewSessionId,
+          },
+        });
+        stopVideoCapture = typeof result === 'function' ? result : () => {};
+      };
+      startTracking();
+
+      const nextButton = document.getElementById('next-video');
+      nextButton.addEventListener('click', () => {
+        nextButton.disabled = true;
+
+        // report the current video as ended while the player can still answer
+        // getCurrentTime/getDuration, then navigate once that round trip returns
+        iframe.dispatchEvent(new Event('srcchange'));
+
+        let advanced = false;
+        const advance = () => {
+          if (advanced) {
+            return;
+          }
+          advanced = true;
+          // let the tracker's metadata promise settle before tearing the capture down
+          window.setTimeout(() => {
+            stopVideoCapture();
+            currentIndex = (currentIndex + 1) % playlist.length;
+            iframe.addEventListener(
+              'load',
+              () => {
+                nextButton.disabled = false;
+              },
+              { once: true },
+            );
+            iframe.src = playerSrc(playlist[currentIndex]);
+            startTracking();
+          }, 0);
+        };
+
+        // sent after the tracker's own getCurrentTime/getDuration, so this
+        // callback means that playhead read has already been answered
+        player.getCurrentTime(advance);
+        window.setTimeout(advance, 300);
       });
 
       document.getElementById('stop-video').addEventListener('click', () => {

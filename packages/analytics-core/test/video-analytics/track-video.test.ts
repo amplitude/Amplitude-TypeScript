@@ -153,6 +153,33 @@ describe('trackHtmlVideo', () => {
     video.dispatchEvent(new Event('timeupdate'));
     expect(handler.onTimeUpdate).not.toHaveBeenCalled();
   });
+
+  test('should report the current video as ended when its src changes', () => {
+    const untrack = trackHtmlVideo(video, handler);
+    video.setAttribute('src', 'https://example.com/first.mp4');
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+
+    video.dispatchEvent(new Event('loadstart'));
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).not.toHaveBeenCalled();
+
+    video.setAttribute('src', 'https://example.com/second.mp4');
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+    expect(handler.onEnded).toHaveBeenCalledWith({
+      duration: 10,
+      start_time: 4,
+      position: 4,
+      percent_completed: 40,
+      stop_reason: 'ended',
+    });
+
+    untrack();
+    video.setAttribute('src', 'https://example.com/third.mp4');
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('trackHtmlVideo with Mux vendor', () => {
@@ -247,6 +274,33 @@ describe('trackHtmlVideo with Mux vendor', () => {
       start_time: 3,
       percent_completed: 30,
       duration: 10,
+      ...muxMetadata,
+    });
+  });
+
+  test('should report a src change as ended with Mux metadata', () => {
+    trackHtmlVideo(video, handler, 'mux');
+
+    const muxMetadata = {
+      mux_playback_id: video.getAttribute('playback-id'),
+      mux_video_id: video.getAttribute('metadata-video-id'),
+      mux_video_title: video.getAttribute('metadata-video-title'),
+    };
+
+    video.setAttribute('src', 'https://example.com/first.m3u8');
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 2 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('loadstart'));
+
+    video.setAttribute('src', 'https://example.com/second.m3u8');
+    video.dispatchEvent(new Event('loadstart'));
+
+    expect(handler.onEnded).toHaveBeenCalledWith({
+      duration: 10,
+      start_time: 2,
+      position: 2,
+      percent_completed: 20,
+      stop_reason: 'ended',
       ...muxMetadata,
     });
   });
@@ -400,6 +454,27 @@ describe('trackEmbeddedVideo', () => {
       });
       untrack();
     });
+
+    test('should report a src change as ended', async () => {
+      const untrack = trackEmbeddedVideo(player, handler);
+      player.emit('ready');
+      player.setCurrentTime(4);
+      player.elem.dispatchEvent(new Event('srcchange'));
+      await jest.runAllTimersAsync();
+      expect(handler.onEnded).toHaveBeenCalledWith({
+        position: 4,
+        start_time: 4,
+        percent_completed: 40,
+        duration: 10,
+        stop_reason: 'ended',
+      });
+
+      untrack();
+      handler.onEnded = jest.fn();
+      player.elem.dispatchEvent(new Event('srcchange'));
+      await jest.runAllTimersAsync();
+      expect(handler.onEnded).not.toHaveBeenCalled();
+    });
   });
 
   describe('with Mux vendor', () => {
@@ -514,6 +589,29 @@ describe('trackEmbeddedVideo', () => {
       });
     });
 
+    test('should report a src change as ended with Mux metadata', async () => {
+      trackEmbeddedVideo(player, handler, 'mux');
+      player.emit('ready');
+
+      const muxMetadata = {
+        mux_playback_id: 'dE02GfTAlJD4RcqNAlgiS2m00LqbdFqlBm',
+        mux_video_id: 'video-123',
+        mux_video_title: 'My Video',
+      };
+
+      player.setCurrentTime(2);
+      player.elem.dispatchEvent(new Event('srcchange'));
+      await jest.runAllTimersAsync();
+      expect(handler.onEnded).toHaveBeenCalledWith({
+        position: 2,
+        start_time: 2,
+        percent_completed: 20,
+        duration: 10,
+        stop_reason: 'ended',
+        ...muxMetadata,
+      });
+    });
+
     test('should work when there is no src url', async () => {
       player.elem.setAttribute('src', null as unknown as string);
       const untrack = trackEmbeddedVideo(player, handler, 'mux');
@@ -578,6 +676,13 @@ describe('trackEmbeddedVideo', () => {
         await jest.runAllTimersAsync();
         expect(handler.onError).toHaveBeenCalledTimes(1);
         expect(handler.onError).toHaveBeenCalledWith(expect.stringContaining("from 'seeked' handler"));
+      });
+
+      test('should call the error handler (src change)', async () => {
+        player.elem.dispatchEvent(new Event('srcchange'));
+        await jest.runAllTimersAsync();
+        expect(handler.onError).toHaveBeenCalledTimes(1);
+        expect(handler.onError).toHaveBeenCalledWith(expect.stringContaining("from 'src change' handler"));
       });
 
       test('should call the error handler (timeupdate)', async () => {

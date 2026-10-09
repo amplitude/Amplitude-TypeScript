@@ -136,7 +136,9 @@ export class VideoObserver {
     const lastVideoEvent = this.state.lastEvent;
     const isWaiting = this.state.playbackState === 'waiting';
     const isPlaying = this.state.playbackState === 'playing';
-    if (!lastVideoEvent || (!isPlaying && !isWaiting)) {
+    const isEnded = this.state.playbackState === 'ended';
+
+    if (!lastVideoEvent || (!isPlaying && !isWaiting && !isEnded)) {
       return;
     }
     const isSeeking = event.isSeeking || this.state.isSeeking;

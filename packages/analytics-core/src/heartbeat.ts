@@ -50,23 +50,26 @@ export class Heartbeat {
     return await Promise.all(trackedEvents);
   }
 
-  private async resetHeartbeat() {
-    // if a reset is already in progress, return the existing promise
+  async resetHeartbeat() {
+    // if a reset is scheduled but hasn't fired yet, the pending heartbeat will
+    // include any newly tracked events, so share its result
     if (this.resetPromise) return await this.resetPromise;
 
     // reset the heartbeat interval
     if (this.interval) clearInterval(this.interval);
     this.interval = setInterval(() => void this.heartbeat(), this.pulse);
 
-    // invoke heartbeat on the next macrotask tick
-    this.resetPromise = new Promise((resolve) => {
+    // invoke heartbeat on the next macrotask tick. Clear resetPromise as soon as the
+    // heartbeat starts so that events tracked while it's in flight trigger a new heartbeat
+    const resetPromise = new Promise<Result[]>((resolve) => {
       setTimeout(() => {
+        this.resetPromise = null;
         resolve(this.heartbeat());
       }, 0);
     });
-    this.resetPromise.finally(() => (this.resetPromise = null));
+    this.resetPromise = resetPromise;
 
-    return await this.resetPromise;
+    return await resetPromise;
   }
 
   /**

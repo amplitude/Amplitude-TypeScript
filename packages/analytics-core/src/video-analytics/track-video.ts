@@ -125,6 +125,22 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
   };
   videoEl.addEventListener('timeupdate', timeupdateHandler);
 
+  let prevVideoSrc: string | null = null;
+  let videoSrc: string | null = null;
+  const loadStartHandler = () => {
+    prevVideoSrc = videoSrc;
+    videoSrc = videoEl.getAttribute('src');
+
+    // if the src of a video changed, report the current video as over
+    if (prevVideoSrc !== null && prevVideoSrc !== videoSrc) {
+      handlers.onEnded({
+        ...getVideoData(videoEl, 'ended'),
+        ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
+      });
+    }
+  };
+  videoEl.addEventListener('loadstart', loadStartHandler);
+
   return () => {
     videoEl.removeEventListener('play', playHandler);
     videoEl.removeEventListener('ended', endedHandler);
@@ -133,6 +149,7 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
     videoEl.removeEventListener('seeked', seekedHandler);
     videoEl.removeEventListener('error', errorHandler);
     videoEl.removeEventListener('timeupdate', timeupdateHandler);
+    videoEl.removeEventListener('loadstart', loadStartHandler);
   };
 }
 
@@ -257,6 +274,18 @@ export function trackEmbeddedVideo(player: EmbeddedVideoPlayer, handlers: VideoH
     };
     player.on('timeupdate', timeupdateHandler);
     onUnsubscribe.push(() => player.off('timeupdate', timeupdateHandler));
+
+    const srcChangeHandler = () => {
+      getIframeMetadata(player, elem, vendor, 'ended')
+        .then((playerState) => {
+          handlers.onEnded(playerState);
+        })
+        .catch((error) => {
+          handlers.onError(`Error getting iframe metadata from 'src change' handler: ${error as string}`);
+        });
+    };
+    elem.addEventListener('srcchange', srcChangeHandler);
+    onUnsubscribe.push(() => elem.removeEventListener('srcchange', srcChangeHandler));
   };
   player.on('ready', readyHandler);
 
