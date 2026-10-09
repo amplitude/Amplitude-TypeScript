@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.60.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.1...@amplitude/analytics-core@2.60.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** support errorClick singular format Remote Config ([#2041](https://github.com/amplitude/Amplitude-TypeScript/issues/2041)) ([3e25191](https://github.com/amplitude/Amplitude-TypeScript/commit/3e25191a9417f81dbe56ac5109b41ddc0b13f90a))
+
+
+
+
+
 ## [2.60.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.0...@amplitude/analytics-core@2.60.1) (2026-10-08)
 
 

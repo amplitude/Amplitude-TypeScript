@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-beta.49](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.48...@amplitude/plugin-experiment-browser@1.0.0-beta.49) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/plugin-experiment-browser
+
+
+
+
+
 # [1.0.0-beta.48](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.47...@amplitude/plugin-experiment-browser@1.0.0-beta.48) (2026-10-08)
 
 **Note:** Version bump only for package @amplitude/plugin-experiment-browser
