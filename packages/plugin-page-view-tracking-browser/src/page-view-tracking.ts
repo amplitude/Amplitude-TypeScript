@@ -12,13 +12,14 @@ import {
   getGlobalScope,
   BASE_CAMPAIGN,
   BrowserStorage,
-  UUID,
   omitUndefined,
+  getCurrentPageViewId,
+  getOrCreatePageViewId,
 } from '@amplitude/analytics-core';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 
 export const defaultPageViewEvent = '[Amplitude] Page Viewed';
-export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
+export { PAGE_VIEW_SESSION_STORAGE_KEY } from '@amplitude/analytics-core';
 
 type PageViewSessionStorage = {
   pageViewId: string;
@@ -59,7 +60,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
         '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
         '[Amplitude] Page URL': locationHREF.split('?')[0],
-        '[Amplitude] Page View ID': pageViewId,
+        ...(pageViewId ? { '[Amplitude] Page View ID': pageViewId } : {}),
       },
     };
   };
@@ -80,11 +81,11 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     previousURL = newURL;
 
     if (shouldTrackPageView) {
-      // Generate new page view id and set it in session storage
+      // Reuse the id already minted for this project and URL, if another SDK instance
+      // initialized first. Otherwise mint one and publish it for autocapture.
       let pageViewId: string | undefined;
       if (sessionStorage) {
-        pageViewId = UUID();
-        void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+        pageViewId = getOrCreatePageViewId(localConfig.apiKey, currentHref());
       }
 
       /* istanbul ignore next */
@@ -138,12 +139,12 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
       if (shouldTrackOnPageLoad()) {
         loggerProvider.log('Tracking page view event');
-        // Generate new page view id and set it in session storage
+        // Reuse the id already minted for this project and URL, if another SDK instance
+        // initialized first. Otherwise mint one and publish it for autocapture.
         let pageViewId: string | undefined;
 
         if (sessionStorage) {
-          pageViewId = UUID();
-          void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+          pageViewId = getOrCreatePageViewId(localConfig.apiKey, currentHref());
         }
 
         amplitude.track(await createPageViewEvent(pageViewId));
@@ -154,11 +155,10 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       if (trackOn === 'attribution' && isCampaignEvent(event)) {
         /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
         loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');
-        // Retrieve current page view id from session storage
+        // Retrieve the current page view id. Do not mint a new one for attribution.
         let pageViewId: string | undefined;
         if (sessionStorage) {
-          const pageViewSession = await sessionStorage.get(PAGE_VIEW_SESSION_STORAGE_KEY);
-          pageViewId = pageViewSession?.pageViewId;
+          pageViewId = getCurrentPageViewId(localConfig.apiKey);
         }
 
         const pageViewEvent = await createPageViewEvent(pageViewId);
@@ -189,6 +189,9 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   };
   return plugin;
 };
+
+/* istanbul ignore next */
+const currentHref = (): string => (typeof location !== 'undefined' && location.href) || '';
 
 const getCampaignParams = async () => omitUndefined(await new CampaignParser().parse());
 

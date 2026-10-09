@@ -7,6 +7,8 @@ import {
   getGlobalScope,
   CookieStorage,
   FetchTransport,
+  clearPageViewState,
+  getCurrentPageViewId,
 } from '@amplitude/analytics-core';
 import {
   defaultPageViewEvent,
@@ -113,6 +115,8 @@ describe('pageViewTrackingPlugin', () => {
   });
 
   beforeEach(() => {
+    clearPageViewState();
+    window.sessionStorage.removeItem(PAGE_VIEW_SESSION_STORAGE_KEY);
     (window.location as any) = {
       hostname: '',
       href: '',
@@ -472,6 +476,90 @@ describe('pageViewTrackingPlugin', () => {
 
       expect(track).toHaveBeenCalledTimes(2);
     });
+
+    test('should share one page view id across sdk instances for the same project', async () => {
+      const href = 'https://www.example.com/shared';
+      mockWindowLocationFromURL(new URL(href));
+      const amplitudeA = createMockBrowserClient();
+      const amplitudeB = createMockBrowserClient();
+      const trackA = jest.spyOn(amplitudeA, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: '[Amplitude] Page Viewed' },
+        }),
+      });
+      const trackB = jest.spyOn(amplitudeB, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: '[Amplitude] Page Viewed' },
+        }),
+      });
+      const pluginA = pageViewTrackingPlugin();
+      const pluginB = pageViewTrackingPlugin();
+
+      await pluginA.setup?.(mockConfig, amplitudeA);
+      await pluginB.setup?.(mockConfig, amplitudeB);
+
+      const pageViewIdA = pageViewIdFrom(trackA, 0);
+      const pageViewIdB = pageViewIdFrom(trackB, 0);
+      expect(pageViewIdA).toEqual(expect.any(String));
+      expect(pageViewIdB).toBe(pageViewIdA);
+      expect(getCurrentPageViewId(mockConfig.apiKey)).toBe(pageViewIdA);
+
+      const nextURL = new URL('https://www.example.com/shared/next');
+      mockWindowLocationFromURL(nextURL);
+      window.history.pushState(undefined, nextURL.href);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const nextPageViewIdA = pageViewIdFrom(trackA, 1);
+      const nextPageViewIdB = pageViewIdFrom(trackB, 1);
+      expect(nextPageViewIdA).toEqual(expect.any(String));
+      expect(nextPageViewIdA).not.toBe(pageViewIdA);
+      expect(nextPageViewIdB).toBe(nextPageViewIdA);
+      expect(getCurrentPageViewId(mockConfig.apiKey)).toBe(nextPageViewIdA);
+
+      await pluginA.teardown?.();
+      await pluginB.teardown?.();
+    });
+
+    test('should keep separate page view ids for different projects', async () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/projects'));
+      const amplitudeA = createMockBrowserClient();
+      const amplitudeB = createMockBrowserClient();
+      const trackA = jest.spyOn(amplitudeA, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: '[Amplitude] Page Viewed' },
+        }),
+      });
+      const trackB = jest.spyOn(amplitudeB, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: '[Amplitude] Page Viewed' },
+        }),
+      });
+      const otherConfig = { ...mockConfig, apiKey: 'other-api-key' };
+      const pluginA = pageViewTrackingPlugin();
+      const pluginB = pageViewTrackingPlugin();
+
+      await pluginA.setup?.(mockConfig, amplitudeA);
+      await pluginB.setup?.(otherConfig, amplitudeB);
+
+      const pageViewIdA = pageViewIdFrom(trackA, 0);
+      const pageViewIdB = pageViewIdFrom(trackB, 0);
+      expect(pageViewIdA).toEqual(expect.any(String));
+      expect(pageViewIdB).toEqual(expect.any(String));
+      expect(pageViewIdB).not.toBe(pageViewIdA);
+      expect(getCurrentPageViewId(mockConfig.apiKey)).toBe(pageViewIdA);
+      expect(getCurrentPageViewId(otherConfig.apiKey)).toBe(pageViewIdB);
+
+      await pluginA.teardown?.();
+      await pluginB.teardown?.();
+    });
   });
 
   describe('execute', () => {
@@ -808,6 +896,11 @@ describe('pageViewTrackingPlugin', () => {
     expect(shouldTrackHistoryPageView('pathOnly', url1, url2)).toBe(true);
   });
 });
+
+const pageViewIdFrom = (track: jest.SpyInstance, callIndex: number): unknown => {
+  const event = track.mock.calls[callIndex]?.[0] as { event_properties?: Record<string, unknown> } | undefined;
+  return event?.event_properties?.['[Amplitude] Page View ID'];
+};
 
 const mockWindowLocationFromURL = (url: URL) => {
   window.location.href = url.toString();
