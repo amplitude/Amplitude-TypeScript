@@ -75,6 +75,7 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 0,
           start_time: 0,
+          play_time_total: 0,
           media_type: 'video',
         },
         {
@@ -94,6 +95,7 @@ describe('VideoCapture', () => {
           position: 0,
           start_time: 0,
           play_time: 0,
+          play_time_total: 0,
           percent_completed: 0,
           stop_reason: 'timeout',
           media_type: 'video',
@@ -121,6 +123,7 @@ describe('VideoCapture', () => {
           position: 5,
           start_time: 0,
           play_time: 0,
+          play_time_total: 0,
           percent_completed: 50,
           stop_reason: 'paused',
           media_type: 'video',
@@ -258,6 +261,7 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 0,
           start_time: 0,
+          play_time_total: 0,
           stream_session_id: expect.any(String),
           media_type: 'video',
         },
@@ -283,6 +287,7 @@ describe('VideoCapture', () => {
           position: 5,
           start_time: 0,
           play_time: 0,
+          play_time_total: 0,
           percent_completed: 50,
           stop_reason: 'paused',
           stream_session_id: expect.any(String),
@@ -308,7 +313,6 @@ describe('VideoCapture', () => {
         playbackState: 'ended',
         lastEvent: { duration: 10, position: 10, start_time: 10, stop_reason: 'ended' },
         position: 10,
-        watchTime: 10,
       };
 
       currentVideoObserver!.emitStateChange(
@@ -337,49 +341,128 @@ describe('VideoCapture', () => {
       expect(restartCall?.[1].stream_session_id).not.toBe(firstSessionId);
     });
 
-    it('should reset watch time when playback restarts after ending', async () => {
+    it('should measure play_time per play and play_time_total per stream session', async () => {
       trackVideo(mockAmplitude, document.createElement('video'));
-      const endedState: VideoState = {
-        playbackState: 'ended',
-        lastEvent: { duration: 10, position: 10, start_time: 0, stop_reason: 'ended' },
-        position: 10,
-        watchTime: 10,
-      };
+      const observer = currentVideoObserver!;
 
-      currentVideoObserver!.emitStateChange(
-        { playbackState: 'paused', lastEvent: undefined },
-        { playbackState: 'playing', lastEvent: { duration: 10, position: 0, start_time: 0 }, watchTime: 0 },
-      );
+      const playing = (watchTime: number): VideoState => ({
+        playbackState: 'playing',
+        lastEvent: { duration: 20, position: watchTime, start_time: watchTime },
+        position: watchTime,
+        watchTime,
+      });
+      const paused = (watchTime: number): VideoState => ({
+        playbackState: 'paused',
+        lastEvent: { duration: 20, position: watchTime, start_time: watchTime, stop_reason: 'paused' },
+        position: watchTime,
+        watchTime,
+      });
+
+      observer.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playing(0));
       await flushHeartbeat();
-      currentVideoObserver!.emitStateChange(
-        { playbackState: 'playing', lastEvent: { duration: 10, position: 0, start_time: 0 }, watchTime: 0 },
-        endedState,
-      );
+      observer.emitStateChange(playing(0), playing(5));
+      observer.emitStateChange(playing(5), paused(5));
       await flushHeartbeat();
 
-      expect(mockAmplitude.track).toHaveBeenCalledWith(
+      const firstPlayId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].play_id as string;
+      const sessionId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].stream_session_id as string;
+      expect(mockAmplitude.track).toHaveBeenLastCalledWith(
         '[Amplitude] Stream Stopped',
-        expect.objectContaining({ play_time: 10, stop_reason: 'ended' }),
+        expect.objectContaining({
+          play_id: firstPlayId,
+          stream_session_id: sessionId,
+          play_time: 5,
+          play_time_total: 5,
+          stop_reason: 'paused',
+        }),
         expect.any(Object),
       );
+
       jest.clearAllMocks();
-
-      // the observer spreads the ended session forward, so the replay state still carries its watch time
-      const replayState: VideoState = {
-        playbackState: 'playing',
-        lastEvent: { duration: 10, position: 0, start_time: 0 },
-        position: 0,
-        watchTime: 10,
-      };
-      currentVideoObserver!.emitStateChange(endedState, replayState);
+      observer.emitStateChange(paused(5), playing(5));
       await flushHeartbeat();
-
-      expect(replayState.watchTime).toBe(0);
+      const secondPlayId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].play_id as string;
+      expect(secondPlayId).not.toBe(firstPlayId);
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
-        2,
+        1,
+        '[Amplitude] Stream Started',
+        expect.objectContaining({
+          play_id: secondPlayId,
+          stream_session_id: sessionId,
+          play_time_total: 5,
+        }),
+        expect.any(Object),
+      );
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
         '[Amplitude] Stream Stopped',
-        expect.objectContaining({ play_time: 0, stop_reason: 'timeout' }),
+        expect.objectContaining({
+          play_id: secondPlayId,
+          stream_session_id: sessionId,
+          play_time: 0,
+          play_time_total: 5,
+          stop_reason: 'timeout',
+        }),
+        expect.any(Object),
+      );
+
+      observer.emitStateChange(playing(5), playing(8));
+      jest.clearAllMocks();
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Amplitude] Stream Stopped',
+        expect.objectContaining({
+          play_id: secondPlayId,
+          stream_session_id: sessionId,
+          play_time: 3,
+          play_time_total: 8,
+          stop_reason: 'timeout',
+        }),
         expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
+      );
+
+      const ended: VideoState = {
+        playbackState: 'ended',
+        lastEvent: { duration: 20, position: 8, start_time: 8, stop_reason: 'ended' },
+        position: 8,
+        watchTime: 8,
+      };
+      observer.emitStateChange(playing(8), ended);
+      await flushHeartbeat();
+      expect(mockAmplitude.track).toHaveBeenLastCalledWith(
+        '[Amplitude] Stream Stopped',
+        expect.objectContaining({
+          play_id: secondPlayId,
+          stream_session_id: sessionId,
+          play_time: 3,
+          play_time_total: 8,
+          stop_reason: 'ended',
+        }),
+        expect.any(Object),
+      );
+
+      jest.clearAllMocks();
+      observer.emitStateChange(ended, playing(8));
+      await flushHeartbeat();
+      const restarted = (mockAmplitude.track as jest.Mock).mock.calls[0][1] as {
+        play_id: string;
+        stream_session_id: string;
+      };
+      expect(restarted.play_id).not.toBe(secondPlayId);
+      expect(restarted.stream_session_id).not.toBe(sessionId);
+
+      observer.emitStateChange(playing(8), playing(12));
+      observer.emitStateChange(playing(12), paused(12));
+      await flushHeartbeat();
+      expect(mockAmplitude.track).toHaveBeenLastCalledWith(
+        '[Amplitude] Stream Stopped',
+        expect.objectContaining({
+          play_id: restarted.play_id,
+          stream_session_id: restarted.stream_session_id,
+          play_time: 4,
+          play_time_total: 4,
+          stop_reason: 'paused',
+        }),
+        expect.any(Object),
       );
     });
 
@@ -403,6 +486,7 @@ describe('VideoCapture', () => {
           play_id: expect.any(String),
           position: 0,
           start_time: 0,
+          play_time_total: 0,
           stream_session_id: expect.any(String),
           media_type: 'video',
         },
@@ -426,6 +510,7 @@ describe('VideoCapture', () => {
           position: 5,
           start_time: 0,
           play_time: 0,
+          play_time_total: 0,
           percent_completed: 50,
           stop_reason: 'paused',
           stream_session_id: expect.any(String),
@@ -549,6 +634,7 @@ describe('VideoCapture', () => {
           error_message: 'Media element error (code 2): network',
           position: 5,
           play_time: 5,
+          play_time_total: 5,
         }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
@@ -584,6 +670,7 @@ describe('VideoCapture', () => {
         expect.objectContaining({
           position: 8,
           play_time: 8,
+          play_time_total: 8,
           percent_completed: 80,
           stop_reason: 'timeout',
         }),
@@ -812,7 +899,7 @@ describe('VideoCapture', () => {
 
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         '[Amplitude] Stream Stopped',
-        expect.objectContaining({ stop_reason: 'ended', position: 4, play_time: 4 }),
+        expect.objectContaining({ stop_reason: 'ended', position: 4, play_time: 4, play_time_total: 4 }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
     });
@@ -927,7 +1014,7 @@ describe('VideoCapture', () => {
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         '[Amplitude] Stream Stopped',
-        expect.objectContaining({ stop_reason: 'untracked', position: 4, play_time: 4 }),
+        expect.objectContaining({ stop_reason: 'untracked', position: 4, play_time: 4, play_time_total: 4 }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
 
@@ -1000,6 +1087,7 @@ describe('VideoCapture', () => {
         start_time: 2,
         position: 5,
         media_type: 'video',
+        play_time_total: 0,
       });
     });
 
@@ -1014,6 +1102,7 @@ describe('VideoCapture', () => {
         start_time: 0,
         position: 0,
         media_type: 'video',
+        play_time_total: 0,
       });
     });
 
@@ -1041,6 +1130,7 @@ describe('VideoCapture', () => {
         start_time: 2,
         position: 5,
         media_type: 'video',
+        play_time_total: 0,
         mux_playback_id: 'playback-id',
         mux_video_id: 'video-id',
         mux_video_title: 'video-title',
@@ -1058,6 +1148,7 @@ describe('VideoCapture', () => {
         start_time: 0,
         position: 0,
         media_type: 'audio',
+        play_time_total: 0,
       });
     });
   });
@@ -1077,6 +1168,7 @@ describe('VideoCapture', () => {
         start_time: 2,
         position: 5,
         play_time: 30,
+        play_time_total: 30,
         percent_completed: 50,
         media_type: 'video',
       });
@@ -1092,6 +1184,7 @@ describe('VideoCapture', () => {
         start_time: 0,
         position: 0,
         play_time: 0,
+        play_time_total: 0,
         percent_completed: 0,
         media_type: 'video',
       });
@@ -1118,6 +1211,7 @@ describe('VideoCapture', () => {
         start_time: 2,
         position: 5,
         play_time: 30,
+        play_time_total: 30,
         percent_completed: 50,
         media_type: 'video',
         mux_playback_id: 'playback-id',
