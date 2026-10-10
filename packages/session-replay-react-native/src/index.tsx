@@ -13,3 +13,11 @@ export { type SessionReplayConfig, type MaskLevel, type PrivacyConfig } from './
 export { LogLevel } from './session-replay-config';
 
 export { AmpMaskView, type AmpMaskViewProps } from './amp-mask-view';
+export {
+  subscribeToInterfaceSignals,
+  INTERFACE_CHANGE_EVENT,
+  INTERFACE_SIGNAL_PROVIDER_EVENT,
+  type InterfaceChangeEvent,
+  type InterfaceSignalProviderEvent,
+  type InterfaceSignalSubscription,
+} from './interface-signals';
