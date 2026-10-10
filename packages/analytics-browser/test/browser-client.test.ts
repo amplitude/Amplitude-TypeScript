@@ -157,6 +157,57 @@ describe('browser-client', () => {
       });
     });
 
+    test('should enrich session_start during init with device_id and library', async () => {
+      const sentEvents: Array<Record<string, unknown>> = [];
+      const transportProvider = {
+        send: jest.fn((_url: string, payload: { events: Array<Record<string, unknown>> }) => {
+          sentEvents.push(...payload.events);
+          return Promise.resolve({
+            status: core.Status.Success,
+            statusCode: 200,
+            body: {
+              eventsIngested: payload.events.length,
+              payloadSizeBytes: 1,
+              serverUploadTime: 1,
+            },
+          });
+        }),
+      };
+      const createTransportSpy = jest
+        .spyOn(Config, 'createTransport')
+        .mockReturnValue(transportProvider as unknown as ReturnType<typeof Config.createTransport>);
+
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
+        optOut: false,
+        sessionId: 1,
+        lastEventId: 100,
+        lastEventTime: Date.now() - 31 * 60 * 1000,
+      });
+
+      const newSessionId = Date.now();
+      await client.init(apiKey, userId, {
+        deviceId,
+        sessionId: newSessionId,
+        flushQueueSize: 1,
+        flushIntervalMillis: 1,
+        defaultTracking: {
+          ...defaultTracking,
+          sessions: true,
+        },
+        fetchRemoteConfig: false,
+      }).promise;
+      await client.flush().promise;
+      createTransportSpy.mockRestore();
+
+      const sessionStartEvents = sentEvents.filter((event) => event.event_type === 'session_start');
+
+      expect(sessionStartEvents.length).toBeGreaterThan(0);
+      sessionStartEvents.forEach((event) => {
+        expect(event.device_id).toBeDefined();
+        expect(event.library).toBeDefined();
+      });
+    });
+
     test('should use remote config by default', async () => {
       await client.init(apiKey).promise;
       expect(MockedRemoteConfigClient).toHaveBeenCalled();
