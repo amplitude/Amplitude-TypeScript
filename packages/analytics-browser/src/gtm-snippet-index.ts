@@ -27,12 +27,20 @@ import { runQueuedFunctions } from './utils/snippet-helper';
     createInstance: createNamedInstance,
   });
 
+  // Normalize proxy queues so a pre-existing global with `invoked = true` but
+  // missing `_q` / `_iq` doesn't crash either this bootstrap or downstream
+  // GTM wrapper code that reads `amplitudeGTM._iq[name]` directly.
+  GlobalScope.amplitudeGTM._q = GlobalScope.amplitudeGTM._q || [];
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  GlobalScope.amplitudeGTM._iq = GlobalScope.amplitudeGTM._iq || {};
+
   if (GlobalScope.amplitudeGTM.invoked) {
     const queue = GlobalScope.amplitudeGTM._q;
     GlobalScope.amplitudeGTM._q = [];
     runQueuedFunctions(amplitudeGTM, queue);
 
-    const instanceNames = Object.keys(GlobalScope.amplitudeGTM._iq) || [];
+    const instanceNames = Object.keys(GlobalScope.amplitudeGTM._iq);
     for (let i = 0; i < instanceNames.length; i++) {
       const instanceName = instanceNames[i];
       const instance = Object.assign(GlobalScope.amplitudeGTM._iq[instanceName], createNamedInstance(instanceName));
