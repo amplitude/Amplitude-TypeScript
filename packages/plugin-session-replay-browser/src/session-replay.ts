@@ -7,16 +7,7 @@ import {
   getGlobalScope,
   getAnalyticsConnector,
 } from '@amplitude/analytics-core';
-import {
-  init,
-  setSessionId,
-  getSessionId,
-  getSessionReplayProperties,
-  flush,
-  start,
-  stop,
-  shutdown,
-  evaluateTargetingAndCapture,
+import type {
   AmplitudeSessionReplay,
   SessionReplayOptions as SessionReplayBrowserOptions,
 } from '@amplitude/session-replay-browser';
@@ -36,21 +27,45 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   config: BrowserConfig | null = null;
   options: SessionReplayOptions;
   srInitOptions: SessionReplayBrowserOptions;
-  sessionReplay: AmplitudeSessionReplay = {
-    flush: flush,
-    getSessionId: getSessionId,
-    getSessionReplayProperties: getSessionReplayProperties,
-    init: init,
-    setSessionId: setSessionId,
-    start: start,
-    stop: stop,
-    shutdown: shutdown,
-    evaluateTargetingAndCapture: evaluateTargetingAndCapture,
-  };
+  sessionReplay!: AmplitudeSessionReplay;
+  private sessionReplayPromise?: Promise<AmplitudeSessionReplay>;
 
   constructor(options?: SessionReplayOptions) {
     this.options = { forceSessionTracking: false, ...options };
     this.srInitOptions = this.options;
+  }
+
+  private loadSessionReplay(): Promise<AmplitudeSessionReplay> {
+    if (!this.sessionReplayPromise) {
+      this.sessionReplayPromise = import('@amplitude/session-replay-browser').then(
+        ({
+          evaluateTargetingAndCapture,
+          flush,
+          getSessionId,
+          getSessionReplayProperties,
+          init,
+          setSessionId,
+          shutdown,
+          start,
+          stop,
+        }) => {
+          this.sessionReplay = {
+            evaluateTargetingAndCapture,
+            flush,
+            getSessionId,
+            getSessionReplayProperties,
+            init,
+            setSessionId,
+            shutdown,
+            start,
+            stop,
+          };
+          return this.sessionReplay;
+        },
+      );
+    }
+
+    return this.sessionReplayPromise;
   }
 
   async setup(config: BrowserConfig, _client: BrowserClient) {
@@ -79,6 +94,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
       }
       const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
       const userProperties = identityStore.getIdentity().userProperties;
+      const sessionReplay = await this.loadSessionReplay();
 
       this.srInitOptions = {
         instanceName: this.config.instanceName,
@@ -124,7 +140,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         handleFetchConfig: this.options.handleFetchConfig,
       };
 
-      await this.sessionReplay.init(config.apiKey, this.srInitOptions).promise;
+      await sessionReplay.init(config.apiKey, this.srInitOptions).promise;
     } catch (error) {
       /* istanbul ignore next */
       config?.loggerProvider.error(`Session Replay: Failed to initialize due to ${(error as Error).message}`);
@@ -132,10 +148,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   }
 
   async onSessionIdChanged(sessionId: number): Promise<void> {
+    const sessionReplay = await this.loadSessionReplay();
     this.config?.loggerProvider.debug(
-      `Analytics session id is changed to ${sessionId}, SR session id is ${String(this.sessionReplay.getSessionId())}.`,
+      `Analytics session id is changed to ${sessionId}, SR session id is ${String(sessionReplay.getSessionId())}.`,
     );
-    await this.sessionReplay.setSessionId(sessionId).promise;
+    await sessionReplay.setSessionId(sessionId).promise;
   }
 
   async onOptOutChanged(optOut: boolean): Promise<void> {
