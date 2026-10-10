@@ -14,7 +14,6 @@ export type VideoHandler = {
 
 export type VideoEvent = {
   duration: number | undefined;
-  start_time?: number;
   playback_id?: string | undefined;
   video_id?: string | undefined;
   video_title?: string | undefined;
