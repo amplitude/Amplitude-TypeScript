@@ -24,7 +24,6 @@ describe('trackHtmlVideo', () => {
     video.play();
     expect(handler.onPlay).toHaveBeenCalledWith({
       duration: 10,
-      start_time: 0,
       position: 0,
       percent_completed: 0,
     });
@@ -32,7 +31,6 @@ describe('trackHtmlVideo', () => {
     video.pause();
     expect(handler.onPause).toHaveBeenCalledWith({
       position: 5,
-      start_time: 5,
       percent_completed: 50,
       duration: 10,
       stop_reason: 'paused',
@@ -41,7 +39,6 @@ describe('trackHtmlVideo', () => {
     (video as any).ended();
     expect(handler.onEnded).toHaveBeenCalledWith({
       position: 10,
-      start_time: 10,
       percent_completed: 100,
       duration: 10,
       stop_reason: 'ended',
@@ -66,7 +63,6 @@ describe('trackHtmlVideo', () => {
     expect(handler.onEnded).toHaveBeenCalledTimes(1);
     expect(handler.onEnded).toHaveBeenCalledWith({
       duration: 10,
-      start_time: 10,
       position: 10,
       percent_completed: 100,
       stop_reason: 'ended',
@@ -89,7 +85,6 @@ describe('trackHtmlVideo', () => {
     expect(handler.onPlay).toHaveBeenCalledTimes(1);
     expect(handler.onPlay).toHaveBeenCalledWith({
       duration: 10,
-      start_time: 3,
       position: 3,
       percent_completed: 30,
     });
@@ -112,7 +107,6 @@ describe('trackHtmlVideo', () => {
     (video as any).simulateSeek(7);
     expect(handler.onSeeking).toHaveBeenCalledWith({
       position: 7,
-      start_time: 7,
       percent_completed: 70,
       duration: 10,
       stop_reason: 'seeking',
@@ -132,7 +126,6 @@ describe('trackHtmlVideo', () => {
     (video as any).seeked();
     expect(handler.onSeeked).toHaveBeenCalledWith({
       position: 7,
-      start_time: 7,
       percent_completed: 70,
       duration: 10,
     });
@@ -199,7 +192,6 @@ describe('trackHtmlVideo', () => {
     expect(handler.onEnded).toHaveBeenCalledTimes(1);
     expect(handler.onEnded).toHaveBeenCalledWith({
       duration: 10,
-      start_time: 4,
       position: 4,
       percent_completed: 40,
     });
@@ -233,7 +225,6 @@ describe('trackHtmlVideo', () => {
     expect(handler.onEnded).toHaveBeenCalledTimes(1);
     expect(handler.onEnded).toHaveBeenCalledWith({
       duration: 10,
-      start_time: 4,
       position: 4,
       percent_completed: 40,
     });
@@ -250,7 +241,6 @@ describe('trackHtmlVideo', () => {
     expect(handler.onEnded).toHaveBeenCalledTimes(1);
     expect(handler.onEnded).toHaveBeenCalledWith({
       duration: 10,
-      start_time: 4,
       position: 4,
       percent_completed: 40,
     });
@@ -360,7 +350,6 @@ describe('trackHtmlVideo', () => {
     expect(handler.onPlay).toHaveBeenCalledTimes(1);
     expect(handler.onPlay).toHaveBeenCalledWith({
       duration: 8,
-      start_time: 2,
       position: 2,
       percent_completed: 25,
     });
@@ -371,7 +360,6 @@ describe('trackHtmlVideo', () => {
     expect(handler.onEnded).toHaveBeenCalledTimes(2);
     expect(handler.onEnded).toHaveBeenLastCalledWith({
       duration: 8,
-      start_time: 8,
       position: 8,
       percent_completed: 100,
       stop_reason: 'ended',
@@ -398,7 +386,6 @@ describe('trackHtmlVideo', () => {
     expect(handler.onEnded).toHaveBeenCalledTimes(2);
     expect(handler.onEnded).toHaveBeenLastCalledWith({
       duration: 12,
-      start_time: 6,
       position: 6,
       percent_completed: 50,
     });
@@ -443,7 +430,6 @@ describe('trackHtmlVideo with Mux vendor', () => {
     video.play();
     expect(handler.onPlay).toHaveBeenCalledWith({
       duration: 10,
-      start_time: 0,
       position: 0,
       percent_completed: 0,
       ...muxMetadata,
@@ -452,7 +438,6 @@ describe('trackHtmlVideo with Mux vendor', () => {
     video.pause();
     expect(handler.onPause).toHaveBeenCalledWith({
       position: 5,
-      start_time: 5,
       percent_completed: 50,
       duration: 10,
       stop_reason: 'paused',
@@ -462,7 +447,6 @@ describe('trackHtmlVideo with Mux vendor', () => {
     (video as any).ended();
     expect(handler.onEnded).toHaveBeenCalledWith({
       position: 10,
-      start_time: 10,
       percent_completed: 100,
       duration: 10,
       stop_reason: 'ended',
@@ -488,7 +472,6 @@ describe('trackHtmlVideo with Mux vendor', () => {
     (video as any).simulateSeek(4);
     expect(handler.onSeeking).toHaveBeenCalledWith({
       position: 4,
-      start_time: 4,
       percent_completed: 40,
       duration: 10,
       stop_reason: 'seeking',
@@ -510,7 +493,6 @@ describe('trackHtmlVideo with Mux vendor', () => {
     (video as any).seeked();
     expect(handler.onSeeked).toHaveBeenCalledWith({
       position: 3,
-      start_time: 3,
       percent_completed: 30,
       duration: 10,
       ...muxMetadata,
@@ -541,7 +523,6 @@ describe('trackHtmlVideo with Mux vendor', () => {
 
     expect(handler.onEnded).toHaveBeenCalledWith({
       duration: 10,
-      start_time: 2,
       position: 2,
       percent_completed: 20,
       ...muxMetadata,
@@ -591,7 +572,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onPlay).toHaveBeenCalledWith({
         position: 0,
-        start_time: 0,
         percent_completed: 0,
         duration: 10,
       });
@@ -601,7 +581,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onPause).toHaveBeenCalledWith({
         position: 5,
-        start_time: 5,
         percent_completed: 50,
         duration: 10,
         stop_reason: 'paused',
@@ -612,7 +591,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onEnded).toHaveBeenCalledWith({
         position: 10,
-        start_time: 10,
         percent_completed: 100,
         duration: 10,
         stop_reason: 'ended',
@@ -634,7 +612,6 @@ describe('trackEmbeddedVideo', () => {
       expect(handler.onPlay).toHaveBeenCalledTimes(1);
       expect(handler.onPlay).toHaveBeenCalledWith({
         position: 4,
-        start_time: 4,
         percent_completed: 40,
         duration: 10,
       });
@@ -676,7 +653,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onSeeking).toHaveBeenCalledWith({
         position: 6,
-        start_time: 6,
         percent_completed: 60,
         duration: 10,
         stop_reason: 'seeking',
@@ -697,7 +673,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onSeeked).toHaveBeenCalledWith({
         position: 8,
-        start_time: 8,
         percent_completed: 80,
         duration: 10,
       });
@@ -759,7 +734,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onPlay).toHaveBeenCalledWith({
         position: 0,
-        start_time: 0,
         percent_completed: 0,
         duration: 10,
         ...muxMetadata,
@@ -770,7 +744,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onPause).toHaveBeenCalledWith({
         position: 5,
-        start_time: 5,
         percent_completed: 50,
         duration: 10,
         stop_reason: 'paused',
@@ -782,7 +755,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onEnded).toHaveBeenCalledWith({
         position: 10,
-        start_time: 10,
         percent_completed: 100,
         duration: 10,
         stop_reason: 'ended',
@@ -811,7 +783,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onSeeking).toHaveBeenCalledWith({
         position: 2,
-        start_time: 2,
         percent_completed: 20,
         duration: 10,
         stop_reason: 'seeking',
@@ -834,7 +805,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onSeeked).toHaveBeenCalledWith({
         position: 4,
-        start_time: 4,
         percent_completed: 40,
         duration: 10,
         ...muxMetadata,
@@ -862,7 +832,6 @@ describe('trackEmbeddedVideo', () => {
       await jest.runAllTimersAsync();
       expect(handler.onPlay).toHaveBeenCalledWith({
         position: 0,
-        start_time: 0,
         duration: 10,
         percent_completed: 0,
       });
