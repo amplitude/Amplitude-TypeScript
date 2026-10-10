@@ -14,6 +14,62 @@ import { DEFAULT_STREAM_STARTED_EVENT, DEFAULT_STREAM_STOPPED_EVENT } from '../c
 /** Playback states where a view session is still in progress (e.g. buffering). */
 const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 'waiting']);
 
+export type StreamingMediaType = 'video' | 'audio';
+
+export type StreamingDeliveryMode = 'live' | 'on_demand';
+
+export type StreamingStopReason = 'timeout' | 'paused' | 'ended' | 'error' | 'untracked' | 'content_changed';
+
+type StreamingEventProperties = {
+  /** Omitted when not set. */
+  '[Streaming] Content ID'?: string;
+  /** Omitted when not set. */
+  '[Streaming] Title'?: string;
+  '[Streaming] Media Type': StreamingMediaType;
+  /** `on_demand` when duration is known, `live` when it is not, unless the app sets it. */
+  '[Streaming] Delivery Mode': StreamingDeliveryMode;
+  '[Streaming] Stream Session ID': string;
+  '[Streaming] Play ID': string;
+  /** Playhead seconds where this play started. */
+  '[Streaming] Start Position Sec': number;
+  /** Playhead seconds when the event was recorded. */
+  '[Streaming] Position Sec': number;
+  /** Omitted when unknown, including live streams. */
+  '[Streaming] Duration Sec'?: number;
+};
+
+type StreamStartedEventProperties = StreamingEventProperties;
+
+type StreamStoppedEventProperties = StreamingEventProperties & {
+  /** Seconds the playhead advanced while playing for this Play ID. Resets on pause. */
+  '[Streaming] Play Time Sec': number;
+  /** Running total of Play Time Sec for this Stream Session ID. Latest event carries the total. */
+  '[Streaming] Play Time Total Sec': number;
+  /** Position Sec as a percentage of Duration Sec (0–100). Omitted when Duration Sec is unknown. */
+  '[Streaming] Percent Completed'?: number;
+  '[Streaming] Stop Reason': StreamingStopReason;
+  '[Streaming] Error Message'?: string;
+};
+
+const eventPropNames: Record<string, keyof StreamStartedEventProperties | keyof StreamStoppedEventProperties> = {
+  // shared events
+  content_id: '[Streaming] Content ID',
+  title: '[Streaming] Title',
+  media_type: '[Streaming] Media Type',
+  delivery_mode: '[Streaming] Delivery Mode',
+  stream_session_id: '[Streaming] Stream Session ID',
+  play_id: '[Streaming] Play ID',
+  start_position: '[Streaming] Start Position Sec',
+  position: '[Streaming] Position Sec',
+  duration: '[Streaming] Duration Sec',
+  // stop events
+  play_time: '[Streaming] Play Time Sec',
+  play_time_total: '[Streaming] Play Time Total Sec',
+  percent_completed: '[Streaming] Percent Completed',
+  stop_reason: '[Streaming] Stop Reason',
+  error_message: '[Streaming] Error Message',
+};
+
 /**
  * Observer fields that never reach event properties from `lastEvent`: `position` is taken from
  * observer state instead, and `percent_completed`/`stop_reason` describe the player event rather
@@ -46,7 +102,6 @@ export class VideoCapture {
   private listeners: ((previousState: VideoState, nextState: VideoState) => void)[] = [];
   private onRemoveListeners: (() => void)[] = [];
   private playId: string | null = null;
-  private playStartTime: number | null = null;
   /**
    * Observer `watchTime` already accumulated when the current `play_id` began.
    * `play_time` is the watch time since this baseline.
@@ -105,6 +160,20 @@ export class VideoCapture {
     return this;
   }
 
+  toAnalyticsEventProperties(
+    eventProperties: Record<string, string | number | boolean> | undefined,
+  ): Record<string, string | number | boolean> {
+    if (!eventProperties) {
+      return {};
+    }
+    const analyticsEventProperties: Record<string, string | number | boolean> = {};
+    for (const [key, value] of Object.entries(eventProperties)) {
+      const analyticsKey = eventPropNames[key] ?? key;
+      analyticsEventProperties[analyticsKey] = value;
+    }
+    return analyticsEventProperties;
+  }
+
   /**
    * Track a "[Amplitude] Stream Started" event every time the video starts playing
    * @returns The VideoCapture instance.
@@ -120,8 +189,6 @@ export class VideoCapture {
       }
       if (!ACTIVE_PLAYBACK_STATES.has(prevPlayback) && nextPlayback === 'playing') {
         this.playId = UUID();
-        /* istanbul ignore next */
-        this.playStartTime = nextState.lastEvent?.start_time ?? 0;
         this.playTimeBaseline = previousState.watchTime ?? 0;
         const now = new Date().getTime();
         const startEvent: BaseEvent = {
@@ -139,14 +206,19 @@ export class VideoCapture {
           insert_id: UUID(),
           event_type: DEFAULT_STREAM_STOPPED_EVENT,
           time: now + 1,
-          event_properties: {
+          event_properties: this.toAnalyticsEventProperties({
             stop_reason: 'timeout',
             play_id: this.playId,
             ...this.parseStopEventProperties(nextState),
             ...this.extraEventProperties,
-          },
+          }),
         };
-        this.heartbeat.trackNoDelay(startEvent).catch(() => this.stop());
+        this.heartbeat
+          .trackNoDelay({
+            ...startEvent,
+            event_properties: this.toAnalyticsEventProperties(startEvent.event_properties),
+          })
+          .catch(() => this.stop());
         this.heartbeat.track(this.stopEvent).catch(() => this.stop());
       }
     });
@@ -163,11 +235,11 @@ export class VideoCapture {
       // update the delayed event properties to have
       // the most up-to-date values
       if (this.stopEvent) {
-        this.stopEvent.event_properties = {
+        this.stopEvent.event_properties = this.toAnalyticsEventProperties({
           ...this.stopEvent.event_properties,
           ...this.parseStopEventProperties(nextState),
           ...this.extraEventProperties,
-        };
+        });
         this.stopEvent.time = new Date().getTime();
         void this.heartbeat.update(this.stopEvent);
       }
@@ -196,12 +268,16 @@ export class VideoCapture {
     }
     // the next play queues a fresh delayed stop event
     this.stopEvent = null;
-    this.playStartTime = null;
     stopEvent.event_properties = {
       ...stopEvent.event_properties,
       stop_reason: stopReason,
     };
-    this.heartbeat.trackNoDelay(stopEvent).catch(() => this.stop());
+    this.heartbeat
+      .trackNoDelay({
+        ...stopEvent,
+        event_properties: this.toAnalyticsEventProperties(stopEvent.event_properties),
+      })
+      .catch(() => this.stop());
   }
 
   // Placeholder: may need a generic state change listener to capture unusual events or to have
@@ -266,7 +342,6 @@ export class VideoCapture {
     return {
       ...parseVideoEventProperties(nextState.lastEvent),
       duration: nextState.lastEvent?.duration ?? undefined,
-      start_time: nextState.lastEvent?.start_time ?? 0,
       position: nextState.position ?? 0,
       media_type: this.getMediaType(),
       play_time_total: this.watchedSince(nextState.watchTime, this.sessionTimeBaseline),
@@ -280,9 +355,6 @@ export class VideoCapture {
   parseStopEventProperties(nextState: VideoState): Record<string, string | number | boolean> {
     return {
       ...this.parseStartEventProperties(nextState),
-      // lastEvent.start_time is the playhead at the time of the event, which for a stop event is
-      // where playback ended, so the position captured when the play session began is preferred.
-      start_time: this.playStartTime ?? nextState.lastEvent?.start_time ?? 0,
       // watchTime accumulates for the whole element. Each play_id and stream session keeps its own slice.
       play_time: this.watchedSince(nextState.watchTime, this.playTimeBaseline),
       play_time_total: this.watchedSince(nextState.watchTime, this.sessionTimeBaseline),
