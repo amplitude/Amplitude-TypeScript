@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <title>Serve Variant Test</title>
+  </head>
+  <body>
+    <div id="variant-display">Waiting for feature flag to be fetched...</div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { experimentPlugin } from '@amplitude/plugin-experiment-browser';
+
+      const infinitePlugin = {
+        name: 'infinite-plugin',
+        async setup(config, client) {
+          await new Promise((resolve) => { /* never resolve */ });
+        }
+      };
+    
+      window.amplitude = amplitude;
+      const frustrationInteractions = {
+        deadClicks: true,
+        rageClicks: true,
+      };
+      const plugin = experimentPlugin();
+      amplitude.add(plugin);
+      //amplitude.add(infinitePlugin);
+      const initPromise = amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+      ).promise;
+      initPromise.then(async () => {
+        await plugin.experiment.fetch();
+        const variant = plugin.experiment.variant('fake-feature-flag-dev-server');
+        document.getElementById('variant-display').innerHTML = `Variant: ${JSON.stringify(variant)}`;
+      });
+      window.amplitude = amplitude;
+      window.experimentPlugin = plugin;
+    </script>
+</html>
