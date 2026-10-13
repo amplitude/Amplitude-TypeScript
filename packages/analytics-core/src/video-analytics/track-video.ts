@@ -145,7 +145,6 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
       hasReportedEnded = false;
     }
 
-    // save the current video state to be used in 'ended' events if current video is unloadedWhen a source is replaced while the previous media is seeking, this onEnded transition preserves VideoObserver.state.isSeeking, and the subsequent onPlay transition preserves it again. Because aborting the old load need not emit seeked, every time update for the replacement then follows event.isSeeking || this.state.isSeeking and is treated as a seek indefinitely, so the new stream's play_time remains zero and its queued stop event is not updated. Clear the outstanding seeking state at the source-change boundary or when the replacement starts.
     videoData = getVideoData(videoEl);
     if (vendor === 'mux') {
       videoData = { ...videoData, ...getMuxMetadata(videoEl) };

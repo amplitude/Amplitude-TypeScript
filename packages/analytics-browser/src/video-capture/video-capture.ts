@@ -176,7 +176,7 @@ export class VideoCapture {
   }
 
   /**
-   * Track a "[Amplitude] Stream Started" event every time the video starts playing
+   * Track a "[Streaming] Stream Started" event every time the video starts playing
    * @returns The VideoCapture instance.
    */
   captureVideoStarted(): VideoCapture {
@@ -229,7 +229,7 @@ export class VideoCapture {
   }
 
   /**
-   * Track a "[Amplitude] Stream Stopped" event every time the video stops playing
+   * Track a "[Streaming] Stream Stopped" event every time the video stops playing
    * @returns The VideoCapture instance.
    */
   captureVideoStopped(): VideoCapture {
@@ -348,7 +348,6 @@ export class VideoCapture {
       start_position: this.playStartPosition ?? nextState.position ?? 0,
       position: nextState.position ?? 0,
       media_type: this.getMediaType(),
-      play_time_total: this.watchedSince(nextState.watchTime, this.sessionTimeBaseline),
     };
   }
 
@@ -393,7 +392,7 @@ export type TrackVideoResult = UntrackVideoResult | Error;
 /**
  * Track video analytics events for an HTML video or audio element or embedded video player.js instance.
  *
- * Captures [Amplitude] Stream Started and [Amplitude] Stream Stopped events.
+ * Captures [Streaming] Stream Started and [Streaming] Stream Stopped events.
  *
  * @experimental This function is experimental and may not be stable.
  * @param amplitude - The Amplitude client instance.
