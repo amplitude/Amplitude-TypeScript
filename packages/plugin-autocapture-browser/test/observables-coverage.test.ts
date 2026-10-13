@@ -19,6 +19,7 @@ import {
   createMutationObservable,
   createExposureObservable,
 } from '../src/observables';
+import { createShadowGate } from '../src/shadow-mode';
 
 describe('Observables Coverage', () => {
   beforeEach(() => {
@@ -84,6 +85,22 @@ describe('Observables Coverage', () => {
       Object.defineProperty(document, 'body', { value: originalBody, configurable: true });
 
       // Verify it didn't throw and executed safely
+      expect(true).toBe(true);
+    });
+
+    test('should handle missing document.body safely when a shadow gate is supplied', () => {
+      const originalBody = document.body;
+      Object.defineProperty(document, 'body', { value: null, configurable: true });
+
+      mockGetGlobalScope.mockReturnValue(window);
+
+      const gate = createShadowGate();
+      const observable = createMutationObservable(gate);
+      const subscription = observable.subscribe(() => undefined);
+      subscription.unsubscribe();
+
+      Object.defineProperty(document, 'body', { value: originalBody, configurable: true });
+
       expect(true).toBe(true);
     });
   });

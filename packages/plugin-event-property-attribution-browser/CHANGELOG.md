@@ -3,6 +3,89 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.22](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.21...@amplitude/plugin-event-property-attribution-browser@0.2.22) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.21](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.20...@amplitude/plugin-event-property-attribution-browser@0.2.21) (2026-10-08)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.20](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.19...@amplitude/plugin-event-property-attribution-browser@0.2.20) (2026-10-07)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.19](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.18...@amplitude/plugin-event-property-attribution-browser@0.2.19) (2026-09-29)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.18](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.17...@amplitude/plugin-event-property-attribution-browser@0.2.18) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.17](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.16...@amplitude/plugin-event-property-attribution-browser@0.2.17) (2026-09-23)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.15...@amplitude/plugin-event-property-attribution-browser@0.2.16) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.14...@amplitude/plugin-event-property-attribution-browser@0.2.15) (2026-09-16)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.13...@amplitude/plugin-event-property-attribution-browser@0.2.14) (2026-08-24)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
+## [0.2.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.12...@amplitude/plugin-event-property-attribution-browser@0.2.13) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
+
+
+
+
+
 ## [0.2.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.11...@amplitude/plugin-event-property-attribution-browser@0.2.12) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser

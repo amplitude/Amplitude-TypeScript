@@ -6,13 +6,19 @@ import {
   removeEmptyProperties,
   querySelectUniqueElements,
   getClosestElement,
+  querySelectorAllDeep,
+  resolveEventTarget,
   asyncLoadScript,
   generateUniqueId,
   createShouldTrackEvent,
+  getNormalizedPageUrl,
+  normalizePageUrl,
+  resolveHistoryNavigationUrl,
 } from '../src/helpers';
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import { mockWindowLocationFromURL } from './utils';
 import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
+import { SHADOW_OFF, type ShadowMode } from '../src/shadow-mode';
 
 import type { ElementInteractionsOptions } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 
@@ -318,6 +324,167 @@ describe('autocapture-plugin helpers', () => {
 
       const inner = document.getElementById('inner');
       expect(getClosestElement(inner, ['div.some-class'])).toEqual(null);
+    });
+
+    test('should not cross the shadow boundary by default', () => {
+      document.body.innerHTML = `<div id="app"><my-host></my-host></div>`;
+      const host = document.querySelector('my-host') as Element;
+      const root = host.attachShadow({ mode: 'open' });
+      root.innerHTML = `<button id="cta">x</button>`;
+      const inner = root.getElementById('cta') as Element;
+
+      expect(getClosestElement(inner, ['#app'])).toBeNull();
+      expect(getClosestElement(inner, ['#app'], SHADOW_OFF)).toBeNull();
+    });
+
+    test('should cross into the host and up to a light-DOM ancestor when shadow is enabled', () => {
+      document.body.innerHTML = `<div id="app"><my-host></my-host></div>`;
+      const host = document.querySelector('my-host') as Element;
+      const root = host.attachShadow({ mode: 'open' });
+      root.innerHTML = `<button id="cta">x</button>`;
+      const inner = root.getElementById('cta') as Element;
+      const on = (maxDepth: number): ShadowMode => ({ enabled: true, maxDepth });
+
+      expect(getClosestElement(inner, ['#app'], on(1))).toBe(document.getElementById('app'));
+    });
+
+    test('should respect the shadow crossing budget', () => {
+      document.body.innerHTML = `<div id="app"><my-card></my-card></div>`;
+      const card = document.querySelector('my-card') as Element;
+      const cardRoot = card.attachShadow({ mode: 'open' });
+      cardRoot.innerHTML = `<my-button></my-button>`;
+      const button = cardRoot.querySelector('my-button') as Element;
+      const buttonRoot = button.attachShadow({ mode: 'open' });
+      buttonRoot.innerHTML = `<button id="deep">x</button>`;
+      const deep = buttonRoot.getElementById('deep') as Element;
+      const on = (maxDepth: number): ShadowMode => ({ enabled: true, maxDepth });
+
+      expect(getClosestElement(deep, ['#app'], on(1))).toBeNull();
+      expect(getClosestElement(deep, ['#app'], on(2))).toBe(document.getElementById('app'));
+    });
+
+    test('should return null for a null element when shadow is enabled', () => {
+      const on = (maxDepth: number): ShadowMode => ({ enabled: true, maxDepth });
+      expect(getClosestElement(null, ['#app'], on(1))).toBeNull();
+    });
+
+    test('should still match within the same shadow tree when shadow is enabled', () => {
+      document.body.innerHTML = `<div id="app"><my-host></my-host></div>`;
+      const host = document.querySelector('my-host') as Element;
+      const root = host.attachShadow({ mode: 'open' });
+      root.innerHTML = `<button id="cta">x</button>`;
+      const inner = root.getElementById('cta') as Element;
+      const on = (maxDepth: number): ShadowMode => ({ enabled: true, maxDepth });
+
+      expect(getClosestElement(inner, ['#cta'], on(1))).toBe(inner);
+    });
+  });
+
+  describe('querySelectorAllDeep', () => {
+    const on = (maxDepth: number): ShadowMode => ({ enabled: true, maxDepth });
+
+    beforeEach(() => {
+      document.body.innerHTML = `<button class="track">light</button><my-host></my-host>`;
+      const host = document.querySelector('my-host') as Element;
+      const root = host.attachShadow({ mode: 'open' });
+      root.innerHTML = `<button class="track">shadow</button>`;
+    });
+
+    test('should return only light-DOM matches when shadow is off', () => {
+      const found = querySelectorAllDeep(document, '.track', SHADOW_OFF);
+      expect(found.map((el) => el.textContent)).toEqual(['light']);
+      expect(querySelectorAllDeep(document, '.track').map((el) => el.textContent)).toEqual(['light']);
+    });
+
+    test('should pierce open shadow roots when shadow is enabled', () => {
+      const found = querySelectorAllDeep(document, '.track', on(1));
+      expect(found.map((el) => el.textContent).sort()).toEqual(['light', 'shadow']);
+    });
+
+    test('should return an empty array for an empty selector string', () => {
+      expect(querySelectorAllDeep(document, '', SHADOW_OFF)).toEqual([]);
+    });
+
+    test('should skip shadow DFS when document.documentElement is null', () => {
+      document.body.innerHTML = `<button class="track">light</button>`;
+      const original = document.documentElement;
+      Object.defineProperty(document, 'documentElement', {
+        configurable: true,
+        value: null,
+      });
+      try {
+        expect(querySelectorAllDeep(document, '.track', on(1)).map((el) => el.textContent)).toEqual(['light']);
+      } finally {
+        Object.defineProperty(document, 'documentElement', {
+          configurable: true,
+          value: original,
+        });
+      }
+    });
+  });
+
+  describe('resolveEventTarget', () => {
+    const on = (maxDepth: number): ShadowMode => ({ enabled: true, maxDepth });
+
+    test('should return event.target when shadow support is off', () => {
+      const host = document.createElement('my-host');
+      const inner = document.createElement('button');
+      const event = { target: host, composedPath: () => [inner, host] } as unknown as Event;
+      expect(resolveEventTarget(event)).toBe(host);
+    });
+
+    test('should return the inner element from composedPath when shadow support is on and within depth budget', () => {
+      const host = document.createElement('my-host');
+      const inner = document.createElement('button');
+      const event = { target: host, composedPath: () => [inner, host] } as unknown as Event;
+      expect(resolveEventTarget(event, on(1))).toBe(inner);
+    });
+
+    test('should return the in-budget shadow host when the click is deeper than maxDepth', () => {
+      document.body.innerHTML = '<my-card></my-card>';
+      const card = document.querySelector('my-card') as Element;
+      const cardRoot = card.attachShadow({ mode: 'open' });
+      cardRoot.innerHTML = '<my-button></my-button>';
+      const buttonHost = cardRoot.querySelector('my-button') as Element;
+      const buttonRoot = buttonHost.attachShadow({ mode: 'open' });
+      buttonRoot.innerHTML = '<button id="cta">click</button>';
+      const cta = buttonRoot.getElementById('cta') as Element;
+
+      const event = {
+        target: card,
+        composedPath: () => [cta, buttonHost, card, document.body, document.documentElement, document],
+      } as unknown as Event;
+      expect(resolveEventTarget(event, on(1))).toBe(buttonHost);
+    });
+
+    test('should fall back to event.target when composedPath is unavailable', () => {
+      const host = document.createElement('my-host');
+      const event = { target: host } as unknown as Event;
+      expect(resolveEventTarget(event, on(1))).toBe(host);
+    });
+
+    test('should fall back to event.target when composed path is empty', () => {
+      const host = document.createElement('my-host');
+      const event = { target: host, composedPath: () => [] } as unknown as Event;
+      expect(resolveEventTarget(event, on(1))).toBe(host);
+    });
+
+    test('should fall back to event.target when composed path starts with a non-element', () => {
+      const host = document.createElement('my-host');
+      const event = { target: host, composedPath: () => [null, host] } as unknown as Event;
+      expect(resolveEventTarget(event, on(1))).toBe(host);
+    });
+
+    test('should return a non-element composed path node when shadow support is on', () => {
+      const text = document.createTextNode('x');
+      const host = document.createElement('my-host');
+      const event = { target: host, composedPath: () => [text, host] } as unknown as Event;
+      expect(resolveEventTarget(event, on(1))).toBe(text);
+    });
+
+    test('should return null when the event has no target and composed path is empty', () => {
+      const event = { target: null, composedPath: () => [] } as unknown as Event;
+      expect(resolveEventTarget(event, on(1))).toBeNull();
     });
   });
 
@@ -690,6 +857,53 @@ describe('autocapture-plugin helpers', () => {
       );
 
       expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+  });
+
+  describe('normalizePageUrl', () => {
+    test('should strip query parameters but keep the hash', () => {
+      expect(normalizePageUrl('https://example.com/path?foo=1#section')).toEqual('https://example.com/path#section');
+      expect(normalizePageUrl('https://example.com/path#section')).toEqual('https://example.com/path#section');
+    });
+
+    test('should treat query-only changes on a hashed URL as the same page', () => {
+      expect(normalizePageUrl('https://example.com/path?foo=1#section')).toEqual(
+        normalizePageUrl('https://example.com/path#section'),
+      );
+    });
+
+    test('should return an empty string for missing hrefs', () => {
+      expect(normalizePageUrl('')).toEqual('');
+    });
+
+    test('should fall back when the href is not a valid URL', () => {
+      expect(normalizePageUrl('http://[')).toEqual('http://[');
+    });
+  });
+
+  describe('resolveHistoryNavigationUrl', () => {
+    test('should use the current page URL when the history url is empty', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/current'));
+      expect(resolveHistoryNavigationUrl('')).toEqual(getNormalizedPageUrl());
+      expect(resolveHistoryNavigationUrl(null)).toEqual(getNormalizedPageUrl());
+    });
+
+    test('should resolve relative history urls against the current location before navigation', () => {
+      expect(
+        resolveHistoryNavigationUrl('../other', { location: { href: 'https://example.com/foo/bar/' } } as never),
+      ).toEqual('https://example.com/foo/other');
+    });
+
+    test('should fall back to the current page URL when the history url is invalid', () => {
+      mockWindowLocationFromURL(new URL('https://www.example.com/current'));
+      expect(resolveHistoryNavigationUrl('http://[')).toEqual(getNormalizedPageUrl());
+    });
+
+    test('should fall back to localhost when location href is missing', () => {
+      expect(getNormalizedPageUrl({ location: {} } as never)).toEqual('');
+      expect(resolveHistoryNavigationUrl('/next', { location: { href: '' } } as never)).toMatch(
+        /http:\/\/localhost\/next/,
+      );
     });
   });
 });

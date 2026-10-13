@@ -20,8 +20,16 @@ type MockedLogger = jest.Mocked<ILogger>;
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
 
 describe('SessionReplayPlugin', () => {
-  const { init, setSessionId, getSessionReplayProperties, shutdown, getSessionId, evaluateTargetingAndCapture } =
-    sessionReplayBrowser as MockedSessionReplayBrowser;
+  const {
+    init,
+    setSessionId,
+    getSessionReplayProperties,
+    start,
+    stop,
+    shutdown,
+    getSessionId,
+    evaluateTargetingAndCapture,
+  } = sessionReplayBrowser as MockedSessionReplayBrowser;
   const mockLoggerProviderDebug = jest.fn();
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -69,6 +77,9 @@ describe('SessionReplayPlugin', () => {
       promise: Promise.resolve(),
     });
     setSessionId.mockReturnValue({
+      promise: Promise.resolve(),
+    });
+    start.mockReturnValue({
       promise: Promise.resolve(),
     });
     getSessionReplayProperties.mockImplementation(() => {
@@ -300,6 +311,7 @@ describe('SessionReplayPlugin', () => {
         sampleRate: 0.4,
         privacyConfig: {
           blockSelector: ['#id'],
+          maskAttributes: ['placeholder', 'aria-label'],
         },
       });
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
@@ -318,6 +330,7 @@ describe('SessionReplayPlugin', () => {
           sessionId: mockConfig.sessionId,
           privacyConfig: expect.objectContaining({
             blockSelector: ['#id'],
+            maskAttributes: ['placeholder', 'aria-label'],
           }) as object,
           version: {
             type: 'plugin',
@@ -821,9 +834,25 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
+  describe('start and stop', () => {
+    test('should call session replay start', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      await sessionReplay.start();
+      expect(start).toHaveBeenCalled();
+    });
+
+    test('should call session replay stop', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      sessionReplay.stop();
+      expect(stop).toHaveBeenCalled();
+    });
+  });
+
   describe('getSessionReplayProperties', () => {
     test('should return session replay properties', async () => {
-      const sessionReplay = sessionReplayPlugin() as SessionReplayPlugin;
+      const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
       getSessionReplayProperties.mockReturnValueOnce({
         '[Amplitude] Session Recorded': true,

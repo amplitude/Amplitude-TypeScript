@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } from '@amplitude/analytics-types';
+import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } from '@amplitude/analytics-core';
 
 import { PluginSessionReplayReactNative } from './native-module';
 import { VERSION } from './version';

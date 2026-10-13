@@ -15,7 +15,12 @@ import {
   fallbackCssPath,
   resolveSelectorConfig,
   DEFAULT_RESOLVED_CONFIG,
+  DEFAULT_SHADOW_DOM_ENABLED,
+  DEFAULT_MAX_SHADOW_DOM_DEPTH,
+  MAX_SHADOW_DOM_DEPTH,
   createSelectorEngine,
+  walkComposedAncestors,
+  collectOpenShadowRoots,
 } from '../src';
 
 describe('@amplitude/element-selector — public API surface', () => {
@@ -50,6 +55,17 @@ describe('@amplitude/element-selector — public API surface', () => {
     expect(typeof resolveSelectorConfig).toBe('function');
     expect(DEFAULT_RESOLVED_CONFIG.enabled).toBe(false);
     expect(DEFAULT_RESOLVED_CONFIG.explicitTrackingAttribute).toBe('data-amp-track-id');
+  });
+
+  it('exports shadow DOM depth defaults and cap constants', () => {
+    expect(DEFAULT_SHADOW_DOM_ENABLED).toBe(false);
+    expect(DEFAULT_MAX_SHADOW_DOM_DEPTH).toBe(1);
+    expect(MAX_SHADOW_DOM_DEPTH).toBe(10);
+  });
+
+  it('exports shadow DOM traversal primitives', () => {
+    expect(typeof walkComposedAncestors).toBe('function');
+    expect(typeof collectOpenShadowRoots).toBe('function');
   });
 
   it('exports the engine factory', () => {

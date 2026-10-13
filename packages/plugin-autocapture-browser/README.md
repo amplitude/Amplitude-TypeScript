@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://amplitude.com" target="_blank" align="center">
-    <img src="https://static.amplitude.com/lightning/46c85bfd91905de8047f1ee65c7c93d6fa9ee6ea/static/media/amplitude-logo-with-text.4fb9e463.svg" width="280">
+    <img src="https://static.amplitude.com/brand/amplitude-logo-with-text.svg" width="280">
   </a>
   <br />
 </p>
@@ -25,6 +25,8 @@ yarn add @amplitude/plugin-autocapture-browser@beta
 ## Usage
 
 This plugin works on top of the Amplitude Browser SDK, generating auto-tracked events and sending to Amplitude.
+
+**Shadow DOM:** optional support via the `shadowDomEnabled` option (locally on `elementInteractions`, or via remote config). See [SHADOW-DOM.md](./SHADOW-DOM.md).
 
 To use this plugin, you need to install `@amplitude/analytics-browser` version `v1.9.1` or later.
 

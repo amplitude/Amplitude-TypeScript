@@ -28,12 +28,6 @@ export interface SessionReplayConfig {
   apiKey: string;
 
   /**
-   * Whether to automatically start recording when the SDK is initialized
-   * @default true
-   */
-  autoStart?: boolean;
-
-  /**
    * Device identifier that matches the device ID sent with Amplitude events
    * Must match the Device ID passed as event properties to Amplitude
    * @default null
@@ -87,11 +81,13 @@ export interface SessionReplayConfig {
   serverZone?: 'EU' | 'US';
 
   /**
-   * Session identifier that matches the session ID sent with Amplitude events
-   * Must match the Session ID passed as event properties to Amplitude
+   * Session identifier that matches the session ID sent with Amplitude events.
+   * Must match the Session ID passed as event properties to Amplitude.
+   * Accepts a positive integer such as `Date.now()` or an opaque string such as
+   * a UUID. Invalid numeric IDs disable recording; pass exact large IDs as strings.
    * @default -1
    */
-  sessionId?: number;
+  sessionId?: string | number;
 }
 
 /**
@@ -107,7 +103,6 @@ export type SessionReplayConfigInternal = Omit<SessionReplayConfig, 'maskLevel'>
 
 export const getDefaultConfig: () => Required<Omit<SessionReplayConfigInternal, 'apiKey'>> = () => {
   return {
-    autoStart: true,
     deviceId: null,
     enableRemoteConfig: true,
     logLevel: LogLevel.Warn,

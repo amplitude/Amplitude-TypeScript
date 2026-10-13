@@ -27,6 +27,7 @@ export type MaskLevel =
 export interface SessionReplayPrivacyConfig {
   blockSelector?: string | string[];
   defaultMaskLevel?: MaskLevel;
+  maskAttributes?: string[];
   maskSelector?: string[];
   unmaskSelector?: string[];
 }
@@ -124,6 +125,10 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.shouldInlineStylesheet}
    */
   shouldInlineStylesheet?: boolean;
+  /**
+   * @see {@link StandaloneSessionReplayOptions.inlineImages}
+   */
+  inlineImages?: boolean;
   /**
    * @see {@link StandaloneSessionReplayOptions.performanceConfig}
    */

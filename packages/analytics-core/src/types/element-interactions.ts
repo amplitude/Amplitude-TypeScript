@@ -136,6 +136,22 @@ export interface ElementInteractionsOptions {
      */
     exposureDuration?: number;
   };
+
+  /**
+   * Enable shadow-DOM piercing for element interactions. When true, interactions
+   * inside open shadow roots are captured and element paths cross shadow
+   * boundaries. Default is false (shadow support off).
+   *
+   * Applied at plugin initialization. Like the equivalent remote-config flag, it
+   * latches on for the lifetime of the page.
+   */
+  shadowDomEnabled?: boolean;
+
+  /**
+   * Max number of shadow-boundary crossings to traverse when `shadowDomEnabled`
+   * is true. Default is 1. Clamped into [1, 10].
+   */
+  maxShadowDomDepth?: number;
 }
 
 type MatchingCondition = {

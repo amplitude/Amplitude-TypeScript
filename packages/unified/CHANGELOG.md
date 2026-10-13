@@ -3,6 +3,116 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.41](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.40...@amplitude/unified@1.1.41) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.40](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.39...@amplitude/unified@1.1.40) (2026-10-08)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.39](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.38...@amplitude/unified@1.1.39) (2026-10-07)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.38](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.37...@amplitude/unified@1.1.38) (2026-09-29)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.37](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.36...@amplitude/unified@1.1.37) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.36](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.35...@amplitude/unified@1.1.36) (2026-09-23)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.35](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.34...@amplitude/unified@1.1.35) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.34](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.33...@amplitude/unified@1.1.34) (2026-09-16)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.33](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.32...@amplitude/unified@1.1.33) (2026-09-16)
+
+
+### Bug Fixes
+
+* **unified:** correct public types and README examples ([#1970](https://github.com/amplitude/Amplitude-TypeScript/issues/1970)) ([a273f20](https://github.com/amplitude/Amplitude-TypeScript/commit/a273f20cb6c0dd2a7c53f67421545998fdb37d27))
+
+
+
+
+
+## [1.1.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.31...@amplitude/unified@1.1.32) (2026-08-31)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.31](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.30...@amplitude/unified@1.1.31) (2026-08-27)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.30](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.29...@amplitude/unified@1.1.30) (2026-08-24)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.29](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.28...@amplitude/unified@1.1.29) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
+
+
+
+
+
 ## [1.1.28](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.27...@amplitude/unified@1.1.28) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/unified

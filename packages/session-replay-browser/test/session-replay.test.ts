@@ -2078,6 +2078,14 @@ describe('SessionReplay', () => {
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
+    test('should return false after stop() until start() is called', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.getShouldRecord()).toBe(true);
+      sessionReplay.stop();
+      expect(sessionReplay.getShouldRecord()).toBe(false);
+      await sessionReplay.start().promise;
+      expect(sessionReplay.getShouldRecord()).toBe(true);
+    });
     test('should return false if captureEnabled is false', async () => {
       mockRemoteConfig = {
         sr_sampling_config: {
@@ -2716,6 +2724,16 @@ describe('SessionReplay', () => {
       expect(allEvents).toEqual([mockEventString]); // exactly the one pre-existing event
     });
 
+    test('should stop recording if emit fires after stop()', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: unknown) => void };
+      sessionReplay.stop();
+      mockRecordFunction.mockClear();
+      recordArg?.emit && recordArg.emit(mockEvent);
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+    });
+
     test('should add an error handler', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
@@ -2756,6 +2774,34 @@ describe('SessionReplay', () => {
       await sessionReplay.recordEvents();
       const recordArg = mockRecordFunction.mock.calls[0][0];
       expect(recordArg?.checkoutEveryNms).toBeUndefined();
+    });
+
+    test.each([
+      {
+        description: 'should pass inlineImages=true to rrweb when option is true',
+        options: { inlineImages: true },
+        expectedValue: true,
+      },
+      {
+        description: 'should pass inlineImages=false to rrweb when option is false',
+        options: { inlineImages: false },
+        expectedValue: false,
+      },
+      {
+        description: 'should not pass inlineImages to rrweb when option is not provided',
+        options: {},
+        expectedValue: undefined,
+      },
+    ])('$description', async ({ options, expectedValue }) => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        ...options,
+      }).promise;
+      await sessionReplay.recordEvents();
+
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.inlineImages).toBe(expectedValue);
     });
 
     test('should rethrow CSSStylesheet errors', async () => {
@@ -3643,6 +3689,109 @@ describe('SessionReplay', () => {
     });
   });
 
+  describe('start and stop', () => {
+    test('stop should invoke the cancel callback returned by rrweb record()', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      expect(mockRecordFunction).toHaveBeenCalled();
+      const cancelFn = mockRecordFunction.mock.results[mockRecordFunction.mock.results.length - 1].value as jest.Mock;
+      cancelFn.mockClear();
+      sessionReplay.stop();
+      expect(cancelFn).toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+    });
+
+    test('stop should halt recording, send queued events, and leave focus listeners attached', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const createEventsIDBStoreInstance = await SessionReplayIDB.SessionReplayEventsIDBStore.new('replay', {
+        loggerProvider: mockLoggerProvider,
+        apiKey,
+      });
+      const stopRecordingMock = jest.fn();
+      sessionReplay.recordCancelCallback = stopRecordingMock;
+      if (!sessionReplay.eventsManager) {
+        throw new Error('Did not call init');
+      }
+      await createEventsIDBStoreInstance?.addEventToCurrentSequence(123, mockEventString);
+      const sendEventsMock = jest.spyOn(sessionReplay.eventsManager, 'sendCurrentSequenceEvents');
+      removeEventListenerMock.mockReset();
+      sessionReplay.stop();
+      expect(stopRecordingMock).toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+      expect(sendEventsMock).toHaveBeenCalled();
+      expect(removeEventListenerMock).not.toHaveBeenCalled();
+    });
+
+    test('stop during in-flight recordEvents should not start rrweb afterward', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      await sessionReplay.recordEvents();
+      mockRecordFunction.mockClear();
+
+      let resolveObservers: (() => void) | undefined;
+      const observersStarted = new Promise<void>((resolve) => {
+        resolveObservers = resolve;
+      });
+      jest.spyOn(sessionReplay as any, 'initializeNetworkObservers').mockImplementation(() => observersStarted);
+
+      const recordPromise = sessionReplay.recordEvents();
+      // Flush the getRecordFunction() microtask so we block on initializeNetworkObservers.
+      await Promise.resolve();
+      sessionReplay.stop();
+      resolveObservers?.();
+      await recordPromise;
+
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBe(null);
+    });
+
+    test('stop should prevent recordEvents from starting capture', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      mockRecordFunction.mockClear();
+      sessionReplay.stop();
+      await sessionReplay.recordEvents();
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+    });
+
+    test('start should resume capture after stop', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await jest.runAllTimersAsync();
+      sessionReplay.stop();
+      mockRecordFunction.mockClear();
+      await sessionReplay.start().promise;
+      expect(mockRecordFunction).toHaveBeenCalled();
+    });
+
+    test('start should not record when the session is opted out', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, optOut: true }).promise;
+      mockRecordFunction.mockClear();
+      await sessionReplay.start().promise;
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+    });
+
+    test('focusListener should not restart recording after stop', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.stop();
+      sessionReplay.recordCancelCallback = null;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).recordEventsInFlight = false;
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+      sessionReplay.focusListener();
+
+      expect(recordEventsSpy).not.toHaveBeenCalled();
+    });
+
+    test('init after stop should allow recording again', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.stop();
+      expect(sessionReplay.getShouldRecord()).toBe(false);
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.getShouldRecord()).toBe(true);
+    });
+  });
+
   describe('getCurrentUrl', () => {
     test('returns url if exists', () => {
       globalSpy.mockImplementation(() => ({
@@ -3664,120 +3813,24 @@ describe('SessionReplay', () => {
   describe('getMaskTextSelectors', () => {
     test('null config', () => {
       sessionReplay.config = undefined;
-      expect(sessionReplay.getMaskTextSelectors()).not.toBeDefined();
+      expect(sessionReplay.getMaskTextSelectors()).toBe('[data-amp-mask]');
     });
     test('null privacy config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (sessionReplay.config) {
         sessionReplay.config.privacyConfig = undefined;
       }
-      expect(sessionReplay.getMaskTextSelectors()).not.toBeDefined();
+      expect(sessionReplay.getMaskTextSelectors()).toBe('[data-amp-mask]');
     });
     test('returns mask text selectors', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual(['.className1', '.className2']);
-    });
-
-    test('should track all text elements when level is conservative', async () => {
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-        },
-      }).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should return * when any urlMaskLevels rule is conservative, even if default is not', async () => {
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'light',
-          urlMaskLevels: [
-            { match: 'https://example.com/admin/*', maskLevel: 'conservative' },
-            { match: 'https://example.com/public/*', maskLevel: 'light' },
-          ],
-        },
-      }).promise;
-      // Any conservative URL rule → '*' so rrweb routes all text nodes through maskTextFn
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should not return * when urlMaskLevels has no conservative rule', async () => {
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'light',
-          urlMaskLevels: [{ match: 'https://example.com/checkout/*', maskLevel: 'medium' }],
-        },
-      }).promise;
-      // No conservative rule → falls through to maskSelector logic (no selectors configured)
-      expect(sessionReplay.getMaskTextSelectors()).toBeUndefined();
-    });
-
-    test('should return * when defaultMaskLevel is conservative and urlMaskLevels are present', async () => {
-      // Bug scenario: session starts on a URL matching a non-conservative rule (effective level ≠
-      // conservative), so the first branch doesn't fire. No rule in urlMaskLevels is conservative,
-      // so the second branch doesn't fire either. But defaultMaskLevel is conservative, meaning any
-      // page that matches NO rule at all falls back to conservative masking — rrweb must be told to
-      // route all text through maskTextFn from the start.
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
-        },
-      }).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should return * when defaultMaskLevel is conservative and urlMaskLevels is non-empty even if current URL matches a non-conservative rule', async () => {
-      // Even if the recording-start URL happens to match a light rule (effectiveLevel = light),
-      // the fallback path (no rule match → conservative) still needs rrweb to call maskTextFn.
-      jest.spyOn(Helpers, 'getCurrentUrl').mockReturnValue('https://example.com/public/page');
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-          urlMaskLevels: [{ match: 'https://example.com/public/*', maskLevel: 'light' }],
-        },
-      }).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should not return * when defaultMaskLevel is conservative but urlMaskLevels is empty', async () => {
-      // defaultMaskLevel: conservative with no URL rules → effectiveLevel is always conservative,
-      // which is handled by the first branch. The third branch only fires when urlMaskLevels is non-empty.
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-          urlMaskLevels: [],
-        },
-      }).promise;
-      // effectiveLevel = conservative → caught by the first branch, still returns '*'
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
-    });
-
-    test('should return * when defaultMaskLevel is conservative and urlMaskLevels is undefined', async () => {
-      // urlMaskLevels not set at all (undefined) — exercises the ?. optional chain short-circuit path
-      // in the third guard of getMaskTextSelectors. With no urlMaskLevels, effectiveLevel is always
-      // conservative, so the first guard fires instead — result is still '*'.
-      await sessionReplay.init(apiKey, {
-        ...mockOptions,
-        privacyConfig: {
-          defaultMaskLevel: 'conservative',
-          // urlMaskLevels intentionally absent
-        },
-      }).promise;
-      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('.className1,.className2,[data-amp-mask]');
     });
   });
 
   describe('mask function URL getters (currentPageUrl integration)', () => {
     test('maskInputFn, maskTextFn, and maskAttributeFn closures expose currentPageUrl dynamically', async () => {
-      // This test exercises the three `() => this.currentPageUrl` arrow functions passed to
-      // maskFn/maskAttributeFn at lines 805-807 of session-replay.ts.
+      // The browser supplies the live URL getter to the shared recorder options.
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         privacyConfig: {
@@ -3823,18 +3876,18 @@ describe('SessionReplay', () => {
   describe('getBlockSelectors', () => {
     test('null config', () => {
       sessionReplay.config = undefined;
-      expect(sessionReplay.getBlockSelectors()).not.toBeDefined();
+      expect(sessionReplay.getBlockSelectors()).toBe('[data-amp-block]');
     });
     test('null privacy config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (sessionReplay.config) {
         sessionReplay.config.privacyConfig = undefined;
       }
-      expect(sessionReplay.getBlockSelectors()).not.toBeDefined();
+      expect(sessionReplay.getBlockSelectors()).toBe('[data-amp-block]');
     });
     test('returns block selectors', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      expect(sessionReplay.getBlockSelectors()).toStrictEqual(['.className']);
+      expect(sessionReplay.getBlockSelectors()).toBe('.className,[data-amp-block]');
     });
   });
 
@@ -5356,6 +5409,70 @@ describe('SessionReplay', () => {
         onStart();
 
         expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('onStart after stop does not start child recording', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        const { onStart } = (mockListenForParentSignals as jest.Mock).mock.calls[0][0] as {
+          onStart: () => void;
+        };
+        sessionReplay.stop();
+        mockRecordFunction.mockClear();
+        onStart();
+
+        expect(mockRecordFunction).not.toHaveBeenCalled();
+      });
+
+      test('start() after stop() self-starts child recording without a parent signal', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.stop();
+        mockRecordFunction.mockClear();
+        (mockListenForParentSignals as jest.Mock).mockClear();
+
+        await sessionReplay.start().promise;
+
+        expect(mockListenForParentSignals).toHaveBeenCalled();
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('start() while capture is gated still self-starts after the gate later passes', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.stop();
+        mockRecordFunction.mockClear();
+        (mockListenForParentSignals as jest.Mock).mockClear();
+
+        sessionReplay.config!.captureEnabled = false;
+        await sessionReplay.start().promise;
+        expect(mockRecordFunction).not.toHaveBeenCalled();
+
+        sessionReplay.config!.captureEnabled = true;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        expect(mockListenForParentSignals).toHaveBeenCalled();
+        expect(mockRecordFunction).toHaveBeenCalledWith(expect.objectContaining({ recordCrossOriginIframes: true }));
+      });
+
+      test('stop() after a gated start() drops the pending child self-start', async () => {
+        await sessionReplay.init(apiKey, crossOriginOptions).promise;
+        await sessionReplay.recordEvents();
+        await jest.runAllTimersAsync();
+
+        sessionReplay.config!.captureEnabled = false;
+        await sessionReplay.start().promise;
+        expect((sessionReplay as any).startChildRecordingOnSetup).toBe(true);
+
+        sessionReplay.stop();
+        expect((sessionReplay as any).startChildRecordingOnSetup).toBe(false);
       });
 
       test('stops recording when onStop callback is invoked', async () => {

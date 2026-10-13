@@ -427,6 +427,10 @@ describe('browser-client', () => {
         expect(client.config.enableDiagnostics).toBe(expectedEnabled);
         expect(client.config.diagnosticsSampleRate).toBe(expectedSampleRate);
 
+        expect(mockDiagnosticsClient.setTag).toHaveBeenCalledWith('platform', 'Web');
+        // jsdom: document present, no chrome.runtime
+        expect(mockDiagnosticsClient.setTag).toHaveBeenCalledWith('web_environment', 'browser');
+
         // Clean up
         diagnosticsClientSpy.mockRestore();
       },
@@ -575,6 +579,58 @@ describe('browser-client', () => {
       expect(identity.userId).toBe(userId);
     });
 
+    test('should use the default connector for an empty instance name', async () => {
+      await client.init(apiKey, userId, {
+        optOut: true,
+        defaultTracking,
+        deviceId,
+        identityStorage: 'none',
+        instanceName: '',
+      }).promise;
+
+      const connector = getAnalyticsConnector();
+      expect(client.config.instanceName).toBe('$default_instance');
+      expect(getAnalyticsConnector('')).toBe(connector);
+      expect(connector.identityStore.getIdentity()).toMatchObject({ userId, deviceId });
+
+      const nextUserId = core.UUID();
+      const nextDeviceId = core.UUID();
+      client.setUserId(nextUserId);
+      client.setDeviceId(nextDeviceId);
+      expect(connector.identityStore.getIdentity()).toMatchObject({ userId: nextUserId, deviceId: nextDeviceId });
+
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: 'experiment-exposure' },
+        }),
+      });
+      connector.eventBridge.logEvent({ eventType: 'experiment-exposure' });
+      expect(track).toHaveBeenCalledWith('experiment-exposure', {}, undefined);
+    });
+
+    test('should isolate a custom instance from the default connector', async () => {
+      const instanceName = `custom-${core.UUID()}`;
+      const defaultConnector = getAnalyticsConnector();
+      defaultConnector.identityStore.setIdentity({ userId: 'default-user', deviceId: 'default-device' });
+
+      await client.init(apiKey, userId, {
+        optOut: true,
+        defaultTracking,
+        deviceId,
+        identityStorage: 'none',
+        instanceName,
+      }).promise;
+
+      expect(client.config.instanceName).toBe(instanceName);
+      expect(getAnalyticsConnector(instanceName).identityStore.getIdentity()).toMatchObject({ userId, deviceId });
+      expect(defaultConnector.identityStore.getIdentity()).toMatchObject({
+        userId: 'default-user',
+        deviceId: 'default-device',
+      });
+    });
+
     test('should set up event bridge and track events', async () => {
       await client.init(apiKey, userId, {
         optOut: false,
@@ -692,6 +748,36 @@ describe('browser-client', () => {
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenCalledWith('no_props_event', {}, undefined);
+    });
+
+    test.each([
+      {
+        name: 'groups',
+        eventProperties: { flag_key: 'flag' },
+        expectedOptions: { groups: { org: ['org-1'] } },
+      },
+      {
+        name: 'time and groups',
+        eventProperties: { flag_key: 'flag', time: 12345 },
+        expectedOptions: { time: 12345, groups: { org: ['org-1'] } },
+      },
+    ])('should forward event bridge $name as event options', async ({ eventProperties, expectedOptions }) => {
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking,
+      }).promise;
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: '$exposure' },
+        }),
+      });
+
+      const event = { eventType: '$exposure', eventProperties, groups: { org: ['org-1'] } };
+      getAnalyticsConnector().eventBridge.logEvent(event);
+
+      expect(track).toHaveBeenCalledWith('$exposure', { flag_key: 'flag' }, expectedOptions);
     });
 
     test('should add file download and form interaction tracking plugins', async () => {
@@ -872,6 +958,18 @@ describe('browser-client', () => {
         },
       }).promise;
       expect(webVitalsPlugin).toHaveBeenCalledTimes(1);
+      expect(webVitalsPlugin).toHaveBeenCalledWith(undefined);
+    });
+
+    test('should pass web vitals options to the plugin when autocapture.webVitals is an object', async () => {
+      const webVitalsPlugin = jest.spyOn(webVitals, 'webVitalsPlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          webVitals: { reportSoftNav: true },
+        },
+      }).promise;
+      expect(webVitalsPlugin).toHaveBeenCalledTimes(1);
+      expect(webVitalsPlugin).toHaveBeenCalledWith({ reportSoftNav: true });
     });
 
     test('should listen for network change to online', async () => {

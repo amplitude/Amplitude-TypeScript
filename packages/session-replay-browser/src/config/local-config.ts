@@ -41,6 +41,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   configServerUrl?: string;
   trackServerUrl?: string;
   shouldInlineStylesheet?: boolean;
+  inlineImages?: boolean;
   version?: SessionReplayVersion;
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
@@ -81,6 +82,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.configServerUrl = options.configServerUrl;
     this.trackServerUrl = options.trackServerUrl;
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
+    this.inlineImages = options.inlineImages;
     this.version = options.version;
     this.performanceConfig = options.performanceConfig || DEFAULT_PERFORMANCE_CONFIG;
     this.storeType = options.storeType ?? 'memory';

@@ -65,7 +65,36 @@ export interface ResolvedSelectorConfig {
   unstableClassPatterns: RegExp[];
   /** Optional throttle on the ancestor walk. When undefined, the walk runs to <html>. */
   maxAncestorWalkDepth?: number;
+  /**
+   * Dedicated kill switch for shadow-DOM piercing. Defaults to false. When
+   * false, `generate` walks only the target's own tree (today's behavior, no
+   * boundary delimiter) even when the element lives inside a shadow root. This
+   * is independent of `enabled` so shadow support can be rolled out separately.
+   *
+   * Optional on input — the engine applies {@link DEFAULT_SHADOW_DOM_ENABLED}
+   * when omitted so downstream consumers are not broken by new fields.
+   */
+  shadowDomEnabled?: boolean;
+  /**
+   * Maximum number of shadow-boundary crossings the engine will traverse when
+   * `shadowDomEnabled` is true. Defaults to 1 (a single shadow level) and is
+   * clamped to the internal hard cap `MAX_SHADOW_DOM_DEPTH`. A target deeper
+   * than this produces a best-effort selector for the outermost in-budget host.
+   *
+   * Optional on input — the engine applies {@link DEFAULT_MAX_SHADOW_DOM_DEPTH}
+   * when omitted.
+   */
+  maxShadowDomDepth?: number;
 }
+
+/**
+ * Runtime config after the engine applies shadow-field defaults. Consumers
+ * reading `getConfig()` always see normalized values.
+ */
+export type NormalizedSelectorConfig = ResolvedSelectorConfig & {
+  shadowDomEnabled: boolean;
+  maxShadowDomDepth: number;
+};
 
 /**
  * Remote-config payload shape. Each field is optional; absent fields fall back
@@ -83,6 +112,13 @@ export interface ElementSelectorRemoteConfig {
   unstableClassPatterns?: string[];
   /** Defensive throttle on the ancestor walk. Omit for unbounded walking to <html>. */
   maxAncestorWalkDepth?: number;
+  /** Kill switch for shadow-DOM piercing. When omitted, defaults to false (shadow support off). */
+  shadowDomEnabled?: boolean;
+  /**
+   * Max number of shadow-boundary crossings to traverse. When omitted, defaults
+   * to 1. Clamped at resolve time into [1, MAX_SHADOW_DOM_DEPTH] (currently 10).
+   */
+  maxShadowDomDepth?: number;
 }
 
 /**
@@ -95,7 +131,7 @@ export interface SelectorEngine {
   generate(el: Element): string;
 
   /** Read-only access to the current resolved config — for diagnostics and consumer hydration. */
-  getConfig(): Readonly<ResolvedSelectorConfig>;
+  getConfig(): Readonly<NormalizedSelectorConfig>;
 
   /** Replace the current config. Notifies any onConfigChange subscribers. */
   updateConfig(next: ResolvedSelectorConfig): void;

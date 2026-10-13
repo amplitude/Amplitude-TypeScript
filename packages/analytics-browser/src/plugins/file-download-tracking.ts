@@ -86,11 +86,21 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
         observer = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
-              if (node.nodeName === 'A') {
-                addFileDownloadListener(node as HTMLAnchorElement);
-              }
-              if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
-                Array.from(node.querySelectorAll('a') as HTMLAnchorElement[]).map(addFileDownloadListener);
+              // Registration of one node must not abort registration of the rest of the batch, otherwise
+              // links appended after a malformed node are silently never tracked.
+              try {
+                if (node.nodeName === 'A') {
+                  addFileDownloadListener(node as HTMLAnchorElement);
+                }
+                if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
+                  // Some environments patch querySelectorAll to return a nullish value, so the return type
+                  // is widened to reflect what may actually arrive at runtime.
+                  const queryableNode = node as Element;
+                  const links: NodeListOf<HTMLAnchorElement> | null | undefined = queryableNode.querySelectorAll('a');
+                  links?.forEach(addFileDownloadListener);
+                }
+              } catch (error) {
+                config.loggerProvider.warn(`Failed to track file downloads for an added node: ${String(error)}`);
               }
             });
           });

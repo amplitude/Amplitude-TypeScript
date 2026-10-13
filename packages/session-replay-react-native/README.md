@@ -25,36 +25,26 @@ which itself requires React Native 0.74 or newer.
 
 ### Session Replay React Native Standalone SDK
 
-Initialize SDK with your amplidude API Key
+Initialize the SDK with your Amplitude API key and the session identifier that
+matches the Session ID on your analytics events:
+
 ```js
 import { init, SessionReplayConfig } from '@amplitude/session-replay-react-native';
 
-const config: SessionReplayConfig = { 
-    apiKey: 'YOUR_API_KEY',
-    deviceId: 'YOUR_DEVICE_ID',
-    sessionId: Date.now()
-}
+const config: SessionReplayConfig = {
+  apiKey: 'YOUR_API_KEY',
+  deviceId: 'YOUR_DEVICE_ID',
+  sessionId: Date.now(),
+};
 
 await init(config);
 ```
 
-### Session Replay React Native Plugin
+Session Replay does not capture anything until a valid session id is set — a
+positive number or a non-empty string. Until then the SDK stays configured but
+idle, even after `start()`.
 
-Add the session replay plugin to your Amplitude instance as follows
-
-```js
-import { SessionReplayPlugin, SessionReplaPluginConfig } from '@amplitude/session-replay-react-native';
-
-// ...
-
-const config: SessionReplaPluginConfig = {
-  enableRemoteConfig: true, // default true
-  sampleRate: 1, // default 0
-  logLevel: LogLevel.Warn, // default LogLevel.Warn
-};
-await init('YOUR_API_KEY').promise;
-await add(new SessionReplayPlugin(config)).promise;
-```
+To use Amplitude Session Replay with Amplitude Analytics, use the [`@amplitude/plugin-session-replay-react-native`](https://www.npmjs.com/package/@amplitude/plugin-session-replay-react-native) plugin package.
 
 ## Masking views
 

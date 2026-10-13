@@ -24,6 +24,7 @@
  */
 
 import { ElementSelectorLogger, ResolvedSelectorConfig, Strategy, StrategyContext } from './types';
+import { normalizeResolvedConfig } from './config/resolve-config';
 import { explicitTrackingAttribute } from './strategies/explicit-tracking-attribute';
 import { stableId as stableIdStrategy } from './strategies/stable-id';
 import { describeRelative } from './helpers/describe-relative';
@@ -69,11 +70,12 @@ export function runOrchestrator(
   config: ResolvedSelectorConfig,
   options: OrchestratorOptions = {},
 ): string | null {
+  const resolved = normalizeResolvedConfig(config);
   const strategies = options.strategies ?? DEFAULT_STRATEGIES;
   const scope: ParentNode = options.scope ?? el.ownerDocument ?? document;
-  const ctx: StrategyContext = { scope, config };
+  const ctx: StrategyContext = { scope, config: resolved };
 
-  const walk = collectWalk(el, config.maxAncestorWalkDepth);
+  const walk = collectWalk(el, resolved.maxAncestorWalkDepth);
 
   // Two-pass: try strategy[0] across the whole walk, then strategy[1], etc.
   // This gives an "explicit anchor at any depth beats a structural anchor any

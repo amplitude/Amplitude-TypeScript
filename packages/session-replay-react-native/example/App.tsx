@@ -39,9 +39,10 @@ import {
   stop,
   flush,
   getSessionId,
-  getSessionReplayProperties,
   setSessionId,
   setDeviceId,
+  setOptOut,
+  teardown,
   AmpMaskView,
 } from '@amplitude/session-replay-react-native';
 
@@ -87,23 +88,23 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
         await init({
           apiKey: 'YOUR_AMPLITUDE_API_KEY',
           deviceId: verificationDeviceId,
-          sessionId: Date.now(),
           sampleRate: 1,
           enableRemoteConfig: false,
           logLevel: 4,
         });
+        await setSessionId(Date.now());
+        await start();
         const sessionId = await getSessionId();
-        const props = await getSessionReplayProperties();
         log('init() resolved deviceId=' + verificationDeviceId);
+        log('start() resolved');
         log('getSessionId() -> ' + String(sessionId));
-        log('getSessionReplayProperties() -> ' + JSON.stringify(props));
 
         // init() swallows native setup failures and resolves without throwing;
         // verify the module is actually live before showing success.
-        if (sessionId === null || Object.keys(props).length === 0) {
+        if (sessionId === null) {
           log(
             'ERROR: init() resolved but Session Replay is not initialized ' +
-              `(sessionId=${String(sessionId)}, props=${JSON.stringify(props)})`,
+              `(sessionId=${String(sessionId)})`,
           );
           setOk(false);
         } else {
@@ -153,21 +154,30 @@ function HomeScreen({ navigation }: HomeProps): React.JSX.Element {
           <Button title="stop" onPress={runFn('stop', stop)} />
           <Button title="flush" onPress={runFn('flush', flush)} />
           <Button
-            title="setSessionId"
+            title="Reset Session Id"
             onPress={runFn('setSessionId', () => setSessionId(Date.now()))}
+          />
+          <Button
+            title="Reset String Session Id"
+            onPress={runFn('setSessionId', () => setSessionId(`session-${Date.now()}`))}
           />
           <Button
             title="setDeviceId"
             onPress={runFn('setDeviceId', () => setDeviceId(verificationDeviceId))}
           />
           <Button
-            title="getSessionId"
+            title="Get Session Id"
             onPress={runFn('getSessionId', getSessionId)}
           />
           <Button
-            title="getProps"
-            onPress={runFn('getSessionReplayProperties', getSessionReplayProperties)}
+            title="optOut true"
+            onPress={runFn('setOptOut(true)', () => setOptOut(true))}
           />
+          <Button
+            title="optOut false"
+            onPress={runFn('setOptOut(false)', () => setOptOut(false))}
+          />
+          <Button title="teardown" onPress={runFn('teardown', teardown)} />
         </View>
 
         <Text style={styles.heading}>Navigate</Text>

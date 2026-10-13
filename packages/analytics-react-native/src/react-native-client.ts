@@ -28,22 +28,30 @@ import {
   IRemoteConfigClient,
   RemoteConfigClient,
   RemoteConfig,
+  RemoteConfigGroup,
   Source,
   ReactNativeAutocaptureOptions,
   NavigationState,
   NetworkTrackingOptions,
   normalizeNetworkCaptureRules,
   safeJsonStringify,
+  DiagnosticsClient,
 } from '@amplitude/analytics-core';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
-import { useReactNativeConfig, createCookieStorage, shouldFetchRemoteConfig } from './config';
+import { frustrationPlugin } from './plugins/frustration-plugin';
+import { ReactNativeDiagnosticsStorage } from './diagnostics/diagnostics-storage';
+import { LIBPREFIX } from './lib-prefix';
+import { VERSION } from './version';
+import { useReactNativeConfig, createCookieStorage, createStorageProvider, shouldFetchRemoteConfig } from './config';
 import { updateReactNativeConfigWithRemoteConfig } from './config/joined-config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import { RemoteConfigCustomStorage } from './remote-config/remote-config-customstorage';
 import * as Capture from './amp-capture';
+import { getElementInteractionEventProperties } from './autocapture/element-interaction';
 import {
   APP_BUILD,
   APP_VERSION,
@@ -58,11 +66,6 @@ import {
   PREVIOUS_BUILD,
   PREVIOUS_VERSION,
   SCREEN_NAME,
-  TARGET_ACCESSIBILITY_LABEL,
-  TARGET_ACTION,
-  TARGET_COMPONENT,
-  TARGET_ELEMENT,
-  TARGET_TEST_ID,
 } from './constants';
 
 /**
@@ -85,8 +88,39 @@ const getActiveRouteName = (navigationState: NavigationState): string | undefine
   return routeName;
 };
 
-// TODO: Remove IS_DIAGNOSTICS_CAPTURED when we're ready for diagnostics capture
-const IS_DIAGNOSTICS_CAPTURED = false;
+const getRemoteConfigSdkKey = () => {
+  if (Platform.OS === 'ios') {
+    return 'configs.analyticsSDK.iosSDK';
+  }
+  if (Platform.OS === 'android') {
+    return 'configs.analyticsSDK.androidSDK';
+  }
+  // unexpected React Native platform, just use Browser SDK.
+  return 'configs.analyticsSDK.browserSDK';
+};
+
+const getRemoteConfigPlatform = (): { configGroup: RemoteConfigGroup; diagnosticsKey: string } => {
+  switch (Platform.OS) {
+    case 'ios':
+      return {
+        configGroup: 'ios',
+        diagnosticsKey: 'configs.diagnostics.iosSDK',
+      };
+    case 'android':
+      return {
+        configGroup: 'android',
+        diagnosticsKey: 'configs.diagnostics.androidSDK',
+      };
+    default:
+      return {
+        configGroup: 'browser',
+        diagnosticsKey: 'configs.diagnostics.browserSDK',
+      };
+  }
+};
+
+const REMOTE_CONFIG_DELIVERY_TIMEOUT_MILLIS = 1000;
+
 const getNetworkTrackingConfig = (config: ReactNativeConfig): NetworkTrackingOptions | undefined => {
   let networkTrackingConfig;
   if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
@@ -141,78 +175,53 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     }
     const serverZone = options.serverZone ?? 'US';
     let remoteConfigClient: IRemoteConfigClient | undefined;
+    let analyticsRemoteConfigPromise: Promise<RemoteConfig | null> | undefined;
+    let diagnosticsSampleRate = 0;
 
-    // Step 0.2: Fetch diagnostics config
-    // let diagnosticsSampleRate: number;
-    // let enableDiagnostics: boolean = false;
+    // Step 0.2: Fetch only the platform-specific diagnostics config.
+    let remoteConfigStorage: RemoteConfigCustomStorage | undefined;
     if (fetchRemoteConfig) {
+      if (options.storageProvider) {
+        remoteConfigStorage = new RemoteConfigCustomStorage(options.apiKey, loggerProvider, options.storageProvider);
+      }
+      const remoteConfigPlatform = getRemoteConfigPlatform();
       remoteConfigClient = new RemoteConfigClient(
         options.apiKey,
         loggerProvider,
         serverZone,
         /* istanbul ignore next */ options.remoteConfig?.serverUrl,
+        undefined,
+        remoteConfigPlatform.configGroup,
+        remoteConfigStorage,
       );
-      // Diagnostics capture is intentionally disabled for React Native until ready.
-      /* istanbul ignore if */
-      if (IS_DIAGNOSTICS_CAPTURED) {
-        await new Promise<void>((resolve) => {
-          remoteConfigClient?.subscribe(
-            'configs.diagnostics.reactNativeSDK',
-            'all',
-            (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-              loggerProvider.debug(
-                'Diagnostics remote configuration received:',
-                safeJsonStringify(
-                  {
-                    remoteConfig,
-                    source,
-                    lastFetch,
-                  },
-                  null,
-                  2,
-                ),
-              );
-              if (remoteConfig) {
-                // Validate and set sampleRate (must be a valid number)
-                // const sampleRate = remoteConfig.sampleRate as number;
-                // if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
-                //   diagnosticsSampleRate = sampleRate;
-                // }
-                // // Validate and set enabled (must be a boolean)
-                // const enabled = remoteConfig.enabled as boolean;
-                // if (typeof enabled === 'boolean') {
-                //   enableDiagnostics = enabled;
-                // }
-              }
-              resolve();
-            },
-          );
-        });
-      }
-    }
-
-    // Step 1: Read cookies stored by old SDK
-    const oldCookies = await parseOldCookies(options.apiKey, options);
-
-    // Step 2: Create react native config
-    // Pass early loggerProvider/serverZone so RemoteConfigClient and final config share the same instances
-    // (mirrors browser earlyConfig).
-    const reactNativeOptions = await useReactNativeConfig(options.apiKey, {
-      ...options,
-      loggerProvider,
-      serverZone,
-      deviceId: options.deviceId ?? oldCookies.deviceId,
-      sessionId: oldCookies.sessionId,
-      optOut: options.optOut ?? oldCookies.optOut,
-      lastEventTime: oldCookies.lastEventTime,
-      userId: options.userId ?? oldCookies.userId,
-    });
-
-    // Step 2.1: Fetch remote config
-    if (fetchRemoteConfig && remoteConfigClient) {
-      await new Promise<void>((resolve) => {
+      const diagnosticsRemoteConfigPromise = new Promise<void>((resolve) => {
         remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.reactNativeSDK',
+          remoteConfigPlatform.diagnosticsKey,
+          { timeout: REMOTE_CONFIG_DELIVERY_TIMEOUT_MILLIS },
+          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+            loggerProvider.debug(
+              'Diagnostics remote configuration received:',
+              safeJsonStringify(
+                {
+                  remoteConfig,
+                  source,
+                  lastFetch,
+                },
+                null,
+                2,
+              ),
+            );
+            const sampleRate = remoteConfig?.sampleRate as unknown;
+            if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
+              diagnosticsSampleRate = sampleRate;
+            }
+            resolve();
+          },
+        );
+      });
+      analyticsRemoteConfigPromise = new Promise<RemoteConfig | null>((resolve) => {
+        remoteConfigClient?.subscribe(
+          getRemoteConfigSdkKey(),
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
             loggerProvider.debug(
@@ -227,13 +236,53 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
                 2,
               ),
             );
-            if (remoteConfig) {
-              updateReactNativeConfigWithRemoteConfig(remoteConfig, reactNativeOptions);
-            }
-            resolve();
+            resolve(remoteConfig);
           },
         );
       });
+      await diagnosticsRemoteConfigPromise;
+    }
+
+    const storageProvider = await createStorageProvider(options);
+
+    // Step 0.3: Initialize diagnostics as early as possible so it can record failures during
+    // config setup. React Native has no IndexedDB, so diagnostics uses the same storage provider
+    // that will be passed to the final config.
+    const diagnosticsClient = new DiagnosticsClient(
+      options.apiKey,
+      loggerProvider,
+      serverZone,
+      { sampleRate: diagnosticsSampleRate },
+      new ReactNativeDiagnosticsStorage(options.apiKey, loggerProvider, storageProvider),
+    );
+    diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+    diagnosticsClient.setTag('platform', 'ReactNative');
+    diagnosticsClient.setTag('os', Platform.OS);
+
+    // Step 1: Read cookies stored by old SDK
+    const oldCookies = await parseOldCookies(options.apiKey, options);
+
+    // Step 2: Create react native config
+    // Pass early loggerProvider/serverZone so RemoteConfigClient and final config share the same instances
+    // (mirrors browser earlyConfig).
+    const reactNativeOptions = await useReactNativeConfig(options.apiKey, {
+      ...options,
+      loggerProvider,
+      serverZone,
+      storageProvider,
+      deviceId: options.deviceId ?? oldCookies.deviceId,
+      sessionId: oldCookies.sessionId,
+      optOut: options.optOut ?? oldCookies.optOut,
+      lastEventTime: oldCookies.lastEventTime,
+      userId: options.userId ?? oldCookies.userId,
+    });
+
+    // Step 2.1: Fetch remote config
+    if (analyticsRemoteConfigPromise) {
+      const analyticsRemoteConfig = await analyticsRemoteConfigPromise;
+      if (analyticsRemoteConfig) {
+        updateReactNativeConfigWithRemoteConfig(analyticsRemoteConfig, reactNativeOptions);
+      }
     }
 
     await super._init(reactNativeOptions);
@@ -248,6 +297,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         screenViews: true,
         elementInteractions: true,
         networkTracking: true,
+        frustrationInteractions: true,
       };
     } else if (autocaptureConfig && typeof autocaptureConfig === 'object') {
       this.autocapture = autocaptureConfig;
@@ -268,7 +318,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
     // identity store.
-    const connector = getAnalyticsConnector();
+    const connector = getAnalyticsConnector(this.config.instanceName);
     connector.identityStore.setIdentity({
       userId: this.config.userId,
       deviceId: this.config.deviceId,
@@ -281,7 +331,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (this.config.offline !== OfflineDisabled) {
       await this.add(networkConnectivityCheckerPlugin()).promise;
     }
-    await this.add(new Destination()).promise;
+    await this.add(new Destination({ diagnosticsClient })).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
 
@@ -290,17 +340,23 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
     }
 
+    const frustrationInteractions = this.autocapture?.frustrationInteractions;
+    if (frustrationInteractions) {
+      this.config.loggerProvider.debug('Adding frustration interactions plugin');
+      await this.add(
+        frustrationPlugin({
+          ...(typeof frustrationInteractions === 'object' ? frustrationInteractions : {}),
+          getScreenName: () => this.currentScreenName,
+        }),
+      ).promise;
+    }
+
     if (this.autocapture?.elementInteractions === true) {
       this.captureUnsubscribe = Capture.subscribe((properties) => {
-        const analyticsProps = {
-          [SCREEN_NAME]: this.currentScreenName,
-          [TARGET_ACCESSIBILITY_LABEL]: properties.accessibilityLabel,
-          [TARGET_ACTION]: properties.action,
-          [TARGET_COMPONENT]: properties.component,
-          [TARGET_ELEMENT]: properties.element,
-          [TARGET_TEST_ID]: properties.testID,
-        };
-        this.track(DEFAULT_ELEMENT_INTERACTED_EVENT, analyticsProps);
+        this.track(
+          DEFAULT_ELEMENT_INTERACTED_EVENT,
+          getElementInteractionEventProperties(properties, this.currentScreenName),
+        );
       });
     }
 
@@ -344,6 +400,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   shutdown() {
     this.appStateChangeHandler?.remove();
     this.captureUnsubscribe?.();
+    this.timeline.reset(this);
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
@@ -374,7 +431,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       return;
     }
     this.config.userId = userId;
-    setConnectorUserId(userId);
+    setConnectorUserId(userId, this.config.instanceName);
   }
 
   getDeviceId() {
@@ -387,7 +444,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
       return;
     }
     this.config.deviceId = deviceId;
-    setConnectorDeviceId(deviceId);
+    setConnectorDeviceId(deviceId, this.config.instanceName);
   }
 
   identify(identify: IIdentify, eventOptions?: EventOptions) {

@@ -6,6 +6,7 @@ export type HierarchyNode = {
   index?: number;
   indexOfType?: number;
   prevSib?: string;
+  shadow?: boolean;
 };
 
 export type Hierarchy = (HierarchyNode | null)[];

@@ -264,6 +264,104 @@ describe('formInteractionTracking', () => {
     expect(amplitude.track).toHaveBeenCalledTimes(1);
   });
 
+  describe('malformed added nodes', () => {
+    const createFormInWrapper = (id: string) => {
+      const form = document.createElement('form');
+      form.setAttribute('id', id);
+      form.setAttribute('name', `${id}-name`);
+      form.setAttribute('action', '/submit');
+
+      const wrapper = document.createElement('div');
+      wrapper.appendChild(form);
+
+      return { form, wrapper };
+    };
+
+    test('should track forms added after a node whose querySelectorAll returns a nullish value', async () => {
+      // setup
+      const config = createConfigurationMock();
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      const early = createFormInWrapper('early-form-id');
+      const late = createFormInWrapper('late-form-id');
+
+      // simulate an environment that patches querySelectorAll to return a nullish value
+      const poisoned = document.createElement('div');
+      Object.defineProperty(poisoned, 'querySelectorAll', {
+        value: () => undefined,
+        configurable: true,
+      });
+
+      // append all three in a single mutation batch, with the poisoned node between the two forms
+      document.body.append(early.wrapper, poisoned, late.wrapper);
+
+      // allow mutation observer to execute and event listeners to be attached
+      await new Promise((r) => r(undefined)); // basically, await next clock tick
+      early.form.dispatchEvent(new Event('change'));
+      late.form.dispatchEvent(new Event('change'));
+
+      // assert the form appended after the poisoned node was still registered
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
+        [FORM_ID]: 'early-form-id',
+        [FORM_NAME]: 'early-form-id-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Started', {
+        [FORM_ID]: 'late-form-id',
+        [FORM_NAME]: 'late-form-id-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+
+      await plugin.teardown?.();
+      [early.wrapper, poisoned, late.wrapper].forEach((node) => node.remove());
+    });
+
+    test('should log a warning and track forms added after a node whose querySelectorAll throws', async () => {
+      // setup
+      const config = createConfigurationMock();
+      const warnSpy = jest.spyOn(config.loggerProvider, 'warn');
+      const plugin = formInteractionTracking();
+      await plugin.setup?.(config, amplitude);
+      window.dispatchEvent(new Event('load'));
+
+      const late = createFormInWrapper('late-form-id');
+
+      const throwing = document.createElement('div');
+      Object.defineProperty(throwing, 'querySelectorAll', {
+        value: () => {
+          throw new TypeError('querySelectorAll is not available');
+        },
+        configurable: true,
+      });
+
+      // append both in a single mutation batch, with the throwing node first
+      document.body.append(throwing, late.wrapper);
+
+      // allow mutation observer to execute and event listeners to be attached
+      await new Promise((r) => r(undefined)); // basically, await next clock tick
+      late.form.dispatchEvent(new Event('change'));
+
+      // assert the failure was logged rather than escaping the observer callback
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to track form interactions for an added node'),
+      );
+
+      // assert the form appended after the throwing node was still registered
+      expect(amplitude.track).toHaveBeenCalledTimes(1);
+      expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
+        [FORM_ID]: 'late-form-id',
+        [FORM_NAME]: 'late-form-id-name',
+        [FORM_DESTINATION]: 'http://localhost/submit',
+      });
+
+      await plugin.teardown?.();
+      [throwing, late.wrapper].forEach((node) => node.remove());
+    });
+  });
+
   test('should track form_start and form_submit events on change and submit', async () => {
     // setup
     const config = createConfigurationMock();

@@ -54,6 +54,7 @@ describe('config', () => {
         },
         defaultTracking: undefined,
         identityStorage: DEFAULT_IDENTITY_STORAGE,
+        instanceName: '$default_instance',
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
@@ -98,6 +99,31 @@ describe('config', () => {
       expect(config.fetchRemoteConfig).toBe(true);
       expect(config.remoteConfig?.fetchRemoteConfig).toBe(true);
     });
+
+    test.each([
+      [undefined, '$default_instance'],
+      ['', '$default_instance'],
+      ['custom-instance', 'custom-instance'],
+      [' ', ' '],
+    ])('should retain normalized instance name %p as %p', (instanceName, expected) => {
+      const config = new Config.BrowserConfig(
+        apiKey,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        instanceName,
+      );
+
+      expect(config.instanceName).toBe(expected);
+    });
   });
 
   describe('useBrowserConfig', () => {
@@ -125,6 +151,7 @@ describe('config', () => {
         },
         defaultTracking: undefined,
         identityStorage: DEFAULT_IDENTITY_STORAGE,
+        instanceName: '$default_instance',
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
@@ -251,6 +278,7 @@ describe('config', () => {
           flushMaxRetries: 5,
           flushQueueSize: 30,
           identityStorage: DEFAULT_IDENTITY_STORAGE,
+          instanceName: '$default_instance',
           ingestionMetadata: {
             sourceName: 'ampli',
             sourceVersion: '2.0.0',

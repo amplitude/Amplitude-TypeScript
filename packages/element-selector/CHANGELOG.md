@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/element-selector@0.3.1...@amplitude/element-selector@0.3.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **element-selector:** make isShadowRoot realm-safe ([#2057](https://github.com/amplitude/Amplitude-TypeScript/issues/2057)) ([05cd38e](https://github.com/amplitude/Amplitude-TypeScript/commit/05cd38eed3b68802a3e55ef24eea49ecbf0c32d8))
+
+
+
+
+
+## [0.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/element-selector@0.3.0...@amplitude/element-selector@0.3.1) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/element-selector
+
+
+
+
+
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/element-selector@0.2.1...@amplitude/element-selector@0.3.0) (2026-08-27)
+
+
+### Features
+
+* **zoning:** add support for shadow dom ([#1922](https://github.com/amplitude/Amplitude-TypeScript/issues/1922)) ([6c2d5c2](https://github.com/amplitude/Amplitude-TypeScript/commit/6c2d5c20f515554a10c55c18ef23432e9c66bc5c))
+
+
+
+
+
 ## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/element-selector@0.2.0...@amplitude/element-selector@0.2.1) (2026-07-15)
 
 

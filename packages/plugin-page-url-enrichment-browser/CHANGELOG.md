@@ -3,6 +3,92 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.31...@amplitude/plugin-page-url-enrichment-browser@0.7.32) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+## [0.7.31](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.30...@amplitude/plugin-page-url-enrichment-browser@0.7.31) (2026-10-08)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+## [0.7.30](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.29...@amplitude/plugin-page-url-enrichment-browser@0.7.30) (2026-10-07)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+## [0.7.29](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.28...@amplitude/plugin-page-url-enrichment-browser@0.7.29) (2026-09-29)
+
+
+### Bug Fixes
+
+* **page-url-enrichment:** stop double decodeURI ([#2015](https://github.com/amplitude/Amplitude-TypeScript/issues/2015)) ([981efad](https://github.com/amplitude/Amplitude-TypeScript/commit/981efad34095726a38ea63558510d9b3cadd022c))
+
+
+
+
+
+## [0.7.28](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.27...@amplitude/plugin-page-url-enrichment-browser@0.7.28) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+## [0.7.27](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.26...@amplitude/plugin-page-url-enrichment-browser@0.7.27) (2026-09-23)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+## [0.7.26](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.25...@amplitude/plugin-page-url-enrichment-browser@0.7.26) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+## [0.7.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.24...@amplitude/plugin-page-url-enrichment-browser@0.7.25) (2026-09-16)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+## [0.7.24](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.23...@amplitude/plugin-page-url-enrichment-browser@0.7.24) (2026-08-24)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
+## [0.7.23](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.22...@amplitude/plugin-page-url-enrichment-browser@0.7.23) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
+
+
+
+
+
 ## [0.7.22](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.21...@amplitude/plugin-page-url-enrichment-browser@0.7.22) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

@@ -3,6 +3,92 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.2.4...@amplitude/plugin-web-vitals-browser@1.2.5) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
+## [1.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.2.3...@amplitude/plugin-web-vitals-browser@1.2.4) (2026-10-08)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
+## [1.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.2.2...@amplitude/plugin-web-vitals-browser@1.2.3) (2026-10-07)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
+## [1.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.2.1...@amplitude/plugin-web-vitals-browser@1.2.2) (2026-09-29)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
+## [1.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.2.0...@amplitude/plugin-web-vitals-browser@1.2.1) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
+# [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.48...@amplitude/plugin-web-vitals-browser@1.2.0) (2026-09-23)
+
+
+### Features
+
+* **plugin-web-vitals-browser:** [@experimental](https://github.com/experimental) add reportSoftNav option for soft navigation reporting ([#1965](https://github.com/amplitude/Amplitude-TypeScript/issues/1965)) ([0e341de](https://github.com/amplitude/Amplitude-TypeScript/commit/0e341dec23e1d5a643c87c80507bbdb9c753c6ab))
+
+
+
+
+
+## [1.1.48](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.47...@amplitude/plugin-web-vitals-browser@1.1.48) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
+## [1.1.47](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.46...@amplitude/plugin-web-vitals-browser@1.1.47) (2026-09-16)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
+## [1.1.46](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.45...@amplitude/plugin-web-vitals-browser@1.1.46) (2026-08-24)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
+## [1.1.45](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.44...@amplitude/plugin-web-vitals-browser@1.1.45) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** remediate Semgrep supply chain findings ([#1921](https://github.com/amplitude/Amplitude-TypeScript/issues/1921)) ([e131df0](https://github.com/amplitude/Amplitude-TypeScript/commit/e131df0b414933418e4c7159f1bfbdacc633a7d9))
+
+
+
+
+
 ## [1.1.44](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.1.43...@amplitude/plugin-web-vitals-browser@1.1.44) (2026-07-28)
 
 **Note:** Version bump only for package @amplitude/plugin-web-vitals-browser

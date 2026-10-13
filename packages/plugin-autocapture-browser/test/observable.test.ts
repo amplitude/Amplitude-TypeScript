@@ -1,11 +1,11 @@
-import { createExposureObservable } from '../src/observables';
+import { createExposureObservable, createScrollObservable } from '../src/observables';
 import { Observable } from '@amplitude/analytics-core';
 import { TimestampedEvent } from '../src/helpers';
 
 describe('createExposureObservable', () => {
   let mutationObservable: Observable<TimestampedEvent<MutationRecord[]>>;
   let mockMutationObserver: { subscribe: jest.Mock };
-  let mockIntersectionObserver: { observe: jest.Mock; disconnect: jest.Mock };
+  let mockIntersectionObserver: { observe: jest.Mock; unobserve: jest.Mock; disconnect: jest.Mock };
   let intersectionCallback: (entries: IntersectionObserverEntry[]) => void;
   let observers: ((value: TimestampedEvent<MutationRecord[]>) => void)[] = [];
 
@@ -23,6 +23,7 @@ describe('createExposureObservable', () => {
     // Mock IntersectionObserver
     mockIntersectionObserver = {
       observe: jest.fn(),
+      unobserve: jest.fn(),
       disconnect: jest.fn(),
     };
 
@@ -50,6 +51,11 @@ describe('createExposureObservable', () => {
     });
 
     expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(div);
+    expect(global.IntersectionObserver).toHaveBeenCalledWith(expect.any(Function), {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0,
+    });
   });
 
   test('should emit event when element intersects (visible)', () => {
@@ -172,6 +178,56 @@ describe('createExposureObservable', () => {
     expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(matchingChild);
   });
 
+  test('should observe elements added via DocumentFragment', () => {
+    const exposureObservable = createExposureObservable(mutationObservable, ['.track-me']);
+    exposureObservable.subscribe(() => {
+      return;
+    });
+
+    mockIntersectionObserver.observe.mockClear();
+
+    const fragment = document.createDocumentFragment();
+    const matchingChild = document.createElement('button');
+    matchingChild.className = 'track-me';
+    fragment.appendChild(matchingChild);
+
+    const mutationRecord = {
+      addedNodes: [fragment] as unknown as NodeList,
+    } as MutationRecord;
+
+    observers.forEach((cb) => {
+      cb({
+        event: [mutationRecord],
+        timestamp: Date.now(),
+        type: 'mutation',
+      });
+    });
+
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(matchingChild);
+  });
+
+  test('should rescan all allowlisted elements when rescan is invoked', () => {
+    let rescan: (() => void) | undefined;
+    const exposureObservable = createExposureObservable(mutationObservable, ['.track-me'], (fn) => {
+      rescan = fn;
+    });
+    exposureObservable.subscribe(() => {
+      return;
+    });
+
+    mockIntersectionObserver.observe.mockClear();
+
+    const lateElement = document.createElement('button');
+    lateElement.className = 'track-me';
+    document.body.appendChild(lateElement);
+
+    rescan?.();
+
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(lateElement);
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(lateElement);
+    lateElement.remove();
+  });
+
   test('should skip non-Element nodes added via mutation', () => {
     const exposureObservable = createExposureObservable(mutationObservable, ['div']);
     exposureObservable.subscribe(() => {
@@ -218,5 +274,26 @@ describe('createExposureObservable', () => {
 
     subscription.unsubscribe();
     (global as any).IntersectionObserver = originalIntersectionObserver;
+  });
+});
+
+describe('createScrollObservable', () => {
+  test('captures overflow scrolls and viewport resizes', () => {
+    const scroller = document.createElement('div');
+    document.body.appendChild(scroller);
+    const listener = jest.fn();
+    const subscription = createScrollObservable().subscribe(listener);
+
+    scroller.dispatchEvent(new Event('scroll', { bubbles: false }));
+
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ target: scroller }));
+    window.dispatchEvent(new Event('resize'));
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ type: 'resize' }));
+
+    subscription.unsubscribe();
+    listener.mockClear();
+    scroller.dispatchEvent(new Event('scroll', { bubbles: false }));
+    window.dispatchEvent(new Event('resize'));
+    expect(listener).not.toHaveBeenCalled();
   });
 });

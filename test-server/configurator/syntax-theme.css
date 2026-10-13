@@ -1,0 +1,60 @@
+/*
+ * Token colours for the generated code block. Written locally rather than importing one of
+ * prismjs/themes/*.css, because this Vite config limits server.fs.allow to packages/ and
+ * test-server/, so a stylesheet served out of node_modules would 403 in dev.
+ */
+
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #6c7086;
+}
+
+.token.punctuation,
+.token.operator {
+  color: #9399b2;
+}
+
+.token.keyword,
+.token.control-flow {
+  color: #cba6f7;
+}
+
+.token.string,
+.token.template-string,
+.token.regex,
+.token.char {
+  color: #a6e3a1;
+}
+
+.token.boolean,
+.token.number,
+.token.constant {
+  color: #fab387;
+}
+
+.token.literal-property,
+.token.property,
+.token.property-access {
+  color: #89b4fa;
+}
+
+.token.function,
+.token.method,
+.token.class-name {
+  color: #89dceb;
+}
+
+/* Markup tokens, for the script tag wrapping the browser snippet. */
+.token.tag {
+  color: #f38ba8;
+}
+
+.token.attr-name {
+  color: #f9e2af;
+}
+
+.token.attr-value {
+  color: #a6e3a1;
+}

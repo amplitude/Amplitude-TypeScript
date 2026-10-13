@@ -53,7 +53,7 @@ const outputText =
     autoTrackingPluginVersion,
   );
 const { code: transpiledOutputText } = babel.transformSync(outputText, {
-  presets: ['env'],
+  presets: ['@babel/preset-env'],
 });
 
 // Write to disk

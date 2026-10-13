@@ -191,7 +191,8 @@ const config = {
   appRegistryComponentName: 'app',
   defaultRunner: runners[0].name,
   runners,
-  // Host-side mock HTTP API for network-tracking.harness.ts (/api/status/:code).
+  // Host-side mock HTTP API: /api/status/:code (network-tracking.harness.ts) and
+  // /diagnostics/* (diagnostics-storage.harness.ts).
   plugins: [mockApiPlugin()],
 };
 

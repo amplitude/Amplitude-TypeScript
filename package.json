@@ -12,8 +12,10 @@
     "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
     "deploy:version:dry-run": "DRY_RUN=true lerna version --no-push --no-git-tag-version --allow-branch \"$(git rev-parse --abbrev-ref HEAD)\" --conventional-prerelease --no-changelog --no-push --no-git-tag-version",
-    "deploy:publish": "pnpm -r --filter \"./packages/**\" publish --no-git-checks",
-    "deploy:publish:dry-run": "DRY_RUN=true pnpm -r --filter \"./packages/**\" publish --dry-run --no-git-checks",
+    "deploy:publish": "pnpm -r --filter \"./packages/**\" --filter \"!@amplitude/plugin-custom-enrichment-browser\" publish --no-git-checks",
+    "deploy:publish:phase": "node ./scripts/publish/publish-phase.js",
+    "deploy:publish:check-packages": "node ./scripts/publish/check-npm-packages-published.js",
+    "deploy:publish:dry-run": "DRY_RUN=true pnpm -r --filter \"./packages/**\" --filter \"!@amplitude/plugin-custom-enrichment-browser\" publish --dry-run --no-git-checks",
     "deploy:pack": "DRY_RUN=true pnpm -r --filter \"./packages/**\" pack",
     "deploy:publish:bootstrap": "bash ./scripts/publish/bootstrap-npm-package.sh",
     "dev": "concurrently \"pnpm run watch\" \"vite dev --open\"",
@@ -58,14 +60,14 @@
     "@aws-sdk/client-s3": "^3.0.0",
     "@commitlint/cli": "^17.3.0",
     "@commitlint/config-conventional": "^17.3.0",
-    "@playwright/test": "1.55.0",
+    "@playwright/test": "1.55.1",
     "@size-limit/file": "^12.1.0",
     "@types/jest": "^29.2.4",
     "@types/node": "^18.11.14",
     "@typescript-eslint/eslint-plugin": "^5.46.1",
     "@typescript-eslint/parser": "^5.46.1",
     "@vitejs/plugin-react": "^4.7.0",
-    "axios": "^1.6.0",
+    "axios": "^1.18.0",
     "concurrently": "^9.1.2",
     "cors": "^2.8.5",
     "eslint": "^8.29.0",
@@ -85,6 +87,7 @@
     "nodemon": "^3.0.1",
     "nx": "^21.2.1",
     "prettier": "^2.8.1",
+    "prismjs": "^1.30.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.4",
@@ -106,10 +109,5 @@
   "dependencies": {
     "tslib": "^2.4.1"
   },
-  "packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa",
-  "pnpm": {
-    "overrides": {
-      "typescript": "^4.9.4"
-    }
-  }
+  "packageManager": "pnpm@11.28.5+sha512.484563d30b4c2ad27cb48aa94ff2b302dbcebc8ff6bf28816c2589886e146ce7f76f354f3bc1a438e6f5e9768c302aa0a6f7add8232903cd4cf81426cbc14d9e"
 }

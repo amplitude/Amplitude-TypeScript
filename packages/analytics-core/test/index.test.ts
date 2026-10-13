@@ -18,6 +18,7 @@ import {
   RequestMetadata,
   getGlobalScope,
   getAnalyticsConnector,
+  normalizeInstanceName,
   setConnectorDeviceId,
   setConnectorUserId,
   isNewSession,
@@ -69,6 +70,7 @@ import {
   registerSdkLoaderMetadata,
   getOrCreateWindowMessenger,
   enableBackgroundCapture,
+  parseBackgroundCaptureDeviceMode,
   AMPLITUDE_ORIGIN,
   AMPLITUDE_ORIGIN_EU,
   AMPLITUDE_ORIGIN_STAGING,
@@ -112,6 +114,7 @@ describe('index', () => {
     expect(typeof getStorageKey).toBe('function');
     expect(typeof getGlobalScope).toBe('function');
     expect(typeof getAnalyticsConnector).toBe('function');
+    expect(typeof normalizeInstanceName).toBe('function');
     expect(typeof setConnectorDeviceId).toBe('function');
     expect(typeof setConnectorUserId).toBe('function');
     expect(typeof isNewSession).toBe('function');
@@ -165,6 +168,9 @@ describe('index', () => {
     expect(typeof registerSdkLoaderMetadata).toBe('function');
     expect(typeof getOrCreateWindowMessenger).toBe('function');
     expect(typeof enableBackgroundCapture).toBe('function');
+    expect(typeof parseBackgroundCaptureDeviceMode).toBe('function');
+    expect(parseBackgroundCaptureDeviceMode('tablet')).toBe('tablet');
+    expect(parseBackgroundCaptureDeviceMode('invalid')).toBeUndefined();
     expect(typeof AMPLITUDE_ORIGIN).toBe('string');
     expect(typeof AMPLITUDE_ORIGIN_EU).toBe('string');
     expect(typeof AMPLITUDE_ORIGIN_STAGING).toBe('string');

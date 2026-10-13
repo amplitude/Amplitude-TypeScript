@@ -8,6 +8,7 @@ import { PageTrackingOptions } from '../page-view-tracking';
 import { NetworkTrackingOptions } from '../network-tracking';
 import { FrustrationInteractionsOptions } from '../frustration-interactions';
 import { PerformanceTrackingOptions } from '../performance-tracking';
+import { WebVitalsOptions } from '../web-vitals';
 import { IDiagnosticsClient } from '../../diagnostics/diagnostics-client';
 import { IRemoteConfigClient } from '../../remote-config/remote-config';
 import { CustomEnrichmentOptions } from '../custom-enrichment';
@@ -198,10 +199,10 @@ export interface AutocaptureOptions {
    */
   networkTracking?: boolean | NetworkTrackingOptions;
   /**
-   * Enables/disables web vitals tracking.
+   * Enables/disables web vitals tracking or config with detailed web vitals options.
    * @defaultValue `false`
    */
-  webVitals?: boolean;
+  webVitals?: boolean | WebVitalsOptions;
   /**
    * Enables/disables performance tracking.
    * @defaultValue `false`

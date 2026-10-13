@@ -1,4 +1,9 @@
 import {
+  createPrivacyRecorderOptions,
+  getBlockSelectors,
+  getMaskTextSelectors,
+} from '@amplitude/session-replay-dom-privacy';
+import {
   getAnalyticsConnector,
   getGlobalScope,
   ILogger,
@@ -24,27 +29,16 @@ import {
   SessionReplayRemoteConfig,
 } from './config/types';
 import {
-  BLOCK_CLASS,
   CustomRRwebEvent,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   INTERACTION_MAX_INTERVAL,
   INTERACTION_MIN_INTERVAL,
-  MASK_TEXT_CLASS,
   SESSION_REPLAY_DEBUG_PROPERTY,
   SESSION_REPLAY_EU_URL,
   SESSION_REPLAY_SERVER_URL,
   SESSION_REPLAY_STAGING_URL,
 } from './constants';
-import {
-  getServerUrl,
-  getDebugConfig,
-  getEffectiveMaskLevel,
-  getPageUrl,
-  getStorageSize,
-  getCurrentUrl,
-  maskFn,
-  maskAttributeFn,
-} from './helpers';
+import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, getCurrentUrl } from './helpers';
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager, EventsManagerWithBeacon } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
@@ -117,6 +111,24 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
   private recordEventsInFlight = false;
+  /**
+   * When false, capture is paused by a customer `stop()` (or `shutdown()`) call.
+   * Focus/targeting/session-change paths still invoke `recordEvents()`, but
+   * `getShouldRecord()` will refuse to start rrweb until `start()` or a new `init()`.
+   */
+  private recordingEnabled = true;
+  /**
+   * Bumped by `stop()` / `shutdown()` so an in-flight `_recordEvents()` that already
+   * passed `getShouldRecord()` cannot start rrweb after capture was paused.
+   */
+  private recordingGeneration = 0;
+  /**
+   * Set by customer `start()` so coordinated child iframes self-start instead of
+   * waiting for a parent signal that may never be resent. Kept until recording
+   * actually starts so a gated `start()` (targeting, sampling, remote capture)
+   * still self-starts when those gates later pass.
+   */
+  private startChildRecordingOnSetup = false;
   private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
@@ -231,6 +243,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
     this.urlChangeCleanup?.();
+    // A new init always allows capture again. `stop()` only pauses the current instance.
+    this.recordingEnabled = true;
+    this.startChildRecordingOnSetup = false;
 
     this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
     Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
@@ -544,6 +559,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   focusListener = () => {
+    if (!this.recordingEnabled) {
+      return;
+    }
     if (this.recordCancelCallback && this.recordFunction) {
       // Recording is already active. The on-focus full snapshot is tunable: when
       // `captureFullSnapshotOnFocus` is false we skip it entirely so high focus-churn pages
@@ -756,6 +774,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return false;
     }
 
+    if (!this.recordingEnabled) {
+      this.loggerProvider.log(
+        `Session ${this.identifiers.sessionId} not being captured because recording was stopped.`,
+      );
+      return false;
+    }
+
     if (!this.config.captureEnabled) {
       this.loggerProvider.log(
         `Session ${this.identifiers.sessionId} not being captured due to capture being disabled for project or because the remote config could not be fetched.`,
@@ -814,46 +839,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getBlockSelectors(): string | string[] | undefined {
-    // For some reason, this defaults to empty array ([]) if undefined in the compiled script.
-    // Empty arrays cause errors when being evaluated in Safari.
-    // Force the selector to be undefined if it's an empty array.
-    const blockSelector = this.config?.privacyConfig?.blockSelector ?? [];
-    if (blockSelector.length === 0) {
-      return undefined;
-    }
-    return blockSelector;
+    return getBlockSelectors(this.config?.privacyConfig);
   }
 
   getMaskTextSelectors(): string | undefined {
-    const privacyConfig = this.config?.privacyConfig;
-    const effectiveLevel = privacyConfig ? getEffectiveMaskLevel(this.currentPageUrl, privacyConfig) : undefined;
-
-    if (effectiveLevel === 'conservative') {
-      return '*';
-    }
-
-    // If any urlMaskLevels rule uses 'conservative', always route all text nodes
-    // through maskTextFn so the dynamic URL getter can decide at call time.
-    // Without this, rrweb's static maskTextSelector would miss text nodes when
-    // the user navigates from a non-conservative page to a conservative one.
-    if (privacyConfig?.urlMaskLevels?.some((rule) => rule.maskLevel === 'conservative')) {
-      return '*';
-    }
-
-    // If defaultMaskLevel is 'conservative' and URL rules exist, always route text through
-    // maskTextFn — a page matching no rule falls back to the conservative default, and
-    // rrweb must be set up at start to call maskTextFn for those text nodes.
-    const urlMaskLevels = privacyConfig?.urlMaskLevels;
-    if (privacyConfig?.defaultMaskLevel === 'conservative' && urlMaskLevels && urlMaskLevels.length > 0) {
-      return '*';
-    }
-
-    const maskSelector = privacyConfig?.maskSelector;
-    if (!maskSelector) {
-      return;
-    }
-
-    return maskSelector as unknown as string;
+    return getMaskTextSelectors(this.config?.privacyConfig, this.currentPageUrl);
   }
 
   async getRecordingPlugins(loggingConfig: LoggingConfig | undefined) {
@@ -931,6 +921,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
+  private shouldAbandonRecordStart(generation: number): boolean {
+    return !this.recordingEnabled || generation !== this.recordingGeneration;
+  }
+
   private async _recordEvents(shouldLogMetadata = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
@@ -939,15 +933,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.stopRecordingEvents();
+    const generation = this.recordingGeneration;
 
     const recordFunction = await this.getRecordFunction();
 
     // May be undefined if cannot import rrweb-record
-    if (!recordFunction) {
+    if (!recordFunction || this.shouldAbandonRecordStart(generation)) {
       return;
     }
 
     await this.initializeNetworkObservers();
+    if (this.shouldAbandonRecordStart(generation)) {
+      return;
+    }
 
     const networkLoggingConfig = config.loggingConfig?.network;
     const trackUrl = getServerUrl(config.serverZone, config.trackServerUrl);
@@ -988,7 +986,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // Child mode: don't self-start; wait for a start signal from the parent.
         // (The previous listener, if any, was already removed by stopRecordingEvents above.)
         this.crossOriginParentSignalCleanup = listenForParentSignals({
-          onStart: () => this._recordEventsInChildMode(recordFunction, sessionId, config, hooks),
+          onStart: () => {
+            if (!this.recordingEnabled) {
+              return;
+            }
+            this._recordEventsInChildMode(recordFunction, sessionId, config, hooks);
+          },
           onStop: () => {
             try {
               // Only cancel the rrweb recording — do NOT call stopRecordingEvents() here,
@@ -1004,6 +1007,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
             }
           },
         });
+        // Customer start() must not wait for a parent signal: the parent may already
+        // be recording and will not send another start. Init still waits.
+        if (this.startChildRecordingOnSetup) {
+          this.startChildRecordingOnSetup = false;
+          this._recordEventsInChildMode(recordFunction, sessionId, config, hooks);
+        }
+        return;
+      }
+
+      this.startChildRecordingOnSetup = false;
+
+      const plugins = await this.getRecordingPlugins(loggingConfig);
+      if (this.shouldAbandonRecordStart(generation)) {
         return;
       }
 
@@ -1012,8 +1028,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
           config,
           hooks,
           (event: eventWithTime) => {
-            if (this.shouldOptOut()) {
-              this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
+            if (this.shouldOptOut() || !this.recordingEnabled) {
+              this.loggerProvider.log(
+                this.shouldOptOut()
+                  ? `Opting session ${sessionId} out of recording due to optOut config.`
+                  : `Session Replay capture stopping for ${sessionId}.`,
+              );
               this.stopRecordingEvents();
               this.sendEvents();
               return;
@@ -1034,7 +1054,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           },
           'Error while capturing replay: ',
         ),
-        plugins: await this.getRecordingPlugins(loggingConfig),
+        plugins,
         recordCrossOriginIframes: crossOriginIframesEnabled,
       });
 
@@ -1064,16 +1084,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return {
       emit,
       inlineStylesheet: config.shouldInlineStylesheet,
+      inlineImages: config.inlineImages,
       hooks,
-      maskAllInputs: true,
-      maskTextClass: MASK_TEXT_CLASS,
-      blockClass: BLOCK_CLASS,
-      blockSelector: this.getBlockSelectors() as string | undefined,
+      ...createPrivacyRecorderOptions(privacyConfig, () => this.currentPageUrl),
       applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
-      maskInputFn: maskFn('input', privacyConfig, () => this.currentPageUrl),
-      maskTextFn: maskFn('text', privacyConfig, () => this.currentPageUrl),
-      maskAttributeFn: maskAttributeFn(privacyConfig, () => this.currentPageUrl),
-      maskTextSelector: this.getMaskTextSelectors(),
       ...(config.fullSnapshotIntervalMs !== undefined && { checkoutEveryNms: config.fullSnapshotIntervalMs }),
       recordCanvas: false,
       captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
@@ -1207,6 +1221,24 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return this.identifiers?.sessionId;
   }
 
+  start() {
+    return returnWrapper(this._start());
+  }
+
+  private async _start() {
+    this.recordingEnabled = true;
+    this.startChildRecordingOnSetup = true;
+    await this.recordEvents();
+  }
+
+  stop() {
+    this.recordingEnabled = false;
+    this.startChildRecordingOnSetup = false;
+    this.recordingGeneration++;
+    this.stopRecordingEvents();
+    this.sendEvents();
+  }
+
   async flush(useRetry = false) {
     // Intentionally not gated on min_session_duration_ms. flush() forwards payloads
     // already queued in trackDestination, and every code path that queues into it —
@@ -1217,6 +1249,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   shutdown() {
+    this.recordingEnabled = false;
+    this.startChildRecordingOnSetup = false;
+    this.recordingGeneration++;
     this.urlChangeCleanup?.();
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;

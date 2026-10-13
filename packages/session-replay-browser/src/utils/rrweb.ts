@@ -21,6 +21,7 @@ export type RecordFunction = {
   (options: {
     emit: (event: eventWithTime) => void;
     inlineStylesheet?: boolean;
+    inlineImages?: boolean;
     hooks?: {
       mouseInteraction?: any;
       scroll?: scrollCallback;

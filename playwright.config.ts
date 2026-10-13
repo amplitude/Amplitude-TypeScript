@@ -9,14 +9,14 @@ export default defineConfig({
   reporter: process.env.CI ? [['html'], ['github']] : 'html',
   use: {
     baseURL: 'http://localhost:5173',
-    trace: process.env.CI ? 'on' : 'on-first-retry',
+    // Full always-on traces/videos balloon the HTML report enough that CI post-steps
+    // can get cancelled after a green run. Keep them on failure only.
+    trace: 'retain-on-failure',
     actionTimeout: 30000,
     navigationTimeout: 30000,
     ignoreHTTPSErrors: true,
-    // Capture screenshot on failure
     screenshot: 'only-on-failure',
-    // Record video for all tests in CI
-    video: process.env.CI ? 'on' : 'retain-on-failure',
+    video: 'retain-on-failure',
   },
   projects: [
     {
@@ -54,6 +54,10 @@ export default defineConfig({
     // wired into CI (requires a real remote config + SR API setup). Run manually
     // with `npx playwright test packages/session-replay-browser/e2e/`.
     '**/session-replay-browser/e2e/**',
+    // Shadow-DOM perf differential uses CPU throttling and long timeouts; too
+    // flaky for shared CI runners. Run manually before rollout:
+    //   npx playwright test packages/plugin-autocapture-browser/e2e/shadow-dom-perf.spec.ts
+    '**/plugin-autocapture-browser/e2e/shadow-dom-perf.spec.ts',
   ],
   timeout: 30000,
 });

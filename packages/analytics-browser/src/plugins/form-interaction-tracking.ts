@@ -131,17 +131,27 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       const forms = Array.from(document.getElementsByTagName('form'));
       forms.forEach(addFormInteractionListener);
 
-      // Adds listener to anchor tags added after initial load
+      // Adds listener to form tags added after initial load
       /* istanbul ignore else */
       if (typeof MutationObserver !== 'undefined') {
         observer = new MutationObserver((mutations) => {
           mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
-              if (node.nodeName === 'FORM') {
-                addFormInteractionListener(node as HTMLFormElement);
-              }
-              if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
-                Array.from(node.querySelectorAll('form') as HTMLFormElement[]).map(addFormInteractionListener);
+              // Registration of one node must not abort registration of the rest of the batch, otherwise
+              // forms appended after a malformed node are silently never tracked.
+              try {
+                if (node.nodeName === 'FORM') {
+                  addFormInteractionListener(node as HTMLFormElement);
+                }
+                if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
+                  // Some environments patch querySelectorAll to return a nullish value, so the return type
+                  // is widened to reflect what may actually arrive at runtime.
+                  const queryableNode = node as Element;
+                  const forms: NodeListOf<HTMLFormElement> | null | undefined = queryableNode.querySelectorAll('form');
+                  forms?.forEach(addFormInteractionListener);
+                }
+              } catch (error) {
+                config.loggerProvider.warn(`Failed to track form interactions for an added node: ${String(error)}`);
               }
             });
           });

@@ -46,6 +46,7 @@ import {
   isPageViewTrackingEnabled,
   isNetworkTrackingEnabled,
   isWebVitalsEnabled,
+  getWebVitalsConfig,
   isFrustrationInteractionsEnabled,
   getFrustrationInteractionsConfig,
   isPerformanceTrackingEnabled,
@@ -54,7 +55,8 @@ import {
   isCustomEnrichmentEnabled,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
-import { Context } from './plugins/context';
+import { getRuntimeEnvironment } from './utils/environment';
+import { BROWSER_PLATFORM, Context } from './plugins/context';
 import { useBrowserConfig, createTransport, shouldFetchRemoteConfig } from './config';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
@@ -190,6 +192,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       sampleRate: diagnosticsSampleRate,
     });
     diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+    diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
+    diagnosticsClient.setTag('web_environment', getRuntimeEnvironment());
     if (typeof navigator !== 'undefined') {
       diagnosticsClient.setTag('user_agent', navigator.userAgent);
     }
@@ -301,7 +305,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
     // identity store.
-    const connector = getAnalyticsConnector(options.instanceName);
+    const connector = getAnalyticsConnector(this.config.instanceName);
     connector.identityStore.setIdentity({
       userId: this.config.userId,
       deviceId: this.config.deviceId,
@@ -371,7 +375,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     if (isWebVitalsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding web vitals plugin');
-      await this.add(webVitalsPlugin()).promise;
+      await this.add(webVitalsPlugin(getWebVitalsConfig(this.config))).promise;
     }
 
     if (isPerformanceTrackingEnabled(this.config.autocapture)) {
@@ -397,8 +401,17 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Step 7: Add the event receiver after running remaining queued functions.
     connector.eventBridge.setEventReceiver((event) => {
       const { time, ...cleanEventProperties } = event.eventProperties || {};
-      const eventOptions = typeof time === 'number' ? { time } : undefined;
-      void this.track(event.eventType, cleanEventProperties, eventOptions);
+      // `groups` is not yet declared on the connector's AnalyticsEvent type
+      const { groups } = event as { groups?: EventOptions['groups'] };
+      const eventOptions: EventOptions = {
+        ...(typeof time === 'number' && { time }),
+        ...(groups && { groups }),
+      };
+      void this.track(
+        event.eventType,
+        cleanEventProperties,
+        Object.keys(eventOptions).length ? eventOptions : undefined,
+      );
     });
   }
 
