@@ -101,7 +101,13 @@ export class VideoCapture {
    */
   captureVideoStarted(): VideoCapture {
     this.listeners.push((previousState, nextState) => {
-      if (!ACTIVE_PLAYBACK_STATES.has(previousState.playbackState) && nextState.playbackState === 'playing') {
+      const prevPlayback = previousState.playbackState;
+      const nextPlayback = nextState.playbackState;
+      if (prevPlayback === 'ended') {
+        this.extraEventProperties.stream_session_id = UUID();
+        nextState.watchTime = 0;
+      }
+      if (!ACTIVE_PLAYBACK_STATES.has(prevPlayback) && nextPlayback === 'playing') {
         this.playId = UUID();
         /* istanbul ignore next */
         this.playStartTime = nextState.lastEvent?.start_time ?? 0;
@@ -317,8 +323,8 @@ export function trackVideo(
   try {
     videoCapture
       .withExtraEventProperties({
-        stream_session_id: UUID(),
         ...extraEventProperties,
+        stream_session_id: UUID(),
       })
       .captureVideoStarted()
       .captureVideoStopped()

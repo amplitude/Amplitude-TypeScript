@@ -179,6 +179,246 @@ describe('trackHtmlVideo', () => {
     video.dispatchEvent(new Event('timeupdate'));
     expect(handler.onTimeUpdate).not.toHaveBeenCalled();
   });
+
+  test('should report the last timeupdate as ended when its src changes', () => {
+    const untrack = trackHtmlVideo(video, handler);
+    video.setAttribute('src', 'https://example.com/first.mp4');
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+
+    video.dispatchEvent(new Event('loadstart'));
+    video.dispatchEvent(new Event('timeupdate'));
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).not.toHaveBeenCalled();
+
+    // loadstart can fire after the element already reflects the incoming source
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 0 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: Number.NaN });
+    video.setAttribute('src', 'https://example.com/second.mp4');
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+    expect(handler.onEnded).toHaveBeenCalledWith({
+      duration: 10,
+      start_time: 4,
+      position: 4,
+      percent_completed: 40,
+    });
+
+    untrack();
+    video.setAttribute('src', 'https://example.com/third.mp4');
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+  });
+
+  test('should not report a src change as ended before a timeupdate', () => {
+    trackHtmlVideo(video, handler);
+    video.setAttribute('src', 'https://example.com/first.mp4');
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('loadstart'));
+
+    video.setAttribute('src', 'https://example.com/second.mp4');
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).not.toHaveBeenCalled();
+  });
+
+  test('should report the first src change after tracking starts mid-playback', () => {
+    trackHtmlVideo(video, handler);
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('timeupdate'));
+
+    video.setAttribute('src', 'https://example.com/second.mp4');
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+    expect(handler.onEnded).toHaveBeenCalledWith({
+      duration: 10,
+      start_time: 4,
+      position: 4,
+      percent_completed: 40,
+    });
+  });
+
+  test('should report ended when the media is emptied without a src attribute change', () => {
+    trackHtmlVideo(video, handler);
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('timeupdate'));
+
+    // e.g. hls.js re-attaching a MediaSource for a new playlist
+    video.dispatchEvent(new Event('emptied'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+    expect(handler.onEnded).toHaveBeenCalledWith({
+      duration: 10,
+      start_time: 4,
+      position: 4,
+      percent_completed: 40,
+    });
+  });
+
+  test('should report a src change once when emptied is followed by a reset timeupdate and loadstart', () => {
+    trackHtmlVideo(video, handler);
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('timeupdate'));
+
+    video.setAttribute('src', 'https://example.com/second.mp4');
+    video.dispatchEvent(new Event('emptied'));
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 0 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: Number.NaN });
+    video.dispatchEvent(new Event('timeupdate'));
+    video.dispatchEvent(new Event('loadstart'));
+
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+
+    // a later swap without any new progress is not reported
+    video.setAttribute('src', 'https://example.com/third.mp4');
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+  });
+
+  test('should report a srcObject change as ended', () => {
+    const firstStream = {} as MediaStream;
+    Object.defineProperty(video, 'srcObject', { configurable: true, writable: true, value: firstStream });
+    trackHtmlVideo(video, handler);
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('timeupdate'));
+
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).not.toHaveBeenCalled();
+
+    (video as { srcObject: MediaStream }).srcObject = {} as MediaStream;
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+  });
+
+  test('should report a <source> child change as ended', () => {
+    video.removeAttribute('src');
+    Object.defineProperty(video, 'currentSrc', { configurable: true, value: 'https://example.com/first.mp4' });
+    trackHtmlVideo(video, handler);
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('timeupdate'));
+
+    Object.defineProperty(video, 'currentSrc', { configurable: true, value: 'https://example.com/second.mp4' });
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+  });
+
+  test('should fall back to the src attribute for elements without media source properties', () => {
+    const el = document.createElement('mux-video') as unknown as HTMLVideoElement;
+    el.setAttribute('src', 'https://example.com/first.m3u8');
+    Object.defineProperty(el, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(el, 'duration', { configurable: true, value: 10 });
+    trackHtmlVideo(el, handler);
+    el.dispatchEvent(new Event('timeupdate'));
+
+    el.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).not.toHaveBeenCalled();
+
+    el.setAttribute('src', 'https://example.com/second.m3u8');
+    el.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+  });
+
+  test('should not report a src change after the media already ended', () => {
+    trackHtmlVideo(video, handler);
+    video.play();
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('timeupdate'));
+    video.dispatchEvent(new Event('ended'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+
+    video.setAttribute('src', 'https://example.com/second.mp4');
+    video.dispatchEvent(new Event('emptied'));
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+  });
+
+  test('should report ended for a view that resumes from timeupdate after a source change', () => {
+    trackHtmlVideo(video, handler);
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('timeupdate'));
+
+    video.setAttribute('src', 'https://example.com/second.mp4');
+    video.dispatchEvent(new Event('emptied'));
+    // the element stays unpaused across the swap, so the next view never fires `play`
+    Object.defineProperty(video, 'paused', { configurable: true, value: false });
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 0 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: Number.NaN });
+    video.dispatchEvent(new Event('timeupdate'));
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+    expect(handler.onPlay).not.toHaveBeenCalled();
+
+    Object.defineProperty(video, 'ended', { configurable: true, value: false });
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 2 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 8 });
+    video.dispatchEvent(new Event('timeupdate'));
+    expect(handler.onPlay).toHaveBeenCalledTimes(1);
+    expect(handler.onPlay).toHaveBeenCalledWith({
+      duration: 8,
+      start_time: 2,
+      position: 2,
+      percent_completed: 25,
+    });
+
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 8 });
+    Object.defineProperty(video, 'ended', { configurable: true, value: true });
+    video.dispatchEvent(new Event('ended'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(2);
+    expect(handler.onEnded).toHaveBeenLastCalledWith({
+      duration: 8,
+      start_time: 8,
+      position: 8,
+      percent_completed: 100,
+      stop_reason: 'ended',
+    });
+  });
+
+  test('should report a later source change for a view that resumes from timeupdate', () => {
+    trackHtmlVideo(video, handler);
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('timeupdate'));
+
+    video.setAttribute('src', 'https://example.com/second.mp4');
+    video.dispatchEvent(new Event('emptied'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+
+    Object.defineProperty(video, 'ended', { configurable: true, value: false });
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 6 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 12 });
+    video.dispatchEvent(new Event('timeupdate'));
+
+    video.setAttribute('src', 'https://example.com/third.mp4');
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(2);
+    expect(handler.onEnded).toHaveBeenLastCalledWith({
+      duration: 12,
+      start_time: 6,
+      position: 6,
+      percent_completed: 50,
+    });
+  });
+
+  test('should not report a source change from a leftover timeupdate after the media ended', () => {
+    trackHtmlVideo(video, handler);
+    video.play();
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 10 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    Object.defineProperty(video, 'ended', { configurable: true, value: true });
+    video.dispatchEvent(new Event('ended'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+
+    video.dispatchEvent(new Event('timeupdate'));
+    video.setAttribute('src', 'https://example.com/second.mp4');
+    video.dispatchEvent(new Event('emptied'));
+    video.dispatchEvent(new Event('loadstart'));
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('trackHtmlVideo with Mux vendor', () => {
@@ -273,6 +513,37 @@ describe('trackHtmlVideo with Mux vendor', () => {
       start_time: 3,
       percent_completed: 30,
       duration: 10,
+      ...muxMetadata,
+    });
+  });
+
+  test('should report a src change as ended with Mux metadata from the last timeupdate', () => {
+    trackHtmlVideo(video, handler, 'mux');
+
+    const muxMetadata = {
+      mux_playback_id: video.getAttribute('playback-id'),
+      mux_video_id: video.getAttribute('metadata-video-id'),
+      mux_video_title: video.getAttribute('metadata-video-title'),
+    };
+
+    video.setAttribute('src', 'https://example.com/first.m3u8');
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 2 });
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('loadstart'));
+    video.dispatchEvent(new Event('timeupdate'));
+
+    video.removeAttribute('playback-id');
+    video.removeAttribute('metadata-video-id');
+    video.removeAttribute('metadata-video-title');
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 0 });
+    video.setAttribute('src', 'https://example.com/second.m3u8');
+    video.dispatchEvent(new Event('loadstart'));
+
+    expect(handler.onEnded).toHaveBeenCalledWith({
+      duration: 10,
+      start_time: 2,
+      position: 2,
+      percent_completed: 20,
       ...muxMetadata,
     });
   });
