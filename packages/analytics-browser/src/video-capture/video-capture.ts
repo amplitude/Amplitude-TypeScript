@@ -47,6 +47,16 @@ export class VideoCapture {
   private onRemoveListeners: (() => void)[] = [];
   private playId: string | null = null;
   private playStartTime: number | null = null;
+  /**
+   * Observer `watchTime` already accumulated when the current `play_id` began.
+   * `play_time` is the watch time since this baseline.
+   */
+  private playTimeBaseline = 0;
+  /**
+   * Observer `watchTime` already accumulated when the current `stream_session_id` began.
+   * `play_time_total` is the watch time since this baseline.
+   */
+  private sessionTimeBaseline = 0;
 
   constructor(private readonly amplitude: BrowserClient) {
     this.heartbeat = getHeartbeatInstance(this.amplitude);
@@ -105,12 +115,14 @@ export class VideoCapture {
       const nextPlayback = nextState.playbackState;
       if (prevPlayback === 'ended') {
         this.extraEventProperties.stream_session_id = UUID();
-        nextState.watchTime = 0;
+        // the ended state's watch time belongs to the session that just finished
+        this.sessionTimeBaseline = previousState.watchTime ?? 0;
       }
       if (!ACTIVE_PLAYBACK_STATES.has(prevPlayback) && nextPlayback === 'playing') {
         this.playId = UUID();
         /* istanbul ignore next */
         this.playStartTime = nextState.lastEvent?.start_time ?? 0;
+        this.playTimeBaseline = previousState.watchTime ?? 0;
         const now = new Date().getTime();
         const startEvent: BaseEvent = {
           insert_id: UUID(),
@@ -257,6 +269,7 @@ export class VideoCapture {
       start_time: nextState.lastEvent?.start_time ?? 0,
       position: nextState.position ?? 0,
       media_type: this.getMediaType(),
+      play_time_total: this.watchedSince(nextState.watchTime, this.sessionTimeBaseline),
     };
   }
 
@@ -270,10 +283,18 @@ export class VideoCapture {
       // lastEvent.start_time is the playhead at the time of the event, which for a stop event is
       // where playback ended, so the position captured when the play session began is preferred.
       start_time: this.playStartTime ?? nextState.lastEvent?.start_time ?? 0,
-      play_time: nextState.watchTime ?? 0,
+      // watchTime accumulates for the whole element. Each play_id and stream session keeps its own slice.
+      play_time: this.watchedSince(nextState.watchTime, this.playTimeBaseline),
+      play_time_total: this.watchedSince(nextState.watchTime, this.sessionTimeBaseline),
       percent_completed: calculatePercentCompleted(nextState.position ?? 0, nextState.lastEvent?.duration ?? 0),
       ...(nextState.errorMessage ? { error_message: nextState.errorMessage } : {}),
     };
+  }
+
+  /** Watch time elapsed since `baseline`. Missing or rewound watch time reports as 0. */
+  private watchedSince(watchTime: number | undefined, baseline: number) {
+    const elapsed = (watchTime ?? 0) - baseline;
+    return elapsed > 0 ? elapsed : 0;
   }
 }
 
