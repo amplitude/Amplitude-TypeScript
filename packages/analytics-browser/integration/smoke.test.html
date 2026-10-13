@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>analytics-browser HTML smoke test</title>
+  </head>
+  <body>
+    <h1>Amplitude Browser HTML Smoke Test</h1>
+    <button id="track-button" type="button">Track</button>
+
+    <script type="module">
+      import { runTests } from '@web/test-runner-mocha';
+      import { expect } from '@esm-bundle/chai';
+      import { Identify, Status } from '@amplitude/analytics-core';
+      import { AmplitudeBrowser } from '../src/index.ts';
+
+      runTests(() => {
+        describe('analytics HTML smoke tests', () => {
+          let payloads = [];
+          let transportProvider;
+
+          beforeEach(() => {
+            payloads = [];
+            transportProvider = {
+              async send(_serverUrl, payload) {
+                payloads.push(payload);
+                return {
+                  status: Status.Success,
+                  statusCode: 200,
+                  body: {
+                    eventsIngested: payload.events.length,
+                    payloadSizeBytes: 0,
+                    serverUploadTime: Date.now(),
+                  },
+                };
+              },
+            };
+          });
+
+          it('tracks an event when clicking on button', async () => {
+            const client = new AmplitudeBrowser();
+            await client.init('test-api-key', {
+              defaultTracking: false,
+              autocapture: false,
+              fetchRemoteConfig: false,
+              flushIntervalMillis: 1,
+              flushQueueSize: 1,
+              identityStorage: 'none',
+            }).promise;
+
+            client.config.transportProvider = transportProvider;
+            const trackPromise = new Promise(resolve => {
+              document.getElementById('track-button').addEventListener('click', async () => {
+                await client.track('test-event', { test_property: 'test-value' }).promise;
+                resolve();
+              });
+            });
+            // dispatch click event on button
+            document.getElementById('track-button').click();
+            await trackPromise;
+
+            expect(payloads).to.have.lengthOf(1);
+            expect(payloads[0].events[0].event_type).to.equal('test-event');
+            expect(payloads[0].events[0].event_properties).to.deep.equal({
+              test_property: 'test-value',
+            });
+          });
+        });
+      
+        describe('optOut tracking', () => {
+          let payloads = [];
+          let transportProvider;
+
+          beforeEach(() => {
+            payloads = [];
+            transportProvider = {
+              async send(_serverUrl, payload) {
+                payloads.push(payload);
+                return {
+                  status: Status.Success,
+                  statusCode: 200,
+                  body: {
+                    eventsIngested: payload.events.length,
+                    payloadSizeBytes: 0,
+                    serverUploadTime: Date.now(),
+                  },
+                };
+              },
+            };
+          });
+
+          it('only tracks events when optOut is false', async () => {
+            const client = new AmplitudeBrowser();
+            await client.init('test-api-key', {
+              defaultTracking: false,
+              autocapture: false,
+              fetchRemoteConfig: false,
+              flushIntervalMillis: 1,
+              flushQueueSize: 1,
+              identityStorage: 'none',
+              optOut: true,
+            }).promise;
+
+            client.config.transportProvider = transportProvider;
+            await client.track('test-event', { test_property: 'test-value' }).promise;
+            await client.flush().promise;
+
+            expect(payloads).to.have.lengthOf(0);
+            client.setOptOut(false);
+            await client.track('test-event-2', { test_property: 'test-value' }).promise;
+            await client.flush().promise;
+
+            expect(payloads).to.have.lengthOf(1);
+            expect(payloads[0].events[0].event_type).to.equal('test-event-2');
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

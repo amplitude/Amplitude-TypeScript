@@ -37,6 +37,16 @@ const SHARED_ROLLUP_CONFIG = 'scripts/build/rollup.config';
 
 /** Implicit for one package each, keyed by directory name under packages/. */
 const IMPLICIT_PACKAGE_DEPS = {
+  // Imported by web-test-runner.config.mjs and integration/smoke.test.html,
+  // neither of which knip reads: it has no @web/test-runner plugin and does not
+  // parse HTML.
+  'analytics-browser': [
+    '@web/dev-server-esbuild',
+    '@web/dev-server-rollup',
+    '@web/test-runner-mocha',
+    '@web/test-runner-playwright',
+  ],
+
   // Types for the bare 'ua-parser-js' specifier that src/typings/ua-parser.d.ts
   // imports inside a `declare module` block.
   'analytics-react-native': ['@types/ua-parser-js'],
