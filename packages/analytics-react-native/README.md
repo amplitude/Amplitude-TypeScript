@@ -27,6 +27,69 @@ yarn add @amplitude/analytics-react-native
 yarn add @react-native-async-storage/async-storage
 ```
 
+### Using your own storage instead of AsyncStorage
+
+AsyncStorage is only the default. The SDK loads it lazily, so you can persist to another store (MMKV, expo-sqlite's kv-store, …) by passing **both** storages to `init`:
+
+| Option | What it persists |
+| --- | --- |
+| `storageProvider` | the unsent event queue (also the diagnostics and remote-config caches) |
+| `cookieStorage` | identity: device ID, user ID, session ID, opt-out |
+
+Both must resolve `isEnabled()` to `true`. Passing only `storageProvider` is not enough: identity still falls back to AsyncStorage.
+
+A storage implements `Types.Storage<T>`. An example with [react-native-mmkv](https://github.com/mrousavy/react-native-mmkv) v4:
+
+```typescript
+import * as amplitude from '@amplitude/analytics-react-native';
+import { createMMKV, type MMKV } from 'react-native-mmkv';
+
+function createMmkvStorage<T>(mmkv: MMKV): amplitude.Types.Storage<T> {
+  return {
+    isEnabled: async () => true,
+    get: async (key) => {
+      const raw = mmkv.getString(key);
+      if (raw === undefined) return undefined;
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        return undefined;
+      }
+    },
+    getRaw: async (key) => mmkv.getString(key),
+    set: async (key, value) => mmkv.set(key, JSON.stringify(value)),
+    remove: async (key) => {
+      mmkv.remove(key);
+    },
+    // reset() wipes the whole store, so give the SDK its own MMKV instance.
+    reset: async () => mmkv.clearAll(),
+  };
+}
+
+const mmkv = createMMKV({ id: 'amplitude' });
+
+amplitude.init(API_KEY, undefined, {
+  storageProvider: createMmkvStorage(mmkv),
+  cookieStorage: createMmkvStorage(mmkv),
+});
+```
+
+With both storages in place AsyncStorage is never loaded, but it is still installed as a dependency and autolinked. To keep its native code out of your build, exclude it in `react-native.config.js` at your app root:
+
+```js
+module.exports = {
+  dependencies: {
+    '@react-native-async-storage/async-storage': {
+      platforms: { ios: null, android: null },
+    },
+  },
+};
+```
+
+Run `npx react-native config` (or `npx expo-modules-autolinking react-native-config --platform ios` in Expo apps) to confirm it is no longer listed. After `pod install`, `RNCAsyncStorage` should be absent from `ios/Podfile.lock`.
+
+> Switching storage in an app that already shipped with AsyncStorage starts from empty storage: existing installs get a new device ID and lose any unsent events. Migrate the stored values first if you need continuity.
+
 ## Usage
 
 ### Initializing SDK
