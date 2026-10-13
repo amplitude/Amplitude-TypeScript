@@ -647,6 +647,43 @@ describe('VideoCapture', () => {
       expect(mockAmplitude.track).not.toHaveBeenCalled();
     });
 
+    it('should use cause as the stop reason when the media ends because its content changed', async () => {
+      new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement('video'))
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+
+      const playingState: VideoState = {
+        playbackState: 'playing',
+        lastEvent: { duration: 10, position: 4 },
+        position: 4,
+        watchTime: 4,
+      };
+      currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      currentVideoObserver!.emitStateChange(playingState, {
+        playbackState: 'ended',
+        lastEvent: { duration: 10, position: 4, percent_completed: 40 },
+        position: 4,
+        watchTime: 4,
+        cause: 'content_changed',
+      });
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({
+          '[Streaming] Stop Reason': 'content_changed',
+          '[Streaming] Position Sec': 4,
+        }),
+        expect.objectContaining({ delay: { id: expect.any(String) } }),
+      );
+    });
+
     it('should heartbeat the delayed stop event with the latest playback progress', async () => {
       new VideoCapture(mockAmplitude)
         .withVideoElement(document.createElement('video'))

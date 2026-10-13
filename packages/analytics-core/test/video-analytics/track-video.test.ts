@@ -190,11 +190,14 @@ describe('trackHtmlVideo', () => {
     video.setAttribute('src', 'https://example.com/second.mp4');
     video.dispatchEvent(new Event('loadstart'));
     expect(handler.onEnded).toHaveBeenCalledTimes(1);
-    expect(handler.onEnded).toHaveBeenCalledWith({
-      duration: 10,
-      position: 4,
-      percent_completed: 40,
-    });
+    expect(handler.onEnded).toHaveBeenCalledWith(
+      {
+        duration: 10,
+        position: 4,
+        percent_completed: 40,
+      },
+      'content_changed',
+    );
 
     untrack();
     video.setAttribute('src', 'https://example.com/third.mp4');
@@ -223,11 +226,14 @@ describe('trackHtmlVideo', () => {
     video.setAttribute('src', 'https://example.com/second.mp4');
     video.dispatchEvent(new Event('loadstart'));
     expect(handler.onEnded).toHaveBeenCalledTimes(1);
-    expect(handler.onEnded).toHaveBeenCalledWith({
-      duration: 10,
-      position: 4,
-      percent_completed: 40,
-    });
+    expect(handler.onEnded).toHaveBeenCalledWith(
+      {
+        duration: 10,
+        position: 4,
+        percent_completed: 40,
+      },
+      'content_changed',
+    );
   });
 
   test('should report ended when the media is emptied without a src attribute change', () => {
@@ -239,11 +245,14 @@ describe('trackHtmlVideo', () => {
     // e.g. hls.js re-attaching a MediaSource for a new playlist
     video.dispatchEvent(new Event('emptied'));
     expect(handler.onEnded).toHaveBeenCalledTimes(1);
-    expect(handler.onEnded).toHaveBeenCalledWith({
-      duration: 10,
-      position: 4,
-      percent_completed: 40,
-    });
+    expect(handler.onEnded).toHaveBeenCalledWith(
+      {
+        duration: 10,
+        position: 4,
+        percent_completed: 40,
+      },
+      'content_changed',
+    );
   });
 
   test('should report a src change once when emptied is followed by a reset timeupdate and loadstart', () => {
@@ -384,11 +393,14 @@ describe('trackHtmlVideo', () => {
     video.setAttribute('src', 'https://example.com/third.mp4');
     video.dispatchEvent(new Event('loadstart'));
     expect(handler.onEnded).toHaveBeenCalledTimes(2);
-    expect(handler.onEnded).toHaveBeenLastCalledWith({
-      duration: 12,
-      position: 6,
-      percent_completed: 50,
-    });
+    expect(handler.onEnded).toHaveBeenLastCalledWith(
+      {
+        duration: 12,
+        position: 6,
+        percent_completed: 50,
+      },
+      'content_changed',
+    );
   });
 
   test('should not report a source change from a leftover timeupdate after the media ended', () => {
@@ -521,12 +533,15 @@ describe('trackHtmlVideo with Mux vendor', () => {
     video.setAttribute('src', 'https://example.com/second.m3u8');
     video.dispatchEvent(new Event('loadstart'));
 
-    expect(handler.onEnded).toHaveBeenCalledWith({
-      duration: 10,
-      position: 2,
-      percent_completed: 20,
-      ...muxMetadata,
-    });
+    expect(handler.onEnded).toHaveBeenCalledWith(
+      {
+        duration: 10,
+        position: 2,
+        percent_completed: 20,
+        ...muxMetadata,
+      },
+      'content_changed',
+    );
   });
 
   test('should track timeupdate events with Mux metadata', () => {

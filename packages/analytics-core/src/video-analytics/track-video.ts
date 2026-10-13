@@ -6,6 +6,7 @@ import {
   Vendor,
   VideoStopReason,
   TimeUpdateEvent,
+  VideoStopCause,
 } from './types';
 
 function calculatePercentCompleted(currentTime: number, duration: number) {
@@ -154,10 +155,10 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
 
   // report the media that was playing before a source change as over, using the last
   // timeupdate because the element has already been reset by the time we hear about it
-  const endCurrentMedia = () => {
+  const endCurrentMedia = (cause?: VideoStopCause) => {
     if (videoData && !hasReportedEnded) {
       hasReportedEnded = true;
-      handlers.onEnded(videoData);
+      handlers.onEnded(videoData, cause);
     }
     videoData = null;
   };
@@ -167,14 +168,15 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
     const nextSource = getEffectiveSource(videoEl);
     if (nextSource !== currentSource) {
       currentSource = nextSource;
-      endCurrentMedia();
+      endCurrentMedia('content_changed');
     }
   };
   videoEl.addEventListener('loadstart', loadStartHandler);
 
   // `emptied` fires whenever loaded media is torn down, which also covers swaps that keep the
   // same URL (e.g. hls.js re-attaching a MediaSource), `srcObject` and `<source>` changes
-  videoEl.addEventListener('emptied', endCurrentMedia);
+  const emptiedHandler = () => endCurrentMedia('content_changed');
+  videoEl.addEventListener('emptied', emptiedHandler);
   const media = videoEl as HTMLMediaElement;
 
   // if the media is already playing when tracking begins, emit a play event
@@ -191,7 +193,7 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
     videoEl.removeEventListener('error', errorHandler);
     videoEl.removeEventListener('timeupdate', timeupdateHandler);
     videoEl.removeEventListener('loadstart', loadStartHandler);
-    videoEl.removeEventListener('emptied', endCurrentMedia);
+    videoEl.removeEventListener('emptied', emptiedHandler);
   };
 }
 
