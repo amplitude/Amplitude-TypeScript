@@ -1,5 +1,4 @@
-import { Heartbeat } from '../src/heartbeat';
-import { getHeartbeatInstance } from '../src/';
+import { Heartbeat, getHeartbeatInstance } from '../src/';
 import { CoreClient } from '../src/types/client/core-client';
 import * as globalScope from '../src/global-scope';
 
@@ -159,7 +158,7 @@ describe('heartbeat', () => {
       );
     });
 
-    test('should preserve existing insert_id and use heartbeat delay_id on trackNoDelay', async () => {
+    test('should preserve an explicit delay group without mutating the input on trackNoDelay', async () => {
       const event = {
         insert_id: 'instant-1',
         delay: { id: 'delay-1', timeout: 1000 } as { id: string; timeout?: number },
@@ -167,16 +166,16 @@ describe('heartbeat', () => {
         event_properties: { test: 'test' },
       };
       await trackNoDelayWithTimers(event);
-      expect(event.delay.timeout).toBeUndefined();
+      expect(event.delay.timeout).toBe(1000);
       expect(trackMock).toHaveBeenCalledWith(
         'instant',
         { test: 'test' },
         {
           insert_id: 'instant-1',
-          delay: { id: expect.any(String) },
+          delay: { id: 'delay-1' },
         },
       );
-      expect(event.delay.id).not.toBe('delay-1');
+      expect(event.delay.id).toBe('delay-1');
     });
 
     test('should track via trackNoDelay when no other events are tracked', async () => {
@@ -270,6 +269,66 @@ describe('heartbeat', () => {
   });
 
   describe('heartbeat', () => {
+    test('retains failed instant events for retry and does not remove a replacement on an older response', async () => {
+      await trackWithTimers({ event_type: 'test', insert_id: 'id', delay: { id: 'group' } });
+      let resolve: (value: any) => void = () => undefined;
+      trackMock.mockReturnValueOnce({
+        promise: new Promise((done) => {
+          resolve = done;
+        }),
+      });
+      const pending = heartbeat.trackNoDelay({ event_type: 'test', insert_id: 'id' });
+      await jest.advanceTimersByTimeAsync(0);
+      await heartbeat.update({ event_type: 'test', insert_id: 'id', event_properties: { latest: true } });
+      resolve({ event: { insert_id: 'id' }, code: 200 });
+      await pending;
+      trackMock.mockReturnValueOnce({ promise: Promise.resolve({ event: { insert_id: 'id' }, code: 500 }) });
+      await heartbeat.heartbeat();
+      expect(trackMock).toHaveBeenLastCalledWith(
+        'test',
+        { latest: true },
+        expect.objectContaining({ delay: { id: expect.any(String) } }),
+      );
+      trackMock.mockReturnValueOnce({ promise: Promise.reject(new Error('offline')) });
+      await expect(heartbeat.heartbeat()).rejects.toThrow('offline');
+      await heartbeat.heartbeat();
+      const count = trackMock.mock.calls.length;
+      await heartbeat.heartbeat();
+      expect(trackMock).toHaveBeenCalledTimes(count);
+    });
+
+    test('refreshes a feature-owned snapshot before sending and preserves explicit update delay', async () => {
+      heartbeat.stop();
+      heartbeat = new Heartbeat(mockClient, 15_000, 180_000, mockLoggerProvider, {
+        managePageLifecycle: false,
+        beforeHeartbeat: () => {
+          void heartbeat.update({ event_type: 'page', insert_id: 'page', event_properties: { now: Date.now() } });
+        },
+      });
+      await trackWithTimers({ event_type: 'page', insert_id: 'page', delay: { id: 'page-group', timeout: 180_000 } });
+      await heartbeat.update({ event_type: 'page', insert_id: 'page', delay: { id: 'page-group' } });
+      await heartbeat.heartbeat();
+      expect(trackMock).toHaveBeenLastCalledWith(
+        'page',
+        { now: Date.now() },
+        { insert_id: 'page', delay: { id: 'page-group' } },
+      );
+    });
+
+    test('flushes queued tracks before waiting for their ingestion response', async () => {
+      await trackWithTimers({ event_type: 'test', insert_id: 'id' });
+      let resolve: (value: any) => void = () => undefined;
+      trackMock.mockReturnValueOnce({
+        promise: new Promise((done) => {
+          resolve = done;
+        }),
+      });
+      const pending = heartbeat.heartbeat(true);
+      expect(flushMock).toHaveBeenCalled();
+      resolve({ event: { insert_id: 'id' }, code: 200 });
+      await pending;
+    });
+
     test('should call client.flush after tracking events when flushClient is true', async () => {
       const event = {
         insert_id: '1',

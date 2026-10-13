@@ -540,6 +540,18 @@ describe('isElementInteractionsEnabled', () => {
 });
 
 describe('getPageViewTrackingConfig', () => {
+  test('forwards opt-in engagement settings', () => {
+    const pageViews = {
+      trackEngagedTime: true,
+      engagementThresholdMillis: 10_000,
+      heartbeatIntervalMillis: 20_000,
+      pageSessionTimeoutMillis: 120_000,
+    };
+    expect(getPageViewTrackingConfig({ defaultTracking: { pageViews } })).toMatchObject(pageViews);
+    expect(
+      getPageViewTrackingConfig({ defaultTracking: { pageViews: { trackEngagedTime: false } } }),
+    ).not.toHaveProperty('trackEngagedTime');
+  });
   test('should return undefined trackOn config', () => {
     const config = getPageViewTrackingConfig({
       defaultTracking: {

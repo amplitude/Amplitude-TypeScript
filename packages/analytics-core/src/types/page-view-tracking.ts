@@ -3,6 +3,14 @@ export interface PageTrackingOptions {
   trackHistoryChanges?: PageTrackingHistoryChanges;
   eventType?: string;
   pageCounter?: number;
+  /** Delay page-view ingestion and attach cumulative engaged time. Defaults to false. */
+  trackEngagedTime?: boolean;
+  /** Rolling activity window in milliseconds. Defaults to 5,000. */
+  engagementThresholdMillis?: number;
+  /** Snapshot cadence in milliseconds. Defaults to 15,000; must be shorter than pageSessionTimeoutMillis. */
+  heartbeatIntervalMillis?: number;
+  /** Finalize after this many milliseconds without activity. Also sets the service fallback TTL. Defaults to 180,000. */
+  pageSessionTimeoutMillis?: number;
 }
 
 export type PageTrackingTrackOn = 'attribution' | (() => boolean);

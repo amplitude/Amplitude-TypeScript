@@ -24,12 +24,14 @@ export class Heartbeat {
     private pulse: number,
     private delayTimeout: number,
     private logger?: ILogger,
+    private options: { beforeHeartbeat?: () => void; managePageLifecycle?: boolean } = {},
   ) {
     this.events = new Map<string, DelayedEvent>();
     this.delayId = UUID();
   }
 
   async heartbeat(flushClient = false): Promise<Result[]> {
+    this.options.beforeHeartbeat?.();
     // stop sending heartbeats if no events are queued
     if (this.events.size === 0) {
       this.stop();
@@ -46,15 +48,21 @@ export class Heartbeat {
       // delete it after it was ingested
       if (this.isInstantEvent(event)) {
         const insertId = event.insert_id;
-        void eventPromise.finally(() => this.events.delete(insertId));
+        void eventPromise.then(
+          (result) => {
+            if (result.code >= 200 && result.code < 300 && this.events.get(insertId) === event) {
+              this.events.delete(insertId);
+            }
+          },
+          () => undefined,
+        );
       }
       trackedEvents.push(eventPromise);
     }
-    const res = await Promise.all(trackedEvents);
     if (flushClient) {
       this.client.flush();
     }
-    return res;
+    return await Promise.all(trackedEvents);
   }
 
   async resetHeartbeat() {
@@ -62,7 +70,7 @@ export class Heartbeat {
     // include any newly tracked events, so share its result
     if (this.resetPromise) return await this.resetPromise;
 
-    this.setupPageLifecycleListeners();
+    if (this.options.managePageLifecycle !== false) this.setupPageLifecycleListeners();
 
     // reset the heartbeat interval
     if (this.interval) clearInterval(this.interval);
@@ -166,8 +174,7 @@ export class Heartbeat {
    * @returns
    */
   async trackNoDelay(event: BaseEvent) {
-    event.delay = { id: this.delayId };
-    return this.track(event);
+    return this.track({ ...event, delay: { id: event.delay?.id || this.delayId } });
   }
 
   /**
@@ -179,7 +186,7 @@ export class Heartbeat {
       const backupEvent = this.events.get(event.insert_id);
       this.events.set(event.insert_id, {
         ...event,
-        delay: { id: this.delayId, timeout: this.delayTimeout },
+        delay: event.delay || this.events.get(event.insert_id)!.delay,
       });
       if (!this.checkEventSizeLimit(event) && backupEvent) {
         this.events.set(event.insert_id, backupEvent);
@@ -199,9 +206,14 @@ export class Heartbeat {
     };
   }
 
-  stop(flush = false) {
+  /** Stop the pulse without discarding the latest snapshot. */
+  pause() {
     this.interval && clearInterval(this.interval);
     this.interval = null;
+  }
+
+  stop(flush = false) {
+    this.pause();
     this.events.clear();
     this.unsubscribeFunctions.forEach((removeListener) => removeListener());
     this.unsubscribeFunctions = [];
@@ -215,9 +227,9 @@ const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
 // const DEFAULT_HEARTBEAT_INTERVAL = 2_000; // TODO: DO NOT MERGE THIS
 const DEFAULT_HEARTBEAT_DELAY_TIMEOUT = 3_600_000;
 
-type HeartbeatMap = Map<CoreClient, Heartbeat>;
+type HeartbeatMap = WeakMap<CoreClient, Heartbeat>;
 
-const heartbeatMap: HeartbeatMap = new Map<CoreClient, Heartbeat>();
+const heartbeatMap: HeartbeatMap = new WeakMap<CoreClient, Heartbeat>();
 
 export function getHeartbeatInstance(client: CoreClient, logger?: ILogger): Heartbeat {
   const existing = heartbeatMap.get(client);

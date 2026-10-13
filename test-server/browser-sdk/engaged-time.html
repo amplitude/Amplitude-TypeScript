@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Engaged time · Browser SDK</title>
+    <style>
+      :root {
+        font: 15px/1.55 system-ui, sans-serif;
+        color: #202b3d;
+        background: #f5f7fb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      main {
+        max-width: 1200px;
+        margin: auto;
+        padding: 36px 24px;
+      }
+      h1 {
+        font-size: 32px;
+        margin: 0 0 6px;
+        letter-spacing: -0.7px;
+      }
+      h2 {
+        font-size: 19px;
+        margin: 0 0 12px;
+      }
+      p {
+        margin: 8px 0 16px;
+      }
+      .eyebrow {
+        color: #365ccc;
+        font-weight: 700;
+        letter-spacing: 1px;
+        font-size: 12px;
+      }
+      section {
+        background: white;
+        border: 1px solid #dce3ee;
+        border-radius: 12px;
+        padding: 22px;
+        margin: 20px 0;
+      }
+      .muted,
+      small {
+        color: #5f6d80;
+      }
+      .badge {
+        background: #edf2ff;
+        color: #2447aa;
+        border-radius: 6px;
+        padding: 5px 10px;
+        display: inline-block;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        text-align: left;
+        font-size: 14px;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #e4e8ef;
+        padding: 11px 10px;
+        vertical-align: top;
+      }
+      th {
+        color: #526174;
+      }
+      .scroll {
+        overflow-x: auto;
+      }
+      code,
+      pre {
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        border-radius: 6px;
+        padding: 8px 12px;
+        border: 1px solid #b9c6d9;
+      }
+      input {
+        width: 100%;
+      }
+      button {
+        background: #fff;
+        color: #2549ac;
+        cursor: pointer;
+      }
+      button.primary {
+        background: #315bd7;
+        color: #fff;
+        border-color: #315bd7;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: end;
+      }
+      label {
+        display: grid;
+        gap: 4px;
+        min-width: 130px;
+        flex: 1;
+        font-size: 13px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      .stat {
+        background: #f5f7fb;
+        padding: 14px;
+        border-radius: 8px;
+      }
+      .stat strong {
+        display: block;
+        font-size: 25px;
+      }
+      .article {
+        min-height: 350px;
+        border-left: 3px solid #5e7cdf;
+        padding: 8px 20px;
+        margin-top: 22px;
+        background: #f8faff;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        background: #152033;
+        color: #dae6ff;
+        padding: 16px;
+        border-radius: 8px;
+        max-height: 480px;
+        overflow: auto;
+      }
+      details {
+        margin-top: 12px;
+      }
+      #error {
+        color: #ad2536;
+      }
+      a {
+        color: #315bd7;
+      }
+      @media (max-width: 700px) {
+        .stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        main {
+          padding: 24px 12px;
+        }
+        section {
+          padding: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">REACH · REAL SDK TEST APP</div>
+      <h1>Engaged time on a page view</h1>
+      <p class="muted">
+        Uses the Browser SDK built from this checkout. Move, scroll, type, switch tabs, or navigate to exercise real
+        browser listeners.
+      </p>
+      <span class="badge" id="status" role="status">Ready to start</span>
+
+      <section>
+        <h2>Settings and defaults</h2>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Setting</th>
+                <th>Default</th>
+                <th>Configurable?</th>
+                <th>What it controls</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Activity window<br /><code>engagementThresholdMillis</code></td>
+                <td>5 s</td>
+                <td>Yes</td>
+                <td>
+                  Time counts while the page is visible, focused, and within this window of an interaction. Idle gaps do
+                  not count.
+                </td>
+              </tr>
+              <tr>
+                <td>Snapshot heartbeat<br /><code>heartbeatIntervalMillis</code></td>
+                <td>15 s</td>
+                <td>Yes, SDK option</td>
+                <td>
+                  Sends the cumulative page-view snapshot. It does not reset the inactivity deadline. Reach requested
+                  the cadence; customer control was not confirmed.
+                </td>
+              </tr>
+              <tr>
+                <td>Page inactivity timeout<br /><code>pageSessionTimeoutMillis</code></td>
+                <td>3 min</td>
+                <td>Yes</td>
+                <td>
+                  The SDK finalizes after this long without qualifying activity. The next interaction starts a new
+                  logical page view.
+                </td>
+              </tr>
+              <tr>
+                <td>Service fallback timeout</td>
+                <td>3 min</td>
+                <td>Internal; aligned with page timeout</td>
+                <td>
+                  Starts from the last accepted snapshot if the SDK stops sending. A separate clock using the same
+                  configured duration. Service processing is asynchronous.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted">
+          Hidden tabs and unfocused windows pause engagement immediately. Page views retain their original timestamp,
+          insert ID, and page-view ID across snapshots.
+        </p>
+      </section>
+
+      <section>
+        <h2>Run the SDK</h2>
+        <form id="settings">
+          <div class="controls">
+            <label>Activity window (ms)<input id="threshold" type="number" min="1" value="5000" required /></label>
+            <label>Heartbeat (ms)<input id="heartbeat" type="number" min="1" value="15000" required /></label>
+            <label>Inactivity timeout (ms)<input id="timeout" type="number" min="2" value="180000" required /></label>
+            <button type="button" id="fast">Quick test: 1 / 2 / 10 s</button>
+            <button type="button" id="defaults">Use defaults</button>
+          </div>
+          <div class="controls" style="margin-top: 16px">
+            <label
+              >Destination<select id="destination">
+                <option value="local">Local receiver (no API key needed)</option>
+                <option value="live">Amplitude US (sends real data)</option>
+              </select></label
+            >
+            <label
+              >API key for live destination<input
+                id="api-key"
+                type="password"
+                autocomplete="off"
+                placeholder="Only required for Amplitude"
+            /></label>
+            <button class="primary" id="start" type="submit">Start SDK</button>
+          </div>
+        </form>
+        <p class="muted" id="destination-note">
+          Local mode makes real HTTP requests to this Vite server. The receiver only acknowledges payloads; it does not
+          implement storage, ingestion, or fallback TTL.
+        </p>
+        <p id="error" role="alert"></p>
+        <details>
+          <summary>SDK configuration</summary>
+          <pre id="config">Start the SDK to view the configuration.</pre>
+        </details>
+      </section>
+
+      <section>
+        <h2>Try a page journey</h2>
+        <div class="stats">
+          <div class="stat"><small>Engaged time · latest snapshot</small><strong id="engaged">—</strong></div>
+          <div class="stat"><small>HTTP requests</small><strong id="requests">0</strong></div>
+          <div class="stat"><small>Final copies sent</small><strong id="finals">0</strong></div>
+          <div class="stat">
+            <small>Page visibility / focus</small><strong id="visibility" style="font-size: 17px">—</strong>
+          </div>
+        </div>
+        <p class="muted">
+          The numbers update from outgoing SDK payloads. A heartbeat is a replacement snapshot of the same page view. A
+          final copy appears in <code>instant_events</code>.
+        </p>
+        <div class="controls">
+          <button id="navigate" disabled>Navigate to next article</button>
+          <button id="flush" disabled>Flush SDK queue</button>
+          <button id="optout" disabled>Opt out</button>
+          <button id="stop" disabled>Finish and stop page tracking</button>
+        </div>
+        <article class="article">
+          <h2 id="article-title">Article 1 · A quiet moment</h2>
+          <p>
+            Read this paragraph, then leave the mouse still. The engagement total will stop increasing after the
+            activity window expires. Heartbeats continue until the inactivity timeout.
+          </p>
+          <p>
+            Scroll, click, or type below to open another activity window. Overlapping windows count once. Switching to
+            another tab or application pauses engagement immediately.
+          </p>
+          <label
+            >Try typing<textarea
+              rows="3"
+              placeholder="Interaction with this field counts as engagement."
+              style="font: inherit; padding: 10px; border: 1px solid #b9c6d9; border-radius: 6px"
+            ></textarea>
+          </label>
+          <p>
+            Navigate to the next article to finalize this view. The final copy should keep this article’s URL and IDs.
+          </p>
+        </article>
+      </section>
+
+      <section>
+        <h2>HTTP payloads</h2>
+        <p class="muted">
+          Newest first. API keys are omitted. “Accepted” means the endpoint acknowledged the request; it does not
+          confirm final analytics ingestion.
+        </p>
+        <div id="payloads"><p>No requests yet.</p></div>
+      </section>
+      <p class="muted">
+        Reference: <a href="https://mercy811.github.io/amplitude-engaged-time-segments-poc/">in-browser simulation</a>.
+        This test app runs the actual SDK.
+      </p>
+    </main>
+    <script type="module" src="./engaged-time.js"></script>
+  </body>
+</html>

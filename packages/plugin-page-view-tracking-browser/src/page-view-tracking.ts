@@ -16,6 +16,7 @@ import {
   omitUndefined,
 } from '@amplitude/analytics-core';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
+import { PageEngagement } from './page-engagement';
 
 export const defaultPageViewEvent = '[Amplitude] Page Viewed';
 export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
@@ -31,6 +32,10 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let isTracking = false;
   let localConfig: BrowserConfig;
   let sessionStorage: BrowserStorage<PageViewSessionStorage> | undefined;
+  let engagement: PageEngagement | undefined;
+  let renewingPageView = false;
+  let pageRevision = 0;
+  let removePrerenderListener: (() => void) | undefined;
   const { trackOn, trackHistoryChanges, eventType = defaultPageViewEvent } = options;
 
   const getDecodeURI = (locationStr: string): string => {
@@ -48,23 +53,36 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   const createPageViewEvent = async (pageViewId: string | undefined): Promise<Event> => {
     /* istanbul ignore next */
     const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
+    // Capture page metadata before campaign parsing yields, including rapid SPA transitions.
+    const pageProperties = {
+      '[Amplitude] Page Domain':
+        /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
+      '[Amplitude] Page Location': locationHREF,
+      '[Amplitude] Page Path':
+        /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
+      '[Amplitude] Page Title': getPageTitle(replaceSensitiveString),
+      '[Amplitude] Page URL': locationHREF.split('?')[0],
+      '[Amplitude] Page View ID': pageViewId,
+    };
     return {
       event_type: eventType,
       event_properties: {
         ...(await getCampaignParams()),
-        '[Amplitude] Page Domain':
-          /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-        '[Amplitude] Page Location': locationHREF,
-        '[Amplitude] Page Path':
-          /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
-        '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
-        '[Amplitude] Page URL': locationHREF.split('?')[0],
-        '[Amplitude] Page View ID': pageViewId,
+        ...pageProperties,
       },
     };
   };
 
   const shouldTrackOnPageLoad = () => typeof trackOn === 'undefined' || (typeof trackOn === 'function' && trackOn());
+
+  const trackNewPageView = async (client: BrowserClient) => {
+    const revision = pageRevision;
+    const pageViewId = UUID();
+    void sessionStorage?.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+    const event = await createPageViewEvent(pageViewId);
+    if (isTracking && !localConfig.optOut && revision === pageRevision) return client.track(event).promise;
+    return;
+  };
 
   /* istanbul ignore next */
   let previousURL: string | null = typeof location !== 'undefined' ? location.href : null;
@@ -80,8 +98,10 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     previousURL = newURL;
 
     if (shouldTrackPageView) {
+      pageRevision += 1;
+      engagement?.finish('navigation');
       // Generate new page view id and set it in session storage
-      let pageViewId: string | undefined;
+      let pageViewId: string | undefined = options.trackEngagedTime ? UUID() : undefined;
       if (sessionStorage) {
         pageViewId = UUID();
         void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
@@ -110,6 +130,16 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
 
       isTracking = true;
+      if (options.trackEngagedTime && globalScope?.document) {
+        engagement = new PageEngagement(client, globalScope, options, loggerProvider, () => {
+          if (!renewingPageView && (trackOn === 'attribution' || shouldTrackOnPageLoad())) {
+            renewingPageView = true;
+            void trackNewPageView(client).finally(() => {
+              renewingPageView = false;
+            });
+          }
+        });
+      }
       if (globalScope) {
         // init session storage
         try {
@@ -137,9 +167,20 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       }
 
       if (shouldTrackOnPageLoad()) {
+        // An engagement owner is only installed in a document environment.
+        const doc = globalScope?.document as (Document & { prerendering?: boolean }) | undefined;
+        if (doc && engagement && doc.prerendering) {
+          const onActivated = () => {
+            doc.removeEventListener('prerenderingchange', onActivated);
+            void trackNewPageView(client);
+          };
+          doc.addEventListener('prerenderingchange', onActivated);
+          removePrerenderListener = () => doc.removeEventListener('prerenderingchange', onActivated);
+          return;
+        }
         loggerProvider.log('Tracking page view event');
         // Generate new page view id and set it in session storage
-        let pageViewId: string | undefined;
+        let pageViewId: string | undefined = options.trackEngagedTime ? UUID() : undefined;
 
         if (sessionStorage) {
           pageViewId = UUID();
@@ -151,6 +192,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     },
 
     execute: async (event: Event) => {
+      // A heartbeat reuses the enriched original page view, including its counter.
+      if (engagement && event.delay) return event;
       if (trackOn === 'attribution' && isCampaignEvent(event)) {
         /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
         loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');
@@ -176,16 +219,28 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           ...event.event_properties,
           '[Amplitude] Page Counter': localConfig.pageCounter,
         };
+        if (engagement) {
+          engagement.start(event);
+          return null;
+        }
       }
       return event;
     },
 
     teardown: async () => {
+      engagement?.teardown();
+      removePrerenderListener?.();
       if (globalScope) {
         globalScope.removeEventListener('popstate', handlePageChange);
         isTracking = false;
       }
     },
+    onOptOutChanged: async (optOut) => engagement?.setOptOut(optOut),
+    onReset: async () => engagement?.finish('reset'),
+    onIdentityChanged: async (identity) => {
+      if ('userId' in identity || 'deviceId' in identity) engagement?.finish('identity_change');
+    },
+    onSessionIdChanged: async () => engagement?.finish('session_change'),
   };
   return plugin;
 };

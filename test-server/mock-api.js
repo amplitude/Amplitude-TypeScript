@@ -18,6 +18,14 @@ export function createMockApi() {
 
 // Function to configure mock API middleware that can be used by both dev and preview servers
 export function configureMockApiMiddleware(middlewares) {
+  // Real SDK engaged-time demo: acknowledge HTTP API and delayed payloads.
+  // This receiver intentionally does not simulate delayed storage or ingestion.
+  middlewares.use('/api/engaged-time/2/httpapi', (req, res) => {
+    req.resume();
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ code: 200 }));
+  });
   // Mock delayed-events endpoint.
   middlewares.use('/2/httpapi/delayed', (_req, res) => {
     res.statusCode = 200;
@@ -492,4 +500,4 @@ export function configureUnminifyMiddleware(middlewares) {
       }
     }
   });
-} 
+}
