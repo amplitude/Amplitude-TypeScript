@@ -20,7 +20,10 @@ The defaults are a 5,000 ms rolling activity window, 15,000 ms heartbeat, and
 180,000 ms page inactivity timeout. The service fallback uses the same timeout
 duration, measured from its last accepted snapshot. The SDK options are
 `engagementThresholdMillis`, `heartbeatIntervalMillis`, and
-`pageSessionTimeoutMillis`. Invalid durations fall back to defaults; the heartbeat
+`pageSessionTimeoutMillis` inside `autocapture.pageViews.trackEngagedTime`.
+Use `true` or `{}` for default timings, `false` to disable, or an options object to
+customize timings. Omitting `trackEngagedTime` leaves engagement disabled by default.
+Invalid durations fall back to defaults; the heartbeat
 is capped at half the page timeout to leave room for service renewal. Tracking is
 disabled by default. Video keeps its separate 60-second heartbeat and one-hour TTL.
 
@@ -57,3 +60,50 @@ To run the server as HTTPS follow these steps
 
 ## TIPS
 * You can enable a "Workspace" in Chrome on this site, which allows you to edit the files from inside the browser
+
+### Engaged-time configuration and remote config
+
+```js
+autocapture: {
+  pageViews: {
+    trackEngagedTime: {
+      engagementThresholdMillis: 5_000,
+      heartbeatIntervalMillis: 15_000,
+      pageSessionTimeoutMillis: 180_000,
+    },
+  },
+}
+```
+
+| SDK `trackEngagedTime` value | Meaning |
+| --- | --- |
+| Omitted / `undefined` | No explicit choice; disabled by default |
+| `false` | Explicitly disabled |
+| `true` or `{}` | Enabled with default timings |
+| Options object | Enabled with supplied timings; omitted timings use defaults |
+
+The existing remote-config translator accepts the same nested feature shape as
+other autocapture options. Under
+`configs.analyticsSDK.browserSDK.autocapture.pageViews`, the proposed wire value is:
+
+```json
+{
+  "trackEngagedTime": {
+    "enabled": true,
+    "engagementThresholdMillis": 5000,
+    "heartbeatIntervalMillis": 15000,
+    "pageSessionTimeoutMillis": 180000
+  }
+}
+```
+
+The translator removes `enabled: true`, leaving the options object (or `true`
+when there are no other fields); `enabled: false` becomes `false`. A separate
+`trackEngagedTimeEnabled` setting is unnecessary. This is verified against the
+SDK translator and join logic; backend authoring of this new field is not yet
+verified.
+
+Browser autocapture remote values take precedence, including over local `false`.
+The existing merge is shallow: omitting remote `pageViews` preserves the local
+page-view configuration, but supplying remote `pageViews` replaces that whole
+object. It does not merge individual engagement timings with local timings.

@@ -3,7 +3,7 @@ import {
   BaseEvent as AnalyticsEvent,
   getHeartbeatInstance,
   Logger,
-  PageTrackingOptions,
+  EngagedTimeOptions,
 } from '@amplitude/analytics-core';
 import { PageEngagement } from '../src/page-engagement';
 
@@ -22,7 +22,7 @@ describe('page engagement', () => {
   };
   const latest = () => sent[sent.length - 1];
   const engaged = () => latest().event_properties!['[Amplitude] Engaged Time'] as number;
-  const start = async (options: PageTrackingOptions = {}) => {
+  const start = async (options: EngagedTimeOptions = {}) => {
     owner = new PageEngagement(client, window, options, new Logger(), newView);
     owner.start(original);
     await jest.advanceTimersByTimeAsync(0);

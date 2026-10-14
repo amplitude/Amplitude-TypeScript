@@ -4,7 +4,7 @@ import {
   Event,
   Heartbeat,
   ILogger,
-  PageTrackingOptions,
+  EngagedTimeOptions,
   UUID,
 } from '@amplitude/analytics-core';
 
@@ -40,7 +40,7 @@ export class PageEngagement {
   constructor(
     private client: BrowserClient,
     private scope: NonNullable<ReturnType<typeof getGlobalScope>>,
-    options: PageTrackingOptions,
+    options: EngagedTimeOptions,
     private logger: ILogger,
     private newPageView: () => void,
   ) {

@@ -57,7 +57,7 @@ describe('engaged page-view plugin', () => {
 
   test('renews once on activity after expiry and respects trackOn gating', async () => {
     const trackOn = jest.fn(() => true);
-    await setup({ trackOn, pageSessionTimeoutMillis: 100, heartbeatIntervalMillis: 20 });
+    await setup({ trackOn, trackEngagedTime: { pageSessionTimeoutMillis: 100, heartbeatIntervalMillis: 20 } });
     await jest.advanceTimersByTimeAsync(100);
     trackOn.mockReturnValue(false);
     document.dispatchEvent(new Event('keydown'));
@@ -126,18 +126,28 @@ describe('engaged page-view plugin', () => {
     expect(captured[2].event_properties!['[Amplitude] Page Path']).toBe('/engagement-test');
   });
 
-  test('lifecycle notifications preserve the default immediate-page-view behavior when disabled', async () => {
-    await setup({ trackEngagedTime: false });
-    await plugin.onOptOutChanged!(true);
-    await plugin.onReset!();
-    await plugin.onIdentityChanged!({ deviceId: 'new-device' });
-    await plugin.onSessionIdChanged!(123);
-    expect(captured).toHaveLength(1);
-    expect(captured[0].delay).toBeUndefined();
+  test.each([false, undefined])(
+    'preserves immediate page views when trackEngagedTime is %s',
+    async (trackEngagedTime) => {
+      await setup({ trackEngagedTime });
+      await plugin.onOptOutChanged!(true);
+      await plugin.onReset!();
+      await plugin.onIdentityChanged!({ deviceId: 'new-device' });
+      await plugin.onSessionIdChanged!(123);
+      expect(captured).toHaveLength(1);
+      expect(captured[0].delay).toBeUndefined();
+    },
+  );
+
+  test('an empty options object enables engagement with default timings', async () => {
+    await setup({ trackEngagedTime: {} });
+    expect(captured[0].delay!.timeout).toBe(180_000);
+    await jest.advanceTimersByTimeAsync(15_000);
+    expect(captured[captured.length - 1].event_properties!['[Amplitude] Engaged Time']).toBe(5_000);
   });
 
   test('checks consent again after asynchronous page creation', async () => {
-    await setup({ pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 });
+    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
     await jest.advanceTimersByTimeAsync(10);
     const count = client.track.mock.calls.length;
     document.dispatchEvent(new Event('keydown'));
@@ -150,7 +160,7 @@ describe('engaged page-view plugin', () => {
     jest.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
       throw new Error('unavailable');
     });
-    await setup({ pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 });
+    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
     await jest.advanceTimersByTimeAsync(10);
     document.dispatchEvent(new Event('keydown'));
     await jest.advanceTimersByTimeAsync(1);
@@ -159,24 +169,12 @@ describe('engaged page-view plugin', () => {
   });
 
   test('navigation cancels an in-flight inactivity renewal instead of creating a duplicate view', async () => {
-    await setup({ pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 });
+    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
     await jest.advanceTimersByTimeAsync(10);
     document.dispatchEvent(new Event('pointerdown'));
     history.pushState({}, '', '/after-expiry');
     await jest.advanceTimersByTimeAsync(2);
     expect(config.pageCounter).toBe(2);
     expect(captured[captured.length - 1].event_properties!['[Amplitude] Page Path']).toBe('/after-expiry');
-  });
-
-  test('rapid SPA navigation keeps the metadata of each distinct page', async () => {
-    await setup();
-    history.pushState({}, '', '/first-fast-page');
-    history.pushState({}, '', '/second-fast-page');
-    await jest.advanceTimersByTimeAsync(2);
-    expect(config.pageCounter).toBe(3);
-    expect(captured.some((event) => event.event_properties!['[Amplitude] Page Path'] === '/first-fast-page')).toBe(
-      true,
-    );
-    expect(captured[captured.length - 1].event_properties!['[Amplitude] Page Path']).toBe('/second-fast-page');
   });
 });

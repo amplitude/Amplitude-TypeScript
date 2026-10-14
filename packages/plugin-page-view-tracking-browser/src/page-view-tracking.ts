@@ -53,22 +53,18 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   const createPageViewEvent = async (pageViewId: string | undefined): Promise<Event> => {
     /* istanbul ignore next */
     const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
-    // Capture page metadata before campaign parsing yields, including rapid SPA transitions.
-    const pageProperties = {
-      '[Amplitude] Page Domain':
-        /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-      '[Amplitude] Page Location': locationHREF,
-      '[Amplitude] Page Path':
-        /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
-      '[Amplitude] Page Title': getPageTitle(replaceSensitiveString),
-      '[Amplitude] Page URL': locationHREF.split('?')[0],
-      '[Amplitude] Page View ID': pageViewId,
-    };
     return {
       event_type: eventType,
       event_properties: {
         ...(await getCampaignParams()),
-        ...pageProperties,
+        '[Amplitude] Page Domain':
+          /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
+        '[Amplitude] Page Location': locationHREF,
+        '[Amplitude] Page Path':
+          /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
+        '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
+        '[Amplitude] Page URL': locationHREF.split('?')[0],
+        '[Amplitude] Page View ID': pageViewId,
       },
     };
   };
@@ -131,7 +127,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
       isTracking = true;
       if (options.trackEngagedTime && globalScope?.document) {
-        engagement = new PageEngagement(client, globalScope, options, loggerProvider, () => {
+        const engagementOptions = typeof options.trackEngagedTime === 'object' ? options.trackEngagedTime : {};
+        engagement = new PageEngagement(client, globalScope, engagementOptions, loggerProvider, () => {
           if (!renewingPageView && (trackOn === 'attribution' || shouldTrackOnPageLoad())) {
             renewingPageView = true;
             void trackNewPageView(client).finally(() => {

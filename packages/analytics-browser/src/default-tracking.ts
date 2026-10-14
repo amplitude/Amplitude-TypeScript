@@ -274,13 +274,8 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
         eventType = config.defaultTracking.pageViews.eventType;
       }
       const pageViews = config.defaultTracking.pageViews;
-      if (pageViews.trackEngagedTime) {
-        engagementOptions = {
-          trackEngagedTime: true,
-          engagementThresholdMillis: pageViews.engagementThresholdMillis,
-          heartbeatIntervalMillis: pageViews.heartbeatIntervalMillis,
-          pageSessionTimeoutMillis: pageViews.pageSessionTimeoutMillis,
-        };
+      if ('trackEngagedTime' in pageViews) {
+        engagementOptions = { trackEngagedTime: pageViews.trackEngagedTime };
       }
     }
   }
