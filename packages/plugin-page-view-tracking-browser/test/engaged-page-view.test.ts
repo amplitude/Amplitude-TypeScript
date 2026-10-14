@@ -1,6 +1,11 @@
-import { BrowserConfig, BaseEvent, Logger, PageTrackingOptions } from '@amplitude/analytics-core';
+import { BrowserConfig, BaseEvent, Logger, PageTrackingOptions, getGlobalScope } from '@amplitude/analytics-core';
 import { pageViewTrackingPlugin } from '../src/page-view-tracking';
 import { createMockBrowserClient } from './mock-browser-client';
+
+jest.mock('@amplitude/analytics-core', () => {
+  const actual = jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core');
+  return { ...actual, getGlobalScope: jest.fn(actual.getGlobalScope) };
+});
 
 describe('engaged page-view plugin', () => {
   let plugin: ReturnType<typeof pageViewTrackingPlugin>;
@@ -199,10 +204,20 @@ describe('engaged page-view plugin', () => {
   });
 
   test('continues after inactivity without session storage', async () => {
-    jest.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
-      throw new Error('unavailable');
-    });
+    // Use a plain scope so the throwing getter does not depend on how Node's
+    // VM forwards property access on Jest's window/globalThis object.
+    jest.mocked(getGlobalScope).mockReturnValueOnce({
+      document,
+      history,
+      addEventListener: window.addEventListener.bind(window),
+      removeEventListener: window.removeEventListener.bind(window),
+      get sessionStorage(): Storage {
+        throw new Error('unavailable');
+      },
+    } as typeof globalThis);
+    const debug = jest.spyOn(config.loggerProvider, 'debug');
     await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
+    expect(debug).toHaveBeenCalledWith('sessionStorage is not available in this environment.');
     await jest.advanceTimersByTimeAsync(10);
     document.dispatchEvent(new Event('keydown'));
     await jest.advanceTimersByTimeAsync(1);
