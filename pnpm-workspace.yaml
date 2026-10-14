@@ -4,6 +4,10 @@ packages:
   - examples/react-native/app
   - examples/unified/react-native-app
 
+overrides:
+  typescript: ^4.9.4
+  js-cookie: ^3.0.7
+
 blockExoticSubdeps: true
 
 minimumReleaseAge: 4320
@@ -13,11 +17,28 @@ minimumReleaseAgeExclude:
 
 # These are dependencies that run the postinstall script
 # Only add dependencies to this if they have been vetted for security
-onlyBuiltDependencies:
-  - core-js
-  - esbuild
-  - msw
-  - nx
-  - unrs-resolver
+allowBuilds:
+  core-js: true
+  esbuild: true
+  msw: true
+  nx: true
+  unrs-resolver: true
+
+publicHoistPattern:
+  - '*react-native*'
+  - '@babel/*'
+  - '@react-native/*'
+  - '@react-native-community/*'
+  - metro
+  - 'metro-*'
 
 trustPolicy: no-downgrade
+# These exact versions are already locked and predate the current publisher
+# trust level. Keep the exception scoped to the existing versions.
+trustPolicyExclude:
+  - '@octokit/endpoint@9.0.6'
+  - 'eslint-config-prettier@8.10.2'
+  - 'eslint-plugin-prettier@4.2.5'
+  - 'rollup@2.80.0'
+  - 'semver@5.7.2'
+  - 'semver@6.3.1'

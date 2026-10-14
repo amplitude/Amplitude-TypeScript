@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.31...@amplitude/plugin-page-url-enrichment-browser@0.7.32) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser
+
+
+
+
+
 ## [0.7.31](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.30...@amplitude/plugin-page-url-enrichment-browser@0.7.31) (2026-10-08)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

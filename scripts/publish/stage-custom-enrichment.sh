@@ -10,7 +10,7 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then
 fi
 
 # A recovery run can resume after npm approval without staging the same version again.
-published_versions=$(npm view "$package_name" versions --json --prefer-online)
+published_versions=$(pnpm view "$package_name" versions --json)
 if PLUGIN_VERSION="$version" node -e 'const fs = require("node:fs"); const versions = JSON.parse(fs.readFileSync(0, "utf8")); process.exit([versions].flat().includes(process.env.PLUGIN_VERSION) ? 0 : 1)' <<< "$published_versions"; then
   echo "$package_name@$version is already live; no npm approval needed."
   if [ -n "${GITHUB_OUTPUT:-}" ]; then echo 'required=false' >> "$GITHUB_OUTPUT"; fi
@@ -29,7 +29,7 @@ if [ -z "$tarball" ]; then
   exit 1
 fi
 
-# Stage the prepared package directory so npm builds the tarball used for provenance.
+# Stage the prepared package directory so pnpm builds the tarball used for provenance.
 tar -xzf "$tarball" -C "$package_dir_tmp"
 publish_dir="$package_dir_tmp/package"
 if [ ! -f "$publish_dir/package.json" ]; then
@@ -38,9 +38,6 @@ if [ ! -f "$publish_dir/package.json" ]; then
 fi
 
 echo "Staging $package_name@$version from $publish_dir"
-stage_options=(--access public --provenance)
+stage_options=(--access public --provenance --no-git-checks)
 if [ -n "${PREID:-}" ]; then stage_options+=(--tag "$PREID"); fi
-(
-  cd "$publish_dir"
-  npm stage publish "${stage_options[@]}"
-)
+pnpm stage publish "$publish_dir" "${stage_options[@]}"
