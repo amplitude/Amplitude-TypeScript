@@ -67,14 +67,10 @@ export class PageEngagement {
     listen(scope, 'focus', this.resume);
     listen(scope, 'blur', this.pause);
     listen(scope.document, 'visibilitychange', () => (this.isForeground() ? this.resume() : this.pause()));
-    listen(scope, 'pagehide', (event) => {
-      if ((event as PageTransitionEvent).persisted) {
-        this.pause();
-      } else {
-        this.finish('pagehide');
-      }
-    });
+    // Leaving the document always ends this view, including entry into BFCache.
+    listen(scope, 'pagehide', () => this.finish('pagehide'));
     listen(scope, 'pageshow', () => {
+      // A restored page starts a fresh view through the existing activity path.
       if (this.isForeground()) this.resume();
     });
   }
@@ -99,8 +95,8 @@ export class PageEngagement {
         delay: { id: UUID(), timeout: this.timeout },
       },
       heartbeat: new Heartbeat(this.client, this.pulse, this.timeout, this.config.loggerProvider, {
-        // This owner settles elapsed time before sending, and treats BFCache as a
-        // pause rather than a page exit. Avoid a second set of lifecycle sends.
+        // This owner settles elapsed time and finalizes before sending.
+        // Avoid a second set of lifecycle sends.
         sendOnPageLifecycle: false,
         beforeHeartbeat: () => {
           if (this.session === session) {

@@ -41,8 +41,10 @@ Use the quick-test preset (1 / 2 / 10 seconds) to check:
 3. Switch tabs or applications: engagement pauses immediately. Return before
    expiry to resume, or after expiry to start a new logical view on activity.
 4. Navigate to another article: the old view finalizes with its original URL and
-   the new view gets new IDs. Prerendered pages wait for activation. BFCache pages
-   checkpoint and pause on suspension.
+   the new view gets new IDs. Prerendered pages wait for activation. Leaving the
+   document finalizes even when it enters BFCache. Returning through Back/Forward
+   starts a new view once the restored page is visible and focused, even before
+   the previous inactivity deadline. Switching tabs still only pauses engagement.
 5. Opt out: local engagement state is discarded. Opt in and interact to start anew.
 6. Finish tracking: the final copy is sent and page listeners are removed.
 

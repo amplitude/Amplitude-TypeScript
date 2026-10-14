@@ -126,6 +126,45 @@ describe('engaged page-view plugin', () => {
     expect(captured[2].event_properties!['[Amplitude] Page Path']).toBe('/engagement-test');
   });
 
+  test('BFCache return creates one fresh view despite pageshow, visibility, focus and popstate events', async () => {
+    await setup();
+    const original = captured[0];
+    await jest.advanceTimersByTimeAsync(1_000);
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(captured[1]).toMatchObject({
+      insert_id: original.insert_id,
+      delay: { id: original.delay!.id },
+      event_properties: { '[Amplitude] Engagement Snapshot Reason': 'pagehide' },
+    });
+    expect(captured[1].delay!.timeout).toBeUndefined();
+
+    jest.spyOn(document, 'hasFocus').mockReturnValue(false);
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(captured).toHaveLength(2);
+
+    jest.spyOn(document, 'hasFocus').mockReturnValue(true);
+    window.dispatchEvent(new Event('focus'));
+    document.dispatchEvent(new Event('visibilitychange'));
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    await jest.advanceTimersByTimeAsync(2);
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    await jest.advanceTimersByTimeAsync(1);
+
+    expect(captured).toHaveLength(3);
+    expect(config.pageCounter).toBe(2);
+    const restored = captured[2];
+    expect(restored.insert_id).not.toBe(original.insert_id);
+    expect(restored.delay!.id).not.toBe(original.delay!.id);
+    expect(restored.time).toBeGreaterThan(original.time!);
+    expect(restored.event_properties!['[Amplitude] Page View ID']).not.toBe(
+      original.event_properties!['[Amplitude] Page View ID'],
+    );
+    expect(restored.event_properties!['[Amplitude] Page URL']).toBe(original.event_properties!['[Amplitude] Page URL']);
+    expect(restored.event_properties!['[Amplitude] Engaged Time']).toBe(0);
+  });
+
   test.each([false, undefined])(
     'preserves immediate page views when trackEngagedTime is %s',
     async (trackEngagedTime) => {
@@ -134,6 +173,9 @@ describe('engaged page-view plugin', () => {
       await plugin.onReset!();
       await plugin.onIdentityChanged!({ deviceId: 'new-device' });
       await plugin.onSessionIdChanged!(123);
+      window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+      await jest.advanceTimersByTimeAsync(1);
       expect(captured).toHaveLength(1);
       expect(captured[0].delay).toBeUndefined();
     },

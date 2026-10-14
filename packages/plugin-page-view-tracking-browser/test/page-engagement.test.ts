@@ -134,17 +134,22 @@ describe('page engagement', () => {
     await jest.advanceTimersByTimeAsync(0);
   });
 
-  test('handles BFCache suspension and return after expiry without reviving the old view', async () => {
-    await start();
-    await jest.advanceTimersByTimeAsync(1_000);
-    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
-    expect(engaged()).toBe(1_000);
-    jest.setSystemTime(400_000);
-    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
-    expect(latest().delay!.timeout).toBeUndefined();
-    expect(engaged()).toBe(1_000);
-    expect(newView).toHaveBeenCalledTimes(1);
-  });
+  test.each([1_000, 300_000])(
+    'finalizes before BFCache and requests a new view on return after %i ms',
+    async (away) => {
+      await start();
+      await jest.advanceTimersByTimeAsync(1_000);
+      window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+      expect(engaged()).toBe(1_000);
+      expect(latest().delay!.timeout).toBeUndefined();
+      expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('pagehide');
+      const count = sent.length;
+      await jest.advanceTimersByTimeAsync(away);
+      expect(sent).toHaveLength(count);
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+      expect(newView).toHaveBeenCalledTimes(1);
+    },
+  );
 
   test('an overdue heartbeat finalizes rather than refreshing an expired delay group', async () => {
     await start();
@@ -155,6 +160,19 @@ describe('page engagement', () => {
     const count = sent.length;
     await jest.advanceTimersByTimeAsync(30_000);
     expect(sent).toHaveLength(count);
+  });
+
+  test('returning to a hidden tab after suspended timers finalizes the expired view before renewal', async () => {
+    await start();
+    await jest.advanceTimersByTimeAsync(1_000);
+    visibility('hidden');
+    // Advance wall-clock time without allowing either timer callback to execute.
+    jest.setSystemTime(400_000);
+    visibility('visible');
+    expect(latest().delay!.timeout).toBeUndefined();
+    expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('inactivity');
+    expect(engaged()).toBe(1_000);
+    expect(newView).toHaveBeenCalledTimes(1);
   });
 
   test('new page views get independent delay groups; navigation finalizes the previous page', async () => {
