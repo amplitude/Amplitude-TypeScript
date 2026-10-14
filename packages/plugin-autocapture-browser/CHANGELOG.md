@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.31.0-video-analytics-6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.29.5...@amplitude/plugin-autocapture-browser@1.31.0-video-analytics-6.0) (2026-10-14)
+
+
+### Features
+
+* **plugin-autocapture-browser:** add Min Page Y to viewport content updated ([#2023](https://github.com/amplitude/Amplitude-TypeScript/issues/2023)) ([b767a3f](https://github.com/amplitude/Amplitude-TypeScript/commit/b767a3ff5d5f1b4bc79c44fb59106f8cb733177f))
+
+
+
+
+
 ## [1.30.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.1...@amplitude/plugin-autocapture-browser@1.30.2) (2026-10-09)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

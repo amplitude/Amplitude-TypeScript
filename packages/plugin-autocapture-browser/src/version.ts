@@ -1,1 +1,1 @@
-export const VERSION = '1.30.2';
+export const VERSION = '1.31.0-video-analytics-6.0';

@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-video-analytics-6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-react-native@1.0.0-beta.6...@amplitude/plugin-experiment-react-native@1.0.0-video-analytics-6.0) (2026-10-14)
+
+**Note:** Version bump only for package @amplitude/plugin-experiment-react-native
+
+
+
+
+
 # [1.0.0-beta.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-react-native@1.0.0-beta.8...@amplitude/plugin-experiment-react-native@1.0.0-beta.9) (2026-10-09)
 
 **Note:** Version bump only for package @amplitude/plugin-experiment-react-native
