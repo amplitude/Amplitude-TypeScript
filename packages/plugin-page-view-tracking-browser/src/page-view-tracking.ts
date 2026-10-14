@@ -33,9 +33,12 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let localConfig: BrowserConfig;
   let sessionStorage: BrowserStorage<PageViewSessionStorage> | undefined;
   let engagement: PageEngagement | undefined;
-  let renewingPageView = false;
+  let pendingPageRevision: number | undefined;
+  const pendingPageViews = new Map<string, number>();
   let pageRevision = 0;
+  let pageHasExited = false;
   let removePrerenderListener: (() => void) | undefined;
+  let removePageLifecycleListeners: (() => void) | undefined;
   const { trackOn, trackHistoryChanges, eventType = defaultPageViewEvent } = options;
 
   const getDecodeURI = (locationStr: string): string => {
@@ -73,11 +76,21 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
   const trackNewPageView = async (client: BrowserClient) => {
     const revision = pageRevision;
+    if (pageHasExited || pendingPageRevision === revision) return;
+    pendingPageRevision = revision;
     const pageViewId = UUID();
-    void sessionStorage?.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
-    const event = await createPageViewEvent(pageViewId);
-    if (isTracking && !localConfig.optOut && revision === pageRevision) return client.track(event).promise;
-    return;
+    pendingPageViews.set(pageViewId, revision);
+    try {
+      const event = await createPageViewEvent(pageViewId);
+      if (isTracking && !localConfig.optOut && revision === pageRevision) {
+        void sessionStorage?.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+        // Keep the guard until the event reaches execute(), not just until it is queued.
+        await client.track(event).promise;
+      }
+    } finally {
+      pendingPageViews.delete(pageViewId);
+      if (pendingPageRevision === revision) pendingPageRevision = undefined;
+    }
   };
 
   /* istanbul ignore next */
@@ -94,10 +107,14 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     previousURL = newURL;
 
     if (shouldTrackPageView) {
-      pageRevision += 1;
-      engagement?.finish('navigation');
+      if (engagement) {
+        pageRevision += 1;
+        engagement.finish('navigation');
+        void trackNewPageView(amplitude!);
+        return;
+      }
       // Generate new page view id and set it in session storage
-      let pageViewId: string | undefined = options.trackEngagedTime ? UUID() : undefined;
+      let pageViewId: string | undefined;
       if (sessionStorage) {
         pageViewId = UUID();
         void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
@@ -127,13 +144,24 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
       isTracking = true;
       if (options.trackEngagedTime && globalScope?.document) {
+        // Invalidate pending creations before the engagement owner handles these events.
+        const onPageHide = () => {
+          pageHasExited = true;
+          pageRevision += 1;
+        };
+        const onPageShow = () => {
+          pageHasExited = false;
+        };
+        globalScope.addEventListener('pagehide', onPageHide);
+        globalScope.addEventListener('pageshow', onPageShow);
+        removePageLifecycleListeners = () => {
+          globalScope.removeEventListener('pagehide', onPageHide);
+          globalScope.removeEventListener('pageshow', onPageShow);
+        };
         const engagementOptions = typeof options.trackEngagedTime === 'object' ? options.trackEngagedTime : {};
         engagement = new PageEngagement(client, globalScope, engagementOptions, config, () => {
-          if (!renewingPageView && (trackOn === 'attribution' || shouldTrackOnPageLoad())) {
-            renewingPageView = true;
-            void trackNewPageView(client).finally(() => {
-              renewingPageView = false;
-            });
+          if (trackOn === 'attribution' || shouldTrackOnPageLoad()) {
+            void trackNewPageView(client);
           }
         });
       }
@@ -175,9 +203,13 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           removePrerenderListener = () => doc.removeEventListener('prerenderingchange', onActivated);
           return;
         }
+        if (engagement) {
+          void trackNewPageView(client);
+          return;
+        }
         loggerProvider.log('Tracking page view event');
         // Generate new page view id and set it in session storage
-        let pageViewId: string | undefined = options.trackEngagedTime ? UUID() : undefined;
+        let pageViewId: string | undefined;
 
         if (sessionStorage) {
           pageViewId = UUID();
@@ -211,6 +243,15 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
       // Update the pageCounter for the page view event
       if (localConfig && event.event_type === eventType) {
+        if (engagement) {
+          const pageViewId = (event.event_properties as { '[Amplitude] Page View ID'?: string } | undefined)?.[
+            '[Amplitude] Page View ID'
+          ];
+          const revision = pendingPageViews.get(pageViewId ?? '');
+          // An event may have been queued before pagehide/navigation, then delayed
+          // by the timeline or an async plugin until after the page has changed.
+          if (pageHasExited || (revision !== undefined && revision !== pageRevision)) return null;
+        }
         localConfig.pageCounter = !localConfig.pageCounter ? 1 : localConfig.pageCounter + 1;
         event.event_properties = {
           ...event.event_properties,
@@ -225,8 +266,10 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     },
 
     teardown: async () => {
+      pageRevision += 1;
       engagement?.teardown();
       removePrerenderListener?.();
+      removePageLifecycleListeners?.();
       if (globalScope) {
         globalScope.removeEventListener('popstate', handlePageChange);
         isTracking = false;

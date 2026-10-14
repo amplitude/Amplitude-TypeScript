@@ -20,6 +20,7 @@ interface PageSession {
   lastActivity: number;
   engaged: number;
   version: number;
+  nextSnapshotReason: 'initial' | 'heartbeat' | 'background';
 }
 
 // Browser timers use a signed 32-bit millisecond delay. Larger values can overflow.
@@ -103,7 +104,8 @@ export class PageEngagement {
             if (Date.now() >= session.lastActivity + this.timeout) {
               this.retire(session, 'inactivity');
             } else {
-              void session.heartbeat.update(this.snapshot(session, 'heartbeat'));
+              void session.heartbeat.update(this.snapshot(session, session.nextSnapshotReason));
+              session.nextSnapshotReason = 'heartbeat';
             }
           }
         },
@@ -113,6 +115,7 @@ export class PageEngagement {
       lastActivity: now,
       engaged: 0,
       version: 0,
+      nextSnapshotReason: 'initial',
     };
     this.session = session;
     this.scheduleInactivity();
@@ -177,7 +180,7 @@ export class PageEngagement {
     if (this.session) this.settle(this.session);
     this.foreground = false;
     if (this.session) {
-      void this.session.heartbeat.update(this.snapshot(this.session, 'background'));
+      this.session.nextSnapshotReason = 'background';
       void this.session.heartbeat.heartbeat();
       this.client.flush();
     }

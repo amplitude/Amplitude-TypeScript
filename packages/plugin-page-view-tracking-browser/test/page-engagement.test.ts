@@ -59,9 +59,11 @@ describe('page engagement', () => {
     await start();
     const delay = latest().delay;
     expect(delay).toEqual({ id: expect.any(String), timeout: 180_000 });
+    expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('initial');
     await jest.advanceTimersByTimeAsync(15_000);
     expect(sent).toHaveLength(2);
     expect(engaged()).toBe(5_000);
+    expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('heartbeat');
     await jest.advanceTimersByTimeAsync(165_000);
     expect(latest().delay).toEqual({ id: delay!.id });
     expect(engaged()).toBe(5_000);
@@ -97,13 +99,16 @@ describe('page engagement', () => {
     await jest.advanceTimersByTimeAsync(2_000);
     window.dispatchEvent(new Event('blur'));
     expect(engaged()).toBe(2_000);
+    expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('background');
     await jest.advanceTimersByTimeAsync(28_000);
     document.dispatchEvent(new Event('pointermove'));
     expect(engaged()).toBe(2_000);
+    expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('heartbeat');
     window.dispatchEvent(new Event('focus'));
     await jest.advanceTimersByTimeAsync(2_000);
     visibility('hidden');
     expect(engaged()).toBe(4_000);
+    expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('background');
     window.dispatchEvent(new Event('focus'));
     await jest.advanceTimersByTimeAsync(28_000);
     expect(engaged()).toBe(4_000);

@@ -234,4 +234,62 @@ describe('engaged page-view plugin', () => {
     expect(config.pageCounter).toBe(2);
     expect(captured[captured.length - 1].event_properties!['[Amplitude] Page Path']).toBe('/after-expiry');
   });
+
+  test('navigation followed by interaction creates only one new view', async () => {
+    await setup();
+    // A router can change the URL in a key handler before the same event
+    // bubbles to the engagement listener on document.
+    history.pushState({}, '', '/navigation-then-activity');
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(2);
+    expect(config.pageCounter).toBe(2);
+    expect(captured).toHaveLength(3); // Initial A, final A, initial B.
+    expect(captured[2].event_properties!['[Amplitude] Page Path']).toBe('/navigation-then-activity');
+    expect(captured[2].delay!.timeout).toBe(180_000);
+  });
+
+  test.each([false, true])('pagehide (persisted=%s) cancels a view still being created', async (persisted) => {
+    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
+    await jest.advanceTimersByTimeAsync(10);
+    const count = captured.length;
+    document.dispatchEvent(new Event('keydown'));
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted }));
+    // Late activity must not start another creation while the document is away.
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(20);
+    expect(config.pageCounter).toBe(1);
+    expect(captured).toHaveLength(count);
+  });
+
+  test.each([false, true])('rejects an already queued view after pagehide, restored=%s', async (restored) => {
+    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 100, heartbeatIntervalMillis: 20 } });
+    await jest.advanceTimersByTimeAsync(100);
+    const count = captured.length;
+    const track = client.track.getMockImplementation()!;
+    let release!: () => void;
+    const queued = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    // Model a real SDK event waiting in the timeline or an async before plugin.
+    client.track.mockImplementationOnce((...args) => ({ promise: queued.then(() => track(...args).promise) }));
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+    if (restored) {
+      window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+      await jest.advanceTimersByTimeAsync(1);
+    }
+    release();
+    await jest.advanceTimersByTimeAsync(1);
+    expect(config.pageCounter).toBe(restored ? 2 : 1);
+    expect(captured).toHaveLength(count + (restored ? 1 : 0));
+  });
+
+  test('still tracks explicitly supplied page views without a generated page ID', async () => {
+    await setup();
+    await client.track({ event_type: '[Amplitude] Page Viewed' }).promise;
+    await jest.advanceTimersByTimeAsync(1);
+    expect(config.pageCounter).toBe(2);
+    expect(captured).toHaveLength(3);
+  });
 });
