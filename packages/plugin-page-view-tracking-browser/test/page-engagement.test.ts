@@ -223,13 +223,13 @@ describe('page engagement', () => {
   });
 
   test.each([NaN, Infinity, 0, -1, 2_147_483_648])('uses defaults for invalid timing %s', async (value) => {
-    const debug = jest.spyOn(Logger.prototype, 'debug');
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     await start({ engagementThresholdMillis: value, heartbeatIntervalMillis: value, pageSessionTimeoutMillis: value });
-    expect(debug).toHaveBeenCalledWith(
+    expect(warn).toHaveBeenCalledWith(
       `Page engagement: duration ${value} ms is invalid; using default 180000 ms. Expected a finite value greater than 0 and at most 86400000 ms.`,
     );
-    expect(debug).toHaveBeenCalledWith(expect.stringContaining('using default 5000 ms'));
-    expect(debug).toHaveBeenCalledWith(expect.stringContaining('using default 15000 ms'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('using default 5000 ms'));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('using default 15000 ms'));
     await jest.advanceTimersByTimeAsync(15_000);
     expect(sent).toHaveLength(2);
     expect(engaged()).toBe(5_000);
@@ -237,9 +237,9 @@ describe('page engagement', () => {
   });
 
   test('does not log a fallback for omitted or valid durations', async () => {
-    const debug = jest.spyOn(Logger.prototype, 'debug');
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     await start({ heartbeatIntervalMillis: 15_000 });
-    expect(debug).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
   });
 
   test.each([

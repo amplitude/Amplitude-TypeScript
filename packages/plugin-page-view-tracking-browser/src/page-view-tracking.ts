@@ -258,8 +258,9 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           '[Amplitude] Page Counter': localConfig.pageCounter,
         };
         if (engagement) {
-          engagement.start(event);
-          return null;
+          if (localConfig.optOut) return null;
+          // Suppress the original only after the heartbeat accepts its snapshot.
+          return engagement.start(event) ? null : event;
         }
       }
       return event;

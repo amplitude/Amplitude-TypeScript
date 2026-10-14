@@ -59,6 +59,17 @@ describe('heartbeat', () => {
   }
 
   describe('track, update and trackNoDelay', () => {
+    test('can admit an event synchronously before starting delivery', async () => {
+      expect(heartbeat.enqueue({ event_type: 'missing-id' })).toBe(false);
+      expect(heartbeat.enqueue({ event_type: 'test', insert_id: 'queued-id' })).toBe(true);
+      expect(jest.getTimerCount()).toBe(0);
+      expect(trackMock).not.toHaveBeenCalled();
+      const result = heartbeat.resetHeartbeat();
+      await jest.advanceTimersByTimeAsync(0);
+      await result;
+      expect(trackMock).toHaveBeenCalledTimes(1);
+    });
+
     test('should track an event', async () => {
       const event = {
         insert_id: '12345',

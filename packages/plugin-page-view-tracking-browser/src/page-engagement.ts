@@ -38,7 +38,7 @@ function resolveDurationMillis(
 ): number {
   if (value === undefined) return defaultValue;
   if (!Number.isFinite(value) || value <= 0 || value > maximum) {
-    logger.debug(
+    logger.warn(
       `Page engagement: duration ${value} ms is invalid; using default ${defaultValue} ms. Expected a finite value greater than 0 and at most ${maximum} ms.`,
     );
     return defaultValue;
@@ -52,6 +52,7 @@ export class PageEngagement {
   private inactivityTimer?: ReturnType<typeof setTimeout>;
   private foreground: boolean;
   private enabled = true;
+  private skippedPage = false;
   private readonly threshold: number;
   private readonly pulse: number;
   private readonly timeout: number;
@@ -102,9 +103,9 @@ export class PageEngagement {
     return this.scope.document.visibilityState === 'visible' && this.scope.document.hasFocus();
   }
 
-  start(event: Event) {
+  start(event: Event): boolean {
     this.finish('navigation');
-    if (!this.enabled) return;
+    if (!this.enabled) return false;
     const now = Date.now();
     this.foreground = this.isForeground();
     const session: PageSession = {
@@ -140,9 +141,18 @@ export class PageEngagement {
       lastQueuedVersion: 0,
       nextSnapshotReason: 'initial',
     };
+    if (!session.heartbeat.enqueue(this.snapshot(session, 'initial'))) {
+      // Do not turn subsequent activity on this page into repeated fallback views.
+      this.skippedPage = true;
+      this.config.loggerProvider.warn(
+        'Page engagement: snapshot exceeds the Heartbeat size limit. Sending the original page view without engaged-time tracking.',
+      );
+      return false;
+    }
     this.session = session;
     this.scheduleInactivity();
-    void session.heartbeat.track(this.snapshot(session, 'initial'));
+    void session.heartbeat.resetHeartbeat();
+    return true;
   }
 
   private settle(session: PageSession) {
@@ -189,6 +199,7 @@ export class PageEngagement {
   private activity = () => {
     if (
       !this.enabled ||
+      this.skippedPage ||
       !this.foreground ||
       (this.scope.document as Document & { prerendering?: boolean }).prerendering
     )
@@ -230,6 +241,7 @@ export class PageEngagement {
   }
 
   finish(reason: string) {
+    this.skippedPage = false;
     const session = this.session;
     if (!session) return;
     this.retire(session, reason);
@@ -244,6 +256,7 @@ export class PageEngagement {
   setOptOut(optOut: boolean) {
     this.enabled = !optOut;
     if (optOut) {
+      this.skippedPage = false;
       clearTimeout(this.inactivityTimer);
       this.session?.heartbeat.stop();
       this.session = undefined;

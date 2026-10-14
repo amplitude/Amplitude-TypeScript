@@ -60,6 +60,55 @@ describe('engaged page-view plugin', () => {
     expect(captured[2].event_properties!['[Amplitude] Engaged Time']).toBe(5_000);
   });
 
+  test('preserves an oversized page view once, warns, and resumes engagement on the next page', async () => {
+    // Disable automatic creation so this test starts with the supplied large view.
+    const trackOn = jest.fn(() => false);
+    await setup({ trackOn, trackHistoryChanges: 'all' });
+    const warn = jest.spyOn(config.loggerProvider, 'warn').mockImplementation(() => undefined);
+    const largePage: BaseEvent = {
+      event_type: '[Amplitude] Page Viewed',
+      insert_id: 'large-view',
+      event_properties: Object.fromEntries(
+        Array.from({ length: 60 }, (_, index) => [`field${index}`, 'x'.repeat(800)]),
+      ),
+    };
+    await client.track(largePage).promise;
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toMatchObject(largePage);
+    expect(captured[0].delay).toBeUndefined();
+    expect(captured[0].event_properties!['[Amplitude] Engaged Time']).toBeUndefined();
+    expect(config.pageCounter).toBe(1);
+    expect(warn).toHaveBeenCalledWith(
+      'Page engagement: snapshot exceeds the Heartbeat size limit. Sending the original page view without engaged-time tracking.',
+    );
+    expect(jest.getTimerCount()).toBe(0);
+
+    trackOn.mockReturnValue(true);
+    document.dispatchEvent(new Event('pointermove'));
+    window.dispatchEvent(new Event('blur'));
+    window.dispatchEvent(new Event('focus'));
+    await jest.advanceTimersByTimeAsync(180_001);
+    expect(captured).toHaveLength(1);
+    expect(config.pageCounter).toBe(1);
+
+    history.pushState({}, '', '/after-oversized-view');
+    await jest.advanceTimersByTimeAsync(2);
+    expect(captured).toHaveLength(2);
+    expect(captured[1].delay!.timeout).toBe(180_000);
+    expect(config.pageCounter).toBe(2);
+    await jest.advanceTimersByTimeAsync(15_000);
+    expect(captured).toHaveLength(3);
+    expect(captured[2].event_properties!['[Amplitude] Engaged Time']).toBe(5_000);
+  });
+
+  test('does not fall back to ordinary tracking for a page view arriving after opt-out', async () => {
+    await setup({ trackOn: () => false });
+    config.optOut = true;
+    await plugin.onOptOutChanged!(true);
+    expect(await plugin.execute!({ event_type: '[Amplitude] Page Viewed' })).toBeNull();
+    expect(client.track.mock.calls).toHaveLength(0);
+  });
+
   test('renews once on activity after expiry and respects trackOn gating', async () => {
     const trackOn = jest.fn(() => true);
     await setup({ trackOn, trackEngagedTime: { pageSessionTimeoutMillis: 100, heartbeatIntervalMillis: 20 } });

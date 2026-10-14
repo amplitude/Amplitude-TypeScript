@@ -152,15 +152,21 @@ export class Heartbeat {
     return true;
   }
 
-  async track(event: BaseEvent): Promise<Result | Error | undefined> {
-    if (!event.insert_id) {
-      return new Error('insert_id is required on events tracked with heartbeat');
-    }
+  /** Admit an event synchronously without starting timers or waiting for delivery. */
+  enqueue(event: BaseEvent): boolean {
+    if (!event.insert_id) return false;
     this.events.set(event.insert_id, {
       ...event,
       delay: event.delay || { id: this.delayId, timeout: this.delayTimeout },
     });
-    if (!this.checkEventSizeLimit(event)) {
+    return this.checkEventSizeLimit(event);
+  }
+
+  async track(event: BaseEvent): Promise<Result | Error | undefined> {
+    if (!event.insert_id) {
+      return new Error('insert_id is required on events tracked with heartbeat');
+    }
+    if (!this.enqueue(event)) {
       return;
     }
 
