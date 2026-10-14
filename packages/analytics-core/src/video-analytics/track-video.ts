@@ -22,7 +22,6 @@ function getVideoData(videoEl: HTMLMediaElement | MuxElement, stopReason?: Video
   const duration = videoEl.duration;
   return {
     duration,
-    start_time: currentTime,
     position: currentTime,
     percent_completed: calculatePercentCompleted(currentTime, duration),
     ...(stopReason !== undefined ? { stop_reason: stopReason } : {}),
@@ -226,7 +225,6 @@ async function getIframeMetadata(
   }
   return {
     duration,
-    start_time: currentTime,
     position: currentTime,
     percent_completed: calculatePercentCompleted(currentTime, duration),
     ...(stopReason !== undefined ? { stop_reason: stopReason } : {}),

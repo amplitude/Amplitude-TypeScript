@@ -67,16 +67,15 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         1,
-        '[Amplitude] Stream Started',
+        '[Streaming] Stream Started',
         {
-          duration: 10,
+          '[Streaming] Duration Sec': 10,
           hello: 'world',
           number: 123,
-          play_id: expect.any(String),
-          position: 0,
-          start_time: 0,
-          play_time_total: 0,
-          media_type: 'video',
+          '[Streaming] Play ID': expect.any(String),
+          '[Streaming] Start Position Sec': 0,
+          '[Streaming] Position Sec': 0,
+          '[Streaming] Media Type': 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -86,19 +85,19 @@ describe('VideoCapture', () => {
       );
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         2,
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         {
-          duration: 10,
+          '[Streaming] Duration Sec': 10,
           hello: 'world',
           number: 123,
-          play_id: expect.any(String),
-          position: 0,
-          start_time: 0,
-          play_time: 0,
-          play_time_total: 0,
-          percent_completed: 0,
-          stop_reason: 'timeout',
-          media_type: 'video',
+          '[Streaming] Play ID': expect.any(String),
+          '[Streaming] Start Position Sec': 0,
+          '[Streaming] Position Sec': 0,
+          '[Streaming] Play Time Sec': 0,
+          '[Streaming] Play Time Total Sec': 0,
+          '[Streaming] Percent Completed': 0,
+          '[Streaming] Stop Reason': 'timeout',
+          '[Streaming] Media Type': 'video',
         },
         {
           delay: { id: expect.any(String), timeout: 3_600_000 },
@@ -114,19 +113,19 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         {
-          duration: 10,
+          '[Streaming] Duration Sec': 10,
           hello: 'world',
           number: 123,
-          play_id: expect.any(String),
-          position: 5,
-          start_time: 0,
-          play_time: 0,
-          play_time_total: 0,
-          percent_completed: 50,
-          stop_reason: 'paused',
-          media_type: 'video',
+          '[Streaming] Play ID': expect.any(String),
+          '[Streaming] Start Position Sec': 0,
+          '[Streaming] Position Sec': 5,
+          '[Streaming] Play Time Sec': 0,
+          '[Streaming] Play Time Total Sec': 0,
+          '[Streaming] Percent Completed': 50,
+          '[Streaming] Stop Reason': 'paused',
+          '[Streaming] Media Type': 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -188,7 +187,7 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         1,
-        '[Amplitude] Stream Started',
+        '[Streaming] Stream Started',
         expect.objectContaining({
           mux_playback_id: 'playback-id',
           mux_video_id: 'video-id',
@@ -208,13 +207,13 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         expect.objectContaining({
           mux_playback_id: 'playback-id',
           mux_video_id: 'video-id',
           mux_video_title: 'video-title',
-          stop_reason: 'paused',
-          percent_completed: 50,
+          '[Streaming] Stop Reason': 'paused',
+          '[Streaming] Percent Completed': 50,
         }),
         expect.any(Object),
       );
@@ -253,17 +252,16 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         1,
-        '[Amplitude] Stream Started',
+        '[Streaming] Stream Started',
         {
-          duration: 10,
+          '[Streaming] Duration Sec': 10,
           hello: 'world',
           number: 123,
-          play_id: expect.any(String),
-          position: 0,
-          start_time: 0,
-          play_time_total: 0,
-          stream_session_id: expect.any(String),
-          media_type: 'video',
+          '[Streaming] Play ID': expect.any(String),
+          '[Streaming] Start Position Sec': 0,
+          '[Streaming] Position Sec': 0,
+          '[Streaming] Stream Session ID': expect.any(String),
+          '[Streaming] Media Type': 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -278,20 +276,20 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         {
-          duration: 10,
+          '[Streaming] Duration Sec': 10,
           hello: 'world',
           number: 123,
-          play_id: expect.any(String),
-          position: 5,
-          start_time: 0,
-          play_time: 0,
-          play_time_total: 0,
-          percent_completed: 50,
-          stop_reason: 'paused',
-          stream_session_id: expect.any(String),
-          media_type: 'video',
+          '[Streaming] Play ID': expect.any(String),
+          '[Streaming] Start Position Sec': 0,
+          '[Streaming] Position Sec': 5,
+          '[Streaming] Play Time Sec': 0,
+          '[Streaming] Play Time Total Sec': 0,
+          '[Streaming] Percent Completed': 50,
+          '[Streaming] Stop Reason': 'paused',
+          '[Streaming] Stream Session ID': expect.any(String),
+          '[Streaming] Media Type': 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -311,34 +309,37 @@ describe('VideoCapture', () => {
       trackVideo(mockAmplitude, document.createElement('video'));
       const endedState: VideoState = {
         playbackState: 'ended',
-        lastEvent: { duration: 10, position: 10, start_time: 10, stop_reason: 'ended' },
+        lastEvent: { duration: 10, position: 10, stop_reason: 'ended' },
         position: 10,
       };
 
       currentVideoObserver!.emitStateChange(
         { playbackState: 'paused', lastEvent: undefined },
-        { playbackState: 'playing', lastEvent: { duration: 10, position: 0, start_time: 0 } },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: 0 } },
       );
       await flushHeartbeat();
-      const firstSessionId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].stream_session_id as string;
+      const firstSessionId = (mockAmplitude.track as jest.Mock).mock.calls[0][1][
+        '[Streaming] Stream Session ID'
+      ] as string;
 
       currentVideoObserver!.emitStateChange(
-        { playbackState: 'playing', lastEvent: { duration: 10, position: 0, start_time: 0 } },
+        { playbackState: 'playing', lastEvent: { duration: 10, position: 0 } },
         endedState,
       );
       await flushHeartbeat();
 
       currentVideoObserver!.emitStateChange(endedState, {
         playbackState: 'playing',
-        lastEvent: { duration: 10, position: 0, start_time: 0 },
+        lastEvent: { duration: 10, position: 0 },
       });
       await flushHeartbeat();
 
       const restartCall = (mockAmplitude.track as jest.Mock).mock.calls.find(
-        (call) => call[0] === '[Amplitude] Stream Started' && call[1].stream_session_id !== firstSessionId,
+        (call) =>
+          call[0] === '[Streaming] Stream Started' && call[1]['[Streaming] Stream Session ID'] !== firstSessionId,
       );
-      expect(restartCall?.[1].stream_session_id).toEqual(expect.any(String));
-      expect(restartCall?.[1].stream_session_id).not.toBe(firstSessionId);
+      expect(restartCall?.[1]['[Streaming] Stream Session ID']).toEqual(expect.any(String));
+      expect(restartCall?.[1]['[Streaming] Stream Session ID']).not.toBe(firstSessionId);
     });
 
     it('should measure play_time per play and play_time_total per stream session', async () => {
@@ -347,13 +348,13 @@ describe('VideoCapture', () => {
 
       const playing = (watchTime: number): VideoState => ({
         playbackState: 'playing',
-        lastEvent: { duration: 20, position: watchTime, start_time: watchTime },
+        lastEvent: { duration: 20, position: watchTime },
         position: watchTime,
         watchTime,
       });
       const paused = (watchTime: number): VideoState => ({
         playbackState: 'paused',
-        lastEvent: { duration: 20, position: watchTime, start_time: watchTime, stop_reason: 'paused' },
+        lastEvent: { duration: 20, position: watchTime, stop_reason: 'paused' },
         position: watchTime,
         watchTime,
       });
@@ -364,16 +365,16 @@ describe('VideoCapture', () => {
       observer.emitStateChange(playing(5), paused(5));
       await flushHeartbeat();
 
-      const firstPlayId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].play_id as string;
-      const sessionId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].stream_session_id as string;
+      const firstPlayId = (mockAmplitude.track as jest.Mock).mock.calls[0][1]['[Streaming] Play ID'] as string;
+      const sessionId = (mockAmplitude.track as jest.Mock).mock.calls[0][1]['[Streaming] Stream Session ID'] as string;
       expect(mockAmplitude.track).toHaveBeenLastCalledWith(
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         expect.objectContaining({
-          play_id: firstPlayId,
-          stream_session_id: sessionId,
-          play_time: 5,
-          play_time_total: 5,
-          stop_reason: 'paused',
+          '[Streaming] Play ID': firstPlayId,
+          '[Streaming] Stream Session ID': sessionId,
+          '[Streaming] Play Time Sec': 5,
+          '[Streaming] Play Time Total Sec': 5,
+          '[Streaming] Stop Reason': 'paused',
         }),
         expect.any(Object),
       );
@@ -381,26 +382,26 @@ describe('VideoCapture', () => {
       jest.clearAllMocks();
       observer.emitStateChange(paused(5), playing(5));
       await flushHeartbeat();
-      const secondPlayId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].play_id as string;
+      const secondPlayId = (mockAmplitude.track as jest.Mock).mock.calls[0][1]['[Streaming] Play ID'] as string;
       expect(secondPlayId).not.toBe(firstPlayId);
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         1,
-        '[Amplitude] Stream Started',
+        '[Streaming] Stream Started',
         expect.objectContaining({
-          play_id: secondPlayId,
-          stream_session_id: sessionId,
-          play_time_total: 5,
+          '[Streaming] Play ID': secondPlayId,
+          '[Streaming] Stream Session ID': sessionId,
         }),
         expect.any(Object),
       );
+      expect((mockAmplitude.track as jest.Mock).mock.calls[0][1]).not.toHaveProperty('[Streaming] Play Time Total Sec');
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         expect.objectContaining({
-          play_id: secondPlayId,
-          stream_session_id: sessionId,
-          play_time: 0,
-          play_time_total: 5,
-          stop_reason: 'timeout',
+          '[Streaming] Play ID': secondPlayId,
+          '[Streaming] Stream Session ID': sessionId,
+          '[Streaming] Play Time Sec': 0,
+          '[Streaming] Play Time Total Sec': 5,
+          '[Streaming] Stop Reason': 'timeout',
         }),
         expect.any(Object),
       );
@@ -409,33 +410,33 @@ describe('VideoCapture', () => {
       jest.clearAllMocks();
       await jest.advanceTimersByTimeAsync(60_000);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         expect.objectContaining({
-          play_id: secondPlayId,
-          stream_session_id: sessionId,
-          play_time: 3,
-          play_time_total: 8,
-          stop_reason: 'timeout',
+          '[Streaming] Play ID': secondPlayId,
+          '[Streaming] Stream Session ID': sessionId,
+          '[Streaming] Play Time Sec': 3,
+          '[Streaming] Play Time Total Sec': 8,
+          '[Streaming] Stop Reason': 'timeout',
         }),
         expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
       );
 
       const ended: VideoState = {
         playbackState: 'ended',
-        lastEvent: { duration: 20, position: 8, start_time: 8, stop_reason: 'ended' },
+        lastEvent: { duration: 20, position: 8, stop_reason: 'ended' },
         position: 8,
         watchTime: 8,
       };
       observer.emitStateChange(playing(8), ended);
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenLastCalledWith(
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         expect.objectContaining({
-          play_id: secondPlayId,
-          stream_session_id: sessionId,
-          play_time: 3,
-          play_time_total: 8,
-          stop_reason: 'ended',
+          '[Streaming] Play ID': secondPlayId,
+          '[Streaming] Stream Session ID': sessionId,
+          '[Streaming] Play Time Sec': 3,
+          '[Streaming] Play Time Total Sec': 8,
+          '[Streaming] Stop Reason': 'ended',
         }),
         expect.any(Object),
       );
@@ -444,23 +445,23 @@ describe('VideoCapture', () => {
       observer.emitStateChange(ended, playing(8));
       await flushHeartbeat();
       const restarted = (mockAmplitude.track as jest.Mock).mock.calls[0][1] as {
-        play_id: string;
-        stream_session_id: string;
+        '[Streaming] Play ID': string;
+        '[Streaming] Stream Session ID': string;
       };
-      expect(restarted.play_id).not.toBe(secondPlayId);
-      expect(restarted.stream_session_id).not.toBe(sessionId);
+      expect(restarted['[Streaming] Play ID']).not.toBe(secondPlayId);
+      expect(restarted['[Streaming] Stream Session ID']).not.toBe(sessionId);
 
       observer.emitStateChange(playing(8), playing(12));
       observer.emitStateChange(playing(12), paused(12));
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenLastCalledWith(
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         expect.objectContaining({
-          play_id: restarted.play_id,
-          stream_session_id: restarted.stream_session_id,
-          play_time: 4,
-          play_time_total: 4,
-          stop_reason: 'paused',
+          '[Streaming] Play ID': restarted['[Streaming] Play ID'],
+          '[Streaming] Stream Session ID': restarted['[Streaming] Stream Session ID'],
+          '[Streaming] Play Time Sec': 4,
+          '[Streaming] Play Time Total Sec': 4,
+          '[Streaming] Stop Reason': 'paused',
         }),
         expect.any(Object),
       );
@@ -480,15 +481,14 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         1,
-        '[Amplitude] Stream Started',
+        '[Streaming] Stream Started',
         {
-          duration: 10,
-          play_id: expect.any(String),
-          position: 0,
-          start_time: 0,
-          play_time_total: 0,
-          stream_session_id: expect.any(String),
-          media_type: 'video',
+          '[Streaming] Duration Sec': 10,
+          '[Streaming] Play ID': expect.any(String),
+          '[Streaming] Start Position Sec': 0,
+          '[Streaming] Position Sec': 0,
+          '[Streaming] Stream Session ID': expect.any(String),
+          '[Streaming] Media Type': 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -503,18 +503,18 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         {
-          duration: 10,
-          play_id: expect.any(String),
-          position: 5,
-          start_time: 0,
-          play_time: 0,
-          play_time_total: 0,
-          percent_completed: 50,
-          stop_reason: 'paused',
-          stream_session_id: expect.any(String),
-          media_type: 'video',
+          '[Streaming] Duration Sec': 10,
+          '[Streaming] Play ID': expect.any(String),
+          '[Streaming] Start Position Sec': 0,
+          '[Streaming] Position Sec': 5,
+          '[Streaming] Play Time Sec': 0,
+          '[Streaming] Play Time Total Sec': 0,
+          '[Streaming] Percent Completed': 50,
+          '[Streaming] Stop Reason': 'paused',
+          '[Streaming] Stream Session ID': expect.any(String),
+          '[Streaming] Media Type': 'video',
         },
         {
           delay: { id: expect.any(String) },
@@ -539,8 +539,8 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         1,
-        '[Amplitude] Stream Started',
-        expect.objectContaining({ media_type: 'audio' }),
+        '[Streaming] Stream Started',
+        expect.objectContaining({ '[Streaming] Media Type': 'audio' }),
         expect.any(Object),
       );
       typeof stopVideoCapture === 'function' && stopVideoCapture();
@@ -577,7 +577,7 @@ describe('VideoCapture', () => {
       currentVideoObserver!.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
       await flushHeartbeat();
 
-      const playId = (mockAmplitude.track as jest.Mock).mock.calls[0][1].play_id;
+      const playId = (mockAmplitude.track as jest.Mock).mock.calls[0][1]['[Streaming] Play ID'];
 
       currentVideoObserver!.emitStateChange(playingState, waitingState);
       await flushHeartbeat();
@@ -590,17 +590,19 @@ describe('VideoCapture', () => {
       });
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenCalledTimes(2);
-      expect((mockAmplitude.track as jest.Mock).mock.calls.every((call) => call[1].play_id === playId)).toBe(true);
+      expect(
+        (mockAmplitude.track as jest.Mock).mock.calls.every((call) => call[1]['[Streaming] Play ID'] === playId),
+      ).toBe(true);
 
       currentVideoObserver!.emitStateChange({ ...playingState, position: 6, watchTime: 6 }, pausedState);
       await flushHeartbeat();
       expect(mockAmplitude.track).toHaveBeenCalledTimes(3);
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         expect.objectContaining({
-          play_id: playId,
-          stop_reason: 'paused',
+          '[Streaming] Play ID': playId,
+          '[Streaming] Stop Reason': 'paused',
         }),
         expect.any(Object),
       );
@@ -628,13 +630,13 @@ describe('VideoCapture', () => {
 
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         expect.objectContaining({
-          stop_reason: 'error',
-          error_message: 'Media element error (code 2): network',
-          position: 5,
-          play_time: 5,
-          play_time_total: 5,
+          '[Streaming] Stop Reason': 'error',
+          '[Streaming] Error Message': 'Media element error (code 2): network',
+          '[Streaming] Position Sec': 5,
+          '[Streaming] Play Time Sec': 5,
+          '[Streaming] Play Time Total Sec': 5,
         }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
@@ -666,31 +668,30 @@ describe('VideoCapture', () => {
       await jest.advanceTimersByTimeAsync(60_000);
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        '[Amplitude] Stream Stopped',
+        '[Streaming] Stream Stopped',
         expect.objectContaining({
-          position: 8,
-          play_time: 8,
-          play_time_total: 8,
-          percent_completed: 80,
-          stop_reason: 'timeout',
+          '[Streaming] Position Sec': 8,
+          '[Streaming] Play Time Sec': 8,
+          '[Streaming] Play Time Total Sec': 8,
+          '[Streaming] Percent Completed': 80,
+          '[Streaming] Stop Reason': 'timeout',
         }),
         expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
       );
     });
   });
 
-  describe('session start_time', () => {
-    // getVideoData reports start_time as the playhead at the time of the event, so a pause
-    // partway through playback reports the stop position rather than where playback began
+  describe('start position', () => {
+    // Start Position Sec is the playhead when the play began. Position Sec moves with the playhead.
     const playingState: VideoState = {
       playbackState: 'playing',
-      lastEvent: { duration: 10, start_time: 2, position: 2 },
+      lastEvent: { duration: 10, position: 2 },
       position: 2,
       watchTime: 0,
     };
     const pausedState: VideoState = {
       playbackState: 'paused',
-      lastEvent: { duration: 10, start_time: 7, position: 7 },
+      lastEvent: { duration: 10, position: 7 },
       position: 7,
       watchTime: 5,
     };
@@ -714,8 +715,12 @@ describe('VideoCapture', () => {
 
       expect(mockAmplitude.track).toHaveBeenNthCalledWith(
         3,
-        '[Amplitude] Stream Stopped',
-        expect.objectContaining({ start_time: 2, position: 7, stop_reason: 'paused' }),
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({
+          '[Streaming] Start Position Sec': 2,
+          '[Streaming] Position Sec': 7,
+          '[Streaming] Stop Reason': 'paused',
+        }),
         expect.any(Object),
       );
     });
@@ -728,7 +733,7 @@ describe('VideoCapture', () => {
       // buffering keeps the session open but moves the playhead
       observer.emitStateChange(playingState, {
         playbackState: 'waiting',
-        lastEvent: { duration: 10, start_time: 5, position: 5 },
+        lastEvent: { duration: 10, position: 5 },
         position: 5,
         watchTime: 3,
       });
@@ -736,13 +741,36 @@ describe('VideoCapture', () => {
 
       await jest.advanceTimersByTimeAsync(60_000);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        '[Amplitude] Stream Stopped',
-        expect.objectContaining({ start_time: 2, position: 5, stop_reason: 'timeout' }),
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({
+          '[Streaming] Start Position Sec': 2,
+          '[Streaming] Position Sec': 5,
+          '[Streaming] Stop Reason': 'timeout',
+        }),
         expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
       );
     });
 
-    it('should report the new start_time after playback restarts', async () => {
+    it('should report a zero start position when playback begins without a position', async () => {
+      const observer = startCapture();
+      observer.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', watchTime: 0 },
+      );
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenNthCalledWith(
+        1,
+        '[Streaming] Stream Started',
+        expect.objectContaining({
+          '[Streaming] Start Position Sec': 0,
+          '[Streaming] Position Sec': 0,
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('should report the new start position after playback restarts', async () => {
       const observer = startCapture();
       observer.emitStateChange({ playbackState: 'paused', lastEvent: undefined }, playingState);
       await flushHeartbeat();
@@ -752,7 +780,7 @@ describe('VideoCapture', () => {
 
       const replayState: VideoState = {
         playbackState: 'playing',
-        lastEvent: { duration: 10, start_time: 7, position: 7 },
+        lastEvent: { duration: 10, position: 7 },
         position: 7,
         watchTime: 5,
       };
@@ -760,15 +788,19 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
       observer.emitStateChange(replayState, {
         playbackState: 'ended',
-        lastEvent: { duration: 10, start_time: 10, position: 10 },
+        lastEvent: { duration: 10, position: 10 },
         position: 10,
         watchTime: 8,
       });
       await flushHeartbeat();
 
       expect(mockAmplitude.track).toHaveBeenLastCalledWith(
-        '[Amplitude] Stream Stopped',
-        expect.objectContaining({ start_time: 7, position: 10, stop_reason: 'ended' }),
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({
+          '[Streaming] Start Position Sec': 7,
+          '[Streaming] Position Sec': 10,
+          '[Streaming] Stop Reason': 'ended',
+        }),
         expect.any(Object),
       );
     });
@@ -781,10 +813,10 @@ describe('VideoCapture', () => {
     };
     const pausedState: VideoState = { playbackState: 'paused', lastEvent: undefined };
 
-    /** The "[Amplitude] Stream Stopped" event flushed by stop(). */
+    /** The "[Streaming] Stream Stopped" event flushed by stop(). */
     const untrackedStopEvent = expect.objectContaining({
-      event_type: '[Amplitude] Stream Stopped',
-      event_properties: expect.objectContaining({ stop_reason: 'untracked' }),
+      event_type: '[Streaming] Stream Stopped',
+      event_properties: expect.objectContaining({ '[Streaming] Stop Reason': 'untracked' }),
     });
 
     let track: jest.Mock;
@@ -898,8 +930,13 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
 
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        '[Amplitude] Stream Stopped',
-        expect.objectContaining({ stop_reason: 'ended', position: 4, play_time: 4, play_time_total: 4 }),
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({
+          '[Streaming] Stop Reason': 'ended',
+          '[Streaming] Position Sec': 4,
+          '[Streaming] Play Time Sec': 4,
+          '[Streaming] Play Time Total Sec': 4,
+        }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
     });
@@ -919,21 +956,21 @@ describe('VideoCapture', () => {
       await flushHeartbeat();
 
       const stopped = (mockAmplitude.track as jest.Mock).mock.calls.filter(
-        (call) => call[0] === '[Amplitude] Stream Stopped',
+        (call) => call[0] === '[Streaming] Stream Stopped',
       );
       expect(stopped).toEqual(
         expect.arrayContaining([
           expect.arrayContaining([
-            '[Amplitude] Stream Stopped',
-            expect.objectContaining({ video: 'first', stop_reason: 'ended' }),
+            '[Streaming] Stream Stopped',
+            expect.objectContaining({ video: 'first', '[Streaming] Stop Reason': 'ended' }),
           ]),
           expect.arrayContaining([
-            '[Amplitude] Stream Stopped',
-            expect.objectContaining({ video: 'second', stop_reason: 'ended' }),
+            '[Streaming] Stream Stopped',
+            expect.objectContaining({ video: 'second', '[Streaming] Stop Reason': 'ended' }),
           ]),
         ]),
       );
-      expect(stopped.every((call) => call[1].stop_reason === 'ended')).toBe(true);
+      expect(stopped.every((call) => call[1]['[Streaming] Stop Reason'] === 'ended')).toBe(true);
     });
 
     it('should not stop when the page is persisted in the back/forward cache', async () => {
@@ -976,8 +1013,8 @@ describe('VideoCapture', () => {
       // the heartbeat may still send its queued delayed stop event, but the capture
       // itself never ends the play session
       expect(mockAmplitude.track).not.toHaveBeenCalledWith(
-        '[Amplitude] Stream Stopped',
-        expect.objectContaining({ stop_reason: 'ended' }),
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({ '[Streaming] Stop Reason': 'ended' }),
         expect.anything(),
       );
     });
@@ -1013,8 +1050,13 @@ describe('VideoCapture', () => {
 
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        '[Amplitude] Stream Stopped',
-        expect.objectContaining({ stop_reason: 'untracked', position: 4, play_time: 4, play_time_total: 4 }),
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({
+          '[Streaming] Stop Reason': 'untracked',
+          '[Streaming] Position Sec': 4,
+          '[Streaming] Play Time Sec': 4,
+          '[Streaming] Play Time Total Sec': 4,
+        }),
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
 
@@ -1066,8 +1108,8 @@ describe('VideoCapture', () => {
       await jest.advanceTimersByTimeAsync(60_000);
       expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
       expect(mockAmplitude.track).toHaveBeenCalledWith(
-        '[Amplitude] Stream Stopped',
-        expect.objectContaining({ video: 'second', stop_reason: 'timeout' }),
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({ video: 'second', '[Streaming] Stop Reason': 'timeout' }),
         expect.objectContaining({ delay: { id: expect.any(String), timeout: 3_600_000 } }),
       );
     });
@@ -1079,15 +1121,14 @@ describe('VideoCapture', () => {
       expect(
         capture.parseStartEventProperties({
           playbackState: 'playing',
-          lastEvent: { duration: 10, start_time: 2, position: 5 },
+          lastEvent: { duration: 10, position: 5 },
           position: 5,
         }),
       ).toEqual({
         duration: 10,
-        start_time: 2,
+        start_position: 5,
         position: 5,
         media_type: 'video',
-        play_time_total: 0,
       });
     });
 
@@ -1099,10 +1140,9 @@ describe('VideoCapture', () => {
         }),
       ).toEqual({
         duration: undefined,
-        start_time: 0,
+        start_position: 0,
         position: 0,
         media_type: 'video',
-        play_time_total: 0,
       });
     });
 
@@ -1113,7 +1153,6 @@ describe('VideoCapture', () => {
           playbackState: 'playing',
           lastEvent: {
             duration: 10,
-            start_time: 2,
             position: 5,
             percent_completed: 50,
             stop_reason: 'paused',
@@ -1127,10 +1166,9 @@ describe('VideoCapture', () => {
         }),
       ).toEqual({
         duration: 10,
-        start_time: 2,
+        start_position: 5,
         position: 5,
         media_type: 'video',
-        play_time_total: 0,
         mux_playback_id: 'playback-id',
         mux_video_id: 'video-id',
         mux_video_title: 'video-title',
@@ -1145,10 +1183,9 @@ describe('VideoCapture', () => {
         }),
       ).toEqual({
         duration: undefined,
-        start_time: 0,
+        start_position: 0,
         position: 0,
         media_type: 'audio',
-        play_time_total: 0,
       });
     });
   });
@@ -1159,13 +1196,13 @@ describe('VideoCapture', () => {
       expect(
         capture.parseStopEventProperties({
           playbackState: 'paused',
-          lastEvent: { duration: 10, start_time: 2, position: 5 },
+          lastEvent: { duration: 10, position: 5 },
           position: 5,
           watchTime: 30,
         }),
       ).toEqual({
         duration: 10,
-        start_time: 2,
+        start_position: 5,
         position: 5,
         play_time: 30,
         play_time_total: 30,
@@ -1181,7 +1218,7 @@ describe('VideoCapture', () => {
       });
       expect(properties).toEqual({
         duration: undefined,
-        start_time: 0,
+        start_position: 0,
         position: 0,
         play_time: 0,
         play_time_total: 0,
@@ -1197,7 +1234,6 @@ describe('VideoCapture', () => {
           playbackState: 'paused',
           lastEvent: {
             duration: 10,
-            start_time: 2,
             position: 5,
             percent_completed: 20,
             stop_reason: 'paused',
@@ -1208,7 +1244,7 @@ describe('VideoCapture', () => {
         }),
       ).toEqual({
         duration: 10,
-        start_time: 2,
+        start_position: 5,
         position: 5,
         play_time: 30,
         play_time_total: 30,
@@ -1249,6 +1285,13 @@ describe('VideoCapture', () => {
           position: 12,
         }).percent_completed,
       ).toBe(100);
+    });
+  });
+
+  describe('toAnalyticsEventProperties()', () => {
+    it('should return an empty object when event properties are missing', () => {
+      const capture = new VideoCapture(mockAmplitude);
+      expect(capture.toAnalyticsEventProperties(undefined)).toEqual({});
     });
   });
 });
