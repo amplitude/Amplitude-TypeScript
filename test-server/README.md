@@ -17,8 +17,9 @@ default local receiver acknowledges requests without simulating delayed ingestio
 Select Amplitude US and supply a project API key to test the actual delayed service.
 
 The defaults are a 5,000 ms rolling activity window, 15,000 ms heartbeat, and
-180,000 ms page inactivity timeout. The service fallback uses the same timeout
-duration, measured from its last accepted snapshot. The SDK options are
+180,000 ms (3 minutes) page inactivity timeout. The draft also sends that duration
+as the delayed request's `timeout`; it does not change backend service configuration.
+Service-side expiration behavior requires validation against the service. The SDK options are
 `engagementThresholdMillis`, `heartbeatIntervalMillis`, and
 `pageSessionTimeoutMillis` inside `autocapture.pageViews.trackEngagedTime`.
 Use `true` or `{}` for default timings, `false` to disable, or an options object to

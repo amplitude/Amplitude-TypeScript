@@ -180,7 +180,8 @@ export class PageEngagement {
     this.foreground = false;
     if (this.session) {
       void this.session.heartbeat.update(this.snapshot(this.session, 'background'));
-      void this.session.heartbeat.heartbeat(true);
+      void this.session.heartbeat.heartbeat();
+      this.client.flush();
     }
   };
 
@@ -199,7 +200,9 @@ export class PageEngagement {
     this.retire(session, reason);
     // Enqueue the final copy before clearing this page's heartbeat. Destination
     // coalesces pending snapshots and preserves in-flight ordering by delay ID.
-    void session.heartbeat.heartbeat(true);
+    void session.heartbeat.heartbeat();
+    // Request delivery before waiting for ingestion, especially during page exit.
+    this.client.flush();
     session.heartbeat.stop();
   }
 

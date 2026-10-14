@@ -222,12 +222,12 @@
                 </td>
               </tr>
               <tr>
-                <td>Service fallback timeout</td>
-                <td>3 min</td>
-                <td>Internal; aligned with page timeout</td>
+                <td>Delayed request timeout</td>
+                <td>3 min in the payload</td>
+                <td>Uses the page timeout</td>
                 <td>
-                  Starts from the last accepted snapshot if the SDK stops sending. A separate clock using the same
-                  configured duration. Service processing is asynchronous.
+                  Sent as request metadata. This does not change backend service configuration. Service-side expiration
+                  behavior requires validation against the service.
                 </td>
               </tr>
             </tbody>

@@ -114,6 +114,26 @@ describe('page engagement', () => {
     expect(newView).not.toHaveBeenCalled();
   });
 
+  test.each(['blur', 'pagehide'])('flushes on %s before the snapshot response resolves', async (type) => {
+    await start();
+    client.flush.mockClear();
+    let complete: () => void = () => undefined;
+    client.track.mockImplementationOnce((event_type, event_properties, options) => {
+      const event = { event_type, event_properties, ...options } as AnalyticsEvent;
+      return {
+        promise: new Promise((resolve) => {
+          complete = () => resolve({ event, code: 200, message: 'success' });
+        }),
+      };
+    });
+    window.dispatchEvent(type === 'pagehide' ? new PageTransitionEvent(type) : new Event(type));
+    expect(client.track.mock.calls).toHaveLength(2);
+    expect(client.flush.mock.calls).toHaveLength(1);
+    expect(client.flush.mock.invocationCallOrder[0]).toBeGreaterThan(client.track.mock.invocationCallOrder[1]);
+    complete();
+    await jest.advanceTimersByTimeAsync(0);
+  });
+
   test('handles BFCache suspension and return after expiry without reviving the old view', async () => {
     await start();
     await jest.advanceTimersByTimeAsync(1_000);

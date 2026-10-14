@@ -58,21 +58,15 @@ export class Heartbeat {
       // delete it after it was ingested
       if (this.isInstantEvent(event)) {
         const insertId = event.insert_id;
-        void eventPromise.then(
-          (result) => {
-            if (result.code >= 200 && result.code < 300 && this.events.get(insertId) === event) {
-              this.events.delete(insertId);
-            }
-          },
-          () => undefined,
-        );
+        void eventPromise.finally(() => this.events.delete(insertId));
       }
       trackedEvents.push(eventPromise);
     }
+    const res = await Promise.all(trackedEvents);
     if (flushClient) {
       this.client.flush();
     }
-    return await Promise.all(trackedEvents);
+    return res;
   }
 
   async resetHeartbeat() {
@@ -184,7 +178,8 @@ export class Heartbeat {
    * @returns
    */
   async trackNoDelay(event: BaseEvent) {
-    return this.track({ ...event, delay: { id: event.delay?.id || this.delayId } });
+    event.delay = { id: this.delayId };
+    return this.track(event);
   }
 
   /**
@@ -196,7 +191,8 @@ export class Heartbeat {
       const backupEvent = this.events.get(event.insert_id);
       this.events.set(event.insert_id, {
         ...event,
-        delay: event.delay || this.events.get(event.insert_id)!.delay,
+        // Page engagement supplies its delay group and removes timeout to finalize it.
+        delay: event.delay || { id: this.delayId, timeout: this.delayTimeout },
       });
       if (!this.checkEventSizeLimit(event) && backupEvent) {
         this.events.set(event.insert_id, backupEvent);
@@ -237,11 +233,9 @@ const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
 // const DEFAULT_HEARTBEAT_INTERVAL = 2_000; // TODO: DO NOT MERGE THIS
 const DEFAULT_HEARTBEAT_DELAY_TIMEOUT = 3_600_000;
 
-type HeartbeatMap = WeakMap<CoreClient, Heartbeat>;
+type HeartbeatMap = Map<CoreClient, Heartbeat>;
 
-// Video captures share a heartbeat per client. The registry must not keep otherwise
-// unreachable clients alive; active timers and listeners still require stop().
-const heartbeatMap: HeartbeatMap = new WeakMap<CoreClient, Heartbeat>();
+const heartbeatMap: HeartbeatMap = new Map<CoreClient, Heartbeat>();
 
 export function getHeartbeatInstance(client: CoreClient, logger?: ILogger): Heartbeat {
   const existing = heartbeatMap.get(client);

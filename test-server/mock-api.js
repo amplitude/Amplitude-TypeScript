@@ -500,4 +500,4 @@ export function configureUnminifyMiddleware(middlewares) {
       }
     }
   });
-}
+} 
