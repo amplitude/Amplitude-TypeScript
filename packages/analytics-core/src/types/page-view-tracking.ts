@@ -12,7 +12,10 @@ export interface EngagedTimeOptions {
   engagementThresholdMillis?: number;
   /** Snapshot cadence in milliseconds. Defaults to 15,000; must be shorter than pageSessionTimeoutMillis. */
   heartbeatIntervalMillis?: number;
-  /** Finalize the page view after this many milliseconds without activity. Defaults to 180,000 (3 minutes). */
+  /**
+   * Finalize the page view after this many milliseconds without activity. Defaults to 180,000 (3 minutes).
+   * The same duration is sent as the delayed request timeout for server-side fallback after the last accepted heartbeat.
+   */
   pageSessionTimeoutMillis?: number;
 }
 

@@ -217,17 +217,11 @@
                 <td>3 min</td>
                 <td>Yes</td>
                 <td>
-                  The SDK finalizes after this long without qualifying activity. The next interaction starts a new
-                  logical page view.
-                </td>
-              </tr>
-              <tr>
-                <td>Delayed request timeout</td>
-                <td>3 min in the payload</td>
-                <td>Uses the page timeout</td>
-                <td>
-                  Sent as request metadata. This does not change backend service configuration. Service-side expiration
-                  behavior requires validation against the service.
+                  One setting for both paths: the SDK finalizes after this long without qualifying activity. Each
+                  snapshot sends the same duration in the request's top-level <code>timeout</code> field, renewing the
+                  service fallback deadline from the last accepted heartbeat. If the SDK cannot deliver a final snapshot,
+                  the service finalizes the latest stored snapshot after that deadline. Heartbeats do not reset the SDK
+                  inactivity timer. The next interaction after SDK finalization starts a new logical page view.
                 </td>
               </tr>
             </tbody>
@@ -236,6 +230,10 @@
         <p class="muted">
           Hidden tabs and unfocused windows pause engagement immediately. Page views retain their original timestamp,
           insert ID, and page-view ID across snapshots.
+        </p>
+        <p class="muted">
+          Service expiry and Event API ingestion are separate steps, so the timeout is not a guarantee of immediate
+          ingestion. Local mode only acknowledges requests and does not simulate the service fallback.
         </p>
       </section>
 

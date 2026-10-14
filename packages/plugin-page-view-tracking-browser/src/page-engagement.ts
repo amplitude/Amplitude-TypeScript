@@ -94,6 +94,8 @@ export class PageEngagement {
         insert_id: event.insert_id || UUID(),
         time: event.time ?? now,
         event_properties: { ...event.event_properties },
+        // Share the SDK inactivity duration with the service fallback. The SDK counts
+        // from last activity; the service counts from the last accepted heartbeat.
         delay: { id: UUID(), timeout: this.timeout },
       },
       heartbeat: new Heartbeat(this.client, this.pulse, this.timeout, this.config.loggerProvider, {
