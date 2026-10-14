@@ -300,7 +300,7 @@ describe('heartbeat', () => {
     test('refreshes a feature-owned snapshot before sending and preserves explicit update delay', async () => {
       heartbeat.stop();
       heartbeat = new Heartbeat(mockClient, 15_000, 180_000, mockLoggerProvider, {
-        managePageLifecycle: false,
+        sendOnPageLifecycle: false,
         beforeHeartbeat: () => {
           void heartbeat.update({ event_type: 'page', insert_id: 'page', event_properties: { now: Date.now() } });
         },
@@ -458,6 +458,26 @@ describe('heartbeat', () => {
       await Promise.resolve();
       await Promise.resolve();
     }
+
+    test('lets the caller own lifecycle sends without disabling scheduled heartbeats', async () => {
+      heartbeat.stop();
+      heartbeat = new Heartbeat(mockClient, 1000, 1000, mockLoggerProvider, { sendOnPageLifecycle: false });
+      await trackWithTimers({ insert_id: 'page', event_type: 'page' });
+      jest.clearAllMocks();
+
+      setVisibilityState('hidden');
+      mockDocument.dispatchEvent(new Event('visibilitychange'));
+      dispatchPageHide(false);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(trackMock).not.toHaveBeenCalled();
+      expect(flushMock).not.toHaveBeenCalled();
+
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(trackMock).toHaveBeenCalledTimes(1);
+      await heartbeat.heartbeat(true);
+      expect(trackMock).toHaveBeenCalledTimes(2);
+      expect(flushMock).toHaveBeenCalledTimes(1);
+    });
 
     test('should heartbeat and flush the client on pagehide when the page is not persisted', async () => {
       const event = {

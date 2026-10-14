@@ -128,7 +128,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       isTracking = true;
       if (options.trackEngagedTime && globalScope?.document) {
         const engagementOptions = typeof options.trackEngagedTime === 'object' ? options.trackEngagedTime : {};
-        engagement = new PageEngagement(client, globalScope, engagementOptions, loggerProvider, () => {
+        engagement = new PageEngagement(client, globalScope, engagementOptions, config, () => {
           if (!renewingPageView && (trackOn === 'attribution' || shouldTrackOnPageLoad())) {
             renewingPageView = true;
             void trackNewPageView(client).finally(() => {

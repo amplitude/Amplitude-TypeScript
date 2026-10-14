@@ -3,7 +3,7 @@ import {
   BrowserClient,
   Event,
   Heartbeat,
-  ILogger,
+  BrowserConfig,
   EngagedTimeOptions,
   UUID,
 } from '@amplitude/analytics-core';
@@ -23,8 +23,15 @@ interface PageSession {
   version: number;
 }
 
-const positiveDuration = (value: number | undefined, fallback: number) =>
-  value !== undefined && Number.isFinite(value) && value > 0 && value <= 2_147_483_647 ? value : fallback;
+// Browser timers use a signed 32-bit millisecond delay. Larger values can overflow.
+const MAX_TIMER_DELAY_MILLIS = 2_147_483_647;
+
+function resolveDurationMillis(value: number | undefined, defaultValue: number): number {
+  if (value === undefined || !Number.isFinite(value) || value <= 0 || value > MAX_TIMER_DELAY_MILLIS) {
+    return defaultValue;
+  }
+  return value;
+}
 
 /** Owns one page-view delay group at a time, independently of the video heartbeat. */
 export class PageEngagement {
@@ -41,13 +48,13 @@ export class PageEngagement {
     private client: BrowserClient,
     private scope: NonNullable<ReturnType<typeof getGlobalScope>>,
     options: EngagedTimeOptions,
-    private logger: ILogger,
+    private config: BrowserConfig,
     private newPageView: () => void,
   ) {
-    this.timeout = positiveDuration(options.pageSessionTimeoutMillis, DEFAULT_PAGE_SESSION_TIMEOUT);
-    this.threshold = positiveDuration(options.engagementThresholdMillis, DEFAULT_ENGAGEMENT_THRESHOLD);
+    this.timeout = resolveDurationMillis(options.pageSessionTimeoutMillis, DEFAULT_PAGE_SESSION_TIMEOUT);
+    this.threshold = resolveDurationMillis(options.engagementThresholdMillis, DEFAULT_ENGAGEMENT_THRESHOLD);
     this.pulse = Math.min(
-      positiveDuration(options.heartbeatIntervalMillis, DEFAULT_ENGAGEMENT_HEARTBEAT),
+      resolveDurationMillis(options.heartbeatIntervalMillis, DEFAULT_ENGAGEMENT_HEARTBEAT),
       this.timeout / 2,
     );
     this.foreground = this.isForeground();
@@ -90,8 +97,10 @@ export class PageEngagement {
         event_properties: { ...event.event_properties },
         delay: { id: UUID(), timeout: this.timeout },
       },
-      heartbeat: new Heartbeat(this.client, this.pulse, this.timeout, this.logger, {
-        managePageLifecycle: false,
+      heartbeat: new Heartbeat(this.client, this.pulse, this.timeout, this.config.loggerProvider, {
+        // This owner settles elapsed time before sending, and treats BFCache as a
+        // pause rather than a page exit. Avoid a second set of lifecycle sends.
+        sendOnPageLifecycle: false,
         beforeHeartbeat: () => {
           if (this.session === session) {
             if (Date.now() >= session.lastActivity + this.timeout) {
@@ -128,6 +137,7 @@ export class PageEngagement {
     this.settle(session);
     return {
       ...session.event,
+      // Prototype taxonomy; SDK-392 tracks final customer-facing names and units.
       event_properties: {
         ...session.event.event_properties,
         '[Amplitude] Engaged Time': session.engaged,

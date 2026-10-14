@@ -11,6 +11,16 @@ type DelayedEvent = BaseEvent & {
 
 const EVENTS_SIZE_LIMIT = 4 * 10_000; // 4KB
 
+interface HeartbeatOptions {
+  /** Refresh queued snapshots immediately before each send. */
+  beforeHeartbeat?: () => void;
+  /**
+   * Send queued events when the page becomes hidden or exits. Defaults to true.
+   * Disable when the caller owns page lifecycle handling and sends snapshots itself.
+   */
+  sendOnPageLifecycle?: boolean;
+}
+
 export class Heartbeat {
   private events: Map<string, DelayedEvent>;
   private delayId: string;
@@ -24,7 +34,7 @@ export class Heartbeat {
     private pulse: number,
     private delayTimeout: number,
     private logger?: ILogger,
-    private options: { beforeHeartbeat?: () => void; managePageLifecycle?: boolean } = {},
+    private options: HeartbeatOptions = {},
   ) {
     this.events = new Map<string, DelayedEvent>();
     this.delayId = UUID();
@@ -70,7 +80,7 @@ export class Heartbeat {
     // include any newly tracked events, so share its result
     if (this.resetPromise) return await this.resetPromise;
 
-    if (this.options.managePageLifecycle !== false) this.setupPageLifecycleListeners();
+    if (this.options.sendOnPageLifecycle !== false) this.setupPageLifecycleListeners();
 
     // reset the heartbeat interval
     if (this.interval) clearInterval(this.interval);
@@ -229,6 +239,8 @@ const DEFAULT_HEARTBEAT_DELAY_TIMEOUT = 3_600_000;
 
 type HeartbeatMap = WeakMap<CoreClient, Heartbeat>;
 
+// Video captures share a heartbeat per client. The registry must not keep otherwise
+// unreachable clients alive; active timers and listeners still require stop().
 const heartbeatMap: HeartbeatMap = new WeakMap<CoreClient, Heartbeat>();
 
 export function getHeartbeatInstance(client: CoreClient, logger?: ILogger): Heartbeat {
