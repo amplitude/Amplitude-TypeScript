@@ -6,6 +6,7 @@ import type {
   MuxElement,
   Vendor,
   TimeUpdateEvent,
+  VideoStopCause,
 } from '../video-analytics/types';
 
 export type { Vendor };
@@ -19,6 +20,7 @@ export type State = {
   watchTime?: number;
   position?: number | null;
   isSeeking?: boolean;
+  cause?: VideoStopCause; // the reason for the playback state change
 };
 
 export type VideoObserverParams = {
@@ -43,8 +45,8 @@ export class VideoObserver {
     onPause: (evt: VideoEvent) => {
       this.updatePlaybackState('paused', evt);
     },
-    onEnded: (evt: VideoEvent) => {
-      this.updatePlaybackState('ended', evt);
+    onEnded: (evt: VideoEvent, cause?: VideoStopCause) => {
+      this.updatePlaybackState('ended', evt, cause);
     },
     onSeeking: () => {
       const nextState: State = {
@@ -93,11 +95,12 @@ export class VideoObserver {
       ...previousState,
       playbackState: 'error',
       errorMessage: error,
+      cause: undefined,
     };
     this.updateState(nextState);
   }
 
-  private updatePlaybackState(playbackState: PlaybackState, event: VideoEvent) {
+  private updatePlaybackState(playbackState: PlaybackState, event: VideoEvent, cause?: VideoStopCause) {
     const previousPlayback = this.state.playbackState;
     // Aborting a load does not emit `seeked`. A seek still open when this media
     // ends, or when the replacement starts, must not stick to the next stream.
@@ -110,6 +113,7 @@ export class VideoObserver {
       errorMessage: undefined,
       lastEvent: event,
       position: event.position,
+      cause,
       ...(clearSeeking ? { isSeeking: false } : {}),
     };
     this.updateState(nextState);

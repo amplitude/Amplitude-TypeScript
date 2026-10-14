@@ -2,10 +2,12 @@ export type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
 
 export type VideoStopReason = 'paused' | 'ended' | 'seeking';
 
+export type VideoStopCause = 'timeout' | 'paused' | 'ended' | 'error' | 'untracked' | 'content_changed';
+
 export type VideoHandler = {
   onPlay: (startEvent: VideoEvent) => void;
   onPause: (pauseEvent: VideoEvent) => void;
-  onEnded: (endedEvent: VideoEvent) => void;
+  onEnded: (endedEvent: VideoEvent, cause?: VideoStopCause) => void;
   onSeeking: (seekingEvent: VideoEvent) => void;
   onSeeked: (seekedEvent: VideoEvent) => void;
   onError: (error: string) => void;

@@ -4,6 +4,7 @@ import {
   BrowserClient,
   EmbeddedVideoPlayer,
   VideoVendor,
+  VideoStopCause,
   UUID,
   BaseEvent,
   getHeartbeatInstance,
@@ -17,8 +18,6 @@ const ACTIVE_PLAYBACK_STATES = new Set<VideoState['playbackState']>(['playing', 
 export type StreamingMediaType = 'video' | 'audio';
 
 export type StreamingDeliveryMode = 'live' | 'on_demand';
-
-export type StreamingStopReason = 'timeout' | 'paused' | 'ended' | 'error' | 'untracked' | 'content_changed';
 
 type StreamingEventProperties = {
   /** Omitted when not set. */
@@ -47,7 +46,7 @@ type StreamStoppedEventProperties = StreamingEventProperties & {
   '[Streaming] Play Time Total Sec': number;
   /** Position Sec as a percentage of Duration Sec (0–100). Omitted when Duration Sec is unknown. */
   '[Streaming] Percent Completed'?: number;
-  '[Streaming] Stop Reason': StreamingStopReason;
+  '[Streaming] Stop Reason': VideoStopCause;
   '[Streaming] Error Message'?: string;
 };
 
@@ -249,7 +248,7 @@ export class VideoCapture {
         ACTIVE_PLAYBACK_STATES.has(previousState.playbackState) &&
         !ACTIVE_PLAYBACK_STATES.has(nextState.playbackState)
       ) {
-        this.flushStopEvent(nextState.playbackState);
+        this.flushStopEvent(nextState.cause ?? nextState.playbackState);
       }
     });
     return this;

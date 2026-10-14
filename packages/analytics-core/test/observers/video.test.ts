@@ -210,6 +210,37 @@ describe('VideoObserver', () => {
       );
     });
 
+    it('should set cause when the media ends because its content changed', () => {
+      internalHandler.onPlay({ duration: 10, position: 0 });
+      internalHandler.onEnded({ duration: 10, position: 4, percent_completed: 40 }, 'content_changed');
+      expect(onStateChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ playbackState: 'playing', cause: undefined }),
+        expect.objectContaining({ playbackState: 'ended', cause: 'content_changed' }),
+      );
+
+      internalHandler.onPlay({ duration: 8, position: 0 });
+      expect(onStateChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ playbackState: 'ended', cause: 'content_changed' }),
+        expect.objectContaining({ playbackState: 'playing', cause: undefined }),
+      );
+
+      internalHandler.onEnded({ duration: 8, position: 2 }, 'content_changed');
+      internalHandler.onError('test error');
+      expect(onStateChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ playbackState: 'ended', cause: 'content_changed' }),
+        expect.objectContaining({ playbackState: 'error', cause: undefined }),
+      );
+    });
+
+    it('should not set cause when the media ends naturally', () => {
+      internalHandler.onPlay({ duration: 10, position: 0 });
+      internalHandler.onEnded({ duration: 10, position: 10, stop_reason: 'ended' });
+      expect(onStateChange).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({ playbackState: 'ended', cause: undefined }),
+      );
+    });
+
     it('should clear isSeeking and sync position on onSeeked', () => {
       internalHandler.onSeeking({
         duration: 10,
