@@ -19,7 +19,6 @@ interface PageSession {
   updated: number;
   lastActivity: number;
   engaged: number;
-  foreground: number;
   version: number;
 }
 
@@ -115,7 +114,6 @@ export class PageEngagement {
       updated: now,
       lastActivity: now,
       engaged: 0,
-      foreground: 0,
       version: 0,
     };
     this.session = session;
@@ -127,7 +125,6 @@ export class PageEngagement {
     // Cap a late callback at the inactivity deadline; heartbeats never extend it.
     const now = Math.max(session.updated, Math.min(Date.now(), session.lastActivity + this.timeout));
     if (this.foreground) {
-      session.foreground += now - session.updated;
       session.engaged += Math.max(0, Math.min(now, session.lastActivity + this.threshold) - session.updated);
     }
     session.updated = now;
@@ -141,10 +138,8 @@ export class PageEngagement {
       event_properties: {
         ...session.event.event_properties,
         '[Amplitude] Engaged Time': session.engaged,
-        '[Amplitude] Engagement Threshold': this.threshold,
         '[Amplitude] Total Time': session.updated - session.started,
-        '[Amplitude] Foreground Time': session.foreground,
-        '[Amplitude] Last Engagement Time': session.lastActivity,
+        // Internal diagnostics; version counts constructed snapshots, not requests.
         '[Amplitude] Snapshot Version': ++session.version,
         '[Amplitude] Engagement Snapshot Reason': reason,
       },
