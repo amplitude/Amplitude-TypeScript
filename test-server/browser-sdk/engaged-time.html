@@ -177,7 +177,8 @@
       <h1>Engaged time on a page view</h1>
       <p class="muted">
         Uses the Browser SDK built from this checkout. Move, scroll, type, switch tabs, or navigate to exercise real
-        browser listeners. Engaged-time tracking is experimental and disabled by default; its API and behavior may change.
+        browser listeners. Engaged-time tracking is experimental and disabled by default; its API and behavior may
+        change.
       </p>
       <span class="badge" id="status" role="status">Ready to start</span>
 
@@ -219,9 +220,10 @@
                 <td>
                   One setting for both paths: the SDK finalizes after this long without qualifying activity. Each
                   snapshot sends the same duration in the request's top-level <code>timeout</code> field, renewing the
-                  service fallback deadline from the last accepted heartbeat. If the SDK cannot deliver a final snapshot,
-                  the service finalizes the latest stored snapshot after that deadline. Heartbeats do not reset the SDK
-                  inactivity timer. The next interaction after SDK finalization starts a new logical page view.
+                  service fallback deadline from the last accepted heartbeat. If the SDK cannot deliver a final
+                  snapshot, the service finalizes the latest stored snapshot after that deadline. Heartbeats do not
+                  reset the SDK inactivity timer. The next interaction after SDK finalization starts a new logical page
+                  view.
                 </td>
               </tr>
             </tbody>
@@ -243,7 +245,15 @@
           <div class="controls">
             <label>Activity window (ms)<input id="threshold" type="number" min="1" value="5000" required /></label>
             <label>Heartbeat (ms)<input id="heartbeat" type="number" min="1" value="15000" required /></label>
-            <label>Inactivity timeout (ms)<input id="timeout" type="number" min="2" value="180000" required /></label>
+            <label
+              >Inactivity timeout (ms; max 24 hours)<input
+                id="timeout"
+                type="number"
+                min="2"
+                max="86400000"
+                value="180000"
+                required
+            /></label>
             <button type="button" id="defaults">Use defaults</button>
           </div>
           <div class="controls" style="margin-top: 16px">

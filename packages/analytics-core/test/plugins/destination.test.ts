@@ -91,6 +91,22 @@ describe('destination', () => {
   });
 
   describe('execute', () => {
+    test('rejects a superseded snapshot without replacing the queued final copy', async () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      jest.spyOn(destination, 'saveEvents').mockImplementation(jest.fn);
+      const final = { event_type: 'page', insert_id: 'page-id', delay: { id: 'group', acceptSnapshot: () => true } };
+      void destination.execute(final);
+      const stale = {
+        ...final,
+        delay: { id: 'group', timeout: 180_000, acceptSnapshot: () => false },
+      };
+      const result = await destination.execute(stale);
+      expect(result.code).toBe(0);
+      expect(destination.queue.map((context) => context.event)).toEqual([final]);
+    });
+
     test('should execute plugin', async () => {
       const uuid: string = expect.stringMatching(uuidPattern) as string;
       const destination = new Destination();

@@ -6,6 +6,8 @@ export interface Delay {
   timeout?: number;
   // Do not drop this event when a send for the same insert_id completes.
   skipRemoval?: true;
+  /** @internal Admit an in-memory snapshot after async enrichment. Return false to drop it. Never sent to the service. */
+  acceptSnapshot?: () => boolean;
 }
 
 export interface BaseEvent extends EventOptions {

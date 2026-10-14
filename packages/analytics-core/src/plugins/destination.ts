@@ -123,6 +123,11 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
+    // Engagement snapshots can finish async plugins out of order. Check before
+    // coalescing the queue so an older snapshot cannot replace a newer/final copy.
+    if (event.delay?.acceptSnapshot?.() === false) {
+      return Promise.resolve(buildResult(event, 0, 'Superseded delayed snapshot'));
+    }
     // Assign insert_id for dropping invalid event later
     if (!event.insert_id) {
       event.insert_id = UUID();

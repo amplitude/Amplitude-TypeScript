@@ -60,9 +60,11 @@ element('settings').onsubmit = async (event) => {
   const apiKey = input('api-key').value.trim();
   if (
     ![threshold, pulse, timeout].every((value) => Number.isFinite(value) && value > 0 && value <= 2147483647) ||
-    pulse >= timeout
+    pulse >= timeout ||
+    timeout > 86400000
   ) {
-    element('error').textContent = 'Use positive durations and a heartbeat shorter than the inactivity timeout.';
+    element('error').textContent =
+      'Use positive durations, a heartbeat shorter than the inactivity timeout, and an inactivity timeout of at most 24 hours.';
     return;
   }
   if (live && !apiKey) {

@@ -4,6 +4,7 @@ import {
   Event,
   Heartbeat,
   BrowserConfig,
+  ILogger,
   EngagedTimeOptions,
   UUID,
 } from '@amplitude/analytics-core';
@@ -20,14 +21,26 @@ interface PageSession {
   lastActivity: number;
   engaged: number;
   version: number;
+  lastQueuedVersion: number;
   nextSnapshotReason: 'initial' | 'heartbeat' | 'background';
 }
 
 // Browser timers use a signed 32-bit millisecond delay. Larger values can overflow.
 const MAX_TIMER_DELAY_MILLIS = 2_147_483_647;
+// The delayed-event service rejects request timeouts greater than 24 hours.
+const MAX_PAGE_SESSION_TIMEOUT_MILLIS = 86_400_000;
 
-function resolveDurationMillis(value: number | undefined, defaultValue: number): number {
-  if (value === undefined || !Number.isFinite(value) || value <= 0 || value > MAX_TIMER_DELAY_MILLIS) {
+function resolveDurationMillis(
+  value: number | undefined,
+  defaultValue: number,
+  logger: ILogger,
+  maximum = MAX_TIMER_DELAY_MILLIS,
+): number {
+  if (value === undefined) return defaultValue;
+  if (!Number.isFinite(value) || value <= 0 || value > maximum) {
+    logger.debug(
+      `Page engagement: duration ${value} ms is invalid; using default ${defaultValue} ms. Expected a finite value greater than 0 and at most ${maximum} ms.`,
+    );
     return defaultValue;
   }
   return value;
@@ -51,10 +64,19 @@ export class PageEngagement {
     private config: BrowserConfig,
     private newPageView: () => void,
   ) {
-    this.timeout = resolveDurationMillis(options.pageSessionTimeoutMillis, DEFAULT_PAGE_SESSION_TIMEOUT);
-    this.threshold = resolveDurationMillis(options.engagementThresholdMillis, DEFAULT_ENGAGEMENT_THRESHOLD);
+    this.timeout = resolveDurationMillis(
+      options.pageSessionTimeoutMillis,
+      DEFAULT_PAGE_SESSION_TIMEOUT,
+      config.loggerProvider,
+      MAX_PAGE_SESSION_TIMEOUT_MILLIS,
+    );
+    this.threshold = resolveDurationMillis(
+      options.engagementThresholdMillis,
+      DEFAULT_ENGAGEMENT_THRESHOLD,
+      config.loggerProvider,
+    );
     this.pulse = Math.min(
-      resolveDurationMillis(options.heartbeatIntervalMillis, DEFAULT_ENGAGEMENT_HEARTBEAT),
+      resolveDurationMillis(options.heartbeatIntervalMillis, DEFAULT_ENGAGEMENT_HEARTBEAT, config.loggerProvider),
       this.timeout / 2,
     );
     this.foreground = this.isForeground();
@@ -115,6 +137,7 @@ export class PageEngagement {
       lastActivity: now,
       engaged: 0,
       version: 0,
+      lastQueuedVersion: 0,
       nextSnapshotReason: 'initial',
     };
     this.session = session;
@@ -133,15 +156,26 @@ export class PageEngagement {
 
   private snapshot(session: PageSession, reason: string): Event {
     this.settle(session);
+    const version = ++session.version;
     return {
       ...session.event,
+      delay: {
+        ...session.event.delay!,
+        acceptSnapshot: () => {
+          // Compare with the last copy that reached Destination, so a slow plugin
+          // can still deliver snapshots while newer copies are being constructed.
+          if (version < session.lastQueuedVersion) return false;
+          session.lastQueuedVersion = version;
+          return true;
+        },
+      },
       // Prototype taxonomy; SDK-392 tracks final customer-facing names and units.
       event_properties: {
         ...session.event.event_properties,
         '[Amplitude] Engaged Time': session.engaged,
         '[Amplitude] Total Time': session.updated - session.started,
         // Internal diagnostics; version counts constructed snapshots, not requests.
-        '[Amplitude] Snapshot Version': ++session.version,
+        '[Amplitude] Snapshot Version': version,
         '[Amplitude] Engagement Snapshot Reason': reason,
       },
     };
@@ -189,7 +223,7 @@ export class PageEngagement {
   private retire(session: PageSession, reason: string) {
     clearTimeout(this.inactivityTimer);
     const event = this.snapshot(session, reason);
-    event.delay = { id: session.event.delay!.id };
+    event.delay = { ...event.delay!, timeout: undefined };
     void session.heartbeat.update(event);
     session.heartbeat.pause();
     this.session = undefined;

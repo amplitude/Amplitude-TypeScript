@@ -58,14 +58,14 @@ describe('page engagement', () => {
   test('caps idle engagement at five seconds, sends cumulative snapshots every 15 seconds and finalizes at three minutes', async () => {
     await start();
     const delay = latest().delay;
-    expect(delay).toEqual({ id: expect.any(String), timeout: 180_000 });
+    expect(delay).toMatchObject({ id: expect.any(String), timeout: 180_000 });
     expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('initial');
     await jest.advanceTimersByTimeAsync(15_000);
     expect(sent).toHaveLength(2);
     expect(engaged()).toBe(5_000);
     expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('heartbeat');
     await jest.advanceTimersByTimeAsync(165_000);
-    expect(latest().delay).toEqual({ id: delay!.id });
+    expect(latest().delay).toMatchObject({ id: delay!.id, timeout: undefined });
     expect(engaged()).toBe(5_000);
     expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('inactivity');
     expect(sent.every((event) => event.time === original.time && event.insert_id === original.insert_id)).toBe(true);
@@ -186,7 +186,7 @@ describe('page engagement', () => {
     await jest.advanceTimersByTimeAsync(3_000);
     owner.start({ ...original, insert_id: 'second-id', time: 103_000 });
     expect(engaged()).toBe(3_000);
-    expect(latest().delay).toEqual({ id: firstId });
+    expect(latest().delay).toMatchObject({ id: firstId, timeout: undefined });
     await jest.advanceTimersByTimeAsync(1);
     expect(latest().insert_id).toBe('second-id');
     expect(latest().delay!.id).not.toBe(firstId);
@@ -223,11 +223,64 @@ describe('page engagement', () => {
   });
 
   test.each([NaN, Infinity, 0, -1, 2_147_483_648])('uses defaults for invalid timing %s', async (value) => {
+    const debug = jest.spyOn(Logger.prototype, 'debug');
     await start({ engagementThresholdMillis: value, heartbeatIntervalMillis: value, pageSessionTimeoutMillis: value });
+    expect(debug).toHaveBeenCalledWith(
+      `Page engagement: duration ${value} ms is invalid; using default 180000 ms. Expected a finite value greater than 0 and at most 86400000 ms.`,
+    );
+    expect(debug).toHaveBeenCalledWith(expect.stringContaining('using default 5000 ms'));
+    expect(debug).toHaveBeenCalledWith(expect.stringContaining('using default 15000 ms'));
     await jest.advanceTimersByTimeAsync(15_000);
     expect(sent).toHaveLength(2);
     expect(engaged()).toBe(5_000);
     expect(latest().delay!.timeout).toBe(180_000);
+  });
+
+  test('does not log a fallback for omitted or valid durations', async () => {
+    const debug = jest.spyOn(Logger.prototype, 'debug');
+    await start({ heartbeatIntervalMillis: 15_000 });
+    expect(debug).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [86_400_000, 86_400_000],
+    [86_400_001, 180_000],
+    [172_800_000, 180_000],
+  ])('resolves page timeout %i to the service-compatible duration %i', async (value, expected) => {
+    await start({ pageSessionTimeoutMillis: value, heartbeatIntervalMillis: 60_000 });
+    expect(latest().delay!.timeout).toBe(expected);
+    // The same resolved duration drives SDK finalization.
+    jest.setSystemTime(100_000 + expected - 1);
+    await jest.advanceTimersByTimeAsync(60_000);
+    expect(latest().delay!.timeout).toBeUndefined();
+    expect(latest().event_properties!['[Amplitude] Total Time']).toBe(expected);
+  });
+
+  test('invalidates older snapshots while keeping the final copy valid after a new page starts', async () => {
+    await start();
+    const initial = latest();
+    expect(initial.delay!.acceptSnapshot!()).toBe(true);
+    await jest.advanceTimersByTimeAsync(2_000);
+    window.dispatchEvent(new Event('blur'));
+    const background = latest();
+    expect(background.delay!.acceptSnapshot!()).toBe(true);
+    expect(initial.delay!.acceptSnapshot!()).toBe(false);
+    owner.finish('pagehide');
+    const final = latest();
+    expect(final.delay!.acceptSnapshot!()).toBe(true);
+    expect(background.delay!.acceptSnapshot!()).toBe(false);
+    owner.start({ ...original, insert_id: 'next-page' });
+    await jest.advanceTimersByTimeAsync(1);
+    expect(final.delay!.acceptSnapshot!()).toBe(true);
+  });
+
+  test('allows a slow snapshot until a newer version actually enters the destination queue', async () => {
+    await start();
+    const initial = latest();
+    await jest.advanceTimersByTimeAsync(30_000);
+    expect(initial.delay!.acceptSnapshot!()).toBe(true);
+    expect(latest().delay!.acceptSnapshot!()).toBe(true);
+    expect(initial.delay!.acceptSnapshot!()).toBe(false);
   });
 
   test('background initial load accrues no time and fills missing event IDs', async () => {

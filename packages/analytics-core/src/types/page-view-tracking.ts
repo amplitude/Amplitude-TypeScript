@@ -22,6 +22,7 @@ export interface EngagedTimeOptions {
   heartbeatIntervalMillis?: number;
   /**
    * Finalize the page view after this many milliseconds without activity. Defaults to 180,000 (3 minutes).
+   * Maximum: 86,400,000 (24 hours). Invalid values fall back to the default.
    * The same duration is sent as the delayed request timeout for server-side fallback after the last accepted heartbeat.
    */
   pageSessionTimeoutMillis?: number;
