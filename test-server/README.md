@@ -32,10 +32,10 @@ Invalid durations fall back to defaults; the heartbeat
 is capped at half the page timeout to leave room for service renewal. Tracking is
 disabled by default. Video keeps its separate 60-second heartbeat and one-hour TTL.
 
-Use the quick-test preset (1 / 2 / 10 seconds) to check:
+Use the default settings (5 seconds / 15 seconds / 3 minutes) to check:
 
-1. Leave the page idle: engagement stops after one second, snapshots keep the same
-   `insert_id`, `time`, page-view ID, and counter, and the ten-second timeout emits
+1. Leave the page idle: engagement stops after five seconds, snapshots keep the same
+   `insert_id`, `time`, page-view ID, and counter, and the three-minute timeout emits
    one final copy in `instant_events`.
 2. Move, scroll, or type before expiry: the same logical page resumes.
 3. Switch tabs or applications: engagement pauses immediately. Return before

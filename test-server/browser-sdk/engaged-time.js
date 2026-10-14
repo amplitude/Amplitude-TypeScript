@@ -40,11 +40,6 @@ function showPayload(url, payload) {
     summary.textContent = `${label} · ${message}`;
   };
 }
-element('fast').onclick = () => {
-  input('threshold').value = '1000';
-  input('heartbeat').value = '2000';
-  input('timeout').value = '10000';
-};
 element('defaults').onclick = () => {
   input('threshold').value = '5000';
   input('heartbeat').value = '15000';
