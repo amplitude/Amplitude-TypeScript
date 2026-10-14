@@ -3,10 +3,18 @@ export interface PageTrackingOptions {
   trackHistoryChanges?: PageTrackingHistoryChanges;
   eventType?: string;
   pageCounter?: number;
-  /** Delay page-view ingestion and attach cumulative engaged time. True or an options object enables it; defaults to false. */
+  /**
+   * Delay page-view ingestion and attach cumulative engaged time. True or an options object enables it.
+   * @defaultValue `false`
+   * @experimental This feature is experimental and may not be stable.
+   */
   trackEngagedTime?: boolean | EngagedTimeOptions;
 }
 
+/**
+ * Configuration options for engaged-time tracking.
+ * @experimental This feature is experimental and may not be stable.
+ */
 export interface EngagedTimeOptions {
   /** Rolling activity window in milliseconds. Defaults to 5,000. */
   engagementThresholdMillis?: number;

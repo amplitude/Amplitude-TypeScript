@@ -10,6 +10,8 @@ To run this in 'dev' mode, from the root of this project, run `pnpm dev`. This w
 
 ## Engaged-time SDK demo
 
+Engaged-time tracking is **experimental** and disabled by default. Its API and behavior may change.
+
 Open `/browser-sdk/engaged-time.html` after building the packages and starting Vite
 (`pnpm exec vite --host 127.0.0.1`). The app imports the local Browser SDK, enables
 `autocapture.pageViews.trackEngagedTime`, and displays actual HTTP payloads. Its
