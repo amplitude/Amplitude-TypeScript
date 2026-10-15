@@ -179,16 +179,25 @@ export interface IRemoteConfigClient {
  * Falls back to the original object when the payload cannot be cloned, which
  * keeps delivery working at the cost of the isolation.
  */
-function cloneConfig(config: RemoteConfig | null): RemoteConfig | null {
+function cloneConfig(config: RemoteConfig | null, logger: ILogger): RemoteConfig | null {
   if (config === null) {
     return null;
   }
   try {
     return JSON.parse(JSON.stringify(config)) as RemoteConfig;
   } catch {
+    logger.warn('Remote config client failed to clone config, fallback to returning the original object');
     return config;
   }
 }
+
+/**
+ * How {@link RemoteConfigClient.persistConfig} should treat a fetch result.
+ * - `store`: the server answered. Persist the body, including `null` when remote config was removed.
+ * - `retain`: the request failed. Leave the previous cache in place.
+ * - `clear`: 401/403. Drop the cached config so a revoked key cannot keep stale features enabled.
+ */
+type FetchStorageAction = 'store' | 'retain' | 'clear';
 
 export class RemoteConfigClient implements IRemoteConfigClient {
   static readonly DEFAULT_CONFIG_GROUP = 'browser';
@@ -206,6 +215,8 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   fetchPromise: Promise<RemoteConfigInfo> | null = null;
   // Used to skip periodic updateConfigs calls when API key is invalid.
   isLastFetchInvalidApiKey = false;
+  // Set by fetch() so a null config can mean "request failed", "no remote config", or "invalid key".
+  private fetchStorageAction: FetchStorageAction = 'retain';
   // Optional custom transport. When provided, it replaces the internal fetch for the config GET
   // (e.g. to attach auth and route through a proxy). Retry stays in the client around it.
   readonly customFetch?: RemoteConfigCustomFetch;
@@ -276,20 +287,37 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   }
 
   /**
-   * Write a fetch result to storage, unless the fetch failed.
+   * Write a fetch result to storage.
    *
-   * {@link fetch} resolves with a `null` config once every attempt has failed
-   * (timeout, network error, non-retryable status). Caching that erases the last
-   * good copy, so the next page load has no cache to fall back on while the
-   * remote fetch is in flight — and stays on default behavior for the whole page
-   * view if that fetch fails too. Keeping the previous copy makes a failed fetch
-   * a no-op instead.
+   * A null config is not one outcome. {@link fetch} uses it for a failed request,
+   * a successful response with no remote config, and an invalid API key. Those
+   * have to be stored differently:
+   * - A failed request (timeout, network error, 5xx, other 4xx) keeps the last
+   *   good copy. Caching null would erase it, so the next page load has nothing
+   *   to use while the remote fetch is in flight.
+   * - A successful response is stored as sent, including `null` or `{}`. That is
+   *   how "remote config was removed" reaches the next page load. Leaving the
+   *   previous copy in place would keep the disabled config active.
+   * - 401 and 403 clear the cache. The key is permanently unauthorized, and a
+   *   later page load would otherwise apply the stale config before the remote
+   *   null arrives. Subscribers ignore that null, so the stale config would stay
+   *   in effect.
    */
   persistConfig(remoteConfigInfo: RemoteConfigInfo) {
-    if (remoteConfigInfo.remoteConfig === null) {
-      this.logger.debug('Remote config client skipping storage update: Fetch returned no config');
+    if (remoteConfigInfo.remoteConfig !== null) {
+      void this.storage.setConfig(remoteConfigInfo);
       return;
     }
+
+    if (this.fetchStorageAction === 'retain') {
+      this.logger.debug('Remote config client skipping storage update: Fetch failed');
+      return;
+    }
+
+    if (this.fetchStorageAction === 'clear') {
+      this.logger.debug('Remote config client clearing stored config: Invalid API key');
+    }
+
     void this.storage.setConfig(remoteConfigInfo);
   }
 
@@ -304,6 +332,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
 
     if (this.isLastFetchInvalidApiKey) {
       this.logger.debug('Remote config client skipping fetch: Invalid API key');
+      this.fetchStorageAction = 'clear';
       this.fetchPromise = Promise.resolve({
         remoteConfig: null,
         lastFetch: new Date(),
@@ -315,8 +344,9 @@ export class RemoteConfigClient implements IRemoteConfigClient {
 
     this.fetchPromise = this.fetch()
       .then((result) => {
-        // Update last successful fetch time if we got a valid config
-        if (result.remoteConfig !== null) {
+        // Throttle after a completed response, including one that removed remote config.
+        // A failed fetch leaves the timer alone so the next attempt is not delayed.
+        if (result.remoteConfig !== null || this.fetchStorageAction === 'store') {
           this.lastSuccessfulFetch = Date.now();
         }
         return result;
@@ -419,7 +449,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
       filteredConfig = remoteConfigInfo.remoteConfig;
     }
 
-    callbackInfo.callback(cloneConfig(filteredConfig), source, remoteConfigInfo.lastFetch);
+    callbackInfo.callback(cloneConfig(filteredConfig, this.logger), source, remoteConfigInfo.lastFetch);
   }
 
   /**
@@ -441,6 +471,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
    */
   async fetch(retries: number = DEFAULT_MAX_RETRIES, timeout: number = DEFAULT_TIMEOUT): Promise<RemoteConfigInfo> {
     const interval = timeout / retries;
+    this.fetchStorageAction = 'retain';
     const failedRemoteConfigInfo: RemoteConfigInfo = {
       remoteConfig: null,
       lastFetch: new Date(),
@@ -486,13 +517,15 @@ export class RemoteConfigClient implements IRemoteConfigClient {
               `Remote config client fetch failed with ${res.status}. Invalid API key; future fetches will be skipped.`,
             );
             this.isLastFetchInvalidApiKey = true;
+            this.fetchStorageAction = 'clear';
             shouldRetry = false;
           } else if (res.status >= 400 && res.status < 500 && res.status !== CODE_STATUS.RATE_LIMIT) {
             shouldRetry = false;
           }
         } else {
-          // Handle successful fetch
-          const remoteConfig: RemoteConfig = (await res.json()) as RemoteConfig;
+          // Handle successful fetch. A null body is a real answer: remote config was removed.
+          const remoteConfig = (await res.json()) as RemoteConfig | null;
+          this.fetchStorageAction = 'store';
           return {
             remoteConfig: remoteConfig,
             lastFetch: new Date(),

@@ -588,9 +588,105 @@ describe('RemoteConfigClient', () => {
       });
 
       expect(mockStorage.setConfig).not.toHaveBeenCalled();
-      expect(loggerDebug).toHaveBeenCalledWith(
-        'Remote config client skipping storage update: Fetch returned no config',
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config client skipping storage update: Fetch failed');
+    });
+
+    test('should replace the cached config when a successful fetch returns no remote config', async () => {
+      storageFetchConfig.mockResolvedValue({
+        remoteConfig: { stale: true },
+        lastFetch: new Date(),
+      });
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(null),
+        } as Response),
       );
+
+      await client.subscribeAll({
+        id: mockUuid,
+        key: testKey,
+        deliveryMode: 'all' as DeliveryMode,
+        callback: jest.fn(),
+      });
+
+      expect(mockStorage.setConfig).toHaveBeenCalledTimes(1);
+      expect(mockStorage.setConfig).toHaveBeenCalledWith(expect.objectContaining({ remoteConfig: null }));
+    });
+
+    test('should replace the cached config when the server returns an empty config', async () => {
+      storageFetchConfig.mockResolvedValue({
+        remoteConfig: { stale: true },
+        lastFetch: new Date(),
+      });
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({}),
+        } as Response),
+      );
+
+      await client.subscribeAll({
+        id: mockUuid,
+        key: testKey,
+        deliveryMode: 'all' as DeliveryMode,
+        callback: jest.fn(),
+      });
+
+      expect(mockStorage.setConfig).toHaveBeenCalledTimes(1);
+      expect(mockStorage.setConfig).toHaveBeenCalledWith(expect.objectContaining({ remoteConfig: {} }));
+    });
+
+    test.each([401, 403])('should clear the cached config when the config endpoint returns %s', async (status) => {
+      storageFetchConfig.mockResolvedValue({
+        remoteConfig: { stale: true },
+        lastFetch: new Date(),
+      });
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status,
+          text: () => Promise.resolve('unauthorized'),
+        } as Response),
+      );
+
+      await client.subscribeAll({
+        id: mockUuid,
+        key: testKey,
+        deliveryMode: 'all' as DeliveryMode,
+        callback: jest.fn(),
+      });
+
+      expect(mockStorage.setConfig).toHaveBeenCalledTimes(1);
+      expect(mockStorage.setConfig).toHaveBeenCalledWith(expect.objectContaining({ remoteConfig: null }));
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config client clearing stored config: Invalid API key');
+    });
+
+    test('should keep the cached config when the server returns 500', async () => {
+      storageFetchConfig.mockResolvedValue({
+        remoteConfig: { stale: true },
+        lastFetch: new Date(),
+      });
+      jest.spyOn(client, 'getJitterDelay').mockReturnValue(0);
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve('unavailable'),
+        } as Response),
+      );
+
+      await client.subscribeAll({
+        id: mockUuid,
+        key: testKey,
+        deliveryMode: 'all' as DeliveryMode,
+        callback: jest.fn(),
+      });
+
+      expect(mockStorage.setConfig).not.toHaveBeenCalled();
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config client skipping storage update: Fetch failed');
     });
 
     test('should not persist a subscriber mutation of the delivered config', async () => {
@@ -941,9 +1037,13 @@ describe('RemoteConfigClient', () => {
         callback,
       };
 
+      const loggerWarn = jest.spyOn(mockLogger, 'warn');
       client.sendCallback(callbackInfo, remoteConfigInfo, 'remote');
 
       expect(callback).toHaveBeenCalledWith(circular, 'remote', remoteConfigInfo.lastFetch);
+      expect(loggerWarn).toHaveBeenCalledWith(
+        'Remote config client failed to clone config, fallback to returning the original object',
+      );
     });
   });
 
