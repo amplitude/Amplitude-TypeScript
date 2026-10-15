@@ -27,6 +27,59 @@ describe('engaged page sources through the Browser SDK', () => {
     jest.useRealTimers();
   });
 
+  test('uploads clean page snapshots even after enrichment and keeps identify separate', async () => {
+    const send = jest.fn<ReturnType<Transport['send']>, Parameters<Transport['send']>>().mockResolvedValue({
+      status: Status.Success,
+      statusCode: 200,
+      body: { eventsIngested: 1, payloadSizeBytes: 0, serverUploadTime: 100_000 },
+    });
+    await client.add({
+      name: 'transport',
+      type: 'before',
+      async setup(config) {
+        config.transportProvider = { send };
+      },
+    }).promise;
+    await client.init('test-key', {
+      autocapture: {
+        attribution: false,
+        sessions: false,
+        fileDownloads: false,
+        formInteractions: false,
+        pageViews: { trackEngagedTime: true },
+      },
+      fetchRemoteConfig: false,
+      enableDiagnostics: false,
+      identityStorage: 'none',
+      offline: false,
+      flushIntervalMillis: 10,
+      logLevel: 0,
+    }).promise;
+    await client.add({
+      name: 'late-user-properties',
+      type: 'enrichment',
+      async execute(event) {
+        if (event.event_type === '[Amplitude] Page Viewed') event.user_properties = { $set: { plan: 'old' } };
+        return event;
+      },
+    }).promise;
+    await jest.advanceTimersByTimeAsync(20);
+    client.track({ event_type: '$identify', user_properties: { $set: { plan: 'new' } } });
+    await jest.advanceTimersByTimeAsync(15_000);
+    await client.remove('@amplitude/plugin-page-view-tracking-browser').promise;
+    await jest.advanceTimersByTimeAsync(20);
+    const events = send.mock.calls.flatMap(([, payload]) => {
+      const delayed = payload as Payload & { instant_events?: Payload['events'] };
+      return [...payload.events, ...(delayed.instant_events || [])];
+    });
+    const pages = events.filter((event) => event.event_type === '[Amplitude] Page Viewed');
+    expect(pages.length).toBeGreaterThanOrEqual(3);
+    expect(pages.every((event) => !Object.prototype.hasOwnProperty.call(event, 'user_properties'))).toBe(true);
+    expect(events.filter((event) => event.event_type === '$identify')).toEqual([
+      expect.objectContaining({ user_properties: { $set: { plan: 'new' } } }),
+    ]);
+  });
+
   test.each([false, true])('preserves navigation sources with trackEngagedTime=%s', async (trackEngagedTime) => {
     const send = jest.fn<ReturnType<Transport['send']>, Parameters<Transport['send']>>().mockResolvedValue({
       status: Status.Success,

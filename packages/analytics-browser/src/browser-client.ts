@@ -337,7 +337,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // of the page view. Keep the existing plugin order for ordinary page views.
     const enrichBeforePageTracking =
       isPageViewTrackingEnabled(this.config.defaultTracking) &&
-      Boolean(getPageViewTrackingConfig(this.config).trackEngagedTime);
+      Boolean(getPageViewTrackingConfig(this.config).trackEngagedTime) &&
+      getPageViewTrackingConfig(this.config).trackOn === undefined;
     if (enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding referrer page url plugin');
       await this.add(pageUrlEnrichmentPlugin()).promise;

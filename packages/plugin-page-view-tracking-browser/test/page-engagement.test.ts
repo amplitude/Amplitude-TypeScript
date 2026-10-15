@@ -18,6 +18,7 @@ describe('page engagement', () => {
     insert_id: 'original-id',
     time: 100_000,
     user_id: 'original-user',
+    user_properties: { $set: { plan: 'old' } },
     session_id: 123,
     event_properties: { '[Amplitude] Page View ID': 'view-one', '[Amplitude] Page Counter': 1 },
   };
@@ -57,6 +58,7 @@ describe('page engagement', () => {
 
   test('caps idle engagement at five seconds, sends cumulative snapshots every 15 seconds and finalizes at three minutes', async () => {
     await start();
+    expect(latest().user_properties).toBeUndefined();
     const delay = latest().delay;
     expect(delay).toMatchObject({ id: expect.any(String), timeout: 180_000 });
     expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('initial');

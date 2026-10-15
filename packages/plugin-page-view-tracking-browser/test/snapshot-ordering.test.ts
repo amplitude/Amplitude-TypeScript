@@ -24,8 +24,10 @@ describe('engagement delivery through the SDK pipeline', () => {
     const client = new TestClient();
     await client.init(config);
     await client.add(new Destination()).promise;
-    const plugin = pageViewTrackingPlugin({ trackEngagedTime: true, trackOn: () => false });
+    Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
+    const plugin = pageViewTrackingPlugin({ trackEngagedTime: true });
     await client.add(plugin).promise;
+    Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
     try {
       const properties = Object.fromEntries(
         Array.from({ length: 60 }, (_, index) => [`field${index}`, 'x'.repeat(800)]),

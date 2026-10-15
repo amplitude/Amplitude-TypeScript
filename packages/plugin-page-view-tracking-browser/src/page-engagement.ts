@@ -116,7 +116,7 @@ export class PageEngagement {
         event_properties: { ...event.event_properties },
         // Share the SDK inactivity duration with the service fallback. The SDK counts
         // from last activity; the service counts from the last accepted heartbeat.
-        delay: { id: UUID(), timeout: this.timeout },
+        delay: { id: UUID(), timeout: this.timeout, omitUserProperties: true },
       },
       heartbeat: new Heartbeat(this.client, this.pulse, this.timeout, this.config.loggerProvider, {
         // This owner settles elapsed time and finalizes before sending.
@@ -141,6 +141,8 @@ export class PageEngagement {
       lastQueuedVersion: 0,
       nextSnapshotReason: 'initial',
     };
+    // Arrival after server expiry must not overwrite more recent identify updates.
+    delete session.event.user_properties;
     if (!session.heartbeat.enqueue(this.snapshot(session, 'initial'))) {
       // Do not turn subsequent activity on this page into repeated fallback views.
       this.skippedPage = true;

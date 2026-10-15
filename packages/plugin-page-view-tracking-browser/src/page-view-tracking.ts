@@ -37,7 +37,6 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   const pendingPageViews = new Map<string, number>();
   let pageRevision = 0;
   let pageHasExited = false;
-  let canRenewAttributionPageView = false;
   let removePrerenderListener: (() => void) | undefined;
   let removePageLifecycleListeners: (() => void) | undefined;
   const { trackOn, trackHistoryChanges, eventType = defaultPageViewEvent } = options;
@@ -108,9 +107,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     previousURL = newURL;
 
     if (engagement && isNewPage) {
-      // Leaving a page ends its engagement even when trackOn excludes the next page.
+      // Navigation ends the previous page and invalidates pending page creation.
       pageRevision += 1;
-      canRenewAttributionPageView = false;
       engagement.finish('navigation');
     }
     if (shouldTrackPageView) {
@@ -148,7 +146,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
 
       isTracking = true;
-      if (options.trackEngagedTime && globalScope?.document) {
+      if (options.trackEngagedTime && trackOn === undefined && globalScope?.document) {
         // Invalidate pending creations before the engagement owner handles these events.
         const onPageHide = () => {
           pageHasExited = true;
@@ -165,9 +163,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         };
         const engagementOptions = typeof options.trackEngagedTime === 'object' ? options.trackEngagedTime : {};
         engagement = new PageEngagement(client, globalScope, engagementOptions, config, () => {
-          if (trackOn === 'attribution' ? canRenewAttributionPageView : shouldTrackOnPageLoad()) {
-            void trackNewPageView(client);
-          }
+          void trackNewPageView(client);
         });
       }
       if (globalScope) {
@@ -264,8 +260,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         };
         if (engagement) {
           if (localConfig.optOut) return null;
-          // Attribution-only routes can renew after a view has actually been tracked.
-          canRenewAttributionPageView = true;
+          // Delayed page views must never replay user-property updates. Use identify separately.
+          delete event.user_properties;
           // Suppress the original only after the heartbeat accepts its snapshot.
           return engagement.start(event) ? null : event;
         }

@@ -8,6 +8,8 @@ export interface Delay {
   skipRemoval?: true;
   /** @internal Admit an in-memory snapshot after async enrichment. Return false to drop it. Never sent to the service. */
   acceptSnapshot?: () => boolean;
+  /** @internal Strip user properties from delayed snapshots before delivery. */
+  omitUserProperties?: boolean;
 }
 
 export interface BaseEvent extends EventOptions {

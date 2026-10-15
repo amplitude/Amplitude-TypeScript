@@ -128,6 +128,8 @@ export class Destination implements DestinationPlugin {
     if (event.delay?.acceptSnapshot?.() === false) {
       return Promise.resolve(buildResult(event, 0, 'Superseded delayed snapshot'));
     }
+    // Enrichment plugins may have added properties after the snapshot was created.
+    if (event.delay?.omitUserProperties) delete event.user_properties;
     // Assign insert_id for dropping invalid event later
     if (!event.insert_id) {
       event.insert_id = UUID();

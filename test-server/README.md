@@ -116,3 +116,7 @@ Browser autocapture remote values take precedence, including over local `false`.
 The existing merge is shallow: omitting remote `pageViews` preserves the local
 page-view configuration, but supplying remote `pageViews` replaces that whole
 object. It does not merge individual engagement timings with local timings.
+
+Engaged-time tracking only supports the default `trackOn` (`undefined`). Custom callbacks (including `() => true`) and `attribution` retain ordinary page-view tracking without engagement.
+
+Engaged page views and their snapshots omit `user_properties`. Send user-property updates separately with `identify()`. A delayed page view may arrive after newer events when the service expires it; carrying older user-property updates would overwrite newer values in ingestion order.

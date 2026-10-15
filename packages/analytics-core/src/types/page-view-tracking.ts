@@ -5,6 +5,8 @@ export interface PageTrackingOptions {
   pageCounter?: number;
   /**
    * Delay page-view ingestion and attach cumulative engaged time. True or an options object enables it.
+   * Only supported with the default trackOn (undefined). Custom callbacks and attribution disable engagement.
+   * Engaged page views omit user_properties; send user-property updates with a separate identify call.
    * @defaultValue `false`
    * @experimental This feature is experimental and may not be stable.
    */

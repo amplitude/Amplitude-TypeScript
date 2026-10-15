@@ -91,6 +91,20 @@ describe('destination', () => {
   });
 
   describe('execute', () => {
+    test.each([180_000, undefined])('strips engagement user properties before delivery (timeout=%s)', (timeout) => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      jest.spyOn(destination, 'saveEvents').mockImplementation(jest.fn);
+      const event = {
+        event_type: 'page',
+        user_properties: { $set: { plan: 'old' }, $unset: { obsolete: '-' } },
+        delay: { id: 'group', timeout, omitUserProperties: true },
+      };
+      void destination.execute(event);
+      expect(destination.queue[0].event).not.toHaveProperty('user_properties');
+    });
+
     test('rejects a superseded snapshot without replacing the queued final copy', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
