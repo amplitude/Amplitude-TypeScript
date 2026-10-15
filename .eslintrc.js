@@ -78,5 +78,23 @@ module.exports = {
         '@typescript-eslint/no-unsafe-argument': 'off',
       },
     },
+    {
+      files: ['packages/*/src/**/*.ts'],
+      excludedFiles: ['packages/zoning-core/**'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              {
+                group: ['@amplitude/zoning-core', '@amplitude/zoning-core/*'],
+                message:
+                  'SDK packages must not depend on @amplitude/zoning-core.',
+              },
+            ],
+          },
+        ],
+      },
+    },
   ],
 };
