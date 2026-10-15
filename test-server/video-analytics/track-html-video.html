@@ -12,6 +12,7 @@
     <button id="next-video">Next video</button>
     <button id="stop-video">Stop Capturing</button>
     <button id="force-error">Force Error</button>
+    <button id="remove-video">Remove Video</button>
     <script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/mux-embed@latest/dist/mux.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
@@ -124,6 +125,10 @@
 
       document.getElementById('force-error').addEventListener('click', () => {
         video.dispatchEvent(new Event('error'));
+      });
+
+      document.getElementById('remove-video').addEventListener('click', () => {
+        video.remove();
       });
     </script>
   </body>
