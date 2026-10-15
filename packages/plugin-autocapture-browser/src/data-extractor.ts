@@ -9,6 +9,7 @@ import {
   getPageTitle,
   replaceSensitiveString,
   RemoteConfig,
+  type BrowserConfig,
 } from '@amplitude/analytics-core';
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import * as constants from './constants';
@@ -27,13 +28,12 @@ import { getAncestors, getElementProperties } from './hierarchy';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
 import {
-  createSelectorEngine,
   resolveSelectorConfig,
-  type SelectorEngine,
   type ElementSelectorRemoteConfig,
   type ElementSelectorLogger,
 } from '@amplitude/element-selector';
-import { getSharedShadowGate, shadowModeFromConfig, type ShadowGate, type ShadowMode } from './shadow-mode';
+import { shadowModeFromConfig, type ShadowGate, type ShadowMode } from './shadow-mode';
+import { createSelectorRuntime, getSelectorRuntime, type SelectorRuntime } from './selector-runtime';
 
 const hasMaskedAncestorLight = (element: Element): boolean => element.closest(`[${TEXT_MASK_ATTRIBUTE}]`) !== null;
 
@@ -45,54 +45,33 @@ const hasMaskedAncestorInShadow = (element: Element, shadow: ShadowMode): boolea
   return document.documentElement?.hasAttribute(TEXT_MASK_ATTRIBUTE) ?? false;
 };
 
-/**
- * Module-level shared selector engine singleton. Both autocapture-plugin and
- * frustration-plugin create separate DataExtractor instances, and each
- * subscribes to remote config independently. By sharing a single engine across
- * all extractors, whichever subscription fires first updates the engine for
- * everyone, eliminating the window where one plugin could see updated config
- * while the other still uses defaults.
- */
-let sharedSelectorEngine: SelectorEngine | undefined;
-
-function getSharedSelectorEngine(): SelectorEngine {
-  if (!sharedSelectorEngine) {
-    sharedSelectorEngine = createSelectorEngine(resolveSelectorConfig());
-  }
-  return sharedSelectorEngine;
-}
-
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
   private pageViewApiKey?: string;
   diagnosticsClient?: IDiagnosticsClient;
 
   /**
-   * Shared element-selector engine. This is the single place autocapture turns
-   * an element into a selector string ({@link getElementPath}), so it's the
-   * seam where the legacy `cssPath` walker is swapped for the configurable
-   * engine. It ships dormant: with the default config (`enabled: false`) the
-   * engine routes through the byte-identical legacy walker, so behavior is
-   * unchanged until remote config flips an org onto the new algorithm via
-   * {@link updateSelectorConfig}.
+   * Selector state starts private so standalone DataExtractor consumers do not
+   * affect one another. Plugin setup replaces it with the runtime associated
+   * with that BrowserConfig, sharing state between the autocapture and
+   * frustration plugins of one SDK instance without leaking it to another.
    *
-   * The engine is shared across all DataExtractor instances to ensure
-   * consistent selector output when both autocapture-plugin and
-   * frustration-plugin are active.
+   * The engine ships dormant: with `enabled: false` it routes through the
+   * byte-identical legacy walker until remote config enables it.
    */
-  private readonly selectorEngine: SelectorEngine;
+  private selectorRuntime: SelectorRuntime;
 
   /**
-   * The page-scoped shadow-DOM gate. Exposed because the plugins pass it to the
-   * observables, which both read it per callback and subscribe to its arming to
-   * run their shadow discovery scan. See `shadow-mode.ts`.
+   * Exposed because observables read the gate per callback and subscribe to its
+   * arming to run their shadow discovery scan.
    */
-  readonly shadowGate: ShadowGate;
+  get shadowGate(): ShadowGate {
+    return this.selectorRuntime.shadowGate;
+  }
 
   constructor(options: ElementInteractionsOptions, context?: { diagnosticsClient: IDiagnosticsClient }) {
     this.diagnosticsClient = context?.diagnosticsClient;
-    this.selectorEngine = getSharedSelectorEngine();
-    this.shadowGate = getSharedShadowGate();
+    this.selectorRuntime = createSelectorRuntime();
 
     const rawPatterns = options.maskTextRegex ?? [];
 
@@ -116,6 +95,16 @@ export class DataExtractor {
 
   setPageViewApiKey = (apiKey: string | undefined): void => {
     this.pageViewApiKey = apiKey;
+  };
+
+  /**
+   * Join the selector runtime owned by this browser SDK instance.
+   *
+   * Called at the beginning of plugin setup, before subscriptions or
+   * observables retain a reference to the shadow gate.
+   */
+  bindSelectorRuntime = (config: BrowserConfig): void => {
+    this.selectorRuntime = getSelectorRuntime(config);
   };
 
   /**
@@ -203,7 +192,7 @@ export class DataExtractor {
     }
     const startTime = performance.now();
 
-    const elementPath = this.selectorEngine.generate(element);
+    const elementPath = this.selectorRuntime.engine.generate(element);
 
     const endTime = performance.now();
     this.diagnosticsClient?.recordHistogram('autocapturePlugin.getElementPath', endTime - startTime);
@@ -237,7 +226,7 @@ export class DataExtractor {
   };
 
   /**
-   * Apply an element-selector remote-config payload to the shared engine.
+   * Apply an element-selector remote-config payload to this instance's selector runtime.
    * Ignores `null`/absent deliveries and partial payloads that omit both
    * `enabled` and `shadowDomEnabled` (incomplete cache/remote handoffs must
    * not reset a live engine). Shadow piercing is latched via {@link ShadowGate};
@@ -259,12 +248,12 @@ export class DataExtractor {
     }
 
     const resolved = resolveSelectorConfig(remote, logger);
-    const prevEnabled = this.selectorEngine.getConfig().enabled;
+    const prevEnabled = this.selectorRuntime.engine.getConfig().enabled;
     const prevShadow = this.shadowGate.get().enabled;
     const mode = this.shadowGate.arm(shadowModeFromConfig(resolved));
 
-    this.selectorEngine.updateConfig({
-      ...(hasEnabled ? resolved : this.selectorEngine.getConfig()),
+    this.selectorRuntime.engine.updateConfig({
+      ...(hasEnabled ? resolved : this.selectorRuntime.engine.getConfig()),
       shadowDomEnabled: mode.enabled,
       ...(mode.enabled && { maxShadowDomDepth: mode.maxDepth }),
     });

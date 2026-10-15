@@ -288,6 +288,9 @@ export const autocapturePlugin = (
       return;
     }
 
+    // Autocapture and frustration plugins installed by this SDK instance share
+    // one selector runtime, isolated from every other BrowserConfig on the page.
+    dataExtractor.bindSelectorRuntime(config);
     dataExtractor.setPageViewApiKey(config.apiKey);
 
     let pageViewEndFired = false;
