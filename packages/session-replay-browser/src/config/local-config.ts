@@ -1,5 +1,7 @@
 import { Config, ILogger, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
 import {
+  DEFAULT_DEFER_FULL_SNAPSHOT_MAX_WAIT_MS,
+  DEFER_FULL_SNAPSHOT_MAX_WAIT_CEILING_MS,
   DEFAULT_FLUSH_MAX_INTERVAL_MS,
   DEFAULT_FLUSH_MIN_INTERVAL_MS,
   DEFAULT_PERFORMANCE_CONFIG,
@@ -14,6 +16,7 @@ import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
   CrossOriginIframesConfig,
+  DeferFullSnapshotConfig,
   FlushIntervalConfig,
   InteractionConfig,
   PrivacyConfig,
@@ -58,6 +61,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   flushIntervalConfig?: FlushIntervalConfig;
   eagerFullSnapshotSend?: boolean;
   captureFullSnapshotOnFocus?: boolean;
+  deferFullSnapshot?: DeferFullSnapshotConfig;
   maxPersistedEventsSizeBytes?: number;
   maxSingleEventSizeBytes?: number;
   handleSendEvents?: SessionReplaySendEventsHandler;
@@ -100,6 +104,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     // snapshot is off unless the consumer explicitly opts in. focusListener honors this by
     // skipping the snapshot whenever the value is not true.
     this.captureFullSnapshotOnFocus = options.captureFullSnapshotOnFocus ?? false;
+    if (options.deferFullSnapshot) {
+      this.deferFullSnapshot = sanitizeDeferFullSnapshotConfig(options.deferFullSnapshot, this.loggerProvider);
+    }
     if (options.maxPersistedEventsSizeBytes !== undefined) {
       this.maxPersistedEventsSizeBytes = sanitizeByteSize(
         options.maxPersistedEventsSizeBytes,
@@ -203,6 +210,51 @@ function sanitizeByteSize(
     return max;
   }
   return raw;
+}
+
+// Resolves every field of the deferral config so the runtime never has to re-apply defaults,
+// and guards against values that would either never defer or never start recording.
+function sanitizeDeferFullSnapshotConfig(
+  raw: DeferFullSnapshotConfig,
+  loggerProvider: ILogger,
+): Required<DeferFullSnapshotConfig> {
+  let until: 'load' | 'idle' = 'idle';
+  if (raw.until !== undefined) {
+    if (raw.until === 'load' || raw.until === 'idle') {
+      until = raw.until;
+    } else {
+      loggerProvider.warn(
+        `deferFullSnapshot.until ${String(raw.until)} is not one of 'load' | 'idle'; defaulting to 'idle'.`,
+      );
+    }
+  }
+
+  let delayMs = 0;
+  if (raw.delayMs !== undefined) {
+    if (Number.isFinite(raw.delayMs) && raw.delayMs >= 0) {
+      delayMs = raw.delayMs;
+    } else {
+      loggerProvider.warn(`deferFullSnapshot.delayMs ${String(raw.delayMs)} is not a non-negative number; using 0.`);
+    }
+  }
+
+  let maxWaitMs = DEFAULT_DEFER_FULL_SNAPSHOT_MAX_WAIT_MS;
+  if (raw.maxWaitMs !== undefined) {
+    if (!Number.isFinite(raw.maxWaitMs) || raw.maxWaitMs <= 0) {
+      loggerProvider.warn(
+        `deferFullSnapshot.maxWaitMs ${String(raw.maxWaitMs)} is not a positive number; using ${maxWaitMs}.`,
+      );
+    } else if (raw.maxWaitMs > DEFER_FULL_SNAPSHOT_MAX_WAIT_CEILING_MS) {
+      loggerProvider.warn(
+        `deferFullSnapshot.maxWaitMs ${raw.maxWaitMs} exceeds ceiling ${DEFER_FULL_SNAPSHOT_MAX_WAIT_CEILING_MS}; clamping.`,
+      );
+      maxWaitMs = DEFER_FULL_SNAPSHOT_MAX_WAIT_CEILING_MS;
+    } else {
+      maxWaitMs = raw.maxWaitMs;
+    }
+  }
+
+  return { enabled: raw.enabled === true, until, delayMs, maxWaitMs };
 }
 
 function sanitizeFlushIntervalConfig(raw: FlushIntervalConfig, loggerProvider: ILogger): FlushIntervalConfig {

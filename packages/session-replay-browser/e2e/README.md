@@ -95,6 +95,38 @@ accepts URL params to configure the SDK:
 After `init()` resolves, the page sets `window.srReady = true`. Tests wait on this
 before asserting anything. The SDK instance is exposed as `window.sessionReplay`.
 
+### Page-load perf harness (`deferFullSnapshot`)
+
+`test-server/session-replay-browser/sr-page-load-perf.html` backs `defer-full-snapshot.spec.ts`.
+It builds a large DOM synchronously before the SDK loads, registers `longtask` / LCP
+`PerformanceObserver`s at the top of `<head>`, and can hold the window `load` event open with a
+slow subresource so "before load" and "after load" are unambiguous. It exposes
+`window.getPerfMetrics()` (pre-load long tasks / blocking time, `loadEventStart`, LCP, …).
+
+| Param | Default | Description |
+|---|---|---|
+| `nodes` | `0` | Rows to render synchronously before the SDK loads (5 DOM nodes each). The perf test uses `6000` (~30k nodes). |
+| `slowResource` | _unset_ | URL of an `<img>` appended before the SDK loads. Tests intercept it and delay the response to hold `load` open. |
+| `skipSdk` | `false` | `true` never imports the SDK — the no-SDK control used to isolate SDK-attributable blocking. |
+| `deferFullSnapshot` | _unset_ | Passes `deferFullSnapshot.enabled` (`true`/`false`) to `init()`; omitted preserves the SDK default (no deferral). |
+| `deferUntil` / `deferDelayMs` / `deferMaxWaitMs` | _unset_ | Fill the matching `deferFullSnapshot` fields when `deferFullSnapshot` is present. |
+| `eagerFullSnapshotSend` | _unset_ | As on `sr-capture-test.html`; the deferral tests pass `true` so snapshot delivery timing is observable. |
+| `sessionId`, `deviceId`, `logLevel`, `useWebWorker` | as above | Same semantics as `sr-capture-test.html`. |
+
+The page-load impact test in `defer-full-snapshot.spec.ts` is chromium-only (it needs the
+`longtask` observer and CDP CPU throttling), runs `no-sdk` / `baseline` / `deferred` three
+times each under 4x CPU throttling, prints a per-run table to the console, and attaches the
+same data as `defer-full-snapshot-page-load-impact.{json,md}` to the Playwright report:
+
+```sh
+npx playwright test --config packages/session-replay-browser/e2e/playwright.config.ts \
+  --project=chromium packages/session-replay-browser/e2e/defer-full-snapshot.spec.ts --reporter=list
+```
+
+`sdkBlockingBeforeLoadMs` (config minus the no-SDK control) is the number to look at: with
+deferral it should sit near zero while the baseline pays for the rrweb import + full snapshot
+before `load`.
+
 ## Troubleshooting
 
 **Tests time out waiting for `srReady`**
