@@ -1,4 +1,4 @@
-import { Event, Payload, Status, Transport } from '@amplitude/analytics-core';
+import { BASE_CAMPAIGN, Event, Payload, Status, Transport } from '@amplitude/analytics-core';
 import { AmplitudeBrowser } from '../src/browser-client';
 
 describe('engaged page sources through the Browser SDK', () => {
@@ -78,6 +78,47 @@ describe('engaged page sources through the Browser SDK', () => {
     expect(events.filter((event) => event.event_type === '$identify')).toEqual([
       expect.objectContaining({ user_properties: { $set: { plan: 'new' } } }),
     ]);
+  });
+
+  test('enriches attribution page views after campaign identify conversion', async () => {
+    const send = jest.fn<ReturnType<Transport['send']>, Parameters<Transport['send']>>().mockResolvedValue({
+      status: Status.Success,
+      statusCode: 200,
+      body: { eventsIngested: 1, payloadSizeBytes: 0, serverUploadTime: 100_000 },
+    });
+    await client.add({
+      name: 'test-transport',
+      type: 'before',
+      async setup(config) {
+        config.transportProvider = { send };
+      },
+    }).promise;
+    await client.init('test-key', {
+      autocapture: {
+        attribution: false,
+        sessions: false,
+        fileDownloads: false,
+        formInteractions: false,
+        pageViews: { trackOn: 'attribution' },
+      },
+      fetchRemoteConfig: false,
+      enableDiagnostics: false,
+      identityStorage: 'none',
+      offline: false,
+      flushIntervalMillis: 10,
+      logLevel: 0,
+    }).promise;
+    client.track({ event_type: '$identify', user_properties: { $set: { ...BASE_CAMPAIGN, utm_source: 'test' } } });
+    await jest.advanceTimersByTimeAsync(20);
+    const events = send.mock.calls.flatMap(([, payload]) => payload.events);
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      event_type: '[Amplitude] Page Viewed',
+      event_properties: {
+        '[Amplitude] Previous Page Location': 'https://www.google.com/',
+        '[Amplitude] Previous Page Type': 'external',
+      },
+    });
   });
 
   test.each([false, true])('preserves navigation sources with trackEngagedTime=%s', async (trackEngagedTime) => {

@@ -333,12 +333,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await this.add(formInteractionTracking()).promise;
     }
 
-    // Engagement must capture the original page source before taking ownership
-    // of the page view. Keep the existing plugin order for ordinary page views.
-    const enrichBeforePageTracking =
-      isPageViewTrackingEnabled(this.config.defaultTracking) &&
-      Boolean(getPageViewTrackingConfig(this.config).trackEngagedTime) &&
-      getPageViewTrackingConfig(this.config).trackOn === undefined;
+    // Default trackOn: add URL properties before page-view tracking saves engagement snapshots.
+    // Attribution: run page-view tracking first to convert $identify into a page view,
+    // since URL enrichment skips $identify events. Keep custom callbacks in their existing order.
+    const enrichBeforePageTracking = getPageViewTrackingConfig(this.config).trackOn === undefined;
     if (enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding referrer page url plugin');
       await this.add(pageUrlEnrichmentPlugin()).promise;
