@@ -1286,7 +1286,8 @@ packages:
       { integrity: sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q== }
 
   '@amplitude/analytics-connector@1.7.0':
-    resolution: {integrity: sha512-HTnunOzcN+CdJUxdaim3E/CA5xbYRng4rpYvobjzl2ud2BXtpJdRnGuVmPKskYYyUTkz7X6QIOQPYlAgcGaWcg==}
+    resolution:
+      { integrity: sha512-HTnunOzcN+CdJUxdaim3E/CA5xbYRng4rpYvobjzl2ud2BXtpJdRnGuVmPKskYYyUTkz7X6QIOQPYlAgcGaWcg== }
 
   '@amplitude/analytics-core@2.50.0':
     resolution:
@@ -1313,14 +1314,16 @@ packages:
       { integrity: sha512-fHVJazCwwgjUcj49N+yFSLMSroyY0eHImrsmd1ipIjIT1Cez8mh+TvwJQ0LGSdyYvL2NAZM2J5vpXrR1nHgdzg== }
 
   '@amplitude/experiment-core@0.13.6':
-    resolution: {integrity: sha512-MLzTOUxsvgVyn2o4YPlfdGBk1Z19oPyIkXdwiRVytAxCnkb4I+Gcx6oV7Or6Jw/cN5MYP1dTWnT8upwN0XyhPA==}
+    resolution:
+      { integrity: sha512-MLzTOUxsvgVyn2o4YPlfdGBk1Z19oPyIkXdwiRVytAxCnkb4I+Gcx6oV7Or6Jw/cN5MYP1dTWnT8upwN0XyhPA== }
 
   '@amplitude/experiment-core@0.7.2':
     resolution:
       { integrity: sha512-Wc2NWvgQ+bLJLeF0A9wBSPIaw0XuqqgkPKsoNFQrmS7r5Djd56um75In05tqmVntPJZRvGKU46pAp8o5tdf4mA== }
 
   '@amplitude/experiment-js-client@1.24.0':
-    resolution: {integrity: sha512-PK3gN86J8NcDp0pY0ijwTM+3R2FJfbkyO7wZ3xhfLEDRdnHiMzyrAEH8EVM15e2K0IajdXjMbqxkWSqngsUuOw==}
+    resolution:
+      { integrity: sha512-PK3gN86J8NcDp0pY0ijwTM+3R2FJfbkyO7wZ3xhfLEDRdnHiMzyrAEH8EVM15e2K0IajdXjMbqxkWSqngsUuOw== }
 
   '@amplitude/experiment-react-native-client@1.8.0':
     resolution:

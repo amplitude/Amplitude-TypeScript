@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.60.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.2...@amplitude/analytics-core@2.60.3) (2026-10-15)
+
+
+### Bug Fixes
+
+* **unified:** bump connector and experiment deps for exposure groups ([#2060](https://github.com/amplitude/Amplitude-TypeScript/issues/2060)) ([8a5d342](https://github.com/amplitude/Amplitude-TypeScript/commit/8a5d3420da90edca33507f8aed848a8943594420))
+
+
+
+
+
 ## [2.60.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.1...@amplitude/analytics-core@2.60.2) (2026-10-09)
 
 
