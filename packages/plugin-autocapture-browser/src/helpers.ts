@@ -3,11 +3,10 @@ import {
   ElementInteractionsOptions,
   ActionType,
   isUrlMatchAllowlist,
-  getGlobalScope,
   getDecodeURI,
+  getGlobalScope,
 } from '@amplitude/analytics-core';
 import { collectOpenShadowRoots, segmentWalk, walkComposedAncestors } from '@amplitude/element-selector';
-import * as constants from './constants';
 import { SHADOW_OFF, type ShadowMode } from './shadow-mode';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -163,23 +162,7 @@ export const removeEmptyProperties = (properties: { [key: string]: unknown }): {
   }, {});
 };
 
-export const getCurrentPageViewId = (): string | undefined => {
-  try {
-    const globalScope = getGlobalScope();
-    /* istanbul ignore next */
-    const raw = globalScope?.sessionStorage?.getItem(constants.PAGE_VIEW_SESSION_STORAGE_KEY);
-    if (!raw) {
-      return undefined;
-    }
-    const parsed = JSON.parse(raw) as { pageViewId?: unknown };
-    if (typeof parsed.pageViewId === 'string') {
-      return parsed.pageViewId;
-    }
-  } catch {
-    // ignore storage access or JSON errors
-  }
-  return undefined;
-};
+export { getCurrentPageViewId } from '@amplitude/analytics-core';
 
 export const querySelectUniqueElements = (root: Element | Document, selectors: string[]): Element[] => {
   if (root && 'querySelectorAll' in root && typeof root.querySelectorAll === 'function') {

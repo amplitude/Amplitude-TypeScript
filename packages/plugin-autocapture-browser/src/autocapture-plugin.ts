@@ -288,6 +288,8 @@ export const autocapturePlugin = (
       return;
     }
 
+    dataExtractor.setPageViewApiKey(config.apiKey);
+
     let pageViewEndFired = false;
 
     // Fetch remote config for pageActions in a non-blocking manner
@@ -446,6 +448,7 @@ export const autocapturePlugin = (
         exposureTracker: trackers.exposure,
         isPageEnd,
         lastScroll,
+        apiKey: config.apiKey,
       });
     };
 
