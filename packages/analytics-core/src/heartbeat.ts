@@ -11,6 +11,16 @@ type DelayedEvent = BaseEvent & {
 
 const EVENTS_SIZE_LIMIT = 4 * 10_000; // 4KB
 
+interface HeartbeatOptions {
+  /** Refresh queued snapshots immediately before each send. */
+  beforeHeartbeat?: () => void;
+  /**
+   * Send queued events when the page becomes hidden or exits. Defaults to true.
+   * Disable when the caller owns page lifecycle handling and sends snapshots itself.
+   */
+  sendOnPageLifecycle?: boolean;
+}
+
 export class Heartbeat {
   private events: Map<string, DelayedEvent>;
   private delayId: string;
@@ -24,12 +34,14 @@ export class Heartbeat {
     private pulse: number,
     private delayTimeout: number,
     private logger?: ILogger,
+    private options: HeartbeatOptions = {},
   ) {
     this.events = new Map<string, DelayedEvent>();
     this.delayId = UUID();
   }
 
   async heartbeat(flushClient = false): Promise<Result[]> {
+    this.options.beforeHeartbeat?.();
     // stop sending heartbeats if no events are queued
     if (this.events.size === 0) {
       this.stop();
@@ -62,7 +74,7 @@ export class Heartbeat {
     // include any newly tracked events, so share its result
     if (this.resetPromise) return await this.resetPromise;
 
-    this.setupPageLifecycleListeners();
+    if (this.options.sendOnPageLifecycle !== false) this.setupPageLifecycleListeners();
 
     // reset the heartbeat interval
     if (this.interval) clearInterval(this.interval);
@@ -140,15 +152,21 @@ export class Heartbeat {
     return true;
   }
 
-  async track(event: BaseEvent): Promise<Result | Error | undefined> {
-    if (!event.insert_id) {
-      return new Error('insert_id is required on events tracked with heartbeat');
-    }
+  /** Admit an event synchronously without starting timers or waiting for delivery. */
+  enqueue(event: BaseEvent): boolean {
+    if (!event.insert_id) return false;
     this.events.set(event.insert_id, {
       ...event,
       delay: event.delay || { id: this.delayId, timeout: this.delayTimeout },
     });
-    if (!this.checkEventSizeLimit(event)) {
+    return this.checkEventSizeLimit(event);
+  }
+
+  async track(event: BaseEvent): Promise<Result | Error | undefined> {
+    if (!event.insert_id) {
+      return new Error('insert_id is required on events tracked with heartbeat');
+    }
+    if (!this.enqueue(event)) {
       return;
     }
 
@@ -179,7 +197,8 @@ export class Heartbeat {
       const backupEvent = this.events.get(event.insert_id);
       this.events.set(event.insert_id, {
         ...event,
-        delay: { id: this.delayId, timeout: this.delayTimeout },
+        // Page engagement supplies its delay group and removes timeout to finalize it.
+        delay: event.delay || { id: this.delayId, timeout: this.delayTimeout },
       });
       if (!this.checkEventSizeLimit(event) && backupEvent) {
         this.events.set(event.insert_id, backupEvent);
@@ -199,9 +218,14 @@ export class Heartbeat {
     };
   }
 
-  stop(flush = false) {
+  /** Stop the pulse without discarding the latest snapshot. */
+  pause() {
     this.interval && clearInterval(this.interval);
     this.interval = null;
+  }
+
+  stop(flush = false) {
+    this.pause();
     this.events.clear();
     this.unsubscribeFunctions.forEach((removeListener) => removeListener());
     this.unsubscribeFunctions = [];

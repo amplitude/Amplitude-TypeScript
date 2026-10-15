@@ -5,7 +5,7 @@ export { AmplitudeContext } from './types/amplitude-context';
 export { Identify, IIdentify, ValidPropertyType } from './identify';
 export { Revenue, IRevenue, RevenueProperty } from './revenue';
 export { Destination } from './plugins/destination';
-export { getHeartbeatInstance } from './heartbeat';
+export { Heartbeat, getHeartbeatInstance } from './heartbeat';
 export { IdentityEventSender } from './plugins/identity';
 export { Config, RequestMetadata } from './config';
 export { IConfig } from './types/config/core-config';
@@ -115,7 +115,12 @@ export {
   DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,
   DEFAULT_DEAD_CLICK_WINDOW_MS,
 } from './types/frustration-interactions';
-export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
+export {
+  EngagedTimeOptions,
+  PageTrackingOptions,
+  PageTrackingTrackOn,
+  PageTrackingHistoryChanges,
+} from './types/page-view-tracking';
 export { FormInteractionsOptions } from './types/form-interactions';
 export { Status } from './types/status';
 
