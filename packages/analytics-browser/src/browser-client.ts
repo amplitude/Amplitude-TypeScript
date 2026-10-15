@@ -333,6 +333,16 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await this.add(formInteractionTracking()).promise;
     }
 
+    // Engagement must capture the original page source before taking ownership
+    // of the page view. Keep the existing plugin order for ordinary page views.
+    const enrichBeforePageTracking =
+      isPageViewTrackingEnabled(this.config.defaultTracking) &&
+      Boolean(getPageViewTrackingConfig(this.config).trackEngagedTime);
+    if (enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding referrer page url plugin');
+      await this.add(pageUrlEnrichmentPlugin()).promise;
+    }
+
     // Add page view plugin
     if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
       if (!this.config.optOut) {
@@ -383,7 +393,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await this.add(performancePlugin(getPerformanceTrackingConfig(this.config))).promise;
     }
 
-    if (isPageUrlEnrichmentEnabled(this.config.autocapture)) {
+    if (!enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding referrer page url plugin');
       await this.add(pageUrlEnrichmentPlugin()).promise;
     }

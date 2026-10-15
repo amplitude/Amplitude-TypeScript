@@ -231,6 +231,34 @@ describe('pageUrlEnrichmentPlugin', () => {
   });
 
   describe('execute', () => {
+    test('preserves captured page context when replaying an engagement snapshot', async () => {
+      await plugin.setup?.(mockConfig, mockAmplitude);
+      window.sessionStorage.setItem(
+        URL_INFO_STORAGE_KEY,
+        JSON.stringify({
+          [CURRENT_PAGE_STORAGE_KEY]: 'https://example.com/b',
+          [PREVIOUS_PAGE_STORAGE_KEY]: 'https://example.com/a',
+        }),
+      );
+      const acceptSnapshot = jest.fn(() => true);
+      const snapshot = {
+        event_type: '[Amplitude] Page Viewed',
+        delay: { id: 'page-a', acceptSnapshot },
+        event_properties: {
+          '[Amplitude] Page Location': 'https://example.com/a',
+          '[Amplitude] Previous Page Location': 'https://www.google.com/',
+          '[Amplitude] Previous Page Type': 'external',
+        },
+      };
+      expect(await plugin.execute?.(snapshot)).toEqual(snapshot);
+      expect(acceptSnapshot).not.toHaveBeenCalled();
+      // Ordinary delayed events still use the existing enrichment behavior.
+      const ordinary = await plugin.execute?.({ ...snapshot, delay: { id: 'other-event' } });
+      expect(ordinary?.event_properties).toMatchObject({
+        '[Amplitude] Previous Page Location': 'https://example.com/a',
+      });
+    });
+
     test('should add additional Page URL and Previous Page properties to an event', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
