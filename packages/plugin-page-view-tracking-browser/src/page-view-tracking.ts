@@ -37,6 +37,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   const pendingPageViews = new Map<string, number>();
   let pageRevision = 0;
   let pageHasExited = false;
+  let canRenewAttributionPageView = false;
   let removePrerenderListener: (() => void) | undefined;
   let removePageLifecycleListeners: (() => void) | undefined;
   const { trackOn, trackHistoryChanges, eventType = defaultPageViewEvent } = options;
@@ -98,18 +99,22 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
   const trackHistoryPageView = async (): Promise<void> => {
     const newURL = location.href;
-    const shouldTrackPageView =
-      shouldTrackHistoryPageView(trackHistoryChanges, newURL, previousURL || '') && shouldTrackOnPageLoad();
+    const isNewPage = shouldTrackHistoryPageView(trackHistoryChanges, newURL, previousURL || '');
+    const shouldTrackPageView = isNewPage && shouldTrackOnPageLoad();
     // Note: Update `previousURL` in the same clock tick as `shouldTrackHistoryPageView()`
     // This was previously done after `amplitude?.track(await createPageViewEvent());` and
     // causes a concurrency issue where app triggers `pushState` twice with the same URL target
     // but `previousURL` is only updated after the second `pushState` producing two page viewed events
     previousURL = newURL;
 
+    if (engagement && isNewPage) {
+      // Leaving a page ends its engagement even when trackOn excludes the next page.
+      pageRevision += 1;
+      canRenewAttributionPageView = false;
+      engagement.finish('navigation');
+    }
     if (shouldTrackPageView) {
       if (engagement) {
-        pageRevision += 1;
-        engagement.finish('navigation');
         void trackNewPageView(amplitude!);
         return;
       }
@@ -160,7 +165,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         };
         const engagementOptions = typeof options.trackEngagedTime === 'object' ? options.trackEngagedTime : {};
         engagement = new PageEngagement(client, globalScope, engagementOptions, config, () => {
-          if (trackOn === 'attribution' || shouldTrackOnPageLoad()) {
+          if (trackOn === 'attribution' ? canRenewAttributionPageView : shouldTrackOnPageLoad()) {
             void trackNewPageView(client);
           }
         });
@@ -259,6 +264,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         };
         if (engagement) {
           if (localConfig.optOut) return null;
+          // Attribution-only routes can renew after a view has actually been tracked.
+          canRenewAttributionPageView = true;
           // Suppress the original only after the heartbeat accepts its snapshot.
           return engagement.start(event) ? null : event;
         }

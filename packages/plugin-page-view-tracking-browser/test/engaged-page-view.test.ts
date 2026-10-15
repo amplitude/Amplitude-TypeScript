@@ -1,4 +1,11 @@
-import { BrowserConfig, BaseEvent, Logger, PageTrackingOptions, getGlobalScope } from '@amplitude/analytics-core';
+import {
+  BASE_CAMPAIGN,
+  BrowserConfig,
+  BaseEvent,
+  Logger,
+  PageTrackingOptions,
+  getGlobalScope,
+} from '@amplitude/analytics-core';
 import { pageViewTrackingPlugin } from '../src/page-view-tracking';
 import { createMockBrowserClient } from './mock-browser-client';
 
@@ -180,6 +187,76 @@ describe('engaged page-view plugin', () => {
     expect(captured[2].event_properties!['[Amplitude] Page Path']).toBe('/engagement-test');
   });
 
+  test('finalizes a tracked route when trackOn excludes the next route', async () => {
+    history.replaceState({}, '', '/tracked');
+    await setup({ trackOn: () => location.pathname === '/tracked' });
+    await jest.advanceTimersByTimeAsync(1_000);
+    history.pushState({}, '', '/excluded');
+    await jest.advanceTimersByTimeAsync(1);
+    expect(captured).toHaveLength(2);
+    expect(captured[1].delay!.timeout).toBeUndefined();
+    expect(captured[1].event_properties).toMatchObject({
+      '[Amplitude] Page Path': '/tracked',
+      '[Amplitude] Engagement Snapshot Reason': 'navigation',
+      '[Amplitude] Engaged Time': 1_001,
+    });
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(180_000);
+    expect(captured).toHaveLength(2);
+    expect(config.pageCounter).toBe(1);
+
+    history.pushState({}, '', '/tracked');
+    await jest.advanceTimersByTimeAsync(1);
+    expect(config.pageCounter).toBe(2);
+    expect(captured[2].delay!.timeout).toBe(180_000);
+  });
+
+  test('attribution-only engagement ends on navigation and waits for a new attributed view', async () => {
+    history.replaceState({}, '', '/attributed');
+    await setup({ trackOn: 'attribution' });
+    const campaign = () =>
+      client.track({
+        event_type: '$identify',
+        user_properties: { $set: { ...BASE_CAMPAIGN, utm_source: 'test' } },
+      }).promise;
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(captured).toHaveLength(0);
+    await campaign();
+    await jest.advanceTimersByTimeAsync(1);
+    expect(captured).toHaveLength(1);
+
+    // Activity can renew a tracked attribution view after inactivity.
+    await jest.advanceTimersByTimeAsync(180_000);
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(config.pageCounter).toBe(2);
+    history.pushState({}, '', '/without-attribution');
+    await jest.advanceTimersByTimeAsync(1);
+    const count = captured.length;
+    expect(captured[count - 1].delay!.timeout).toBeUndefined();
+    expect(captured[count - 1].event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('navigation');
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(180_000);
+    expect(captured).toHaveLength(count);
+    expect(config.pageCounter).toBe(2);
+
+    await campaign();
+    await jest.advanceTimersByTimeAsync(1);
+    expect(config.pageCounter).toBe(3);
+    expect(captured[count].event_properties!['[Amplitude] Page Path']).toBe('/without-attribution');
+  });
+
+  test('pathOnly keeps engagement running across query changes', async () => {
+    history.replaceState({}, '', '/same-path');
+    await setup({ trackHistoryChanges: 'pathOnly' });
+    history.pushState({}, '', '/same-path?query=changed');
+    await jest.advanceTimersByTimeAsync(15_000);
+    expect(config.pageCounter).toBe(1);
+    expect(captured).toHaveLength(2);
+    expect(captured[1].delay!.timeout).toBe(180_000);
+  });
+
   test('BFCache return creates one fresh view despite pageshow, visibility, focus and popstate events', async () => {
     await setup();
     const original = captured[0];
@@ -295,6 +372,19 @@ describe('engaged page-view plugin', () => {
     expect(captured).toHaveLength(3); // Initial A, final A, initial B.
     expect(captured[2].event_properties!['[Amplitude] Page Path']).toBe('/navigation-then-activity');
     expect(captured[2].delay!.timeout).toBe(180_000);
+  });
+
+  test('navigation to an excluded route cancels an in-flight renewal', async () => {
+    const trackOn = jest.fn(() => true);
+    await setup({ trackOn, trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
+    await jest.advanceTimersByTimeAsync(10);
+    const count = captured.length;
+    document.dispatchEvent(new Event('keydown'));
+    trackOn.mockReturnValue(false);
+    history.pushState({}, '', '/excluded-during-renewal');
+    await jest.advanceTimersByTimeAsync(2);
+    expect(config.pageCounter).toBe(1);
+    expect(captured).toHaveLength(count);
   });
 
   test.each([false, true])('pagehide (persisted=%s) cancels a view still being created', async (persisted) => {
