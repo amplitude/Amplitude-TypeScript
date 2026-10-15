@@ -3,6 +3,76 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.51.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.2...@amplitude/session-replay-browser@1.51.3) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.51.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.1...@amplitude/session-replay-browser@1.51.2) (2026-10-08)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.51.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.0...@amplitude/session-replay-browser@1.51.1) (2026-10-07)
+
+
+### Performance Improvements
+
+* **session-replay-browser:** cache buffered event byte size ([#2028](https://github.com/amplitude/Amplitude-TypeScript/issues/2028)) ([3b84ad5](https://github.com/amplitude/Amplitude-TypeScript/commit/3b84ad5221a75242a86e450619b27620028bcf42))
+
+
+
+
+
+# [1.51.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.50.4...@amplitude/session-replay-browser@1.51.0) (2026-09-29)
+
+
+### Features
+
+* **session-replay:** share DOM privacy policy across recorders ([#1997](https://github.com/amplitude/Amplitude-TypeScript/issues/1997)) ([c13c821](https://github.com/amplitude/Amplitude-TypeScript/commit/c13c821114e3586b795ecde40eb6ad02702a084f))
+
+
+
+
+
+## [1.50.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.50.3...@amplitude/session-replay-browser@1.50.4) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.50.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.50.2...@amplitude/session-replay-browser@1.50.3) (2026-09-23)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.50.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.50.1...@amplitude/session-replay-browser@1.50.2) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.50.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.50.0...@amplitude/session-replay-browser@1.50.1) (2026-09-16)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
 # [1.50.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.49.0...@amplitude/session-replay-browser@1.50.0) (2026-08-31)
 
 

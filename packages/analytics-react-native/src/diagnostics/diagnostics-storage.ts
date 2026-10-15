@@ -5,9 +5,10 @@ import {
   HistogramStats,
   IDiagnosticsStorage,
   ILogger,
+  ReactNativeStorageData,
+  Storage,
   TagRecord,
 } from '@amplitude/analytics-core';
-import { getAsyncStorage } from '../storage/local-storage';
 
 const MAX_PERSISTENT_STORAGE_EVENTS_COUNT = 10;
 
@@ -22,16 +23,14 @@ interface DiagnosticsBlob {
 const emptyBlob = (): DiagnosticsBlob => ({ tags: {}, counters: {}, histograms: {}, events: [] });
 
 /**
- * Diagnostics storage for React Native, backed by AsyncStorage.
+ * Diagnostics storage for React Native, backed by the storage configured on the client.
  *
- * The blob is held in memory and serialized to a single AsyncStorage key. Keeping memory as the
- * source of truth avoids read-modify-write races: AsyncStorage has no transactions, so merging
- * from disk on every mutation could interleave. One key also means one write per save tick
- * instead of one per data type.
+ * The blob is held in memory and persisted to a single storage key. Keeping memory as the source
+ * of truth avoids read-modify-write races when the injected storage has no transactions. One key
+ * also means one write per save tick instead of one per data type.
  *
- * AsyncStorage is an optional peer dependency. When it isn't installed this degrades to
- * memory-only — diagnostics still accumulate and flush for the life of the app, and are lost on
- * app kill. Nothing here throws on that path.
+ * When no storage is configured this degrades to memory-only — diagnostics still accumulate and
+ * flush for the life of the app, and are lost on app kill. Nothing here throws on that path.
  */
 export class ReactNativeDiagnosticsStorage implements IDiagnosticsStorage {
   readonly storageKey: string;
@@ -41,21 +40,20 @@ export class ReactNativeDiagnosticsStorage implements IDiagnosticsStorage {
   /** Serializes writes so concurrent callers can't clobber each other's snapshot of the blob. */
   private writeQueue: Promise<void> = Promise.resolve();
 
-  constructor(apiKey: string, logger: ILogger) {
+  constructor(apiKey: string, logger: ILogger, private readonly storage?: Storage<ReactNativeStorageData>) {
     this.logger = logger;
     this.storageKey = `AMP_diagnostics_${apiKey.substring(0, 10)}`;
     this.ready = this.hydrate();
   }
 
   private async hydrate(): Promise<void> {
-    const storage = getAsyncStorage();
-    if (!storage) {
+    if (!this.storage) {
       return;
     }
     try {
-      const raw = await storage.getItem(this.storageKey);
-      if (raw) {
-        this.blob = JSON.parse(raw) as DiagnosticsBlob;
+      const persisted = await this.storage.get(this.storageKey);
+      if (persisted && !Array.isArray(persisted)) {
+        this.blob = persisted as DiagnosticsBlob;
       }
     } catch (error) {
       this.logger.debug('ReactNativeDiagnosticsStorage: Failed to read persisted diagnostics', error);
@@ -63,16 +61,15 @@ export class ReactNativeDiagnosticsStorage implements IDiagnosticsStorage {
   }
 
   private persist(): Promise<void> {
-    const storage = getAsyncStorage();
-    if (!storage) {
+    if (!this.storage) {
       return Promise.resolve();
     }
     this.writeQueue = this.writeQueue.then(async () => {
       try {
-        await storage.setItem(this.storageKey, JSON.stringify(this.blob));
+        await this.storage?.set(this.storageKey, this.blob);
       } catch (error) {
-        // The JS package resolved but the native bridge is missing, or the entry exceeded the
-        // platform size limit. Memory stays authoritative and the next save tick rewrites.
+        // The backing store may be unavailable or the entry may exceed its platform size limit.
+        // Memory stays authoritative and the next save tick rewrites.
         this.logger.debug('ReactNativeDiagnosticsStorage: Failed to persist diagnostics', error);
       }
     });

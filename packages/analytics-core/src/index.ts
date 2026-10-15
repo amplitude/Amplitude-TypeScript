@@ -54,6 +54,9 @@ export {
   RemoteConfigClient,
   IRemoteConfigClient,
   RemoteConfig,
+  RemoteConfigGroup,
+  RemoteConfigInfo,
+  RemoteConfigStorage,
   Source,
   RemoteConfigFetchRequest,
   RemoteConfigCustomFetch,
@@ -61,7 +64,7 @@ export {
 
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
-export { Storage, IdentityStorageType, CookieStorageConfig } from './types/storage';
+export { Storage, StorageData, IdentityStorageType, CookieStorageConfig } from './types/storage';
 export { consoleObserver } from './observers/console';
 export {
   Event,
@@ -125,6 +128,7 @@ export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
 export { CustomEnrichmentOptions } from './types/custom-enrichment';
 export { PerformanceTrackingOptions, MainThreadBlockOptions } from './types/performance-tracking';
+export { WebVitalsOptions } from './types/web-vitals';
 
 // Campaign
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
@@ -162,9 +166,11 @@ export { NodeConfig, NodeOptions } from './types/config/node-config';
 export {
   ReactNativeConfig,
   ReactNativeAutocaptureOptions,
+  ReactNativeFrustrationInteractionsOptions,
   ReactNativeTrackingOptions,
   ReactNativeOptions,
   ReactNativeAttributionOptions,
+  ReactNativeStorageData,
 } from './types/config/react-native-config';
 export { ReactNativeClient, NavigationState } from './types/client/react-native-client';
 
@@ -178,6 +184,11 @@ export { pruneJson } from './utils/json-query';
 export type { BaseWindowMessenger, ActionHandler } from './messenger/base-window-messenger';
 export { getOrCreateWindowMessenger } from './messenger/base-window-messenger';
 export { enableBackgroundCapture } from './messenger/background-capture';
+export type {
+  BackgroundCaptureDeviceMode,
+  InitializeBackgroundCaptureData,
+} from './messenger/background-capture-types';
+export { parseBackgroundCaptureDeviceMode } from './messenger/background-capture-types';
 export {
   AMPLITUDE_ORIGIN,
   AMPLITUDE_ORIGIN_EU,

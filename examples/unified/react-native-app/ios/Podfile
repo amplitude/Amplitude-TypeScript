@@ -36,5 +36,16 @@ target 'app' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+
+    # Xcode 26's Apple Clang rejects fmt 11's C++20 consteval checks. React
+    # Native 0.76 vendors fmt 11, so compile that pod as C++17 until the
+    # example can move to a React Native release that includes the fmt fix.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'fmt'
+
+      target.build_configurations.each do |config|
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+      end
+    end
   end
 end

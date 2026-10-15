@@ -1,4 +1,4 @@
-import { LogLevel } from '@amplitude/analytics-types';
+import { LogLevel } from '@amplitude/analytics-core';
 
 const nativeSetupMock = jest.fn((..._args: unknown[]) => Promise.resolve());
 

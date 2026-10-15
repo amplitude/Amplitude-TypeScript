@@ -21,7 +21,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - amplitude-react-native (1.6.9):
+  - amplitude-react-native (1.8.0):
     - React-Core
   - AmplitudeCore (1.4.10)
   - AmplitudeEngagementSwift (3.12.1):
@@ -1640,13 +1640,13 @@ DEPENDENCIES:
   - amplitude-react-native (from `../../../../packages/analytics-react-native`)
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
-  - "experiment-react-native-client (from `../../../../node_modules/.pnpm/@amplitude+experiment-react-native-client@1.8.0_react-native@0.73.0_@babel+core@7.28.5__e242275df41d2976346dcde9fa98d475/node_modules/@amplitude/experiment-react-native-client`)"
+  - "experiment-react-native-client (from `../../../../node_modules/.pnpm/@amplitude+experiment-react-native-client@1.8.0_react-native@0.76.9_@babel+core@7.28.5__86a25723dbc9c1fd5902352af300882f/node_modules/@amplitude/experiment-react-native-client`)"
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
-  - "PluginEngagementReactNative (from `../../../../node_modules/.pnpm/@amplitude+plugin-engagement-react-native@3.12.1_@react-native-async-storage+async-stor_5f73ed6d6c6377c037f9ce1167a92f48/node_modules/@amplitude/plugin-engagement-react-native`)"
+  - "PluginEngagementReactNative (from `../../../../node_modules/.pnpm/@amplitude+plugin-engagement-react-native@3.12.1_@react-native-async-storage+async-stor_bd2ff1a15e384f49782a3eae86a782b9/node_modules/@amplitude/plugin-engagement-react-native`)"
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCT-Folly/Fabric (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
@@ -1705,7 +1705,7 @@ DEPENDENCIES:
   - React-utils (from `../node_modules/react-native/ReactCommon/react/utils`)
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
-  - "RNCAsyncStorage (from `../../../../node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.73.0_@babel+core@7.28.5__18b8b5c01db749c8d8f06a7265e42e60/node_modules/@react-native-async-storage/async-storage`)"
+  - "RNCAsyncStorage (from `../../../../node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.76.9_@babel+core@7.28.5__f34e6d800bd5b170e4b49c02182d0da2/node_modules/@react-native-async-storage/async-storage`)"
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -1725,7 +1725,7 @@ EXTERNAL SOURCES:
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
   experiment-react-native-client:
-    :path: "../../../../node_modules/.pnpm/@amplitude+experiment-react-native-client@1.8.0_react-native@0.73.0_@babel+core@7.28.5__e242275df41d2976346dcde9fa98d475/node_modules/@amplitude/experiment-react-native-client"
+    :path: "../../../../node_modules/.pnpm/@amplitude+experiment-react-native-client@1.8.0_react-native@0.76.9_@babel+core@7.28.5__86a25723dbc9c1fd5902352af300882f/node_modules/@amplitude/experiment-react-native-client"
   fast_float:
     :podspec: "../node_modules/react-native/third-party-podspecs/fast_float.podspec"
   FBLazyVector:
@@ -1738,7 +1738,7 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-2024-11-12-RNv0.76.2-5b4aa20c719830dcf5684832b89a6edb95ac3d64
   PluginEngagementReactNative:
-    :path: "../../../../node_modules/.pnpm/@amplitude+plugin-engagement-react-native@3.12.1_@react-native-async-storage+async-stor_5f73ed6d6c6377c037f9ce1167a92f48/node_modules/@amplitude/plugin-engagement-react-native"
+    :path: "../../../../node_modules/.pnpm/@amplitude+plugin-engagement-react-native@3.12.1_@react-native-async-storage+async-stor_bd2ff1a15e384f49782a3eae86a782b9/node_modules/@amplitude/plugin-engagement-react-native"
   RCT-Folly:
     :podspec: "../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec"
   RCTDeprecation:
@@ -1852,13 +1852,13 @@ EXTERNAL SOURCES:
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
   RNCAsyncStorage:
-    :path: "../../../../node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.73.0_@babel+core@7.28.5__18b8b5c01db749c8d8f06a7265e42e60/node_modules/@react-native-async-storage/async-storage"
+    :path: "../../../../node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.76.9_@babel+core@7.28.5__f34e6d800bd5b170e4b49c02182d0da2/node_modules/@react-native-async-storage/async-storage"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
   amplitude-plugin-session-replay-react-native: 80e1e24f1a067f92a05d41e61b6d3e57867981df
-  amplitude-react-native: c7bccdc970d332663dd21104ecd25165d10786cc
+  amplitude-react-native: 80c427a918c6ac744f767d627006832f4de2cbd2
   AmplitudeCore: 61766a21268f619e193ac817c61c1005bc376f76
   AmplitudeEngagementSwift: 82d2c3afd0366feff0a0205d4870481f4ddeb3d7
   AmplitudeSessionReplay: 45d38425f83074145134824b7009bec573a2c21c
@@ -1931,6 +1931,6 @@ SPEC CHECKSUMS:
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: feb4910aba9742cfedc059e2b2902e22ffe9954a
 
-PODFILE CHECKSUM: 0a0c59f84db5a439364725b3317225198053afb0
+PODFILE CHECKSUM: 23255b5dadf2b10ba59723dffb3abab1039ea2a5
 
 COCOAPODS: 1.17.0

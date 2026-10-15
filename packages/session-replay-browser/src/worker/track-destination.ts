@@ -11,6 +11,7 @@ import {
 } from '../constants';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, UNEXPECTED_ERROR_MESSAGE, UNEXPECTED_NETWORK_ERROR_MESSAGE } from '../messages';
 import { gzipJson } from '../utils/gzip';
+import { utf8ByteLength, utf8ByteLengthOf } from '../utils/utf8-byte-length';
 import { getServerUrl } from '../utils/server-url';
 
 interface SendContext {
@@ -187,7 +188,7 @@ async function doFetch(
       'X-Sampling-Hash-Alg': 'xxhash32',
       ...(gzipped ? { 'Content-Encoding': 'gzip' } : {}),
     };
-    const payloadSize = gzipped ? gzipped.byteLength : new Blob([payloadJson]).size;
+    const payloadSize = gzipped ? gzipped.byteLength : utf8ByteLength(payloadJson);
     // fetch() has no native timeout; abort a hung request so it surfaces as a retryable
     // failure instead of silently wedging the worker (and the awaiting orchestrator). The
     // request goes through doRequest so a custom transport (delegated to the main thread) is
@@ -218,7 +219,7 @@ async function doFetch(
       return { shouldRetry: false, success: false, message: UNEXPECTED_ERROR_MESSAGE };
     }
     if (res.status >= 200 && res.status < 300) {
-      const sizeKB = Math.round(new Blob(context.events).size / KB_SIZE);
+      const sizeKB = Math.round(utf8ByteLengthOf(context.events) / KB_SIZE);
       const skipCode = res.headers?.get?.(EVENT_SKIPPED_HEADER) ?? null;
       return {
         shouldRetry: false,

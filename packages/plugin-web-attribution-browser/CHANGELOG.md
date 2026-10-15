@@ -3,6 +3,70 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.31...@amplitude/plugin-web-attribution-browser@2.2.32) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
+## [2.2.31](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.30...@amplitude/plugin-web-attribution-browser@2.2.31) (2026-10-08)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
+## [2.2.30](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.29...@amplitude/plugin-web-attribution-browser@2.2.30) (2026-10-07)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
+## [2.2.29](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.28...@amplitude/plugin-web-attribution-browser@2.2.29) (2026-09-29)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
+## [2.2.28](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.27...@amplitude/plugin-web-attribution-browser@2.2.28) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
+## [2.2.27](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.26...@amplitude/plugin-web-attribution-browser@2.2.27) (2026-09-23)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
+## [2.2.26](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.25...@amplitude/plugin-web-attribution-browser@2.2.26) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
+## [2.2.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.24...@amplitude/plugin-web-attribution-browser@2.2.25) (2026-09-16)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
 ## [2.2.24](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.23...@amplitude/plugin-web-attribution-browser@2.2.24) (2026-08-24)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser

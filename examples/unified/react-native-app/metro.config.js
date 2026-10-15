@@ -51,6 +51,8 @@ const resolveWithNode = (context, moduleName) => {
 };
 
 const config = {
+  // Prefer the Node crawler: Watchman repeatedly recrawls this monorepo and
+  // drops pnpm-store entries, leaving Metro unable to hash resolved packages.
   watchFolders: [
     path.join(workspaceRoot, 'packages/unified-react-native'),
     path.join(workspaceRoot, 'packages/analytics-react-native'),
@@ -62,6 +64,7 @@ const config = {
     pnpmStore,
   ],
   resolver: {
+    useWatchman: false,
     nodeModulesPaths: [
       path.resolve(projectRoot, 'node_modules'),
       pnpmRnNodeModules,

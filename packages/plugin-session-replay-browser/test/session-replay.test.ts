@@ -311,6 +311,7 @@ describe('SessionReplayPlugin', () => {
         sampleRate: 0.4,
         privacyConfig: {
           blockSelector: ['#id'],
+          maskAttributes: ['placeholder', 'aria-label'],
         },
       });
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
@@ -329,6 +330,7 @@ describe('SessionReplayPlugin', () => {
           sessionId: mockConfig.sessionId,
           privacyConfig: expect.objectContaining({
             blockSelector: ['#id'],
+            maskAttributes: ['placeholder', 'aria-label'],
           }) as object,
           version: {
             type: 'plugin',
@@ -850,7 +852,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('getSessionReplayProperties', () => {
     test('should return session replay properties', async () => {
-      const sessionReplay = sessionReplayPlugin() as SessionReplayPlugin;
+      const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
       getSessionReplayProperties.mockReturnValueOnce({
         '[Amplitude] Session Recorded': true,

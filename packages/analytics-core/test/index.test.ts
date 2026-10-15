@@ -70,6 +70,7 @@ import {
   registerSdkLoaderMetadata,
   getOrCreateWindowMessenger,
   enableBackgroundCapture,
+  parseBackgroundCaptureDeviceMode,
   AMPLITUDE_ORIGIN,
   AMPLITUDE_ORIGIN_EU,
   AMPLITUDE_ORIGIN_STAGING,
@@ -167,6 +168,9 @@ describe('index', () => {
     expect(typeof registerSdkLoaderMetadata).toBe('function');
     expect(typeof getOrCreateWindowMessenger).toBe('function');
     expect(typeof enableBackgroundCapture).toBe('function');
+    expect(typeof parseBackgroundCaptureDeviceMode).toBe('function');
+    expect(parseBackgroundCaptureDeviceMode('tablet')).toBe('tablet');
+    expect(parseBackgroundCaptureDeviceMode('invalid')).toBeUndefined();
     expect(typeof AMPLITUDE_ORIGIN).toBe('string');
     expect(typeof AMPLITUDE_ORIGIN_EU).toBe('string');
     expect(typeof AMPLITUDE_ORIGIN_STAGING).toBe('string');

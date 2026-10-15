@@ -3,6 +3,94 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.47.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.47.4...@amplitude/analytics-browser@2.47.5) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.47.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.47.3...@amplitude/analytics-browser@2.47.4) (2026-10-08)
+
+
+### Bug Fixes
+
+* **plugin-custom-enrichment-browser:** stage dual-use releases ([#2043](https://github.com/amplitude/Amplitude-TypeScript/issues/2043)) ([3bb47d4](https://github.com/amplitude/Amplitude-TypeScript/commit/3bb47d48dd169c864f3be12a6661bc24f799c1c9))
+
+
+
+
+
+## [2.47.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.47.2...@amplitude/analytics-browser@2.47.3) (2026-10-07)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.47.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.47.1...@amplitude/analytics-browser@2.47.2) (2026-09-29)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.47.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.47.0...@amplitude/analytics-browser@2.47.1) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+# [2.47.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.46.0...@amplitude/analytics-browser@2.47.0) (2026-09-23)
+
+
+### Features
+
+* hackathon client configurator ([#1930](https://github.com/amplitude/Amplitude-TypeScript/issues/1930)) ([d9de021](https://github.com/amplitude/Amplitude-TypeScript/commit/d9de021c068f9b282125f748829a17777f7f661b))
+* **plugin-web-vitals-browser:** [@experimental](https://github.com/experimental) add reportSoftNav option for soft navigation reporting ([#1965](https://github.com/amplitude/Amplitude-TypeScript/issues/1965)) ([0e341de](https://github.com/amplitude/Amplitude-TypeScript/commit/0e341dec23e1d5a643c87c80507bbdb9c753c6ab))
+
+
+
+
+
+# [2.46.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.10...@amplitude/analytics-browser@2.46.0) (2026-09-21)
+
+
+### Features
+
+* **analytics-react-native:** support Remote Config autocapture ([#1988](https://github.com/amplitude/Amplitude-TypeScript/issues/1988)) ([eef3342](https://github.com/amplitude/Amplitude-TypeScript/commit/eef33427cdf3294c285f94ae6dbe1bd45738a60d))
+
+
+
+
+
+## [2.45.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.9...@amplitude/analytics-browser@2.45.10) (2026-09-16)
+
+
+### Bug Fixes
+
+* pin custom enrichment plugin ([#1995](https://github.com/amplitude/Amplitude-TypeScript/issues/1995)) ([4cfc431](https://github.com/amplitude/Amplitude-TypeScript/commit/4cfc431e2f397dce2f8f9413956e578389e6b65b))
+
+
+
+
+
+## [2.45.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.8...@amplitude/analytics-browser@2.45.9) (2026-09-16)
+
+
+### Bug Fixes
+
+* **browser:** normalize empty instance names ([#1956](https://github.com/amplitude/Amplitude-TypeScript/issues/1956)) ([942c8bc](https://github.com/amplitude/Amplitude-TypeScript/commit/942c8bc3a1ac341988c02a5ea42db1813bb61519))
+
+
+
+
+
 ## [2.45.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.45.7...@amplitude/analytics-browser@2.45.8) (2026-08-27)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

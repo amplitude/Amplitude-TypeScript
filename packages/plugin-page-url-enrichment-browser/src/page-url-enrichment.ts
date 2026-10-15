@@ -57,8 +57,7 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
     let hostname: string | undefined;
 
     try {
-      const decodedUrl = getDecodeURI(url, loggerProvider);
-      hostname = new URL(decodedUrl).hostname;
+      hostname = new URL(url).hostname;
     } catch (e) {
       /* istanbul ignore next */
       loggerProvider?.error('Could not parse URL: ', e);

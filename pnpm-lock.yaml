@@ -117,6 +117,9 @@ importers:
       prettier:
         specifier: ^2.8.1
         version: 2.8.8
+      prismjs:
+        specifier: ^1.30.0
+        version: 1.30.0
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -370,8 +373,8 @@ importers:
   packages/analytics-core:
     dependencies:
       '@amplitude/analytics-connector':
-        specifier: ^1.6.4
-        version: 1.6.4
+        specifier: ^1.7.0
+        version: 1.7.0
       '@types/zen-observable':
         specifier: 0.8.3
         version: 0.8.3
@@ -679,8 +682,8 @@ importers:
         specifier: workspace:*
         version: link:../analytics-core
       '@amplitude/experiment-js-client':
-        specifier: ^1.15.5
-        version: 1.20.0
+        specifier: ^1.24.0
+        version: 1.24.0
     devDependencies:
       rollup:
         specifier: ^2.80.0
@@ -895,9 +898,9 @@ importers:
 
   packages/plugin-session-replay-react-native:
     dependencies:
-      '@amplitude/analytics-types':
-        specifier: ^1.3.4
-        version: 1.4.0
+      '@amplitude/analytics-core':
+        specifier: workspace:*
+        version: link:../analytics-core
     devDependencies:
       '@types/react':
         specifier: ^18.0.26
@@ -989,8 +992,8 @@ importers:
         specifier: ^2.4.1
         version: 2.8.1
       web-vitals:
-        specifier: 5.1.0
-        version: 5.1.0
+        specifier: 6.2.1
+        version: 6.2.1
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
@@ -1083,6 +1086,9 @@ importers:
       '@amplitude/rrweb-types':
         specifier: 2.0.0-alpha.40
         version: 2.0.0-alpha.40
+      '@amplitude/session-replay-dom-privacy':
+        specifier: workspace:*
+        version: link:../session-replay-dom-privacy
       '@amplitude/targeting':
         specifier: workspace:*
         version: link:../targeting
@@ -1138,6 +1144,12 @@ importers:
       rollup-plugin-terser:
         specifier: ^7.0.2
         version: 7.0.2(rollup@2.80.0)
+
+  packages/session-replay-dom-privacy:
+    dependencies:
+      tslib:
+        specifier: ^2.4.1
+        version: 2.8.1
 
   packages/session-replay-react-native:
     dependencies:
@@ -1273,9 +1285,16 @@ packages:
     resolution:
       { integrity: sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q== }
 
+  '@amplitude/analytics-connector@1.7.0':
+    resolution: {integrity: sha512-HTnunOzcN+CdJUxdaim3E/CA5xbYRng4rpYvobjzl2ud2BXtpJdRnGuVmPKskYYyUTkz7X6QIOQPYlAgcGaWcg==}
+
   '@amplitude/analytics-core@2.50.0':
     resolution:
       { integrity: sha512-d8/U5aAHAs6XcpvQYpStxBxMxSwjDajZ0f6wMSwPCfxDGEWqcFaYuRKauh+vrn89D6gWcKi1VZ/tKCyhVby9sg== }
+
+  '@amplitude/analytics-core@2.55.0':
+    resolution:
+      { integrity: sha512-fzjXEWX2o5I58Tl5jYaw2G5Tp5ejfcDkayWMogEThCl/fd6AqRKkrl/dVVqGV3h/GS3HZws7J4baIWkaq92jkQ== }
 
   '@amplitude/analytics-types@1.4.0':
     resolution:
@@ -1293,13 +1312,15 @@ packages:
     resolution:
       { integrity: sha512-fHVJazCwwgjUcj49N+yFSLMSroyY0eHImrsmd1ipIjIT1Cez8mh+TvwJQ0LGSdyYvL2NAZM2J5vpXrR1nHgdzg== }
 
+  '@amplitude/experiment-core@0.13.6':
+    resolution: {integrity: sha512-MLzTOUxsvgVyn2o4YPlfdGBk1Z19oPyIkXdwiRVytAxCnkb4I+Gcx6oV7Or6Jw/cN5MYP1dTWnT8upwN0XyhPA==}
+
   '@amplitude/experiment-core@0.7.2':
     resolution:
       { integrity: sha512-Wc2NWvgQ+bLJLeF0A9wBSPIaw0XuqqgkPKsoNFQrmS7r5Djd56um75In05tqmVntPJZRvGKU46pAp8o5tdf4mA== }
 
-  '@amplitude/experiment-js-client@1.20.0':
-    resolution:
-      { integrity: sha512-MMecqmDXJ81KH0dU2/Alshy8O3srBOO8A0CcIy958zUUFJwyB3z2zXbU2EYSF0s75xwWBAu/+F23Dp2ATmOerg== }
+  '@amplitude/experiment-js-client@1.24.0':
+    resolution: {integrity: sha512-PK3gN86J8NcDp0pY0ijwTM+3R2FJfbkyO7wZ3xhfLEDRdnHiMzyrAEH8EVM15e2K0IajdXjMbqxkWSqngsUuOw==}
 
   '@amplitude/experiment-react-native-client@1.8.0':
     resolution:
@@ -1316,8 +1337,13 @@ packages:
     resolution:
       { integrity: sha512-T4jyad4BBfpU/x21Vf2U6JeHA9n14bil4+46CI1tK4OijZX4ZpKfPaw+T2gzG0BreX87o7kUVs1O5kM6Z6K3ZA== }
 
+  '@amplitude/plugin-custom-enrichment-browser@0.1.22':
+    resolution:
+      { integrity: sha512-KDTVCOmivrLzp1Q9EJuU61Yzw0Mip9DU/VnMnfROD37rCv0QX78O7RuYVzN+R6sprgUw+tkmS512PmkbVLOFsA== }
+
   '@amplitude/plugin-engagement-react-native@3.12.1':
-    resolution: {integrity: sha512-RYDMDMNQfIv7zWwkFp8uDCaUp65SH782EJA8B0na9JldUISYrM4s2bZfNTN+8cllutB1aHjwl/gqjrJNnHzaYw==}
+    resolution:
+      { integrity: sha512-RYDMDMNQfIv7zWwkFp8uDCaUp65SH782EJA8B0na9JldUISYrM4s2bZfNTN+8cllutB1aHjwl/gqjrJNnHzaYw== }
     peerDependencies:
       '@react-native-async-storage/async-storage': ^2.1.2
       react: '*'
@@ -4057,7 +4083,8 @@ packages:
       react-native: ^0.0.0-0 || >=0.60 <1.0
 
   '@react-native-async-storage/async-storage@2.2.0':
-    resolution: {integrity: sha512-gvRvjR5JAaUZF8tv2Kcq/Gbt3JHwbKFYfmb445rhOj6NUMx3qPLixmDx5pZAyb9at1bYvJ4/eTUipU5aki45xw==}
+    resolution:
+      { integrity: sha512-gvRvjR5JAaUZF8tv2Kcq/Gbt3JHwbKFYfmb445rhOj6NUMx3qPLixmDx5pZAyb9at1bYvJ4/eTUipU5aki45xw== }
     peerDependencies:
       react-native: ^0.0.0-0 || >=0.65 <1.0
 
@@ -10701,6 +10728,11 @@ packages:
       { integrity: sha512-K6KiKMHTL4jjX4u3Kir2EW07nRfcqVTXIImx50wbjHQTcZPgg+gjVeNTIT3l3L1Rd4UefxfogquC9J37SoFyyw== }
     engines: { node: ^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0 }
 
+  prismjs@1.30.0:
+    resolution:
+      { integrity: sha512-DEvV2ZF2r2/63V+tK8hQvrR2ZGn10srHbXviTlcv7Kpzw8jWiNTqbVgjO3IY8RxrrOUF8VPMQQFysYYYv0YZxw== }
+    engines: { node: '>=6' }
+
   proc-log@5.0.0:
     resolution:
       { integrity: sha512-Azwzvl90HaF0aCz1JrDdXQykFakSSNPaPoiZ9fm5qJIMHioDZEi7OAdRwSm6rSoPtY3Qutnm3L7ogmg3dc+wbQ== }
@@ -12509,6 +12541,10 @@ packages:
     resolution:
       { integrity: sha512-ArI3kx5jI0atlTtmV0fWU3fjpLmq/nD3Zr1iFFlJLaqa5wLBkUSzINwBPySCX/8jRyjlmy1Volw1kz1g9XE4Jg== }
 
+  web-vitals@6.2.1:
+    resolution:
+      { integrity: sha512-rLcLXA2sx6+9dE88NHFubwTtGxpK4yYBLj6qHPdFoCaLr0cXGb4efOqtKLlm4loGA4OEKHIQKMKzZkKyOh5ctw== }
+
   webidl-conversions@3.0.1:
     resolution:
       { integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ== }
@@ -12868,7 +12904,17 @@ snapshots:
 
   '@amplitude/analytics-connector@1.6.4': {}
 
+  '@amplitude/analytics-connector@1.7.0': {}
+
   '@amplitude/analytics-core@2.50.0':
+    dependencies:
+      '@amplitude/analytics-connector': 1.6.4
+      '@types/zen-observable': 0.8.3
+      safe-json-stringify: 1.2.0
+      tslib: 2.8.1
+      zen-observable: 0.10.0
+
+  '@amplitude/analytics-core@2.55.0':
     dependencies:
       '@amplitude/analytics-connector': 1.6.4
       '@types/zen-observable': 0.8.3
@@ -12888,14 +12934,18 @@ snapshots:
     dependencies:
       js-base64: 3.7.8
 
+  '@amplitude/experiment-core@0.13.6':
+    dependencies:
+      js-base64: 3.7.8
+
   '@amplitude/experiment-core@0.7.2':
     dependencies:
       js-base64: 3.7.8
 
-  '@amplitude/experiment-js-client@1.20.0':
+  '@amplitude/experiment-js-client@1.24.0':
     dependencies:
-      '@amplitude/analytics-connector': 1.6.4
-      '@amplitude/experiment-core': 0.11.1
+      '@amplitude/analytics-connector': 1.7.0
+      '@amplitude/experiment-core': 0.13.6
       '@amplitude/ua-parser-js': 0.7.33
       base64-js: 1.5.1
       unfetch: 4.1.0
@@ -12926,6 +12976,11 @@ snapshots:
   '@amplitude/plugin-custom-enrichment-browser@0.1.11':
     dependencies:
       '@amplitude/analytics-core': 2.50.0
+      tslib: 2.8.1
+
+  '@amplitude/plugin-custom-enrichment-browser@0.1.22':
+    dependencies:
+      '@amplitude/analytics-core': 2.55.0
       tslib: 2.8.1
 
   '@amplitude/plugin-engagement-react-native@3.12.1(@react-native-async-storage/async-storage@2.2.0(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.28.5)(@babel/preset-env@7.28.5(@babel/core@7.28.5))(@react-native-community/cli@13.6.6(encoding@0.1.13))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)':
@@ -14515,7 +14570,7 @@ snapshots:
       '@types/node': 20.5.1
       chalk: 4.1.2
       cosmiconfig: 8.3.6(typescript@4.9.5)
-      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@20.5.1)(typescript@4.9.5))(typescript@4.9.5)
+      cosmiconfig-typescript-loader: 4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@4.9.5)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -19041,7 +19096,7 @@ snapshots:
 
   corser@2.0.1: {}
 
-  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@20.5.1)(typescript@4.9.5))(typescript@4.9.5):
+  cosmiconfig-typescript-loader@4.4.0(@types/node@20.5.1)(cosmiconfig@8.3.6(typescript@4.9.5))(ts-node@10.9.2(@types/node@18.19.130)(typescript@4.9.5))(typescript@4.9.5):
     dependencies:
       '@types/node': 20.5.1
       cosmiconfig: 8.3.6(typescript@4.9.5)
@@ -23662,6 +23717,8 @@ snapshots:
       react-is-18: react-is@18.3.1
       react-is-19: react-is@19.2.7
 
+  prismjs@1.30.0: {}
+
   proc-log@5.0.0: {}
 
   proc-log@6.0.0: {}
@@ -25363,6 +25420,8 @@ snapshots:
   web-streams-polyfill@3.3.3: {}
 
   web-vitals@5.1.0: {}
+
+  web-vitals@6.2.1: {}
 
   webidl-conversions@3.0.1: {}
 

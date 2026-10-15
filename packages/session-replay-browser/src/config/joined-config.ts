@@ -1,3 +1,4 @@
+import { validatePrivacySelectors } from '@amplitude/session-replay-dom-privacy';
 import { ILogger, IRemoteConfigClient, RemoteConfigClient, RemoteConfig, Source } from '@amplitude/analytics-core';
 import { getDebugConfig } from '../helpers';
 import { SessionReplayOptions } from '../typings/session-replay';
@@ -22,31 +23,16 @@ import {
 const REMOTE_CONFIG_TIMEOUT_MS = 1500;
 
 export const removeInvalidSelectorsFromPrivacyConfig = (privacyConfig: PrivacyConfig, loggerProvider: ILogger) => {
-  // This allows us to not search the DOM.
   const fragment = document.createDocumentFragment();
-
-  const dropInvalidSelectors = (selectors: string[] | string = []): string[] | undefined => {
-    if (typeof selectors === 'string') {
-      selectors = [selectors];
-    }
-    selectors = selectors.filter((selector: string) => {
-      try {
-        fragment.querySelector(selector);
-      } catch {
-        loggerProvider.warn(`[session-replay-browser] omitting selector "${selector}" because it is invalid`);
-        return false;
-      }
-      return true;
-    });
-    if (selectors.length === 0) {
-      return undefined;
-    }
-    return selectors;
-  };
-  privacyConfig.blockSelector = dropInvalidSelectors(privacyConfig.blockSelector);
-  privacyConfig.maskSelector = dropInvalidSelectors(privacyConfig.maskSelector);
-  privacyConfig.unmaskSelector = dropInvalidSelectors(privacyConfig.unmaskSelector);
-  return privacyConfig;
+  return validatePrivacySelectors(
+    privacyConfig,
+    (selector) => {
+      fragment.querySelector(selector);
+    },
+    (selector) => {
+      loggerProvider.warn(`[session-replay-browser] omitting selector "${selector}" because it is invalid`);
+    },
+  );
 };
 export class SessionReplayJoinedConfigGenerator {
   private readonly localConfig: ISessionReplayLocalConfig;

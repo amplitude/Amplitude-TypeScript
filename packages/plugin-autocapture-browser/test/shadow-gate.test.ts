@@ -6,12 +6,20 @@
  * setup, and remote config arrives afterwards. The observables must end up
  * observing the same shadow roots either way.
  */
-import { type BrowserConfig, type IDiagnosticsClient } from '@amplitude/analytics-core';
+import {
+  type IDiagnosticsClient,
+  type BrowserConfig,
+  type BrowserClient,
+  type ILogger,
+} from '@amplitude/analytics-core';
+import { DEFAULT_MAX_SHADOW_DOM_DEPTH } from '@amplitude/element-selector';
 import { createMutationObservable, createExposureObservable } from '../src/observables';
+import { autocapturePlugin } from '../src/autocapture-plugin';
 import { DataExtractor } from '../src/data-extractor';
 import { TimestampedEvent } from '../src/helpers';
 import { Observable } from '@amplitude/analytics-core';
 import { createShadowGate, shadowModeFromConfig, SHADOW_OFF, type ShadowOn } from '../src/shadow-mode';
+import { getSelectorRuntime } from '../src/selector-runtime';
 
 function attachOpen(host: Element, html: string): ShadowRoot {
   const root = host.attachShadow({ mode: 'open' });
@@ -310,5 +318,90 @@ describe('DataExtractor — latch wiring', () => {
     // Already armed — no duplicate tag on subsequent deliveries.
     extractor.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth: 3 });
     expect(setTag).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('autocapturePlugin — local shadowDomEnabled option', () => {
+  const setupPlugin = async (options: Parameters<typeof autocapturePlugin>[0]) => {
+    const plugin = autocapturePlugin(options);
+    const loggerProvider = {
+      log: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      error: jest.fn(),
+    } as unknown as ILogger;
+    const config = { defaultTracking: false, loggerProvider } as unknown as BrowserConfig;
+    await plugin.setup?.(config, {} as BrowserClient);
+    return { plugin, config };
+  };
+
+  it('arms the gate with the default depth when maxShadowDomDepth is omitted', async () => {
+    const { plugin, config } = await setupPlugin({ shadowDomEnabled: true });
+    expect(getSelectorRuntime(config).shadowGate.get()).toEqual({
+      enabled: true,
+      maxDepth: DEFAULT_MAX_SHADOW_DOM_DEPTH,
+    });
+    await plugin.teardown?.();
+  });
+
+  it('arms the gate with the configured maxShadowDomDepth', async () => {
+    const { plugin, config } = await setupPlugin({ shadowDomEnabled: true, maxShadowDomDepth: 3 });
+    expect(getSelectorRuntime(config).shadowGate.get()).toEqual({ enabled: true, maxDepth: 3 });
+    await plugin.teardown?.();
+  });
+
+  it('leaves the gate off when shadowDomEnabled is not set', async () => {
+    const { plugin, config } = await setupPlugin({ maxShadowDomDepth: 3 });
+    expect(getSelectorRuntime(config).shadowGate.get()).toBe(SHADOW_OFF);
+    await plugin.teardown?.();
+  });
+});
+
+describe('DataExtractor.updateRemoteConfig — elementInteractions overlay', () => {
+  it('ignores null and undefined deliveries', () => {
+    const extractor = new DataExtractor({});
+    extractor.updateRemoteConfig(null);
+    extractor.updateRemoteConfig(undefined);
+    expect(extractor.getShadowMode()).toBe(SHADOW_OFF);
+  });
+
+  it('does nothing when neither elementSelector nor elementInteractions is present', () => {
+    const extractor = new DataExtractor({});
+    extractor.updateRemoteConfig({});
+    expect(extractor.getShadowMode()).toBe(SHADOW_OFF);
+  });
+
+  it('arms the gate from elementInteractions.shadowDomEnabled and maxShadowDomDepth', () => {
+    const extractor = new DataExtractor({});
+    extractor.updateRemoteConfig({ elementInteractions: { shadowDomEnabled: true, maxShadowDomDepth: 2 } });
+    expect(extractor.getShadowMode()).toEqual({ enabled: true, maxDepth: 2 });
+  });
+
+  it('overlays elementInteractions shadow flags onto an existing elementSelector payload', () => {
+    const extractor = new DataExtractor({});
+    extractor.updateRemoteConfig({
+      elementSelector: { enabled: true },
+      elementInteractions: { shadowDomEnabled: true },
+    });
+    expect(extractor.getShadowMode()).toEqual({ enabled: true, maxDepth: 1 });
+
+    // Engine enabled + piercing: a selector for an in-shadow element crosses the boundary.
+    document.body.innerHTML = `<my-host></my-host>`;
+    const root = attachOpen(document.querySelector('my-host') as Element, `<button id="cta">x</button>`);
+    expect(extractor.getElementPath(root.getElementById('cta') as Element)).toContain('>>>');
+  });
+
+  it('ignores a maxShadowDomDepth without an explicit shadowDomEnabled flag', () => {
+    const extractor = new DataExtractor({});
+    const debug = jest.fn();
+    extractor.updateRemoteConfig({ elementInteractions: { maxShadowDomDepth: 3 } }, { debug } as unknown as ILogger);
+    expect(extractor.getShadowMode()).toBe(SHADOW_OFF);
+    expect(debug).toHaveBeenCalledWith(expect.stringContaining('keeping current engine state'));
+  });
+
+  it('ignores non-boolean / non-number shadow values', () => {
+    const extractor = new DataExtractor({});
+    extractor.updateRemoteConfig({ elementInteractions: { shadowDomEnabled: 'yes', maxShadowDomDepth: '3' } });
+    expect(extractor.getShadowMode()).toBe(SHADOW_OFF);
   });
 });

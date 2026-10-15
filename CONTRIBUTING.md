@@ -102,6 +102,20 @@ To publish a package for the first time (administrators only):
 5. copy the same configuration used in [analytics browser](https://www.npmjs.com/package/@amplitude/analytics-browser/access). **case sensitive**
 6. now that it's in NPM and Trusted Publishing is enabled, this package can now be published from workflows
 
+#### Publishing the custom enrichment browser plugin
+
+`@amplitude/plugin-custom-enrichment-browser` is declared as dual-use. npm requires a maintainer's 2FA approval for every new version. Direct OIDC publishing is not permitted for this package; configure its Trusted Publisher for `.github/workflows/publish-v2.yml` with **stage-only** permission and the `npm-release` environment. The workflow's direct publish phases explicitly exclude the plugin.
+
+Configure a GitHub environment named `npm-custom-enrichment-approval` with required reviewers. The `Publish v2.x` release then proceeds as follows:
+
+1. Lerna selects independent versions from conventional commits. The workflow builds the release and publishes packages that do not depend on the custom enrichment plugin.
+2. If the plugin's version is not already live on npm, the workflow packs it with pnpm (which resolves `workspace:*` dependencies) and stages that exact version on npm through Trusted Publishing. The stage uses npm CLI 11.21.0 or later and Node 24.
+3. An npm maintainer reviews the staged package on npmjs.com and approves it with 2FA.
+4. A reviewer approves the waiting `npm-custom-enrichment-approval` job in GitHub Actions. That job checks npm for the exact version; approving GitHub before npm causes the job to fail.
+5. The workflow checks the version again and publishes analytics-browser and its other dependents. The published browser manifest contains the plugin's exact workspace version.
+
+When the plugin version is already live, the staging and approval steps are skipped. For a partial release, use `skipLernaVersion` to retry the same version; the workflow checks npm before deciding whether staging is still required. If a stage is pending, approve it on npm before retrying.
+
 #### Recovering a partial `publish-v2` workflow run
 
 Use this only when a previous `Publish v2.x` workflow run already created the release version and partially published packages to npm, but the workflow failed before all packages finished publishing.

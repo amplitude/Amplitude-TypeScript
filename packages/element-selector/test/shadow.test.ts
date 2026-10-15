@@ -16,6 +16,7 @@ import {
   positionalStep,
   walkComposedAncestors,
   collectOpenShadowRoots,
+  isShadowRoot,
   MAX_SHADOW_COMPOSED_WALK_ITERATIONS,
   MAX_SHADOW_DOM_TRAVERSAL_NODES,
 } from '../src/helpers/shadow';
@@ -363,5 +364,49 @@ describe('collectOpenShadowRoots', () => {
   it('exports traversal caps with cross-linked semantics', () => {
     expect(MAX_SHADOW_COMPOSED_WALK_ITERATIONS).toBeGreaterThan(0);
     expect(MAX_SHADOW_DOM_TRAVERSAL_NODES).toBeGreaterThan(MAX_SHADOW_COMPOSED_WALK_ITERATIONS);
+  });
+});
+
+describe('isShadowRoot', () => {
+  test('recognizes a same-realm shadow root via instanceof', () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const root = attachOpen(host, '<span></span>');
+
+    expect(root instanceof ShadowRoot).toBe(true);
+    expect(isShadowRoot(root)).toBe(true);
+  });
+
+  test('recognizes a shadow-root-like node when instanceof fails (structural fallback)', () => {
+    const host = document.createElement('div');
+    const fake = { nodeType: 11, host } as unknown as Node;
+
+    expect(fake instanceof ShadowRoot).toBe(false);
+    expect(isShadowRoot(fake)).toBe(true);
+    expect(isShadowRoot({ nodeType: 11, host: {} } as unknown as Node)).toBe(false);
+    expect(isShadowRoot({ nodeType: 11 } as unknown as Node)).toBe(false);
+  });
+});
+
+describe('isShadowRoot (cross-realm)', () => {
+  test('recognizes shadow roots from another realm and rejects other nodes', () => {
+    const iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument as Document;
+    const host = doc.createElement('div');
+    doc.body.appendChild(host);
+    const root = attachOpen(host, '<button id="b"></button>');
+    const button = root.querySelector('#b') as Element;
+
+    // The iframe's ShadowRoot constructor differs from this realm's.
+    expect(root instanceof ShadowRoot).toBe(false);
+    expect(isShadowRoot(root)).toBe(true);
+    expect(composedParent(button)).toBe(host);
+    expect(resolveSelector(doc, `div ${SHADOW_BOUNDARY_DELIMITER} #b`)).toBe(button);
+    expect(isShadowRoot(doc.createDocumentFragment())).toBe(false);
+    expect(isShadowRoot(doc)).toBe(false);
+    expect(isShadowRoot(host)).toBe(false);
+    expect(isShadowRoot(null as unknown as Node)).toBe(false);
+    expect(isShadowRoot(undefined as unknown as Node)).toBe(false);
   });
 });

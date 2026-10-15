@@ -3,6 +3,7 @@ import { EventType as RRWebEventType } from '@amplitude/rrweb-types';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from '../config/types';
 import { MAX_SINGLE_EVENT_SIZE } from '../constants';
+import { utf8ByteLengthIfOver } from '../utils/utf8-byte-length';
 import { SessionReplayEventsManager } from '../typings/session-replay';
 import { mergeMutationEvents } from './merge-mutation-events';
 
@@ -159,8 +160,9 @@ export class EventCompressor {
   private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
     // UTF-8 byte size, not JS char count: a 9 M-char string of CJK/emoji can be 18–27 MB
     // on the wire and would otherwise slip past a char-count guard.
-    const eventSizeBytes = new Blob([compressedEvent]).size;
-    if (eventSizeBytes > (this.config.maxSingleEventSizeBytes ?? MAX_SINGLE_EVENT_SIZE)) {
+    const maxEventBytes = this.config.maxSingleEventSizeBytes ?? MAX_SINGLE_EVENT_SIZE;
+    const eventSizeBytes = utf8ByteLengthIfOver(compressedEvent, maxEventBytes);
+    if (eventSizeBytes !== undefined) {
       this.config.loggerProvider.warn(
         `Session replay event dropped: serialized size ${Math.round(
           eventSizeBytes / 1024,

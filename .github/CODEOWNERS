@@ -14,4 +14,4 @@
 /packages/plugin-session-replay-browser/ @amplitude/session-replay-sdk
 /packages/segment-session-replay-plugin/ @amplitude/session-replay-sdk
 /packages/targeting/ @amplitude/session-replay-sdk
-
+/test-server/ @amplitude/dx @amplitude/session-replay-sdk

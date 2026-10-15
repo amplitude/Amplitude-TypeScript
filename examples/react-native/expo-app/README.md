@@ -14,6 +14,10 @@ pnpm install
 - [Install expo](https://docs.expo.dev/get-started/installation/)
 - Update the `API_KEY` in `App.tsx` file.
 
+`@react-native-async-storage/async-storage` is a direct dependency and is
+autolinked as `RNCAsyncStorage` (see [`react-native.config.js`](react-native.config.js)).
+After changing native deps, reinstall pods (`cd ios && pod install`) and rebuild.
+
 ### Android
 ```
 # cd into Amplitude-TypeScript/examples/react-native/expo-app directory
