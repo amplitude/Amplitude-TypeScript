@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.48.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.47.5...@amplitude/analytics-browser@2.48.0) (2026-10-15)
+
+
+### Bug Fixes
+
+* **unified:** bump connector and experiment deps for exposure groups ([#2060](https://github.com/amplitude/Amplitude-TypeScript/issues/2060)) ([8a5d342](https://github.com/amplitude/Amplitude-TypeScript/commit/8a5d3420da90edca33507f8aed848a8943594420))
+
+
+### Features
+
+* **analytics-browser:** forward connector event groups to track ([#2039](https://github.com/amplitude/Amplitude-TypeScript/issues/2039)) ([440788e](https://github.com/amplitude/Amplitude-TypeScript/commit/440788e6d9fb0a2555fda467fe8f108c6c1408f2))
+
+
+
+
+
 ## [2.47.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.47.4...@amplitude/analytics-browser@2.47.5) (2026-10-09)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

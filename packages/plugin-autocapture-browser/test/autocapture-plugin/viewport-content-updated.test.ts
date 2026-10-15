@@ -1,5 +1,11 @@
 import { autocapturePlugin } from '../../src/autocapture-plugin';
-import { BrowserClient, BrowserConfig, ILogger } from '@amplitude/analytics-core';
+import {
+  BrowserClient,
+  BrowserConfig,
+  ILogger,
+  clearPageViewState,
+  getOrCreatePageViewId,
+} from '@amplitude/analytics-core';
 import { createMockBrowserClient } from '../mock-browser-client';
 import { trackExposure } from '../../src/autocapture/track-exposure';
 import {
@@ -181,6 +187,36 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
     // Verify Page View ID is NOT in the event properties
     const trackCall = track.mock.calls[0];
     expect(trackCall[1]).not.toHaveProperty('[Amplitude] Page View ID');
+  });
+
+  test('should use the page view id for its own project', async () => {
+    await plugin.teardown();
+    clearPageViewState();
+    window.sessionStorage.clear();
+
+    const apiKey = 'project-a';
+    const ownId = getOrCreatePageViewId(apiKey, window.location.href);
+    const otherId = getOrCreatePageViewId('project-b', window.location.href);
+    expect(otherId).not.toBe(ownId);
+
+    const loggerProvider = {
+      log: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    } as unknown as ILogger;
+    await plugin.setup({ apiKey, loggerProvider } as BrowserConfig, instance);
+
+    onExposureCallback('element-1');
+    window.dispatchEvent(new Event('beforeunload'));
+
+    expect(track).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': ['element-1'],
+        '[Amplitude] Page View ID': ownId,
+      }),
+    );
   });
 
   test('should call handleViewportContentUpdated with isPageEnd=true on beforeunload', async () => {

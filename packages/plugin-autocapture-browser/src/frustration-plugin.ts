@@ -247,6 +247,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     // Share selector state with this SDK instance's autocapture plugin, while
     // keeping other BrowserConfig instances on the page isolated.
     dataExtractor.bindSelectorRuntime(config);
+    dataExtractor.setPageViewApiKey(config.apiKey);
 
     // Create observables for events on the window
     const allObservables = createObservables();

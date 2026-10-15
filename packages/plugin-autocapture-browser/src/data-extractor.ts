@@ -47,6 +47,7 @@ const hasMaskedAncestorInShadow = (element: Element, shadow: ShadowMode): boolea
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
+  private pageViewApiKey?: string;
   diagnosticsClient?: IDiagnosticsClient;
 
   /**
@@ -91,6 +92,10 @@ export class DataExtractor {
     }
     this.additionalMaskTextPatterns = compiled;
   }
+
+  setPageViewApiKey = (apiKey: string | undefined): void => {
+    this.pageViewApiKey = apiKey;
+  };
 
   /**
    * Join the selector runtime owned by this browser SDK instance.
@@ -306,7 +311,7 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
 
-    const pageViewId = getCurrentPageViewId();
+    const pageViewId = getCurrentPageViewId(this.pageViewApiKey);
     /* istanbul ignore next */
     if (pageViewId) {
       /* istanbul ignore next */
