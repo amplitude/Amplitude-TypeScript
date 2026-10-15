@@ -60,7 +60,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
         '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
         '[Amplitude] Page URL': locationHREF.split('?')[0],
-        ...(pageViewId ? { '[Amplitude] Page View ID': pageViewId } : {}),
+        '[Amplitude] Page View ID': pageViewId,
       },
     };
   };
