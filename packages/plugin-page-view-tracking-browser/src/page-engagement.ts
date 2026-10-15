@@ -52,6 +52,8 @@ export class PageEngagement {
   private inactivityTimer?: ReturnType<typeof setTimeout>;
   private foreground: boolean;
   private enabled = true;
+  // Consent revocation invalidates even snapshots already waiting in async plugins.
+  private consentRevision = 0;
   private skippedPage = false;
   private readonly threshold: number;
   private readonly pulse: number;
@@ -169,6 +171,7 @@ export class PageEngagement {
   private snapshot(session: PageSession, reason: string): Event {
     this.settle(session);
     const version = ++session.version;
+    const consentRevision = this.consentRevision;
     return {
       ...session.event,
       delay: {
@@ -176,7 +179,7 @@ export class PageEngagement {
         acceptSnapshot: () => {
           // Compare with the last copy that reached Destination, so a slow plugin
           // can still deliver snapshots while newer copies are being constructed.
-          if (version < session.lastQueuedVersion) return false;
+          if (consentRevision !== this.consentRevision || version < session.lastQueuedVersion) return false;
           session.lastQueuedVersion = version;
           return true;
         },
@@ -258,6 +261,7 @@ export class PageEngagement {
   setOptOut(optOut: boolean) {
     this.enabled = !optOut;
     if (optOut) {
+      this.consentRevision += 1;
       this.skippedPage = false;
       clearTimeout(this.inactivityTimer);
       this.session?.heartbeat.stop();

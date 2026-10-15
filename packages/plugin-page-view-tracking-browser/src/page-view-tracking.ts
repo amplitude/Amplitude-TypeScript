@@ -93,6 +93,13 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     }
   };
 
+  // Every page/identity/session boundary invalidates pending creations before
+  // finalizing the active view. Final snapshots retain their original identity.
+  const finishPageView = (reason: string) => {
+    pageRevision += 1;
+    engagement?.finish(reason);
+  };
+
   /* istanbul ignore next */
   let previousURL: string | null = typeof location !== 'undefined' ? location.href : null;
 
@@ -108,8 +115,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
     if (engagement && isNewPage) {
       // Navigation ends the previous page and invalidates pending page creation.
-      pageRevision += 1;
-      engagement.finish('navigation');
+      finishPageView('navigation');
     }
     if (shouldTrackPageView) {
       if (engagement) {
@@ -279,12 +285,15 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         isTracking = false;
       }
     },
-    onOptOutChanged: async (optOut) => engagement?.setOptOut(optOut),
-    onReset: async () => engagement?.finish('reset'),
-    onIdentityChanged: async (identity) => {
-      if ('userId' in identity || 'deviceId' in identity) engagement?.finish('identity_change');
+    onOptOutChanged: async (optOut) => {
+      if (optOut) pageRevision += 1;
+      engagement?.setOptOut(optOut);
     },
-    onSessionIdChanged: async () => engagement?.finish('session_change'),
+    onReset: async () => finishPageView('reset'),
+    onIdentityChanged: async (identity) => {
+      if ('userId' in identity || 'deviceId' in identity) finishPageView('identity_change');
+    },
+    onSessionIdChanged: async () => finishPageView('session_change'),
   };
   return plugin;
 };
