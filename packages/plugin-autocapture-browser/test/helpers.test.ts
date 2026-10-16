@@ -98,6 +98,15 @@ describe('autocapture-plugin helpers', () => {
 
       element.setAttribute('contenteditable', 'True');
       expect(isNonSensitiveElement(element)).toEqual(false);
+
+      element.setAttribute('contenteditable', '');
+      expect(isNonSensitiveElement(element)).toEqual(false);
+
+      element.setAttribute('contenteditable', 'plaintext-only');
+      expect(isNonSensitiveElement(element)).toEqual(false);
+
+      element.setAttribute('contenteditable', 'false');
+      expect(isNonSensitiveElement(element)).toEqual(true);
     });
   });
 

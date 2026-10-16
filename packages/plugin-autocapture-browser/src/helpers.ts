@@ -98,13 +98,28 @@ export const isTextNode = (node: Node) => {
   return !!node && node.nodeType === 3;
 };
 
+type ContentEditableValue = 'true' | '' | 'false' | 'plaintext-only';
+
+/**
+ * True when `element` is effectively editable. Editability is inherited: the nearest
+ * ancestor with a `contenteditable` attribute wins. Any value other than `"false"`
+ * (e.g. `""`, `"true"`, `"plaintext-only"`) is editable, so a nested button, span, or
+ * heading inside an editing host is editable unless a closer `contenteditable="false"`
+ * boundary opts that subtree out.
+ *
+ * The walk stays on `parentElement`, which stops at a shadow root. Editability does
+ * not inherit across shadow boundaries.
+ */
+export const isContentEditableElement = (element: Element): boolean => {
+  const contentEditable = element.getAttribute('contenteditable') as ContentEditableValue;
+  return ['true', 'plaintext-only', ''].includes(contentEditable?.toLowerCase());
+};
+
 export const isNonSensitiveElement = (element: Element) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  const isContentEditable =
-    element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
 
-  return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
+  return !SENSITIVE_TAGS.includes(tag) && !isContentEditableElement(element);
 };
 
 /**

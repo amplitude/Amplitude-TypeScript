@@ -15,6 +15,7 @@ import * as constants from './constants';
 import {
   removeEmptyProperties,
   extractPrefixedAttributes,
+  isContentEditableElement,
   isElementPointerCursor,
   getClosestElement,
   isElementBasedEvent,
@@ -480,6 +481,11 @@ export class DataExtractor {
   };
 
   getText = (element: Element): string => {
+    // Editable regions hold user-entered text. Omit it so Element Text is dropped.
+    if (isContentEditableElement(element)) {
+      return '';
+    }
+
     // Check if element or any parent has data-amp-mask attribute
     const hasMaskAttribute = this.hasMaskedAncestor(element);
     if (hasMaskAttribute) {

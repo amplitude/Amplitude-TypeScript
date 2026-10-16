@@ -124,6 +124,31 @@ describe('data extractor', () => {
       expect(result).toEqual('');
     });
 
+    test('should return empty string when element is contenteditable', () => {
+      const element = document.createElement('div');
+      element.setAttribute('contenteditable', 'true');
+      element.innerHTML = '<p><span>Editable</span><span>More Editable</span></p>';
+
+      expect(dataExtractor.getText(element)).toEqual('');
+
+      element.setAttribute('contenteditable', 'True');
+      expect(dataExtractor.getText(element)).toEqual('');
+
+      element.setAttribute('contenteditable', '');
+      expect(dataExtractor.getText(element)).toEqual('');
+
+      element.setAttribute('contenteditable', 'plaintext-only');
+      expect(dataExtractor.getText(element)).toEqual('');
+    });
+
+    test('should still return text when contenteditable is false', () => {
+      const element = document.createElement('div');
+      element.setAttribute('contenteditable', 'false');
+      element.textContent = 'Static label';
+
+      expect(dataExtractor.getText(element)).toEqual('Static label');
+    });
+
     test('should return text when element has text attribute', () => {
       const element = document.createElement('a');
       (element as unknown as { text: string }).text = 'test';
@@ -717,6 +742,21 @@ describe('data extractor', () => {
   });
 
   describe('getEventProperties with maskion', () => {
+    test('should omit Element Text when the element is contenteditable', () => {
+      const element = document.createElement('div');
+      element.setAttribute('contenteditable', 'true');
+      element.className = 'role-element';
+      element.innerHTML = '<p><span>Editable</span><span>More Editable</span></p>';
+      document.body.appendChild(element);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element Text']).toBeUndefined();
+      expect(result['[Amplitude] Element Tag']).toBe('div');
+
+      document.body.removeChild(element);
+    });
+
     test('should NOT mask id or class when both specified on parent', () => {
       const container = document.createElement('div');
       container.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'id, class');
