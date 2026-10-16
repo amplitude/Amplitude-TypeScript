@@ -1,6 +1,6 @@
 import { BrowserConfig, ILogger } from '@amplitude/analytics-core';
 import { DataExtractor } from '../src/data-extractor';
-import { ELEMENT_SELECTOR_REMOTE_CONFIG_KEY, subscribeToElementSelectorConfig } from '../src/element-selector-config';
+import { subscribeToElementSelectorConfig } from '../src/element-selector-config';
 
 const loggerProvider: Partial<ILogger> = {
   log: jest.fn(),
@@ -38,7 +38,7 @@ describe('subscribeToElementSelectorConfig', () => {
   });
 
   it('subscribes with the element-selector key, applies delivered config, and unsubscribes on cleanup', () => {
-    const updateSpy = jest.spyOn(dataExtractor, 'updateSelectorConfig');
+    const updateSpy = jest.spyOn(dataExtractor, 'updateRemoteConfig');
     let deliver: ((remoteConfig: unknown) => void) | undefined;
     const remoteConfigClient = {
       subscribe: jest.fn((_key: string, _mode: unknown, cb: (remoteConfig: unknown) => void) => {
@@ -56,7 +56,7 @@ describe('subscribeToElementSelectorConfig', () => {
     const cleanup = subscribeToElementSelectorConfig(config, dataExtractor);
 
     expect(remoteConfigClient.subscribe).toHaveBeenCalledWith(
-      ELEMENT_SELECTOR_REMOTE_CONFIG_KEY,
+      'configs.analyticsSDK.browserSDK.autocapture',
       'all',
       expect.any(Function),
     );

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/element-selector@0.3.1...@amplitude/element-selector@0.3.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **element-selector:** make isShadowRoot realm-safe ([#2057](https://github.com/amplitude/Amplitude-TypeScript/issues/2057)) ([05cd38e](https://github.com/amplitude/Amplitude-TypeScript/commit/05cd38eed3b68802a3e55ef24eea49ecbf0c32d8))
+
+
+
+
+
 ## [0.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/element-selector@0.3.0...@amplitude/element-selector@0.3.1) (2026-09-25)
 
 **Note:** Version bump only for package @amplitude/element-selector

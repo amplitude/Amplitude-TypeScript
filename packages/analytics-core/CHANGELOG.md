@@ -3,6 +3,56 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.60.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.2...@amplitude/analytics-core@2.60.3) (2026-10-15)
+
+
+### Bug Fixes
+
+* **unified:** bump connector and experiment deps for exposure groups ([#2060](https://github.com/amplitude/Amplitude-TypeScript/issues/2060)) ([8a5d342](https://github.com/amplitude/Amplitude-TypeScript/commit/8a5d3420da90edca33507f8aed848a8943594420))
+
+
+
+
+
+## [2.60.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.1...@amplitude/analytics-core@2.60.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** support errorClick singular format Remote Config ([#2041](https://github.com/amplitude/Amplitude-TypeScript/issues/2041)) ([3e25191](https://github.com/amplitude/Amplitude-TypeScript/commit/3e25191a9417f81dbe56ac5109b41ddc0b13f90a))
+
+
+
+
+
+## [2.60.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.0...@amplitude/analytics-core@2.60.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **analytics-core:** clarify README package description ([#2045](https://github.com/amplitude/Amplitude-TypeScript/issues/2045)) ([ce14843](https://github.com/amplitude/Amplitude-TypeScript/commit/ce1484327ab2d6676dfd085d723cf13fa759a6e1))
+
+
+
+
+
+# [2.60.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.59.0...@amplitude/analytics-core@2.60.0) (2026-10-07)
+
+
+### Bug Fixes
+
+* **analytics-core:** resolve hung promises for duplicate insert_id during upload ([#2029](https://github.com/amplitude/Amplitude-TypeScript/issues/2029)) ([ee67ead](https://github.com/amplitude/Amplitude-TypeScript/commit/ee67ead46f1624c1bfa697f70e71ef064a0bf641))
+
+
+### Features
+
+* **analytics-react-native:** experimental -- error clicks ([#2017](https://github.com/amplitude/Amplitude-TypeScript/issues/2017)) ([17e9da4](https://github.com/amplitude/Amplitude-TypeScript/commit/17e9da421df456c50c88273c1d4cc3fb9db36040))
+* **plugin-autocapture-browser:** support shadow dom in elementInteractions ([#2035](https://github.com/amplitude/Amplitude-TypeScript/issues/2035)) ([02ec439](https://github.com/amplitude/Amplitude-TypeScript/commit/02ec439d5768fe2c4f707d217299ece19bdbe348))
+
+
+
+
+
 # [2.59.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.58.1...@amplitude/analytics-core@2.59.0) (2026-09-29)
 
 

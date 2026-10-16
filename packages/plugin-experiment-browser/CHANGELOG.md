@@ -3,6 +3,41 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-beta.50](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.49...@amplitude/plugin-experiment-browser@1.0.0-beta.50) (2026-10-15)
+
+
+### Bug Fixes
+
+* **unified:** bump connector and experiment deps for exposure groups ([#2060](https://github.com/amplitude/Amplitude-TypeScript/issues/2060)) ([8a5d342](https://github.com/amplitude/Amplitude-TypeScript/commit/8a5d3420da90edca33507f8aed848a8943594420))
+
+
+
+
+
+# [1.0.0-beta.49](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.48...@amplitude/plugin-experiment-browser@1.0.0-beta.49) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/plugin-experiment-browser
+
+
+
+
+
+# [1.0.0-beta.48](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.47...@amplitude/plugin-experiment-browser@1.0.0-beta.48) (2026-10-08)
+
+**Note:** Version bump only for package @amplitude/plugin-experiment-browser
+
+
+
+
+
+# [1.0.0-beta.47](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.46...@amplitude/plugin-experiment-browser@1.0.0-beta.47) (2026-10-07)
+
+**Note:** Version bump only for package @amplitude/plugin-experiment-browser
+
+
+
+
+
 # [1.0.0-beta.46](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-experiment-browser@1.0.0-beta.45...@amplitude/plugin-experiment-browser@1.0.0-beta.46) (2026-09-29)
 
 **Note:** Version bump only for package @amplitude/plugin-experiment-browser

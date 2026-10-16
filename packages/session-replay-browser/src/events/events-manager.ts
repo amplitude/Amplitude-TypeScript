@@ -7,6 +7,7 @@ import {
 
 import { SessionReplayJoinedConfig } from '../config/types';
 import { MAX_SINGLE_EVENT_SIZE } from '../constants';
+import { utf8ByteLengthIfOver } from '../utils/utf8-byte-length';
 import { getStorageSize } from '../helpers';
 import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 import { SessionReplayEventsIDBStore } from './events-idb-store';
@@ -138,19 +139,30 @@ export const createEventsManager = async <Type extends EventType>({
     // addCompressedEventToManager (e.g. stored by a previous SDK version or via
     // storeCurrentSequence/sendStoredEvents which bypass the capture-time check).
     // Compare UTF-8 byte size, not JS char count, to match the server-side limit.
-    const sizedEvents = rawEvents.map((e) => ({ event: e, bytes: new Blob([e]).size }));
-    const oversized = sizedEvents.filter((s) => s.bytes > maxSingleEventSize);
-    if (oversized.length > 0) {
+    let events = rawEvents;
+    const oversizedSizes: number[] = [];
+    for (let i = 0; i < rawEvents.length; i++) {
+      const bytes = utf8ByteLengthIfOver(rawEvents[i], maxSingleEventSize);
+      if (bytes === undefined) {
+        if (events !== rawEvents) events.push(rawEvents[i]);
+        continue;
+      }
+      if (oversizedSizes.length === 0) {
+        events = rawEvents.slice(0, i);
+      }
+      oversizedSizes.push(bytes);
+    }
+    if (oversizedSizes.length > 0) {
       config.loggerProvider.warn(
-        `Dropping ${oversized.length} oversized event(s) from session replay sequence before send. Sizes: ${oversized
-          .map((s) => `${Math.round(s.bytes / 1024)} KB`)
+        `Dropping ${
+          oversizedSizes.length
+        } oversized event(s) from session replay sequence before send. Sizes: ${oversizedSizes
+          .map((bytes) => `${Math.round(bytes / 1024)} KB`)
           .join(
             ', ',
           )}. If this recurs, please open a GitHub issue at https://github.com/amplitude/Amplitude-TypeScript/issues or contact Amplitude support.`,
       );
     }
-    const events =
-      oversized.length > 0 ? sizedEvents.filter((s) => s.bytes <= maxSingleEventSize).map((s) => s.event) : rawEvents;
     if (events.length === 0) {
       store.cleanUpSessionEventsStore(sessionId, sequenceId).catch((e) => {
         config.loggerProvider.warn('Failed to clean up session replay events store:', e);

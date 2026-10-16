@@ -170,8 +170,6 @@ export const createUnhandledErrorObservable = (handler: (event: ReactNativeError
   };
 };
 
-export const createUnhandledRejectionObservable = createUnhandledErrorObservable;
-
 export const createErrorObservable = (handler: (event: ReactNativeErrorEvent) => void): (() => void) => {
   const unsubscribeUnhandledError = createUnhandledErrorObservable(handler);
   return () => {

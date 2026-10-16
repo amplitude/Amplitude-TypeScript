@@ -28,6 +28,7 @@ import {
   SEND_TIMEOUT_MS,
 } from './constants';
 import { gzipJson } from './utils/gzip';
+import { utf8ByteLength, utf8ByteLengthOf } from './utils/utf8-byte-length';
 import { SessionReplaySendEventsHandler } from './config/types';
 
 interface WorkerCompleteMessage {
@@ -322,7 +323,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     serverZone?: keyof typeof ServerZone;
   }) {
     const MAX_BEACON_BYTES = 64 * 1024;
-    const byteLength = (s: string) => new Blob([s]).size;
+    const byteLength = (s: string) => utf8ByteLength(s);
     let trimmedEvents = events;
     let payload = JSON.stringify({ version: 2, events: trimmedEvents });
     if (byteLength(payload) > MAX_BEACON_BYTES) {
@@ -558,9 +559,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       };
       for (const ctx of group) {
         // UTF-8 byte size, matching how the events store enforces MAX_EVENT_LIST_SIZE
-        // (see base-events-store.ts:getStringSize). Using char length would let a CJK/
+        // (see utils/utf8-byte-length.ts). Using char length would let a CJK/
         // emoji-heavy payload sneak past the cap.
-        const ctxBytes = ctx.events.reduce((sum, e) => sum + new Blob([e]).size, 0);
+        const ctxBytes = utf8ByteLengthOf(ctx.events);
         if (current === null) {
           // Reset attempts to 0 on the merged context so the post-throttle delivery gets a
           // full retry budget. The throttle pause has already absorbed back-pressure; the
@@ -784,7 +785,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         this.enableTransportCompression && globalScope && 'CompressionStream' in globalScope
           ? await gzipJson(payloadJson, globalScope)
           : null;
-      const payloadSize = gzipped ? gzipped.byteLength : new Blob([payloadJson]).size;
+      const payloadSize = gzipped ? gzipped.byteLength : utf8ByteLength(payloadJson);
       // fetch() has no native timeout. A request stuck "pending" forever would block the
       // serial flush loop indefinitely (head-of-line blocking), so we abort it after
       // SEND_TIMEOUT_MS. The abort surfaces as an AbortError in the catch below, where it's
@@ -962,7 +963,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   handleSuccessResponse(context: SessionReplayDestinationContext) {
-    const sizeOfEventsList = Math.round(new Blob(context.events).size / KB_SIZE);
+    const sizeOfEventsList = Math.round(utf8ByteLengthOf(context.events) / KB_SIZE);
     this.completeRequest({
       context,
       success: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${sizeOfEventsList} KB`,

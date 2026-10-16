@@ -1,5 +1,11 @@
 import { autocapturePlugin } from '../../src/autocapture-plugin';
-import { BrowserClient, BrowserConfig, ILogger } from '@amplitude/analytics-core';
+import {
+  BrowserClient,
+  BrowserConfig,
+  ILogger,
+  clearPageViewState,
+  getOrCreatePageViewId,
+} from '@amplitude/analytics-core';
 import { createMockBrowserClient } from '../mock-browser-client';
 import { trackExposure } from '../../src/autocapture/track-exposure';
 import {
@@ -181,6 +187,36 @@ describe('autocapturePlugin - Viewport Content Updated (Exposure)', () => {
     // Verify Page View ID is NOT in the event properties
     const trackCall = track.mock.calls[0];
     expect(trackCall[1]).not.toHaveProperty('[Amplitude] Page View ID');
+  });
+
+  test('should use the page view id for its own project', async () => {
+    await plugin.teardown();
+    clearPageViewState();
+    window.sessionStorage.clear();
+
+    const apiKey = 'project-a';
+    const ownId = getOrCreatePageViewId(apiKey, window.location.href);
+    const otherId = getOrCreatePageViewId('project-b', window.location.href);
+    expect(otherId).not.toBe(ownId);
+
+    const loggerProvider = {
+      log: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    } as unknown as ILogger;
+    await plugin.setup({ apiKey, loggerProvider } as BrowserConfig, instance);
+
+    onExposureCallback('element-1');
+    window.dispatchEvent(new Event('beforeunload'));
+
+    expect(track).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': ['element-1'],
+        '[Amplitude] Page View ID': ownId,
+      }),
+    );
   });
 
   test('should call handleViewportContentUpdated with isPageEnd=true on beforeunload', async () => {
@@ -434,6 +470,32 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       '[Amplitude] Viewport Content Updated',
       expect.objectContaining({
         '[Amplitude] Element Exposed': [],
+      }),
+    );
+  });
+
+  test('should track when minY changed even if no elements exposed', () => {
+    const currentElementExposed = new Set<string>();
+    const elementExposedForPage = new Set<string>();
+    mockScrollTracker.getState = jest.fn().mockReturnValue({ maxX: 100, maxY: 200, minY: 40 });
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: 100, maxY: 200, minY: 180 },
+    });
+
+    expect(trackSpy).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': [],
+        '[Amplitude] Min Page Y': 40,
+        '[Amplitude] Max Page Y': 200 + window.innerHeight,
       }),
     );
   });
@@ -696,14 +758,18 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
   });
 
   test('should reset lastScroll on page end so the next snapshot does not look like a scroll change', () => {
-    let scrollState = { maxX: 100, maxY: 200 };
+    let scrollState = { maxX: 100, maxY: 200, minY: 40 };
     const statefulScrollTracker: ScrollTracker = {
       getState: jest.fn(() => ({ ...scrollState })),
       reset: jest.fn(() => {
-        scrollState = { maxX: 0, maxY: 0 };
+        scrollState = { maxX: 0, maxY: 0, minY: 0 };
       }),
     };
-    const lastScroll: { maxX: undefined | number; maxY: undefined | number } = { maxX: undefined, maxY: undefined };
+    const lastScroll: { maxX: undefined | number; maxY: undefined | number; minY: undefined | number } = {
+      maxX: undefined,
+      maxY: undefined,
+      minY: undefined,
+    };
 
     fireViewportContentUpdated({
       amplitude: mockAmplitude,
@@ -719,6 +785,7 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
     expect(trackSpy).toHaveBeenCalledTimes(1);
     expect(lastScroll.maxX).toBe(0);
     expect(lastScroll.maxY).toBe(0);
+    expect(lastScroll.minY).toBe(0);
 
     trackSpy.mockClear();
 

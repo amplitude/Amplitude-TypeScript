@@ -1,3 +1,21 @@
 packages:
   - '.'
   - '../../../packages/*'
+
+# Metro cannot resolve packages from pnpm's symlinked .pnpm store, so use a
+# flat node_modules layout. The workspace example at examples/react-native/app
+# uses the same approach through the repo-root pnpm-workspace.yaml.
+nodeLinker: hoisted
+
+# Hoist packages Metro, Expo CLI, and Gradle scripts resolve from the project root.
+publicHoistPattern:
+  - '*react-native*'
+  - '@react-native-async-storage/*'
+  - '@amplitude/*'
+  - '@babel/*'
+  - '@react-native/*'
+  - '@react-native-community/*'
+  - '@react-navigation/*'
+  - '@expo/*'
+  - metro
+  - 'metro-*'

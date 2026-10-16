@@ -750,6 +750,36 @@ describe('browser-client', () => {
       expect(track).toHaveBeenCalledWith('no_props_event', {}, undefined);
     });
 
+    test.each([
+      {
+        name: 'groups',
+        eventProperties: { flag_key: 'flag' },
+        expectedOptions: { groups: { org: ['org-1'] } },
+      },
+      {
+        name: 'time and groups',
+        eventProperties: { flag_key: 'flag', time: 12345 },
+        expectedOptions: { time: 12345, groups: { org: ['org-1'] } },
+      },
+    ])('should forward event bridge $name as event options', async ({ eventProperties, expectedOptions }) => {
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking,
+      }).promise;
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: { event_type: '$exposure' },
+        }),
+      });
+
+      const event = { eventType: '$exposure', eventProperties, groups: { org: ['org-1'] } };
+      getAnalyticsConnector().eventBridge.logEvent(event);
+
+      expect(track).toHaveBeenCalledWith('$exposure', { flag_key: 'flag' }, expectedOptions);
+    });
+
     test('should add file download and form interaction tracking plugins', async () => {
       const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
       const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');

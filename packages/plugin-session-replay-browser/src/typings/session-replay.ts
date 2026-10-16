@@ -27,6 +27,7 @@ export type MaskLevel =
 export interface SessionReplayPrivacyConfig {
   blockSelector?: string | string[];
   defaultMaskLevel?: MaskLevel;
+  maskAttributes?: string[];
   maskSelector?: string[];
   unmaskSelector?: string[];
 }

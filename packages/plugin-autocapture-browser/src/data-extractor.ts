@@ -8,6 +8,7 @@ import {
   TEXT_MASK_ATTRIBUTE,
   getPageTitle,
   replaceSensitiveString,
+  RemoteConfig,
 } from '@amplitude/analytics-core';
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import * as constants from './constants';
@@ -63,6 +64,7 @@ function getSharedSelectorEngine(): SelectorEngine {
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
+  private pageViewApiKey?: string;
   diagnosticsClient?: IDiagnosticsClient;
 
   /**
@@ -111,6 +113,10 @@ export class DataExtractor {
     }
     this.additionalMaskTextPatterns = compiled;
   }
+
+  setPageViewApiKey = (apiKey: string | undefined): void => {
+    this.pageViewApiKey = apiKey;
+  };
 
   /**
    * Wrapper method to replace sensitive strings using the helper function
@@ -205,6 +211,31 @@ export class DataExtractor {
     return elementPath;
   };
 
+  updateRemoteConfig = (remoteConfig?: RemoteConfig | null, logger?: ElementSelectorLogger): void => {
+    if (remoteConfig === null || remoteConfig === undefined) {
+      return;
+    }
+    let remoteElementSelector = remoteConfig['elementSelector'] as ElementSelectorRemoteConfig | undefined;
+    // Remote payloads are untrusted; narrow via `typeof` below rather than trusting the shape.
+    const remoteElementInteractions = (remoteConfig['elementInteractions'] ?? {}) as {
+      shadowDomEnabled?: unknown;
+      maxShadowDomDepth?: unknown;
+    };
+    if (typeof remoteElementInteractions.shadowDomEnabled === 'boolean') {
+      remoteElementSelector = {
+        ...(remoteElementSelector ?? {}),
+        shadowDomEnabled: remoteElementInteractions.shadowDomEnabled,
+      };
+    }
+    if (typeof remoteElementInteractions.maxShadowDomDepth === 'number') {
+      remoteElementSelector = {
+        ...(remoteElementSelector ?? {}),
+        maxShadowDomDepth: remoteElementInteractions.maxShadowDomDepth,
+      };
+    }
+    return this.updateSelectorConfig(remoteElementSelector, logger);
+  };
+
   /**
    * Apply an element-selector remote-config payload to the shared engine.
    * Ignores `null`/absent deliveries and partial payloads that omit both
@@ -291,7 +322,7 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
 
-    const pageViewId = getCurrentPageViewId();
+    const pageViewId = getCurrentPageViewId(this.pageViewApiKey);
     /* istanbul ignore next */
     if (pageViewId) {
       /* istanbul ignore next */

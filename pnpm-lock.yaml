@@ -306,8 +306,8 @@ importers:
         specifier: workspace:*
         version: link:../plugin-autocapture-browser
       '@amplitude/plugin-custom-enrichment-browser':
-        specifier: 0.1.22
-        version: 0.1.22
+        specifier: workspace:*
+        version: link:../plugin-custom-enrichment-browser
       '@amplitude/plugin-event-property-attribution-browser':
         specifier: workspace:*
         version: link:../plugin-event-property-attribution-browser
@@ -373,8 +373,8 @@ importers:
   packages/analytics-core:
     dependencies:
       '@amplitude/analytics-connector':
-        specifier: ^1.6.4
-        version: 1.6.4
+        specifier: ^1.7.0
+        version: 1.7.0
       '@types/zen-observable':
         specifier: 0.8.3
         version: 0.8.3
@@ -682,8 +682,8 @@ importers:
         specifier: workspace:*
         version: link:../analytics-core
       '@amplitude/experiment-js-client':
-        specifier: ^1.15.5
-        version: 1.20.0
+        specifier: ^1.24.0
+        version: 1.24.0
     devDependencies:
       rollup:
         specifier: ^2.80.0
@@ -1285,6 +1285,10 @@ packages:
     resolution:
       { integrity: sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q== }
 
+  '@amplitude/analytics-connector@1.7.0':
+    resolution:
+      { integrity: sha512-HTnunOzcN+CdJUxdaim3E/CA5xbYRng4rpYvobjzl2ud2BXtpJdRnGuVmPKskYYyUTkz7X6QIOQPYlAgcGaWcg== }
+
   '@amplitude/analytics-core@2.50.0':
     resolution:
       { integrity: sha512-d8/U5aAHAs6XcpvQYpStxBxMxSwjDajZ0f6wMSwPCfxDGEWqcFaYuRKauh+vrn89D6gWcKi1VZ/tKCyhVby9sg== }
@@ -1309,13 +1313,17 @@ packages:
     resolution:
       { integrity: sha512-fHVJazCwwgjUcj49N+yFSLMSroyY0eHImrsmd1ipIjIT1Cez8mh+TvwJQ0LGSdyYvL2NAZM2J5vpXrR1nHgdzg== }
 
+  '@amplitude/experiment-core@0.13.6':
+    resolution:
+      { integrity: sha512-MLzTOUxsvgVyn2o4YPlfdGBk1Z19oPyIkXdwiRVytAxCnkb4I+Gcx6oV7Or6Jw/cN5MYP1dTWnT8upwN0XyhPA== }
+
   '@amplitude/experiment-core@0.7.2':
     resolution:
       { integrity: sha512-Wc2NWvgQ+bLJLeF0A9wBSPIaw0XuqqgkPKsoNFQrmS7r5Djd56um75In05tqmVntPJZRvGKU46pAp8o5tdf4mA== }
 
-  '@amplitude/experiment-js-client@1.20.0':
+  '@amplitude/experiment-js-client@1.24.0':
     resolution:
-      { integrity: sha512-MMecqmDXJ81KH0dU2/Alshy8O3srBOO8A0CcIy958zUUFJwyB3z2zXbU2EYSF0s75xwWBAu/+F23Dp2ATmOerg== }
+      { integrity: sha512-PK3gN86J8NcDp0pY0ijwTM+3R2FJfbkyO7wZ3xhfLEDRdnHiMzyrAEH8EVM15e2K0IajdXjMbqxkWSqngsUuOw== }
 
   '@amplitude/experiment-react-native-client@1.8.0':
     resolution:
@@ -12899,6 +12907,8 @@ snapshots:
 
   '@amplitude/analytics-connector@1.6.4': {}
 
+  '@amplitude/analytics-connector@1.7.0': {}
+
   '@amplitude/analytics-core@2.50.0':
     dependencies:
       '@amplitude/analytics-connector': 1.6.4
@@ -12927,14 +12937,18 @@ snapshots:
     dependencies:
       js-base64: 3.7.8
 
+  '@amplitude/experiment-core@0.13.6':
+    dependencies:
+      js-base64: 3.7.8
+
   '@amplitude/experiment-core@0.7.2':
     dependencies:
       js-base64: 3.7.8
 
-  '@amplitude/experiment-js-client@1.20.0':
+  '@amplitude/experiment-js-client@1.24.0':
     dependencies:
-      '@amplitude/analytics-connector': 1.6.4
-      '@amplitude/experiment-core': 0.11.1
+      '@amplitude/analytics-connector': 1.7.0
+      '@amplitude/experiment-core': 0.13.6
       '@amplitude/ua-parser-js': 0.7.33
       base64-js: 1.5.1
       unfetch: 4.1.0
