@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contenteditable Element Text Test</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 960px; margin: 24px auto; padding: 0 16px; }
+      section { border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; }
+      .ck-editor__editable { min-height: 80px; border: 1px solid #c4c4c4; padding: 8px 12px; background: #fff; }
+      .ck-editor__editable:focus { outline: 2px solid #1a73e8; }
+      .ck-toolbar { background: #f5f5f5; border: 1px solid #c4c4c4; border-bottom: none; padding: 4px 8px; font-size: 12px; color: #555; }
+      .card { display: inline-block; border: 1px dashed #888; padding: 8px; }
+      .card [contenteditable] { border: 1px solid #c4c4c4; padding: 4px 8px; margin-top: 4px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; vertical-align: top; }
+      td.leak { background: #fde2e2; font-weight: 600; }
+      td.ok { background: #e3f6e5; }
+      code { background: #f3f3f3; padding: 0 3px; }
+    </style>
+  </head>
+  <body>
+    <h1>Contenteditable Element Text Test</h1>
+    <p>
+      This page reproduces a bug where clicking a <code>contenteditable="true"</code> rich-text editor (CKEditor 5) sends
+      the text the user typed as <code>[Amplitude] Element Text</code> on <code>[Amplitude] Element Clicked</code>.
+      The SDK's default exclusion is supposed to prevent this. It loads the script bundle from
+      <code>packages/analytics-browser/lib/scripts/amplitude-min.js</code> (the <code>amplitude-ts-script</code> library),
+      so run <code>pnpm build</code> first.
+    </p>
+    <p>
+      <code>[contenteditable="true" i]</code> is in <code>DEFAULT_CSS_SELECTOR_ALLOWLIST</code>, so a click anywhere
+      inside the editor resolves to the editable root. <code>DataExtractor.getText</code> only masks
+      <em>descendants</em> that have <code>[contenteditable]</code>. It never checks the clicked element itself, so the
+      root's full <code>innerText</code> is captured.
+    </p>
+    <p id="status">SDK loading…</p>
+
+    <section>
+      <h2>Case 1: CKEditor 5 support form (bug)</h2>
+      <p>Type something sensitive, then click inside the editor. Expected text: masked or empty. Actual text: what you typed.</p>
+      <form id="support-form" onsubmit="return false">
+        <label for="subject">Subject</label>
+        <input id="subject" name="subject" type="text" placeholder="Subject" />
+        <div class="ck ck-reset ck-editor ck-rounded-corners" role="application">
+          <div class="ck ck-editor__top">
+            <div class="ck ck-toolbar" role="toolbar">B &nbsp; I &nbsp; U &nbsp; Link &nbsp; List</div>
+          </div>
+          <div class="ck ck-editor__main" role="presentation">
+            <div
+              id="ck-editable"
+              class="ck-blurred ck ck-content ck-editor__editable ck-rounded-corners ck-editor__editable_inline"
+              contenteditable="true"
+              role="textbox"
+              aria-label="Rich Text Editor. Editing area: main"
+              lang="en"
+              dir="ltr"
+            >
+              <p>Hi, I'm Jane Doe (DOB March 3 1985), 42 Elm St, Springfield.</p>
+              <p>My account password is <strong>hunter2</strong>, please reset it.</p>
+            </div>
+          </div>
+        </div>
+        <button id="submit" type="button">Submit ticket</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Case 2: tracked wrapper with a contenteditable child (works)</h2>
+      <p>
+        Click the dashed card's label, not the inner editable. Here the editable is a <em>descendant</em> of the tracked
+        element, so the SDK replaces its text with <code>*****</code>. If you click the inner editable directly, you hit
+        the same bug as Case 1.
+      </p>
+      <div id="tracked-card" class="card" data-amp-default-track>
+        Notes card label
+        <div id="card-editable" contenteditable="true">secret note typed by user</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Case 3: contenteditable with <code>data-amp-mask</code> (workaround)</h2>
+      <p>Same editor markup with <code>data-amp-mask</code> on the editable. This should send <code>*****</code>.</p>
+      <div class="ck ck-editor">
+        <div class="ck ck-editor__main">
+          <div
+            id="ck-editable-masked"
+            class="ck ck-content ck-editor__editable ck-editor__editable_inline"
+            contenteditable="true"
+            role="textbox"
+            data-amp-mask
+          >
+            <p>Masked: John Roe, 7 Oak Ave, password swordfish.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Captured <code>[Amplitude] Element Clicked</code> events</h2>
+      <button id="clear-log" type="button">Clear</button>
+      <table>
+        <thead>
+          <tr>
+            <th>Element ID / Class</th>
+            <th>Element Text</th>
+            <th>Hierarchy (target attrs)</th>
+            <th>library</th>
+          </tr>
+        </thead>
+        <tbody id="log"></tbody>
+      </table>
+    </section>
+
+    <script src="/analytics-browser/lib/scripts/amplitude-min.js"></script>
+    <script type="module">
+      var amplitude = window.amplitude;
+      var statusEl = document.getElementById('status');
+      if (!amplitude) {
+        statusEl.textContent = 'Error: window.amplitude not found. Run "pnpm build" in packages/analytics-browser first.';
+      } else {
+        var MASK = '*****';
+        var logEl = document.getElementById('log');
+        document.getElementById('clear-log').addEventListener('click', function () {
+          logEl.innerHTML = '';
+        });
+
+        function cell(text, cls) {
+          var td = document.createElement('td');
+          td.textContent = text == null ? '' : String(text);
+          if (cls) td.className = cls;
+          return td;
+        }
+
+        amplitude.add({
+          name: 'contenteditable-text-inspector',
+          type: 'enrichment',
+          execute: async function (event) {
+            if (event.event_type !== '[Amplitude] Element Clicked') return event;
+            var props = event.event_properties || {};
+            var id = props['[Amplitude] Element ID'] || '';
+            var cls = props['[Amplitude] Element Class'] || '';
+            var text = props['[Amplitude] Element Text'];
+            var hierarchy = props['[Amplitude] Element Hierarchy'] || [];
+            var target = hierarchy[0] || {};
+            var el = id && document.getElementById(id);
+            var isEditable = !!el && el.getAttribute('contenteditable') === 'true';
+            var leaked = isEditable && !!text && text !== MASK;
+
+            var tr = document.createElement('tr');
+            tr.appendChild(cell((id ? '#' + id + ' ' : '') + cls));
+            tr.appendChild(cell(text, isEditable ? (leaked ? 'leak' : 'ok') : ''));
+            tr.appendChild(cell(JSON.stringify(target.attrs || {})));
+            tr.appendChild(cell(event.library));
+            logEl.prepend(tr);
+
+            if (leaked) {
+              console.warn('[contenteditable-text] Element Text leaked from contenteditable:', text, event);
+            }
+            return event;
+          },
+        });
+
+        amplitude.init(
+          import.meta.env.VITE_AMPLITUDE_API_KEY,
+          import.meta.env.VITE_AMPLITUDE_USER_ID || 'contenteditable-text-test-user',
+          {
+            logLevel: amplitude.Types.LogLevel.Debug,
+            autocapture: {
+              elementInteractions: true,
+              frustrationInteractions: false,
+              formInteractions: false,
+              pageViews: false,
+              sessions: false,
+            },
+          },
+        );
+        statusEl.textContent = 'SDK initialized. Click inside the editors below.';
+      }
+    </script>
+  </body>
+</html>
