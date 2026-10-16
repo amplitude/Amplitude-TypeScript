@@ -98,13 +98,16 @@ export const isTextNode = (node: Node) => {
   return !!node && node.nodeType === 3;
 };
 
+/** True when the element itself is an editable region (`contenteditable="true"`). */
+export const isContentEditableElement = (element: Element): boolean => {
+  return element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
+};
+
 export const isNonSensitiveElement = (element: Element) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  const isContentEditable =
-    element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
 
-  return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
+  return !SENSITIVE_TAGS.includes(tag) && !isContentEditableElement(element);
 };
 
 /**
