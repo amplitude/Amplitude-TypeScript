@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Replay Snippet + Autocapture</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 640px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      h1 {
+        color: #333;
+      }
+      button {
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        margin: 10px 5px 10px 0;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      button:hover {
+        background: #0052a3;
+      }
+      input,
+      textarea {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px;
+        margin: 8px 0 16px;
+        font-size: 14px;
+      }
+      .section {
+        margin: 20px 0;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 8px;
+      }
+    </style>
+    <script type="text/javascript" src="https://cdn.amplitude.com/script/17fcb31e58fc138462fd64bfe7add49e.js"></script>
+    <script>
+      window.amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
+      window.amplitude.init("17fcb31e58fc138462fd64bfe7add49e", "UserID:10:35", {
+        fetchRemoteConfig: true,
+        autocapture: true
+      });
+    </script>
+  </head>
+  <body>
+    <h1>Session Replay Snippet + Autocapture</h1>
+    <p>
+      Amplitude is initialized with session replay (<code>sampleRate: 1</code>), remote config, and autocapture
+      for user <code>UserID:1:24</code>.
+    </p>
+
+    <div class="section">
+      <h2>Interact</h2>
+      <label for="name">Name</label>
+      <input id="name" type="text" placeholder="Type something" />
+
+      <label for="notes">Notes</label>
+      <textarea id="notes" rows="4" placeholder="More text for the replay"></textarea>
+
+      <button id="click-me" type="button">Click me</button>
+      <button id="track-event" type="button">Track custom event</button>
+      <p id="click-count">Clicks: 0</p>
+    </div>
+
+    <script>
+      var clicks = 0;
+      document.getElementById('click-me').addEventListener('click', function () {
+        clicks += 1;
+        document.getElementById('click-count').textContent = 'Clicks: ' + clicks;
+      });
+
+      document.getElementById('track-event').addEventListener('click', function () {
+        window.amplitude.track('Test Event', {
+          source: 'sr-snippet-autocapture',
+        });
+      });
+    </script>
+  </body>
+</html>
