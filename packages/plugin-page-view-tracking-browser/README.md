@@ -80,3 +80,4 @@ This plugin tracks page views based on your configuration. A page view event is 
 |`'[Amplitude] Page Title'`|The website's title or `document.title`|
 |`'[Amplitude] Page URL'`|The website's url excluding query parameters|
 |`'[Amplitude] Min Page Y'`|The vertical scroll offset (`window.scrollY`) when the page view event is created. This is the top of the viewport, not the offset plus viewport height. A non-zero value means the page view started below the top of the page.|
+|`'[Amplitude] Viewport Width'`|The viewport width (`window.innerWidth`) when the page view event is created.|

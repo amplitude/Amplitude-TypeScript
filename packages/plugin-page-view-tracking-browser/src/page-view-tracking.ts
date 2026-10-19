@@ -47,8 +47,9 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   };
 
   const createPageViewEvent = async (pageViewId: string | undefined): Promise<Event> => {
-    // Read before the campaign await so a scroll during that wait stays off this event.
+    // Read before the campaign await so a scroll or resize during that wait stays off this event.
     const minPageY = readMinPageY();
+    const viewportWidth = readViewportWidth();
     /* istanbul ignore next */
     const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
     return {
@@ -63,6 +64,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
         '[Amplitude] Page URL': locationHREF.split('?')[0],
         '[Amplitude] Min Page Y': minPageY,
+        '[Amplitude] Viewport Width': viewportWidth,
         '[Amplitude] Page View ID': pageViewId,
       },
     };
@@ -204,6 +206,15 @@ const readMinPageY = (): number => {
   }
   const offset = scope.scrollY ?? scope.pageYOffset ?? 0;
   return Math.floor(offset);
+};
+
+/** `window.innerWidth` when the page view event is created. Same property as other autocapture events. */
+const readViewportWidth = (): number => {
+  const scope = getGlobalScope();
+  if (!scope) {
+    return 0;
+  }
+  return scope.innerWidth ?? 0;
 };
 
 const getCampaignParams = async () => omitUndefined(await new CampaignParser().parse());
