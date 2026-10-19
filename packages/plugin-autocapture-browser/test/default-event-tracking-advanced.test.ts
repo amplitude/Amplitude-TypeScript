@@ -1921,6 +1921,66 @@ describe('autoTrackingPlugin', () => {
       );
     });
 
+    describe('exposure snapshot after navigation', () => {
+      const expectSnapshotFlushedFor = (id: string) => {
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenCalledWith(
+          '[Amplitude] Viewport Content Updated',
+          expect.objectContaining({
+            '[Amplitude] Element Exposed': [`button#${id}`],
+          }),
+        );
+      };
+
+      const setupPastInitialSnapshot = async () => {
+        await plugin?.setup?.({ defaultTracking: false, loggerProvider } as BrowserConfig, instance);
+        advanceExposureSnapshot();
+        track.mockClear();
+      };
+
+      test.each([
+        ['pushState', () => history.pushState({}, 'test', '/pushed-page')],
+        ['replaceState', () => history.replaceState({}, 'test', '/replaced-page')],
+        [
+          'popstate',
+          () => {
+            mockWindowLocationFromURL(new URL('http://localhost/popped-page'));
+            window.dispatchEvent(new Event('popstate'));
+          },
+        ],
+      ])('should take a new snapshot after %s', async (name, navigate) => {
+        await setupPastInitialSnapshot();
+
+        navigate();
+        expect(track).not.toHaveBeenCalled();
+
+        exposeButton(`${name}-zone`);
+        advanceExposureSnapshot();
+
+        expectSnapshotFlushedFor(`${name}-zone`);
+        await plugin?.teardown?.();
+      });
+
+      test('should take a new snapshot after a Navigation API navigation', async () => {
+        const listeners = installNavigation();
+        plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+        await setupPastInitialSnapshot();
+
+        dispatchNavigation(listeners, 'navigate', {
+          destination: { url: 'http://localhost/navigated-page' },
+        } as unknown as Event);
+        mockWindowLocationFromURL(new URL('http://localhost/navigated-page'));
+        dispatchNavigation(listeners, 'navigatesuccess', new Event('navigatesuccess'));
+        expect(track).not.toHaveBeenCalled();
+
+        exposeButton('navigated-zone');
+        advanceExposureSnapshot();
+
+        expectSnapshotFlushedFor('navigated-zone');
+        await plugin?.teardown?.();
+      });
+    });
+
     test('should not track [Amplitude] Viewport Content Updated on same-URL replaceState', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
