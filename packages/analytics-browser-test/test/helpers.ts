@@ -168,6 +168,7 @@ const generatePageViewEventProps = (
 
   return {
     '[Amplitude] Page Counter': pageCounter,
+    '[Amplitude] Min Page Y': 0,
     '[Amplitude] Page Domain': url.hostname,
     '[Amplitude] Page Location': url.href,
     '[Amplitude] Page Path': url.pathname,

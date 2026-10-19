@@ -123,6 +123,8 @@ describe('pageViewTrackingPlugin', () => {
       pathname: '',
       search: '',
     };
+    Object.defineProperty(window, 'scrollY', { configurable: true, writable: true, value: 0 });
+    Object.defineProperty(window, 'pageYOffset', { configurable: true, writable: true, value: 0 });
   });
 
   describe('setup', () => {
@@ -171,6 +173,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': newURL.toString(),
           '[Amplitude] Page View ID': pageViewIdSessionStorage,
+          '[Amplitude] Min Page Y': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -214,6 +217,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': `https://${hostname}${pathname}`,
           '[Amplitude] Page View ID': expect.any(String),
+          '[Amplitude] Min Page Y': 0,
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'brand',
@@ -223,6 +227,44 @@ describe('pageViewTrackingPlugin', () => {
         event_type: options?.eventType ?? '[Amplitude] Page Viewed',
       });
       expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should report Min Page Y from the scroll offset where the page view starts', async () => {
+      Object.defineProperty(window, 'scrollY', { configurable: true, writable: true, value: 480.8 });
+      Object.defineProperty(window, 'pageYOffset', { configurable: true, writable: true, value: 10 });
+
+      const amplitude = createMockBrowserClient();
+      const track = jest.spyOn(amplitude, 'track');
+      const url = new URL('https://www.example.com/scrolled');
+      mockWindowLocationFromURL(url);
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(mockConfig, amplitude);
+
+      expect(track).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event_type: '[Amplitude] Page Viewed',
+          event_properties: expect.objectContaining({
+            '[Amplitude] Min Page Y': 480,
+          }),
+        }),
+      );
+
+      Object.defineProperty(window, 'scrollY', { configurable: true, writable: true, value: undefined });
+      Object.defineProperty(window, 'pageYOffset', { configurable: true, writable: true, value: 220.2 });
+      const nextURL = new URL('https://www.example.com/restored');
+      mockWindowLocationFromURL(nextURL);
+      window.history.pushState(undefined, nextURL.href);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(track).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          event_properties: expect.objectContaining({
+            '[Amplitude] Page Location': nextURL.toString(),
+            '[Amplitude] Min Page Y': 220,
+          }),
+        }),
+      );
     });
 
     test.each([
@@ -346,6 +388,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': oldURL.toString(),
           '[Amplitude] Page View ID': expect.any(String),
+          '[Amplitude] Min Page Y': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -358,6 +401,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': 'https://www.example.com/home-шеллы',
           '[Amplitude] Page View ID': expect.any(String),
+          '[Amplitude] Min Page Y': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -403,6 +447,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': oldURL.toString(),
           '[Amplitude] Page View ID': expect.any(String),
+          '[Amplitude] Min Page Y': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -415,6 +460,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': malformedURL,
           '[Amplitude] Page View ID': expect.any(String),
+          '[Amplitude] Min Page Y': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -458,6 +504,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': oldURL.toString(),
           '[Amplitude] Page View ID': expect.any(String),
+          '[Amplitude] Min Page Y': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -470,6 +517,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': newBaseURL,
           '[Amplitude] Page View ID': expect.any(String),
+          '[Amplitude] Min Page Y': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -686,6 +734,7 @@ describe('pageViewTrackingPlugin', () => {
 
       expect(event?.event_type).toBe('[Amplitude] Page Viewed');
       expect(event?.event_properties).not.toHaveProperty('[Amplitude] Page View ID');
+      expect((event?.event_properties as Record<string, unknown> | undefined)?.['[Amplitude] Min Page Y']).toBe(0);
       (getGlobalScope as jest.Mock).mockImplementation(orig);
     });
 

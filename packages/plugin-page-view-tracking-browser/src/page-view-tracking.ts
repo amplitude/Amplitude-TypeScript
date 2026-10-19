@@ -47,6 +47,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   };
 
   const createPageViewEvent = async (pageViewId: string | undefined): Promise<Event> => {
+    // Read before the campaign await so a scroll during that wait stays off this event.
+    const minPageY = readMinPageY();
     /* istanbul ignore next */
     const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
     return {
@@ -60,6 +62,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
         '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
         '[Amplitude] Page URL': locationHREF.split('?')[0],
+        '[Amplitude] Min Page Y': minPageY,
         '[Amplitude] Page View ID': pageViewId,
       },
     };
@@ -192,6 +195,16 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
 /* istanbul ignore next */
 const currentHref = (): string => (typeof location !== 'undefined' && location.href) || '';
+
+/** Top of the viewport (`scrollY`) when the page view event is created. */
+const readMinPageY = (): number => {
+  const scope = getGlobalScope();
+  if (!scope) {
+    return 0;
+  }
+  const offset = scope.scrollY ?? scope.pageYOffset ?? 0;
+  return Math.floor(offset);
+};
 
 const getCampaignParams = async () => omitUndefined(await new CampaignParser().parse());
 
