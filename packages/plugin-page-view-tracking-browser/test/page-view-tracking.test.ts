@@ -8,6 +8,7 @@ import {
   CookieStorage,
   FetchTransport,
   clearPageViewState,
+  clearSdkInitializationOffset,
   getCurrentPageViewId,
 } from '@amplitude/analytics-core';
 import {
@@ -126,6 +127,8 @@ describe('pageViewTrackingPlugin', () => {
     Object.defineProperty(window, 'scrollY', { configurable: true, writable: true, value: 0 });
     Object.defineProperty(window, 'pageYOffset', { configurable: true, writable: true, value: 0 });
     Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1024 });
+    clearSdkInitializationOffset();
+    jest.spyOn(performance, 'now').mockReturnValue(0);
   });
 
   describe('setup', () => {
@@ -176,6 +179,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page View ID': pageViewIdSessionStorage,
           '[Amplitude] Min Page Y': 0,
           '[Amplitude] Viewport Width': 1024,
+          '[Amplitude] SDK Initialization Offset': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -221,6 +225,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page View ID': expect.any(String),
           '[Amplitude] Min Page Y': 0,
           '[Amplitude] Viewport Width': 1024,
+          '[Amplitude] SDK Initialization Offset': 0,
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'brand',
@@ -230,6 +235,42 @@ describe('pageViewTrackingPlugin', () => {
         event_type: options?.eventType ?? '[Amplitude] Page Viewed',
       });
       expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should keep the SDK initialization offset from plugin setup on later page views', async () => {
+      clearSdkInitializationOffset();
+      jest.spyOn(performance, 'now').mockReturnValue(2500.7);
+
+      const amplitude = createMockBrowserClient();
+      const track = jest.spyOn(amplitude, 'track');
+      const url = new URL('https://www.example.com/late-init');
+      mockWindowLocationFromURL(url);
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(mockConfig, amplitude);
+
+      expect(track).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event_properties: expect.objectContaining({
+            '[Amplitude] SDK Initialization Offset': 2500,
+          }),
+        }),
+      );
+
+      jest.spyOn(performance, 'now').mockReturnValue(9000);
+      const nextURL = new URL('https://www.example.com/later');
+      mockWindowLocationFromURL(nextURL);
+      window.history.pushState(undefined, nextURL.href);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(track).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          event_properties: expect.objectContaining({
+            '[Amplitude] Page Location': nextURL.toString(),
+            '[Amplitude] SDK Initialization Offset': 2500,
+          }),
+        }),
+      );
     });
 
     test('should report Min Page Y and viewport width from where the page view starts', async () => {
@@ -397,6 +438,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page View ID': expect.any(String),
           '[Amplitude] Min Page Y': 0,
           '[Amplitude] Viewport Width': 1024,
+          '[Amplitude] SDK Initialization Offset': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -411,6 +453,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page View ID': expect.any(String),
           '[Amplitude] Min Page Y': 0,
           '[Amplitude] Viewport Width': 1024,
+          '[Amplitude] SDK Initialization Offset': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -458,6 +501,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page View ID': expect.any(String),
           '[Amplitude] Min Page Y': 0,
           '[Amplitude] Viewport Width': 1024,
+          '[Amplitude] SDK Initialization Offset': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -472,6 +516,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page View ID': expect.any(String),
           '[Amplitude] Min Page Y': 0,
           '[Amplitude] Viewport Width': 1024,
+          '[Amplitude] SDK Initialization Offset': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -517,6 +562,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page View ID': expect.any(String),
           '[Amplitude] Min Page Y': 0,
           '[Amplitude] Viewport Width': 1024,
+          '[Amplitude] SDK Initialization Offset': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -531,6 +577,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page View ID': expect.any(String),
           '[Amplitude] Min Page Y': 0,
           '[Amplitude] Viewport Width': 1024,
+          '[Amplitude] SDK Initialization Offset': 0,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -750,6 +797,7 @@ describe('pageViewTrackingPlugin', () => {
       const properties = event?.event_properties as Record<string, unknown> | undefined;
       expect(properties?.['[Amplitude] Min Page Y']).toBe(0);
       expect(properties?.['[Amplitude] Viewport Width']).toBe(0);
+      expect(properties?.['[Amplitude] SDK Initialization Offset']).toBe(0);
       (getGlobalScope as jest.Mock).mockImplementation(orig);
     });
 
