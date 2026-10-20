@@ -1,0 +1,34 @@
+{
+  "name": "@amplitude/amp-semantic",
+  "version": "0.1.0",
+  "description": "Composable, privacy-aware browser semantic capture for Amplitude",
+  "license": "MIT",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/esm/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "lib",
+    "schema.json"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "pnpm build:es5 && pnpm build:esm",
+    "build:es5": "tsc -p tsconfig.es5.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "test": "jest",
+    "lint": "eslint '{src,test}/**/*.ts'",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "tslib": "^2.4.1",
+    "@amplitude/session-replay-dom-privacy": "workspace:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
+  },
+  "homepage": "https://github.com/amplitude/Amplitude-TypeScript"
+}
