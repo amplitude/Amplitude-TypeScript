@@ -190,6 +190,13 @@ export { pruneJson } from './utils/json-query';
 export type { BaseWindowMessenger, ActionHandler } from './messenger/base-window-messenger';
 export { getOrCreateWindowMessenger } from './messenger/base-window-messenger';
 export { enableBackgroundCapture } from './messenger/background-capture';
+export {
+  BACKGROUND_CAPTURE_FRAGMENT_KEY,
+  getBackgroundCaptureSession,
+  clearBackgroundCaptureSession,
+  uploadBackgroundCapture,
+} from './messenger/background-capture-session';
+export type { BackgroundCaptureSession } from './messenger/background-capture-session';
 export type {
   BackgroundCaptureDeviceMode,
   InitializeBackgroundCaptureData,
