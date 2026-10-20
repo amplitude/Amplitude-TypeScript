@@ -58,6 +58,7 @@ function harness(privacy: PrivacyConfig = { defaultMaskLevel: 'medium' }, disabl
     attributes: () => ({}),
   };
   const context: RecorderContext = {
+    onCleanup: () => undefined,
     host: {
       document,
       window,

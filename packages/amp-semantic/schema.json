@@ -1,0 +1,986 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Amplitude semantic capture v1 events",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/context"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "sdk": {
+                  "type": "string"
+                },
+                "mask": {
+                  "enum": ["light", "medium", "conservative"]
+                },
+                "css": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "inlined": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "unreadable": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": ["total", "inlined", "unreadable"],
+                  "additionalProperties": false
+                },
+                "viewport": {
+                  "type": "object",
+                  "properties": {
+                    "w": {
+                      "type": "number"
+                    },
+                    "h": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["w", "h"],
+                  "additionalProperties": false
+                },
+                "device": {
+                  "enum": ["desktop", "tablet", "mobile"]
+                },
+                "language": {
+                  "type": "string"
+                },
+                "analytics_sdk": {
+                  "type": "object",
+                  "properties": {
+                    "present": {
+                      "type": "boolean"
+                    },
+                    "autocapture": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": ["present", "autocapture"],
+                  "additionalProperties": false
+                },
+                "caps_hit": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["sdk", "mask", "css", "viewport", "device", "language", "analytics_sdk", "v"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/click"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                "role": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": ["string", "null"],
+                  "maxLength": 80
+                },
+                "name_source": {
+                  "enum": [
+                    "aria-labelledby",
+                    "aria-label",
+                    "label-for",
+                    "label-wrap",
+                    "alt",
+                    "value",
+                    "title",
+                    "text",
+                    "placeholder",
+                    "masked",
+                    "unnamed"
+                  ]
+                },
+                "container": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": ["integer", "null"],
+                          "minimum": 0
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": ["string", "null"],
+                          "maxLength": 80
+                        }
+                      },
+                      "required": ["id", "role", "name"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "states": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "disabled",
+                      "required",
+                      "invalid",
+                      "checked",
+                      "expanded",
+                      "collapsed",
+                      "selected",
+                      "current",
+                      "pressed",
+                      "readonly"
+                    ]
+                  }
+                },
+                "visible": {
+                  "type": "boolean"
+                },
+                "key": {
+                  "type": ["string", "null"]
+                },
+                "selector": {
+                  "type": ["string", "null"]
+                },
+                "attrs": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "name": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "href": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "target": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "aria-controls": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "aria-haspopup": {
+                      "type": "string",
+                      "maxLength": 60
+                    },
+                    "data-testid": {
+                      "type": "string",
+                      "maxLength": 60
+                    }
+                  },
+                  "required": [],
+                  "additionalProperties": false
+                },
+                "url": {
+                  "type": "string"
+                },
+                "heading": {
+                  "type": ["string", "null"],
+                  "maxLength": 80
+                },
+                "keyboard": {
+                  "type": "boolean"
+                },
+                "modifiers": {
+                  "type": "array",
+                  "items": {
+                    "enum": ["alt", "ctrl", "meta", "shift"]
+                  }
+                },
+                "trusted": {
+                  "type": "boolean"
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": [
+                "id",
+                "role",
+                "name",
+                "name_source",
+                "container",
+                "states",
+                "visible",
+                "key",
+                "attrs",
+                "url",
+                "heading",
+                "keyboard",
+                "modifiers",
+                "trusted",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/page"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": ["string", "null"],
+                  "maxLength": 80
+                },
+                "heading": {
+                  "type": ["string", "null"],
+                  "maxLength": 80
+                },
+                "nav": {
+                  "enum": ["load", "push", "replace", "pop", "hash", "title"]
+                },
+                "check": {
+                  "enum": ["change", "2s", "5s"]
+                },
+                "controls": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 200
+                },
+                "empty": {
+                  "type": "boolean"
+                },
+                "loading": {
+                  "type": "boolean"
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["url", "title", "heading", "nav", "check", "controls", "empty", "loading", "v"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/field"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                "role": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": ["string", "null"],
+                  "maxLength": 80
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "value_state": {
+                  "enum": ["empty", "filled"]
+                },
+                "valid": {
+                  "type": "boolean"
+                },
+                "validity": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "valueMissing",
+                      "typeMismatch",
+                      "patternMismatch",
+                      "tooShort",
+                      "tooLong",
+                      "rangeUnderflow",
+                      "rangeOverflow",
+                      "stepMismatch",
+                      "badInput",
+                      "customError",
+                      "ariaInvalid"
+                    ]
+                  }
+                },
+                "masked": {
+                  "type": "boolean"
+                },
+                "option_label": {
+                  "type": ["string", "null"],
+                  "maxLength": 80
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": [
+                "id",
+                "role",
+                "name",
+                "kind",
+                "value_state",
+                "valid",
+                "validity",
+                "masked",
+                "option_label",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/submit"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "form": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": ["integer", "null"],
+                      "minimum": 0
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": ["string", "null"],
+                      "maxLength": 80
+                    }
+                  },
+                  "required": ["id", "role", "name"],
+                  "additionalProperties": false
+                },
+                "submitter": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": ["integer", "null"],
+                          "minimum": 0
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": ["string", "null"],
+                          "maxLength": 80
+                        }
+                      },
+                      "required": ["id", "role", "name"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "valid": {
+                  "type": "boolean"
+                },
+                "invalid_fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": ["integer", "null"],
+                        "minimum": 0
+                      },
+                      "name": {
+                        "type": ["string", "null"],
+                        "maxLength": 80
+                      },
+                      "validity": {
+                        "type": "array",
+                        "items": {
+                          "enum": [
+                            "valueMissing",
+                            "typeMismatch",
+                            "patternMismatch",
+                            "tooShort",
+                            "tooLong",
+                            "rangeUnderflow",
+                            "rangeOverflow",
+                            "stepMismatch",
+                            "badInput",
+                            "customError",
+                            "ariaInvalid"
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["id", "name", "validity"],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 10
+                },
+                "prevented": {
+                  "type": "boolean"
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["form", "submitter", "valid", "invalid_fields", "prevented", "v"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/notice"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                "role": {
+                  "enum": ["alert", "status", "log", "live"]
+                },
+                "text": {
+                  "type": ["string", "null"],
+                  "maxLength": 200
+                },
+                "visible": {
+                  "type": "boolean"
+                },
+                "region": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": ["string", "null"],
+                          "maxLength": 80
+                        }
+                      },
+                      "required": ["role", "name"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "cause_click_ts": {
+                  "type": ["number", "null"]
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["id", "role", "text", "visible", "region", "cause_click_ts", "v"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/dialog"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                "role": {
+                  "enum": ["dialog", "alertdialog"]
+                },
+                "name": {
+                  "type": ["string", "null"],
+                  "maxLength": 80
+                },
+                "state": {
+                  "enum": ["open", "closed"]
+                },
+                "modal": {
+                  "type": "boolean"
+                },
+                "visible": {
+                  "type": "boolean"
+                },
+                "cause_click_ts": {
+                  "type": ["number", "null"]
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["id", "role", "name", "state", "modal", "visible", "cause_click_ts", "v"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/recording"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "enum": ["start", "stop", "pause", "resume"]
+                },
+                "reason": {
+                  "enum": [
+                    "init",
+                    "new_session",
+                    "customer_stop",
+                    "sampled_out",
+                    "opt_out",
+                    "targeting",
+                    "focus",
+                    "error"
+                  ]
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["state", "reason", "v"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/visibility"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "enum": ["hidden", "visible"]
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["state", "v"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/lifecycle"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "enum": ["pagehide", "pageshow", "pageshow_bfcache", "freeze", "resume"]
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["type", "v"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/amp-event"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "event_type": {
+                  "enum": [
+                    "[Amplitude] Dead Click",
+                    "[Amplitude] Rage Click",
+                    "[Amplitude] Error Click",
+                    "[Amplitude] Thrashed Cursor"
+                  ]
+                },
+                "insert_id": {
+                  "type": ["string", "null"]
+                },
+                "id": {
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                "props": {
+                  "type": "object",
+                  "properties": {
+                    "[Amplitude] Element Text": {
+                      "type": ["string", "null"],
+                      "maxLength": 80
+                    },
+                    "[Amplitude] Element Tag": {
+                      "type": "string"
+                    },
+                    "[Amplitude] Clicks": {
+                      "type": "number"
+                    },
+                    "[Amplitude] Begin Time": {
+                      "type": "number"
+                    },
+                    "[Amplitude] End Time": {
+                      "type": "number"
+                    },
+                    "[Amplitude] Page Path": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "additionalProperties": false
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["event_type", "insert_id", "id", "props", "v"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/click-outcome"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "click_ts": {
+                  "type": "number"
+                },
+                "id": {
+                  "type": ["integer", "null"],
+                  "minimum": 0
+                },
+                "window_ms": {
+                  "type": "number"
+                },
+                "navigated": {
+                  "type": "boolean"
+                },
+                "changed": {
+                  "type": "boolean"
+                },
+                "opened": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": ["string", "null"],
+                        "maxLength": 80
+                      }
+                    },
+                    "required": ["role", "name"],
+                    "additionalProperties": false
+                  }
+                },
+                "closed": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "role": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": ["string", "null"],
+                        "maxLength": 80
+                      }
+                    },
+                    "required": ["role", "name"],
+                    "additionalProperties": false
+                  }
+                },
+                "error_text": {
+                  "type": ["string", "null"],
+                  "maxLength": 200
+                },
+                "notice_text": {
+                  "type": ["string", "null"],
+                  "maxLength": 200
+                },
+                "no_change": {
+                  "type": "boolean"
+                },
+                "first_change_ms": {
+                  "type": ["number", "null"]
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": [
+                "click_ts",
+                "id",
+                "window_ms",
+                "navigated",
+                "changed",
+                "opened",
+                "closed",
+                "error_text",
+                "notice_text",
+                "no_change",
+                "first_change_ms",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    }
+  ]
+}

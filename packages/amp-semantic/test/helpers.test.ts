@@ -1,0 +1,101 @@
+import { PrivacyConfig } from '@amplitude/session-replay-dom-privacy';
+import { createHelpers, urlTemplate } from '../src/helpers';
+import { SemanticHost } from '../src/types';
+
+const host = (privacy: PrivacyConfig): SemanticHost => ({
+  document,
+  window,
+  emit: jest.fn(),
+  getNodeId: () => 7,
+  getPrivacy: () => privacy,
+  getUrl: () => 'https://example.com/accounts/42?token=secret',
+  sdk: 'test',
+});
+
+describe('shared privacy helpers', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+  test.each(['light', 'medium', 'conservative'] as const)('uses replay policy at %s level', (defaultMaskLevel) => {
+    document.body.innerHTML =
+      '<button>Save</button><input aria-label="Email" type="email" value="private@example.com">';
+    const helpers = createHelpers(host({ defaultMaskLevel }));
+    expect(helpers.name(document.querySelector('button')!).name).toBe(
+      defaultMaskLevel === 'conservative' ? null : 'Save',
+    );
+    expect(helpers.name(document.querySelector('input')!)).toEqual({ name: null, source: 'masked' });
+  });
+  test('checks the source label and nested mask decisions', () => {
+    document.body.innerHTML =
+      '<label id="label" class="amp-mask">Private name</label><input aria-labelledby="label"><button>Save <span class="amp-mask">private account</span></button>';
+    const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
+    expect(helpers.name(document.querySelector('input')!)).toEqual({ name: null, source: 'masked' });
+    expect(helpers.name(document.querySelector('button')!).name).toBeNull();
+  });
+  test('preserves safe input labels at medium while excluding editable text', () => {
+    document.body.innerHTML =
+      '<label>Name<input value="secret"></label><div role="button" contenteditable="true">typed secret</div>';
+    const helpers = createHelpers(host({ defaultMaskLevel: 'medium' }));
+    expect(helpers.name(document.querySelector('input')!).name).toBe('Name');
+    expect(helpers.name(document.querySelector('div')!).name).toBeNull();
+  });
+  test('does not copy textarea contents through referenced or wrapping labels', () => {
+    document.body.innerHTML =
+      '<textarea id="secret">initial secret</textarea><button aria-labelledby="secret"></button><label>Notes<textarea>another secret</textarea></label>';
+    const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
+    expect(helpers.name(document.querySelector('button')!).name).toBeNull();
+    expect(helpers.name(document.querySelector('label textarea')!).name).toBe('Notes');
+  });
+  test('fails closed on invalid selectors, blocks descendants, normalizes missing IDs', () => {
+    document.body.innerHTML = '<div class="amp-block"><button>Secret</button></div>';
+    const element = document.querySelector('button')!;
+    expect(createHelpers(host({})).describe(element)).toEqual({
+      id: null,
+      role: 'button',
+      name: null,
+      name_source: 'masked',
+    });
+    expect(createHelpers(host({ maskSelector: ['['] })).text(document.body)).toBeNull();
+    document.body.innerHTML = '<button>OK</button>';
+    expect(createHelpers({ ...host({}), getNodeId: () => -1 }).id(document.querySelector('button')!)).toBeNull();
+  });
+  test('respects URL overrides, mask/unmask selectors, and masked attributes', () => {
+    document.body.innerHTML = '<button class="public" name="sensitive">Public</button>';
+    const element = document.querySelector('button')!;
+    expect(
+      createHelpers(host({ defaultMaskLevel: 'conservative', unmaskSelector: ['.public'] })).name(element).name,
+    ).toBe('Public');
+    const helpers = createHelpers(
+      host({
+        defaultMaskLevel: 'light',
+        urlMaskLevels: [{ match: '*accounts*', maskLevel: 'conservative' }],
+        maskAttributes: ['name'],
+      }),
+    );
+    expect(helpers.name(element).name).toBeNull();
+    expect(helpers.attributes(element)).toEqual({});
+  });
+  test('bounds names and does not read live input values', () => {
+    document.body.innerHTML = '<input type="text"><button></button>';
+    const input = document.querySelector('input')!;
+    input.value = 'secret typed string';
+    const button = document.querySelector('button')!;
+    button.textContent = 'x'.repeat(100);
+    const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
+    expect(helpers.name(input).name).toBeNull();
+    expect(helpers.name(button).name).toBe('x'.repeat(79) + '…');
+  });
+});
+
+test.each([
+  ['mailto:private@example.com', '/'],
+  ['tel:+15551234567', '/'],
+  ['javascript:alert("private")', '/'],
+  ['/accounts/8812#/cards/4', '/accounts/:id#/cards/:id'],
+  ['https://example.com/accounts/8812/statements?y=2026#secret', '/accounts/:id/statements'],
+  ['/index.html#/cards/4f1c9a2e?token=secret', '/index.html#/cards/:id'],
+  ['/index.html#!/items/123#token', '/index.html#!/items/:id'],
+  ['/a/550e8400-e29b-41d4-a716-446655440000', '/a/:id'],
+  ['/a/abc123456789012345', '/a/:id'],
+  ['/a/%31%32%33', '/a/:id'],
+])('templates %s', (value, expected) => expect(urlTemplate(value)).toBe(expected));
