@@ -92,6 +92,18 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         configServerUrl: this.options.configServerUrl || this.config.remoteConfig?.serverUrl,
         trackServerUrl: this.options.trackServerUrl,
         sampleRate: this.options.sampleRate,
+        semanticCapture: this.options.semanticCapture,
+        semanticAnalyticsContext: {
+          present: true,
+          autocapture:
+            this.config.autocapture === true
+              ? ['elementInteractions', 'frustrationInteractions']
+              : typeof this.config.autocapture === 'object'
+              ? Object.keys(this.config.autocapture).filter((key) =>
+                  Boolean((this.config?.autocapture as Record<string, unknown>)[key]),
+                )
+              : [],
+        },
         privacyConfig: {
           blockSelector: this.options.privacyConfig?.blockSelector,
           maskAttributes: this.options.privacyConfig?.maskAttributes,

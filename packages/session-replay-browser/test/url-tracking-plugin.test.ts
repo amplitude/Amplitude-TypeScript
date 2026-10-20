@@ -92,6 +92,32 @@ describe('URL Tracking Plugin', () => {
   });
 
   describe('subscribeToUrlChanges', () => {
+    test('supplies navigation reasons without changing existing URL callbacks', () => {
+      const cb = jest.fn();
+      const onNavigation = jest.fn();
+      const win = createMockGlobalScope() as unknown as Window;
+      const cleanup = subscribeToUrlChanges(win, cb, { onNavigation });
+      win.location.href = 'https://example.com/push';
+      win.history.pushState({}, '', win.location.href);
+      expect(cb).toHaveBeenLastCalledWith('https://example.com/push');
+      expect(onNavigation).toHaveBeenLastCalledWith('push');
+      win.location.href = 'https://example.com/replace';
+      win.history.replaceState({}, '', win.location.href);
+      expect(onNavigation).toHaveBeenLastCalledWith('replace');
+      const listener = (win.addEventListener as jest.Mock).mock.calls.find(([type]) => type === 'hashchange')?.[1];
+      win.location.href = 'https://example.com/replace#/hash';
+      listener(new Event('hashchange'));
+      expect(onNavigation).toHaveBeenLastCalledWith('hash');
+      win.location.href = 'https://example.com/pop';
+      listener(new Event('popstate'));
+      expect(onNavigation).toHaveBeenLastCalledWith('pop');
+      cleanup();
+      onNavigation.mockClear();
+      win.location.href = 'https://example.com/after';
+      win.history.pushState({}, '', win.location.href);
+      expect(onNavigation).not.toHaveBeenCalled();
+    });
+
     test('returns no-op cleanup when globalScope is undefined', () => {
       const cb = jest.fn();
       const unsubscribe = subscribeToUrlChanges(undefined, cb);
