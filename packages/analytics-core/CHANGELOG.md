@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.61.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.3...@amplitude/analytics-core@2.61.0) (2026-10-20)
+
+
+### Bug Fixes
+
+* **browser:** share page view ids across sdk instances ([#2052](https://github.com/amplitude/Amplitude-TypeScript/issues/2052)) ([4de670b](https://github.com/amplitude/Amplitude-TypeScript/commit/4de670bec16521fbdf93e3541f6c4d57132ecd96))
+
+
+### Features
+
+* **analytics-react-native:** make React Native autocapture generally available ([#2064](https://github.com/amplitude/Amplitude-TypeScript/issues/2064)) ([9243572](https://github.com/amplitude/Amplitude-TypeScript/commit/92435722b698af23cc6542687d82ac0ef72de488))
+
+
+
+
+
 ## [2.60.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.2...@amplitude/analytics-core@2.60.3) (2026-10-15)
 
 
