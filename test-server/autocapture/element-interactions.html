@@ -285,8 +285,8 @@
           ];
           var hasUtmParams = utmParams.some(param => event.event_properties[param]);
           if (hasUtmParams && !hasReferrer) {
-            event.event_properties.referrer = '<empty>';
-            event.event_properties.referring_domain = '<empty>';
+            event.event_properties.referrer = 'EMPTY';
+            event.event_properties.referring_domain = 'EMPTY';
             event.event_properties['DUMMY'] = 'value';
           }
           return event;
