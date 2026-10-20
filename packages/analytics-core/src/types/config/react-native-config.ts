@@ -15,7 +15,6 @@ type HiddenOptions =
   | 'storage';
 export type ReactNativeStorageData = Event[] | StorageData;
 
-/* @experimental This config is experimental pending GA of React Native autocapture. */
 export interface ReactNativeAutocaptureOptions {
   sessions?: boolean;
   appLifecycles?: boolean;
@@ -53,10 +52,8 @@ export interface ReactNativeConfig extends Omit<IConfig, 'requestMetadata'> {
   sessionId?: number;
   sessionTimeout: number;
   userId?: string;
-  /* @experimental this config is experimental pending GA of React Native autocapture */
   remoteConfig?: RemoteConfigOptions;
   remoteConfigClient?: IRemoteConfigClient;
-  /* @experimental This config is experimental pending GA of React Native autocapture. */
   autocapture?: boolean | ReactNativeAutocaptureOptions;
   storage?: Storage<ReactNativeStorageData>;
 }
