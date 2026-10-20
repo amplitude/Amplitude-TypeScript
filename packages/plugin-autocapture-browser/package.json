@@ -41,6 +41,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
+    "@amplitude/amp-semantic": "workspace:*",
     "@amplitude/analytics-core": "workspace:*",
     "@amplitude/element-selector": "workspace:*",
     "tslib": "^2.4.1"

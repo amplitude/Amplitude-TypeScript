@@ -1,3 +1,4 @@
+import { isDeadClickChange } from '@amplitude/amp-semantic';
 import { AllWindowObservables } from '../frustration-plugin';
 import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics-core';
 import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, MouseButton, shouldTrackEvent } from '../helpers';
@@ -8,8 +9,6 @@ type EventDeadClick = {
   '[Amplitude] X': number;
   '[Amplitude] Y': number;
 };
-
-const CHANGE_EVENTS = ['mutation', 'navigate'];
 
 export function trackDeadClick({
   amplitude,
@@ -44,7 +43,7 @@ export function trackDeadClick({
   const deadClickObservable = asyncMap(
     clicksAndChangeObservable,
     (event): Promise<ElementBasedTimestampedEvent<MouseEvent> | null> => {
-      if (deadClickTimer && CHANGE_EVENTS.includes(event.type)) {
+      if (deadClickTimer && isDeadClickChange(event.type)) {
         // a mutation or navigation means it's not a dead click, so clear the timer
         clearTimeout(deadClickTimer);
         deadClickTimer = null;

@@ -1,3 +1,4 @@
+import { DEAD_CLICK_MUTATION_OBSERVER_OPTIONS } from '@amplitude/amp-semantic';
 import { collectOpenShadowRoots, isShadowRoot } from '@amplitude/element-selector';
 import { querySelectorAllDeep, TimestampedEvent } from './helpers';
 import { type ShadowGate, type ShadowMode } from './shadow-mode';
@@ -9,12 +10,7 @@ const globalScope = getGlobalScope() as typeof window;
 /** Read the gate's current mode. Only used on the shadow-capable path. */
 const readGate = (gate: ShadowGate): ShadowMode => gate.get();
 
-const MUTATION_OBSERVER_INIT: MutationObserverInit = {
-  childList: true,
-  attributes: true,
-  characterData: true,
-  subtree: true,
-};
+const MUTATION_OBSERVER_INIT = DEAD_CLICK_MUTATION_OBSERVER_OPTIONS;
 
 /**
  * Observe mutations across the main document and any open shadow roots.
@@ -46,12 +42,7 @@ export const createMutationObservable = (shadowGate?: ShadowGate): Observable<Mu
         observer.next(mutations);
       });
       if (document.body) {
-        mutationObserver.observe(document.body, {
-          childList: true,
-          attributes: true,
-          characterData: true,
-          subtree: true,
-        });
+        mutationObserver.observe(document.body, MUTATION_OBSERVER_INIT);
       }
       return () => mutationObserver.disconnect();
     });

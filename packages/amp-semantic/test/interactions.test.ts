@@ -314,6 +314,8 @@ describe('interactions recorder', () => {
     jest.runOnlyPendingTimers();
     expect(h.emitted).toHaveLength(1);
     expect(JSON.stringify(h.emitted)).not.toMatch(/PRIVATE/);
+    const payload = h.emitted[0].payload as SemanticPayloads['submit'];
+    expect(Object.keys(payload.submitter ?? {}).sort()).toEqual(['id', 'name', 'role']);
   });
 
   it('does not attach listeners for disabled families', () => {

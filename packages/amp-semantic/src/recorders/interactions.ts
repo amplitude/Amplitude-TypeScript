@@ -75,7 +75,7 @@ function optionLabel(context: RecorderContext, element: Element, masked: boolean
   if (element.tagName === 'SELECT') {
     const option = (element as HTMLSelectElement).selectedOptions[0];
     if (!option || context.helpers.blocked(option)) return null;
-    return context.helpers.text(option, option.label);
+    return option.hasAttribute('label') ? context.helpers.text(option, option.label) : context.helpers.text(option);
   }
   if (element.tagName === 'INPUT' && ['radio', 'checkbox'].includes((element as HTMLInputElement).type)) {
     if (!(element as HTMLInputElement).checked) return null;
@@ -206,7 +206,10 @@ export const interactionsRecorder: SemanticRecorder = {
         if (!context.enabled('submit') || helpers.blocked(form)) return;
         context.emit('submit', {
           form: describeForm(form, submitter && !helpers.blocked(submitter) ? submitter : null),
-          submitter: submitter && !helpers.blocked(submitter) ? helpers.describe(submitter) : null,
+          submitter:
+            submitter && !helpers.blocked(submitter)
+              ? { id: helpers.id(submitter), role: helpers.role(submitter), name: helpers.name(submitter).name }
+              : null,
           valid: true,
           invalid_fields: [],
           prevented: event.defaultPrevented,
