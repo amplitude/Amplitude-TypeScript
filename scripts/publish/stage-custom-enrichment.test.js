@@ -15,10 +15,12 @@ for (const published of [false, true]) {
       fs.mkdirSync(packageDir, { recursive: true });
       const manifest = {
         name: '@amplitude/plugin-custom-enrichment-browser',
-        version: '0.1.29',
+        version: '1.0.0',
         private: true,
         contentPolicy: { class: 'dual-use' },
-        dependencies: { '@amplitude/analytics-core': '^2.61.0' },
+        dependencies: { tslib: '^2.4.1' },
+        peerDependencies: { '@amplitude/analytics-core': '^2.61.0' },
+        devDependencies: { '@amplitude/analytics-core': '2.61.0' },
       };
       fs.writeFileSync(path.join(packageDir, 'package.json'), JSON.stringify(manifest));
       fs.mkdirSync(path.join(root, 'bin'));
@@ -30,7 +32,7 @@ const fs = require('node:fs');
 const { execFileSync } = require('node:child_process');
 const args = process.argv.slice(2);
 if (args[0] === 'view') {
-  console.log(JSON.stringify(${published ? "['0.1.29']" : '[]'}));
+  console.log(JSON.stringify(${published ? "['1.0.0']" : '[]'}));
 } else if (args[0] === '--dir') {
   const dest = args[args.indexOf('--pack-destination') + 1];
   fs.mkdirSync(dest + '/package');
@@ -49,7 +51,7 @@ if (args[0] === 'view') {
       });
       assert.deepEqual(JSON.parse(fs.readFileSync(path.join(packageDir, 'package.json'))), manifest);
       const output = fs.readFileSync(path.join(root, 'output'), 'utf8');
-      assert.match(output, /version=0.1.29/);
+      assert.match(output, /version=1.0.0/);
       assert.match(output, new RegExp(`required=${!published}`));
       if (published) {
         assert.equal(fs.existsSync(path.join(root, 'staged.json')), false);

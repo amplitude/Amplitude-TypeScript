@@ -616,13 +616,13 @@ importers:
 
   packages/plugin-custom-enrichment-browser:
     dependencies:
-      '@amplitude/analytics-core':
-        specifier: ^2.61.0
-        version: 2.61.0
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
     devDependencies:
+      '@amplitude/analytics-core':
+        specifier: workspace:*
+        version: link:../analytics-core
       '@rollup/plugin-commonjs':
         specifier: ^23.0.4
         version: 23.0.7(rollup@2.80.0)

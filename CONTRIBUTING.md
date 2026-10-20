@@ -104,7 +104,7 @@ To publish a package for the first time (administrators only):
 
 #### Publishing the custom enrichment browser plugin
 
-`@amplitude/plugin-custom-enrichment-browser` is released independently of `publish-v2`. Its repository manifest is private so Lerna skips its version and dependency updates. Recursive SDK publishing also explicitly excludes it. The staged artifact alone has `private` removed. Keep `analytics-core` at the reviewed compatible range and analytics-browser's plugin dependency at an exact **published** version; neither should advance during routine SDK releases.
+`@amplitude/plugin-custom-enrichment-browser` is released independently of `publish-v2`. Its repository manifest is private so Lerna skips its version and dependency updates. Recursive SDK publishing also explicitly excludes it. The staged artifact alone has `private` removed. Keep the `analytics-core` peer dependency at the reviewed compatible range (with workspace core as a development dependency) and analytics-browser's plugin dependency at an exact **published** version; neither should advance during routine SDK releases.
 
 The plugin is declared as dual-use and every new version still requires an npm maintainer's 2FA approval. Before using the new workflow, update its npm Trusted Publisher to `.github/workflows/publish-custom-enrichment.yml`, with **stage-only** permission and the `npm-release` environment. Keep the GitHub environment `npm-custom-enrichment-approval` configured with required reviewers.
 
@@ -116,7 +116,11 @@ The plugin is declared as dual-use and every new version still requires an npm m
 
 The independent workflow currently releases stable versions only. If a version is already live, rerunning it skips staging and approval. If a stage is pending, approve it on npm before retrying. This workflow never runs Lerna or publishes other SDK packages.
 
-The compatible core range does not guarantee deduplication in Yarn 4. The plugin currently imports only types from core, so duplicate installed core versions do not add core runtime code to the plugin bundle. Review bundle impact before adding runtime imports.
+The initial migration intentionally advances the plugin from 0.1.x to 1.0.0 because requiring the host to provide core is a breaking change for direct plugin consumers. Stage and approve 1.0.0 first; until then, keep browser pinned to the already-published 0.1.28. After approval, update browser's exact pin and lockfile in a follow-up release. A browser-only consumer should not need to declare core separately because browser already supplies it.
+
+The plugin's stable peer range is `^2.61.0`. It does not cover arbitrary core prereleases: before adopting 1.0.0 in browser, explicitly review the intended core prerelease versions against that range. Do not automatically widen the peer range or silently ignore an incompatible peer. A release that needs a different peer contract requires a deliberate plugin release.
+
+Peer dependencies let the bundled plugin use the core supplied by browser in the tested compatible consumer installations. They do not guarantee one core across every possible application graph. Direct plugin consumers must declare a compatible core themselves; see the plugin README for the breaking-change migration. Keep the type-only import CI guard: this manifest change does not itself prove future runtime imports have no bundle impact.
 
 #### Recovering a partial `publish-v2` workflow run
 
