@@ -306,8 +306,8 @@ importers:
         specifier: workspace:*
         version: link:../plugin-autocapture-browser
       '@amplitude/plugin-custom-enrichment-browser':
-        specifier: workspace:*
-        version: link:../plugin-custom-enrichment-browser
+        specifier: 0.1.28
+        version: 0.1.28
       '@amplitude/plugin-event-property-attribution-browser':
         specifier: workspace:*
         version: link:../plugin-event-property-attribution-browser
@@ -617,8 +617,8 @@ importers:
   packages/plugin-custom-enrichment-browser:
     dependencies:
       '@amplitude/analytics-core':
-        specifier: workspace:*
-        version: link:../analytics-core
+        specifier: ^2.61.0
+        version: 2.61.0
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -1273,6 +1273,12 @@ importers:
         version: 0.20.4
 
 packages:
+  '@amplitude/plugin-custom-enrichment-browser@0.1.28':
+    resolution: {integrity: sha512-pTc9gTuV1ALfYvYtloS1xHe/hGI0skencMe8mvmyrTqw/6M8hRQAVM6KnWLW8KpVOh/pF1s8GJUu28h8ElwznQ==}
+
+  '@amplitude/analytics-core@2.61.0':
+    resolution: {integrity: sha512-emwBT39vq/kjaXt2HoRkeSG4shjLmDgrZUDpIXCQdgI3Xvi9GwjMG3T6xjtjf+/THCB4NIhHrJhqbqx7tq+hMw==}
+
   '@amplitude/analytics-browser@2.44.1':
     resolution:
       { integrity: sha512-xIY0A1ORJqvvfnFOJXSzZc9z3ZMpt3QqO1OULIfxYXZyO8YstXzcbYsYndelM9v99eVcRCDzx1nbVCYjhaNdkg== }
@@ -12886,6 +12892,19 @@ packages:
         optional: true
 
 snapshots:
+  '@amplitude/plugin-custom-enrichment-browser@0.1.28':
+    dependencies:
+      '@amplitude/analytics-core': 2.61.0
+      tslib: 2.8.1
+
+  '@amplitude/analytics-core@2.61.0':
+    dependencies:
+      '@amplitude/analytics-connector': 1.7.0
+      '@types/zen-observable': 0.8.3
+      safe-json-stringify: 1.2.0
+      tslib: 2.8.1
+      zen-observable: 0.10.0
+
   '@amplitude/analytics-browser@2.44.1':
     dependencies:
       '@amplitude/analytics-core': 2.50.0
