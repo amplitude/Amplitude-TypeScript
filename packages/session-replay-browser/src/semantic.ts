@@ -38,7 +38,7 @@ export class ReplaySemanticAdapter {
     if (!this.config.enabled || this.ready) return;
     this.ready = true;
     this.capture.start();
-    if (this.config.families?.page !== false) {
+    if (this.capture.isActive() && this.config.families?.page !== false) {
       this.navigationCleanup = subscribeToUrlChanges(this.host.window, () => undefined, {
         onNavigation: (reason) => this.capture.notify('navigation', reason),
       });

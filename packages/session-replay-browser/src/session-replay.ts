@@ -472,7 +472,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const isSessionChange = previousSessionId !== sessionId;
-    if (isSessionChange) this.stopRecordingEvents('new_session');
+    if (isSessionChange && this.config?.semanticCapture?.enabled && this.semanticAdapter) {
+      this.stopRecordingEvents('new_session');
+    }
 
     // Drop any beacon-buffered events from the previous session BEFORE installing the
     // new identifiers / start time. Otherwise the page-leave beacon path could attribute
@@ -937,7 +939,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
-      if (this.semanticAdapter && this.recordCancelCallback) {
+      if (config?.semanticCapture?.enabled && this.semanticAdapter && this.recordCancelCallback) {
         this.stopRecordingEvents(
           this.shouldOptOut() ? 'opt_out' : config?.targetingConfig ? 'targeting' : 'sampled_out',
         );
@@ -1043,6 +1045,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
           (event: eventWithTime) => {
             // The terminal state contains no page or user data and must land before rrweb stops.
             const semanticStop =
+              this.config?.semanticCapture?.enabled &&
+              this.semanticAdapter &&
               event.type === RRWebEventType.Custom &&
               event.data.tag === 'amp-semantic/recording' &&
               (event.data.payload as { state?: unknown } | undefined)?.state === 'stop';
@@ -1291,10 +1295,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   stop() {
-    this.stopRecordingEvents('customer_stop');
     this.recordingEnabled = false;
     this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
+    this.stopRecordingEvents('customer_stop');
     this.sendEvents();
   }
 
@@ -1308,7 +1312,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   shutdown() {
-    this.stopRecordingEvents(this.shouldOptOut() ? 'opt_out' : 'customer_stop');
     this.recordingEnabled = false;
     this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
@@ -1316,6 +1319,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;
     this.teardownEventListeners(true);
+    this.stopRecordingEvents(this.semanticAdapter && this.shouldOptOut() ? 'opt_out' : 'customer_stop');
     this.sendEvents();
   }
 

@@ -7,6 +7,7 @@ jest.mock('../src/plugins/url-tracking-plugin', () => ({ subscribeToUrlChanges: 
 
 describe('ReplaySemanticAdapter', () => {
   const capture = {
+    isActive: jest.fn(() => true),
     start: jest.fn(),
     stop: jest.fn(),
     updateConfig: jest.fn(),
@@ -26,6 +27,7 @@ describe('ReplaySemanticAdapter', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    capture.isActive.mockReturnValue(true);
     jest.mocked(createSemanticCapture).mockReturnValue(capture);
     jest.mocked(subscribeToUrlChanges).mockReturnValue(unsubscribe);
   });
@@ -76,6 +78,15 @@ describe('ReplaySemanticAdapter', () => {
     adapter.recordingReady();
     expect(capture.start).not.toHaveBeenCalled();
     expect(capture.notify).not.toHaveBeenCalled();
+    expect(subscribeToUrlChanges).not.toHaveBeenCalled();
+  });
+
+  test('sampled-out capture does not attach a navigation subscription', () => {
+    capture.isActive.mockReturnValue(false);
+    const adapter = new ReplaySemanticAdapter(host);
+    adapter.prepare({ enabled: true, sampleRate: 0.1 }, 1);
+    adapter.recordingReady();
+    expect(capture.start).toHaveBeenCalledTimes(1);
     expect(subscribeToUrlChanges).not.toHaveBeenCalled();
   });
 
