@@ -60,7 +60,9 @@ export const feedbackRecorder: SemanticRecorder = {
         payload: {
           id: description.id,
           role: element.getAttribute('role') === 'alertdialog' ? 'alertdialog' : 'dialog',
-          name: description.name,
+          // Detachment loses masking ancestors and labelledby sources. Never replay a cached name
+          // under a potentially stricter current policy; retain only the node identity.
+          name: element.isConnected ? description.name : null,
           state: open ? 'open' : 'closed',
           modal: !element.isConnected && previous ? previous.payload.modal : modal,
           visible: open && helpers.visible(element),

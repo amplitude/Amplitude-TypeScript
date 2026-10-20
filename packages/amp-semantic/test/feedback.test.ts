@@ -72,7 +72,7 @@ describe('feedback recorder', () => {
     await mutations();
     expect(emit).toHaveBeenLastCalledWith(
       'dialog',
-      expect.objectContaining({ ...opened, state: 'closed', visible: false }),
+      expect.objectContaining({ ...opened, name: null, state: 'closed', visible: false }),
     );
     cleanup();
   });
@@ -159,6 +159,31 @@ describe('feedback recorder', () => {
     region.remove();
     await mutations();
     expect(emit).toHaveBeenCalledTimes(1);
+    cleanup();
+  });
+  test('never replays cached dialog names after removal changes privacy provenance', async () => {
+    const { context, emit } = recorderContext();
+    const cleanup = feedbackRecorder.setup(context);
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-label', 'Sensitive account');
+    document.body.appendChild(dialog);
+    await mutations();
+    expect(emit).toHaveBeenLastCalledWith(
+      'dialog',
+      expect.objectContaining({ name: 'Sensitive account', state: 'open' }),
+    );
+    const previous = emit.mock.calls[emit.mock.calls.length - 1][1];
+    // Simulate a stricter URL/remote privacy policy between opening and removal.
+    context.host.getPrivacy = () => ({ defaultMaskLevel: 'conservative' });
+    context.helpers.masked = () => true;
+    context.helpers.name = () => ({ name: null, source: 'masked' });
+    dialog.remove();
+    await mutations();
+    expect(emit).toHaveBeenLastCalledWith(
+      'dialog',
+      expect.objectContaining({ ...previous, name: null, state: 'closed', visible: false }),
+    );
     cleanup();
   });
 });
