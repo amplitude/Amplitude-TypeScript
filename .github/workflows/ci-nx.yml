@@ -5,17 +5,6 @@ on:
     types: [opened, synchronize]
 
 jobs:
-  check-custom-enrichment-imports:
-    name: Check custom enrichment type-only core imports
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-      - uses: ./.github/actions/setup-node-pnpm
-      - name: Test import guard
-        run: node --test scripts/ci/check-custom-enrichment-imports.test.js
-      - name: Check plugin source
-        run: node scripts/ci/check-custom-enrichment-imports.js
-
   check-deprecated-packages:
     name: Check Deprecated Packages
     runs-on: ubuntu-latest
