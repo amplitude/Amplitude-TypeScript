@@ -180,6 +180,12 @@ describe('accepted analytics mirroring', () => {
     h.send({ '[Amplitude] Element Text': 'Visible PRIVATE_CHILD' }, document.querySelector('button') as Element);
     expect(h.output[0].props['[Amplitude] Element Text']).toBeNull();
   });
+  it('does not authorize unrelated raw text using an unmasked source element', () => {
+    const h = harness();
+    cleanup = analyticsRecorder.setup(h.context);
+    h.send({ '[Amplitude] Element Text': 'PRIVATE_OTHER_SOURCE' }, document.querySelector('button') as Element);
+    expect(h.output[0].props['[Amplitude] Element Text']).toBeNull();
+  });
 
   it('never mirrors typed field or contenteditable values even with light masking', () => {
     document.body.innerHTML =

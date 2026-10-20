@@ -10,6 +10,7 @@ function harness() {
   let enabled = true;
   const output: SemanticPayloads['click-outcome'][] = [];
   const context: RecorderContext = {
+    onCleanup: () => undefined,
     host: {
       document,
       window,

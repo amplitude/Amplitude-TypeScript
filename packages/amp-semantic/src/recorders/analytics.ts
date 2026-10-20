@@ -37,7 +37,12 @@ export const analyticsRecorder: SemanticRecorder = {
       if (typeof rawText === 'string') {
         // A raw SDK text property may contain text from descendants. Check the full
         // source subtree before accepting a string that bypasses tree traversal.
-        if (element && helpers.text(element) !== null) text = helpers.text(element, rawText);
+        if (element) {
+          const safeSourceText = helpers.text(element);
+          const candidate = helpers.text(element, rawText);
+          // A stale or mismatched SDK property cannot be justified by a different safe element.
+          if (safeSourceText !== null && safeSourceText === candidate) text = candidate;
+        }
         props[ELEMENT_TEXT] = text;
       }
       const rawTag = source[ELEMENT_TAG];

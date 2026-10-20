@@ -30,5 +30,8 @@
     "type": "git",
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
-  "homepage": "https://github.com/amplitude/Amplitude-TypeScript"
+  "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
+  "devDependencies": {
+    "ajv": "^8.17.1"
+  }
 }
