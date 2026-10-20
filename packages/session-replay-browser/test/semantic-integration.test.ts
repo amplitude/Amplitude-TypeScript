@@ -13,6 +13,7 @@ jest.mock('../src/worker', () => ({ compressionScript: '' }), { virtual: true })
 
 describe('Session Replay semantic integration', () => {
   const capture = {
+    isActive: jest.fn(() => true),
     start: jest.fn(),
     stop: jest.fn(),
     updateConfig: jest.fn(),
@@ -21,6 +22,7 @@ describe('Session Replay semantic integration', () => {
   };
   beforeEach(() => {
     jest.clearAllMocks();
+    capture.isActive.mockReturnValue(true);
     jest.mocked(getGlobalScope).mockReturnValue(window as unknown as typeof globalThis);
     jest.mocked(createSemanticCapture).mockReturnValue(capture);
   });
@@ -48,6 +50,37 @@ describe('Session Replay semantic integration', () => {
   test('disabled capture never constructs the semantic runtime', () => {
     prepare(false);
     expect(createSemanticCapture).not.toHaveBeenCalled();
+  });
+
+  test('disabled capture preserves session-change behavior without an additional recorder stop', async () => {
+    const { sdk } = prepare(false);
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    const recordEvents = jest.fn().mockResolvedValue(undefined);
+    sdk.recordEvents = recordEvents;
+    const stop = jest.spyOn(sdk, 'stopRecordingEvents');
+    await sdk.asyncSetSessionId(2);
+    expect(stop).not.toHaveBeenCalled();
+    expect(recordEvents).toHaveBeenCalled();
+  });
+
+  test.each(['stop', 'shutdown'] as const)('disabled capture preserves %s cancellation ordering', (method) => {
+    const { sdk } = prepare(false);
+    const internal = sdk as unknown as {
+      recordingEnabled: boolean;
+      teardownEventListeners: (teardown: boolean) => void;
+    };
+    const teardown = jest.spyOn(internal, 'teardownEventListeners').mockImplementation(() => undefined);
+    let enabledDuringCancel: boolean | undefined;
+    let teardownBeforeCancel = false;
+    const cancel = jest.fn(() => {
+      enabledDuringCancel = internal.recordingEnabled;
+      teardownBeforeCancel = teardown.mock.calls.some(([value]) => value === true);
+    });
+    sdk.recordCancelCallback = cancel;
+    sdk[method]();
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(enabledDuringCancel).toBe(false);
+    expect(teardownBeforeCancel).toBe(method === 'shutdown');
   });
 
   test('uses direct synchronous rrweb emission without debug metadata and gates on active recording', () => {
