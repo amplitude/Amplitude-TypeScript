@@ -269,7 +269,30 @@
       identify.set('testing', 'testing');
       amplitude.track('hello', 'world');
       amplitude.identify(identify);
-      amplitude.init(
+      amplitude.add({
+        name: 'add-empty-referrer',
+        execute: function (event) {
+          if (!event.event_properties) return event;
+          var hasReferrer = event.event_properties.referrer;
+          if (hasReferrer) return event;
+          var utmParams = [
+            'utm_source',
+            'utm_medium',
+            'utm_campaign',
+            'utm_content',
+            'utm_term',
+            'utm_id',
+          ];
+          var hasUtmParams = utmParams.some(param => event.event_properties[param]);
+          if (hasUtmParams && !hasReferrer) {
+            event.event_properties.referrer = '<empty>';
+            event.event_properties.referring_domain = '<empty>';
+            event.event_properties['DUMMY'] = 'value';
+          }
+          return event;
+        },
+      });
+      const init = amplitude.init(
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
