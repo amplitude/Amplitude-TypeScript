@@ -14,6 +14,7 @@ export function getViewportWidth(): number {
 }
 
 export type Mirror = {
+  getId?: (node: Node) => number;
   getNode: (id: number) => Node | null;
 };
 

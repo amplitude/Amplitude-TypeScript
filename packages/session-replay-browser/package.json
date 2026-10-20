@@ -40,6 +40,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
+    "@amplitude/amp-semantic": "workspace:*",
     "@amplitude/analytics-core": "workspace:*",
     "@amplitude/analytics-types": "workspace:*",
     "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.40",

@@ -77,6 +77,7 @@ export class SessionReplayJoinedConfigGenerator {
             const samplingConfig = namespaceConfig.sr_sampling_config;
             const privacyConfig = namespaceConfig.sr_privacy_config;
             const targetingConfig = namespaceConfig.sr_targeting_config;
+            const semanticConfig = namespaceConfig.sr_semantic_config;
 
             const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
             // This is intentionally forced to only be set through the remote config.
@@ -88,8 +89,11 @@ export class SessionReplayJoinedConfigGenerator {
             // This is intentionally forced to only be set through the remote config.
             config.loggingConfig = namespaceConfig.sr_logging_config;
 
-            if (samplingConfig || privacyConfig || targetingConfig) {
+            if (samplingConfig || privacyConfig || targetingConfig || semanticConfig) {
               sessionReplayRemoteConfig = {};
+              if (semanticConfig) {
+                sessionReplayRemoteConfig.sr_semantic_config = semanticConfig;
+              }
               if (samplingConfig) {
                 sessionReplayRemoteConfig.sr_sampling_config = samplingConfig;
               }
@@ -127,7 +131,16 @@ export class SessionReplayJoinedConfigGenerator {
       sr_sampling_config: samplingConfig,
       sr_privacy_config: remotePrivacyConfig,
       sr_targeting_config: targetingConfig,
+      sr_semantic_config: semanticConfig,
     } = sessionReplayRemoteConfig;
+    if (semanticConfig) {
+      config.semanticCapture = {
+        enabled: false,
+        ...config.semanticCapture,
+        ...semanticConfig,
+        families: { ...config.semanticCapture?.families, ...semanticConfig.families },
+      };
+    }
     if (samplingConfig && Object.keys(samplingConfig).length > 0) {
       if (Object.prototype.hasOwnProperty.call(samplingConfig, 'capture_enabled')) {
         config.captureEnabled = samplingConfig.capture_enabled;
