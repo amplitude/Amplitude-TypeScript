@@ -19,3 +19,17 @@ test('schema rejects raw field values and unknown versions', () => {
   );
   expect(validate({ ...field, data: { ...field.data, payload: { ...field.data.payload, v: 2 } } })).toBe(false);
 });
+
+test('context accepts older v1 payloads while validating new browser context fields', () => {
+  const context = examples.find((event) => event.data.tag === 'amp-semantic/context');
+  if (!context) throw new Error('context fixture missing');
+  const legacyPayload = { ...context.data.payload };
+  delete legacyPayload.visibility_state;
+  delete legacyPayload.user_agent;
+  expect(validate({ ...context, data: { ...context.data, payload: legacyPayload } })).toBe(true);
+  for (const invalid of [{ visibility_state: 'unknown' }, { user_agent: 123 }]) {
+    expect(validate({ ...context, data: { ...context.data, payload: { ...context.data.payload, ...invalid } } })).toBe(
+      false,
+    );
+  }
+});
