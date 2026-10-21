@@ -42,9 +42,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-    outputs:
-      version: ${{ steps.stage.outputs.version }}
-      required: ${{ steps.stage.outputs.required }}
     steps:
       - name: Check out selected commit
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -64,29 +61,34 @@ jobs:
         uses: ./.github/actions/build-and-test
         with:
           node-version: 24.x
+          package-scope: '@amplitude/plugin-custom-enrichment-browser'
           configure-git: 'false'
           configure-aws: 'false'
       - name: Stage plugin through Trusted Publishing
         id: stage
         run: bash scripts/publish/stage-custom-enrichment.sh
 
-  approve:
-    name: Confirm custom enrichment approval on npm
-    needs: stage
-    if: ${{ needs.stage.outputs.required == 'true' }}
-    runs-on: ubuntu-latest
-    environment: npm-custom-enrichment-approval
-    steps:
-      - name: Check out staged commit
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
-        with:
-          ref: ${{ github.sha }}
-      - name: Set up Node.js and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-        with:
-          node-version: 24.x
-          install: 'false'
-      - name: Verify approved plugin version is live
+      - name: Show publishing status and next steps
         env:
-          PLUGIN_VERSION: ${{ needs.stage.outputs.version }}
-        run: bash scripts/publish/verify-custom-enrichment.sh "$PLUGIN_VERSION"
+          PLUGIN_VERSION: ${{ steps.stage.outputs.version }}
+          STAGE_REQUIRED: ${{ steps.stage.outputs.required }}
+        run: |
+          {
+            echo '## Custom enrichment publishing'
+            echo
+            echo "Package: @amplitude/plugin-custom-enrichment-browser@$PLUGIN_VERSION"
+            echo
+            if [ "$STAGE_REQUIRED" = 'true' ]; then
+              echo 'Staging succeeded. This version is awaiting npm approval and is not live yet.'
+              echo
+              echo 'Open [npmjs.com](https://www.npmjs.com/), sign in, and go to **Staged Packages**. Review this package version and click **Approve** to publish it.'
+              echo
+              echo 'No further confirmation in GitHub Actions is needed.'
+              echo
+              echo '[npm staged publishing instructions](https://docs.npmjs.com/staged-publishing/)'
+            else
+              echo 'This version is already live on npm. No approval is needed.'
+            fi
+            echo
+            echo "[View package version on npm](https://www.npmjs.com/package/@amplitude/plugin-custom-enrichment-browser/v/$PLUGIN_VERSION)"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
