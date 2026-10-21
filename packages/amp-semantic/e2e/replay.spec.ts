@@ -322,6 +322,34 @@ test('records focus changes and stops visibility listeners with capture', async 
   expect(events.filter((event) => event.data.tag === 'amp-semantic/visibility')).toHaveLength(1);
 });
 
+test('coalesces a rapid hidden-visible-focus sequence into two transported observations', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => true });
+  });
+  await open(page);
+  const initial = await identity(page);
+  await page.evaluate(async () => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => false });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise((resolve) => setTimeout(resolve, 3));
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    await new Promise((resolve) => setTimeout(resolve, 32));
+    Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => true });
+    window.dispatchEvent(new Event('focus'));
+  });
+  await waitFor(page, 'visibility', 'trigger', 'focus');
+  const events = await assertValid(page);
+  expect(
+    events.filter((event) => event.data.tag === 'amp-semantic/visibility').map((event) => event.data.payload),
+  ).toEqual([
+    { v: 1, ...initial, state: 'hidden', focused: false, trigger: 'visibilitychange' },
+    { v: 1, ...initial, state: 'visible', focused: true, trigger: 'focus' },
+  ]);
+});
+
 test('storage-blocked capture still emits stable identity without claiming reload continuity', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, 'sessionStorage', {

@@ -1,5 +1,7 @@
 import type { Cleanup, RecorderContext, SemanticPayloads, SemanticRecorder } from '../types';
 
+const VISIBILITY_SETTLE_MS = 50;
+
 function captureContext(context: RecorderContext): void {
   const { host } = context;
   const { document, window: scope } = host;
@@ -50,11 +52,37 @@ export const lifecycleRecorder: SemanticRecorder = {
         focused: document.hasFocus(),
       });
       let previous = readState();
+      let pending: SemanticPayloads['visibility'] | undefined;
+      let timer: number | undefined;
+      const same = (left: typeof previous, right: typeof previous) =>
+        left.state === right.state && left.focused === right.focused;
+      const cancelPending = () => {
+        if (timer !== undefined) scope.clearTimeout(timer);
+        timer = undefined;
+        pending = undefined;
+      };
+      const emit = (payload: SemanticPayloads['visibility']) => {
+        previous = payload;
+        context.emit('visibility', payload);
+      };
       const observe = (trigger: SemanticPayloads['visibility']['trigger']) => {
-        const current = readState();
-        if (current.state === previous.state && current.focused === previous.focused) return;
-        previous = current;
-        context.emit('visibility', { ...current, trigger });
+        const current = { ...readState(), trigger };
+        // Repeated notifications must not restart the settling window.
+        if (same(current, pending ?? previous)) return;
+        cancelPending();
+        // A transient blur/focus pair that returns to the last emitted state is noise.
+        if (same(current, previous)) return;
+        if (current.state === 'hidden') {
+          // Do not depend on a timer surviving backgrounding or page suspension.
+          emit(current);
+        } else {
+          pending = current;
+          timer = scope.setTimeout(() => {
+            const settled = pending;
+            cancelPending();
+            if (settled) emit(settled);
+          }, VISIBILITY_SETTLE_MS);
+        }
       };
       const onVisibility = () => observe('visibilitychange');
       const onFocus = (event: Event) => {
@@ -66,7 +94,10 @@ export const lifecycleRecorder: SemanticRecorder = {
       document.addEventListener('visibilitychange', onVisibility, true);
       scope.addEventListener('focus', onFocus);
       scope.addEventListener('blur', onBlur);
+      scope.addEventListener('pagehide', cancelPending, true);
       cleanups.push(() => {
+        cancelPending();
+        scope.removeEventListener('pagehide', cancelPending, true);
         document.removeEventListener('visibilitychange', onVisibility, true);
         scope.removeEventListener('focus', onFocus);
         scope.removeEventListener('blur', onBlur);

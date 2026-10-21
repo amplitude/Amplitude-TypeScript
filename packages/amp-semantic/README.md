@@ -50,7 +50,14 @@ sampled-out capture does not initialize identity storage or listeners.
 Context includes `visibility_state`, `focused` (`document.hasFocus()`), and `user_agent`.
 Visibility emits `{ state, focused, trigger }` for changed visibility/focus pairs, where trigger is
 `visibilitychange`, `focus`, or `blur`. Window focus changes are observed separately from focus
-moving between form controls. Identical state notifications are deduplicated. Focus and visibility
+moving between form controls. Hidden observations emit immediately and cancel pending visible
+observations. Visible/focus changes settle for 50 ms after the last distinct state change before
+emitting one observation; duplicate notifications do not restart that timer. A short focus round
+trip returning to the last emitted state produces no event. Settled focus-only changes still emit.
+The trigger identifies the last state-changing notification in the coalesced observation. The rrweb
+wire timestamp is emission time, so settling delays visible observations (normally by 50 ms; browser
+timer throttling can extend this). Pending observations are discarded on pagehide, stop, or family
+disabling. No new payload fields are required. Focus and visibility
 are observations, not proof of attention or a reason for leaving the page.
 
 The wire version remains `v: 1`; the schema accepts legacy payloads without these fields. Missing
