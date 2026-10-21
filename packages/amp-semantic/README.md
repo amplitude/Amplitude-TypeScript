@@ -57,6 +57,13 @@ in context. The visibility listener is removed on stop or family disabling. Focu
 are observations, not proof of attention or a reason for leaving the page.
 The wire schema still accepts legacy `focus` and `blur` triggers from earlier recordings.
 
+The local replay inspector displays millisecond timestamps and separate visibility diagnostics for
+browser event creation, handler execution, and batch decoding. These diagnostics stay local and
+are not semantic payload fields. A reported embedded-browser switch produced hidden/visible
+observations only 4 ms apart despite several seconds away; the cause is still under investigation.
+Do not treat that pair as a measured absence interval. Synthetic visibility tests do not establish
+native browser tab-switch behavior.
+
 The wire version remains `v: 1`; the schema accepts legacy payloads without these fields. Missing
 identity/focus/visibility means unknown. These additions only identify semantic events. They do not
 attribute interleaved raw rrweb events, link an opener to its child, or implement multi-tab DOM replay.
