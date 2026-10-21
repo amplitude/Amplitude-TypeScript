@@ -19,8 +19,9 @@
     "build:es5": "tsc -p tsconfig.es5.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "test": "jest",
-    "lint": "eslint '{src,test}/**/*.ts'",
-    "typecheck": "tsc -p tsconfig.json"
+    "lint": "eslint '{src,test,e2e}/**/*.ts'",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:playwright": "playwright test --config playwright.config.ts"
   },
   "dependencies": {
     "tslib": "^2.4.1",
