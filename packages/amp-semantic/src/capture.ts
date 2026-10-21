@@ -1,4 +1,5 @@
 import { createHelpers } from './helpers';
+import { getDocumentIdentity } from './identity';
 import {
   Cleanup,
   HostSignals,
@@ -83,7 +84,18 @@ export function createCapture(
         dropped[family] = (dropped[family] ?? 0) + 1;
         return false;
       }
-      const event = { name: family, payload: { ...payload, v: 1 }, timestamp } as SemanticEvent;
+      let identity;
+      try {
+        identity = host.getIdentity?.();
+      } catch (error) {
+        report(error);
+      }
+      identity ??= getDocumentIdentity(host.document, host.window);
+      const event = {
+        name: family,
+        payload: { ...payload, v: 1, tab_id: identity.tab_id, document_id: identity.document_id },
+        timestamp,
+      } as SemanticEvent;
       counts[family] = (counts[family] ?? 0) + 1;
       try {
         host.emit(event);

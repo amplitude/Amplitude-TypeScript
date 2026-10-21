@@ -56,6 +56,8 @@ function harness(privacy: PrivacyConfig = { defaultMaskLevel: 'medium' }) {
         timestamp,
         payload: {
           v: 1,
+          tab_id: 'tab-test',
+          document_id: 'document-test',
           id,
           role: 'button',
           name,

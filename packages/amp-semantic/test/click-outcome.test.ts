@@ -48,6 +48,8 @@ function harness() {
       timestamp: Date.now(),
       payload: {
         v: 1,
+        tab_id: 'tab-test',
+        document_id: 'document-test',
         id: 1,
         role: 'button',
         name: 'Save',
@@ -177,18 +179,40 @@ describe('semantic click outcomes', () => {
     h.send({
       name: 'notice',
       timestamp: 1001,
-      payload: { v: 1, id: 2, role: 'alert', text: null, visible: true, region: null, cause_click_ts: 1000 },
+      payload: {
+        v: 1,
+        tab_id: 'tab-test',
+        document_id: 'document-test',
+        id: 2,
+        role: 'alert',
+        text: null,
+        visible: true,
+        region: null,
+        cause_click_ts: 1000,
+      },
     });
     h.send({
       name: 'notice',
       timestamp: 1002,
-      payload: { v: 1, id: 3, role: 'status', text: 'Saved', visible: true, region: null, cause_click_ts: 1000 },
+      payload: {
+        v: 1,
+        tab_id: 'tab-test',
+        document_id: 'document-test',
+        id: 3,
+        role: 'status',
+        text: 'Saved',
+        visible: true,
+        region: null,
+        cause_click_ts: 1000,
+      },
     });
     h.send({
       name: 'dialog',
       timestamp: 1003,
       payload: {
         v: 1,
+        tab_id: 'tab-test',
+        document_id: 'document-test',
         id: 4,
         role: 'dialog',
         name: null,
@@ -203,6 +227,8 @@ describe('semantic click outcomes', () => {
       timestamp: 1004,
       payload: {
         v: 1,
+        tab_id: 'tab-test',
+        document_id: 'document-test',
         id: 4,
         role: 'dialog',
         name: null,
@@ -254,7 +280,15 @@ describe('semantic click outcomes', () => {
     h.send({
       name: 'amp-event',
       timestamp: 1200,
-      payload: { v: 1, event_type: '[Amplitude] Dead Click', insert_id: 'event', id: 1, props: {} },
+      payload: {
+        v: 1,
+        tab_id: 'tab-test',
+        document_id: 'document-test',
+        event_type: '[Amplitude] Dead Click',
+        insert_id: 'event',
+        id: 1,
+        props: {},
+      },
     });
     jest.advanceTimersByTime(1500);
     expect(h.output).toHaveLength(1);

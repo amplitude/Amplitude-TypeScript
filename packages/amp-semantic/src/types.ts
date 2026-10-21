@@ -31,7 +31,12 @@ export interface AnalyticsContext {
   autocapture: string[];
 }
 
-/** Payloads exclude the version, which is owned by the capture runtime. */
+export interface SemanticIdentity {
+  readonly tab_id: string;
+  readonly document_id: string;
+}
+
+/** Recorder payloads exclude version and identity, which are owned by the capture runtime. */
 export interface SemanticPayloads {
   context: {
     sdk: string;
@@ -41,6 +46,7 @@ export interface SemanticPayloads {
     device: 'desktop' | 'tablet' | 'mobile';
     language: string;
     visibility_state: 'hidden' | 'visible';
+    focused: boolean;
     user_agent: string;
     analytics_sdk: AnalyticsContext;
     caps_hit?: Partial<Record<SemanticFamily, number>>;
@@ -99,7 +105,11 @@ export interface SemanticPayloads {
     cause_click_ts: number | null;
   };
   recording: RecordingSignal;
-  visibility: { state: 'hidden' | 'visible' };
+  visibility: {
+    state: 'hidden' | 'visible';
+    focused: boolean;
+    trigger: 'visibilitychange' | 'focus' | 'blur';
+  };
   lifecycle: { type: 'pagehide' | 'pageshow' | 'pageshow_bfcache' | 'freeze' | 'resume' };
   'amp-event': {
     event_type: string;
@@ -123,7 +133,7 @@ export interface SemanticPayloads {
 }
 export type SemanticFamily = keyof SemanticPayloads;
 export type SemanticEvent = {
-  [K in SemanticFamily]: { name: K; payload: SemanticPayloads[K] & { v: 1 }; timestamp: number };
+  [K in SemanticFamily]: { name: K; payload: SemanticPayloads[K] & SemanticIdentity & { v: 1 }; timestamp: number };
 }[SemanticFamily];
 export interface SemanticCaptureConfig {
   enabled: boolean;
@@ -156,6 +166,8 @@ export interface SemanticHost {
   getUrl: () => string;
   sdk: string;
   getAnalyticsContext?: () => AnalyticsContext;
+  /** Stable document identity; called lazily for accepted events. Default is document-scoped memory only. */
+  getIdentity?: () => SemanticIdentity;
   getSelector?: (element: Element) => string | null;
   /** True when the host forwards native clicks via notify('click', event). */
   externalClicks?: boolean;
