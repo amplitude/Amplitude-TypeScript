@@ -351,6 +351,43 @@ test('transports only visibility boundaries during a hidden-visible-focus sequen
   ]);
 });
 
+test('separates browser notification, capture, and batch delivery timing in the inspector', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+  });
+  await open(page);
+  const boundary = await page.evaluate(async () => {
+    const notification = new Event('visibilitychange');
+    // Model an event created before its callback runs, without claiming this is a native tab switch.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    const before = Date.now();
+    document.dispatchEvent(notification);
+    const after = Date.now();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    await window.semanticHarness.flush();
+    return { before, after };
+  });
+  await waitFor(page, 'visibility', 'state', 'hidden');
+  const observations = (await assertValid(page)).filter((event) => event.data.tag === 'amp-semantic/visibility');
+  expect(observations).toHaveLength(1);
+  expect(observations[0].timestamp).toBeGreaterThanOrEqual(boundary.before);
+  expect(observations[0].timestamp).toBeLessThanOrEqual(boundary.after);
+  const diagnostics = JSON.parse((await page.locator('#visibility-timing').textContent()) || '[]') as Array<{
+    type: string;
+    browserAt: number;
+    observedAt: number;
+    handlerDelayMs: number;
+  }>;
+  const hidden = diagnostics.find((entry) => entry.type === 'visibilitychange');
+  expect(hidden?.handlerDelayMs).toBeGreaterThanOrEqual(90);
+  expect(hidden?.observedAt).toBeGreaterThanOrEqual(boundary.before);
+  await page.locator('#events button').filter({ hasText: 'amp-semantic/visibility' }).click();
+  await expect(page.locator('#delivery-timing')).toContainText(`rrweb timestamp: ${observations[0].timestamp}`);
+  const timing = await page.locator('#delivery-timing').textContent();
+  expect(Number(timing?.match(/Delivery delay: (\d+) ms/)?.[1])).toBeGreaterThanOrEqual(190);
+});
+
 test('storage-blocked capture still emits stable identity without claiming reload continuity', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, 'sessionStorage', {

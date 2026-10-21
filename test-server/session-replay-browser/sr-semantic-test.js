@@ -21,6 +21,8 @@ const validate = new Ajv({ strict: true, allErrors: true }).compile(schema);
 const events = [];
 const validationErrors = [];
 const batches = [];
+const visibilityTiming = [];
+const receivedTimes = new WeakMap();
 const errors = [];
 let ready = false;
 let recording = false;
@@ -69,6 +71,11 @@ inspector.innerHTML = `
     <label>Event family <select id="filter"><option value="">All families</option></select></label>
     <div id="events" aria-label="Captured semantic events"></div>
     <pre id="detail">Events appear after the SDK delivers a batch. Select one to inspect its rrweb envelope.</pre>
+    <details><summary>Visibility timing diagnostics (local only)</summary>
+      <p>Browser time is event creation time, not a guaranteed physical tab-switch time. Handler time is when this page runs the callback. These diagnostics are not emitted into replay.</p>
+      <pre id="visibility-timing">No browser lifecycle notifications yet.</pre>
+    </details>
+    <p id="delivery-timing"></p>
     <small>Schema validation runs on each received semantic event. Disabled capture should still deliver normal replay events. The analytics mirror is not wired into this SDK path yet. Export contains semantic events only.</small>
   </section>`;
 const ui = (selector) => inspector.querySelector(selector);
@@ -111,18 +118,55 @@ function render() {
     .forEach(({ event, index }) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = `${new Date(event.timestamp).toLocaleTimeString()}  ${event.data.tag}`;
+      button.textContent = `${new Date(event.timestamp).toLocaleTimeString(undefined, {
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        fractionalSecondDigits: 3,
+      })}  ${event.data.tag}`;
       button.onclick = () => {
         selectedIndex = index;
         ui('#detail').textContent = JSON.stringify(event, null, 2);
+        showDeliveryTiming(event);
       };
       list.append(button);
     });
-  if (semantic.length && selectedIndex < 0)
-    ui('#detail').textContent = JSON.stringify(semantic[semantic.length - 1], null, 2);
+  if (semantic.length && selectedIndex < 0) {
+    const latest = semantic[semantic.length - 1];
+    ui('#detail').textContent = JSON.stringify(latest, null, 2);
+    showDeliveryTiming(latest);
+  }
   ui('#stop').disabled = !ready || !recording;
   ui('#start').disabled = !ready || recording;
 }
+
+function showDeliveryTiming(event) {
+  const receivedAt = receivedTimes.get(event);
+  ui('#delivery-timing').textContent = `rrweb timestamp: ${
+    event.timestamp
+  } · Batch decoded: ${receivedAt} · Delivery delay: ${receivedAt - event.timestamp} ms`;
+}
+
+function observeVisibilityTiming(event) {
+  if (event.type !== 'visibilitychange' && event.target !== window) return;
+  const observedAt = Date.now();
+  const browserAt = event.timeStamp > 1e12 ? event.timeStamp : performance.timeOrigin + event.timeStamp;
+  visibilityTiming.push({
+    type: event.type,
+    state: document.visibilityState,
+    focused: document.hasFocus(),
+    trusted: event.isTrusted,
+    browserAt: Math.round(browserAt),
+    observedAt,
+    handlerDelayMs: Math.round(observedAt - browserAt),
+  });
+  if (visibilityTiming.length > 100) visibilityTiming.shift();
+  ui('#visibility-timing').textContent = JSON.stringify(visibilityTiming.slice(-12), null, 2);
+}
+document.addEventListener('visibilitychange', observeVisibilityTiming, true);
+window.addEventListener('focus', observeVisibilityTiming);
+window.addEventListener('blur', observeVisibilityTiming);
 
 async function receiveBatch({ body, headers }) {
   try {
@@ -139,7 +183,9 @@ async function receiveBatch({ body, headers }) {
     if (!Array.isArray(batch.events)) throw new Error('Transport batch has no events array');
     const decoded = batch.events.map((event) => (typeof event === 'string' ? JSON.parse(event) : event));
     batches.push({ count: decoded.length, compressed: typeof body !== 'string', receivedAt: Date.now() });
+    const receivedAt = Date.now();
     for (const event of decoded) {
+      receivedTimes.set(event, receivedAt);
       if (event.type === 5 && event.data?.tag?.startsWith('amp-semantic/') && !validate(event)) {
         validationErrors.push({
           tag: event.data.tag,
@@ -228,6 +274,9 @@ window.semanticHarness = {
   },
   get errors() {
     return errors;
+  },
+  get visibilityTiming() {
+    return visibilityTiming;
   },
   get batches() {
     return batches;
