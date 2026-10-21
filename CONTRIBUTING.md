@@ -88,7 +88,7 @@ For contributions to version `1.x`, open a pull request against `v1.x`. For cont
 
 #### Merge
 
-As soon as your changes are approved, a team member will merge your PR to main and will get published shortly after.
+After approval, merge the PR to the appropriate release branch. Merging alone does not publish a package; a maintainer must run the appropriate publishing workflow below.
 
 #### Publishing NPM package for the first time
 
@@ -102,25 +102,50 @@ To publish a package for the first time (administrators only):
 5. copy the same configuration used in [analytics browser](https://www.npmjs.com/package/@amplitude/analytics-browser/access). **case sensitive**
 6. now that it's in NPM and Trusted Publishing is enabled, this package can now be published from workflows
 
+#### Publishing SDK packages
+
+For a normal stable SDK release, open **GitHub Actions → Publish v2.x → Run workflow**, select `main` (or the intended `hotfix/*` branch), explicitly select `releaseType: release`, leave the optional `branch` input empty, and leave `skipLernaVersion` unchecked. The default release type is `prerelease`, so check this input before dispatching. The workflow requires repository write/admin permission and the configured release environments and credentials.
+
+This workflow validates, versions, and publishes SDK packages. It excludes custom enrichment, which uses the separate procedure below. The first-time bootstrap procedure above is only for a package name that does not yet exist on npm. Do not use it for a new version of an existing package.
+
 #### Publishing the custom enrichment browser plugin
 
-`@amplitude/plugin-custom-enrichment-browser` is released independently of `publish-v2`. Its repository manifest is private so Lerna skips its version and dependency updates. Recursive SDK publishing also explicitly excludes it. The staged artifact alone has `private` removed. Keep the `analytics-core` peer dependency at the reviewed compatible range (with workspace core as a development dependency) and analytics-browser's plugin dependency at an exact **published** version; neither should advance during routine SDK releases.
+This is the maintainer runbook for `@amplitude/plugin-custom-enrichment-browser`; no Linear ticket or external project document is needed to follow it. Use the existing [Publish custom enrichment workflow](.github/workflows/publish-custom-enrichment.yml), then a separate Browser adoption PR, then [Publish v2.x](.github/workflows/publish-v2.yml).
 
-The plugin is declared as dual-use and every new version still requires an npm maintainer's 2FA approval. Before using the new workflow, update its npm Trusted Publisher to `.github/workflows/publish-custom-enrichment.yml`, with **stage-only** permission and the `npm-release` environment. Keep the GitHub environment `npm-custom-enrichment-approval` configured with required reviewers.
+The plugin's repository manifest is private so Lerna skips its version and dependency updates. Recursive SDK publishing explicitly excludes it. Only the temporary staged artifact has `private` removed. Do not remove `private` from the source manifest or use the generic single-package publisher to bypass this release path.
 
-1. When plugin changes need a release, review and commit its new stable version and changelog on `main` or a `hotfix/*` branch. Leave analytics-browser's plugin dependency at the previous published version.
-2. Manually run **Publish custom enrichment** on that branch, entering the exact committed plugin version. This workflow builds and tests, then packs and stages only the plugin using pnpm 11 on Node 24.
-3. An npm maintainer reviews the staged package on npmjs.com and approves it with 2FA.
-4. Approve the waiting GitHub environment job. It verifies that the exact staged version is live; GitHub approval alone does not publish the package.
-5. In a follow-up change, update analytics-browser's exact plugin dependency and the lockfile to the now-published version. Regular `publish-v2` releases can then consume it without waiting for plugin approval.
+**One-time prerequisites:** the plugin's npm Trusted Publisher must use `publish-custom-enrichment.yml`, stage-only permission, and the `npm-release` environment. The current workflow also requires reviewers on the GitHub `npm-custom-enrichment-approval` environment. An npm maintainer with 2FA must approve each new staged version. These settings require the appropriate npm/GitHub permissions; local build success does not establish that they are configured.
 
-The independent workflow currently releases stable versions only. If a version is already live, rerunning it skips staging and approval. If a stage is pending, approve it on npm before retrying. This workflow never runs Lerna or publishes other SDK packages.
+1. **Prepare and merge the plugin release PR.** Update the plugin source and tests, explicitly set the intended new stable version in `packages/plugin-custom-enrichment-browser/package.json`, and add its changelog entry in the same package directory. Merge to `main` or the intended `hotfix/*` branch. Keep Browser's plugin dependency at its previous published version. The plugin's version is not bumped by routine Lerna releases. Review any changes to its `analytics-core` peer range rather than automatically widening it.
 
-The initial migration intentionally advances the plugin from 0.1.x to 1.0.0 because requiring the host to provide core is a breaking change for direct plugin consumers. Stage and approve 1.0.0 first; until then, keep browser pinned to the already-published 0.1.28. After approval, update browser's exact pin and lockfile in a follow-up release. A browser-only consumer should not need to declare core separately because browser already supplies it.
+2. **Stage, approve, and verify the plugin.** In GitHub Actions, run **Publish custom enrichment** from that release branch and enter the exact version committed in step 1. The workflow builds/tests and stages only the plugin using pnpm 11 on Node 24. An npm maintainer reviews the staged package on npmjs.com and approves it with 2FA. Then approve the current workflow's waiting GitHub environment job, which verifies that exact version is live. GitHub approval alone does not publish it. Independently check availability with `pnpm view @amplitude/plugin-custom-enrichment-browser@<version> version`, replacing `<version>` with the intended version. Staging success is not publication success; continue only when npm returns the intended version.
 
-The plugin's stable peer range is `^2.61.0`. It does not cover arbitrary core prereleases: before adopting 1.0.0 in browser, explicitly review the intended core prerelease versions against that range. Do not automatically widen the peer range or silently ignore an incompatible peer. A release that needs a different peer contract requires a deliberate plugin release.
+3. **Manually create and merge the Browser adoption PR.** After npm publication, update `dependencies["@amplitude/plugin-custom-enrichment-browser"]` in `packages/analytics-browser/package.json` to that exact published version, for example `"1.0.0"`. Do not use `workspace:*`, `^1.0.0`, or `~1.0.0`. Run `pnpm install` from the repository root, review and commit `pnpm-lock.yaml`, and verify a frozen-lockfile install succeeds. Replace any plugin changelog `pending publication` label with the actual npm publication date. Validate Browser-only installation, direct-plugin installation with compatible core, TypeScript resolution, and the repository checks before merging. This PR changes Browser's dependency on the plugin; it does not manually bump Browser's own version. Repeat this adoption step whenever Browser should consume a newer plugin release.
 
-Peer dependencies let the bundled plugin use the core supplied by browser in the tested compatible consumer installations. They do not guarantee one core across every possible application graph. Direct plugin consumers must declare a compatible core themselves; see the plugin README for the breaking-change migration. Keep the type-only import CI guard: this manifest change does not itself prove future runtime imports have no bundle impact.
+4. **Publish Browser with Publish v2.x.** After the adoption PR merges, follow the normal stable SDK release instructions above. Publish v2 checks that Browser's pinned plugin version exists on npm, then versions and publishes SDK packages while excluding custom enrichment. Verify that the resulting Browser package declares the intended exact plugin dependency. If the plugin is still staged, finish npm approval and verification before retrying; do not bypass the check. Publishing Browser first can make consumer installations fail because its dependency is unavailable.
+
+Browser may continue releasing with its previous published plugin pin while a newer plugin version is pending. Publishing a plugin and adopting it in Browser are separate decisions; a plugin release does not automatically update Browser.
+
+##### Why Browser uses an exact npm pin instead of `workspace:*`
+
+The manual adoption PR is an intentional boundary between published plugin code and ongoing plugin development. Consider this example:
+
+- Plugin `1.0.0` containing **code A** is published on npm.
+- Someone changes the repository's plugin source to **code B**, but its package.json still says `1.0.0`.
+- With `workspace:*`, Browser builds against the local workspace plugin, so code B can enter its browser bundle.
+- pnpm converts `workspace:*` to the local version number when packing Browser. The published manifest would still declare `1.0.0`, which resolves to code A on npm, even though the bundle may contain code B.
+
+Checking that npm has `1.0.0` does not catch this mismatch: it checks availability, not equality between workspace source and the published artifact. Approving a staged package later does not repair a Browser bundle that has already shipped.
+
+With an exact npm pin and the committed lockfile, the repository's normal dependency installation resolves Browser's plugin from the published npm artifact. Unreleased workspace plugin edits do not automatically become Browser's dependency. The follow-up PR selects the published version and provides a review and compatibility check before Browser adopts it. Do not replace this pin with a workspace dependency as a convenience refactor, or use local links/overrides in release validation that bypass it. This restriction concerns Browser's dependency on the plugin; the plugin may still use workspace core as a development dependency.
+
+##### Compatibility, release records, and retries
+
+Plugin 1.0.0 was published on 2026-10-21. It deliberately introduced a breaking dependency change for direct plugin consumers: they must declare compatible `@amplitude/analytics-core` themselves. Browser-only consumers do not need a separate core declaration because Browser supplies it. The stable peer range `^2.61.0` does not cover arbitrary core prereleases; review those separately before an SDK prerelease. See the [plugin README](packages/plugin-custom-enrichment-browser/README.md) for consumer installation instructions.
+
+The independent workflow currently releases stable versions only and does not run Lerna or create changelog entries, Git tags, or GitHub Releases. Maintain the plugin version/changelog explicitly, finalize the release date after publication, and handle any required Git tag/GitHub Release separately using the actual published source commit. Do not assume a `chore(release): publish` commit will be generated by this workflow.
+
+If the intended version is already live, rerunning the plugin workflow skips staging and approval. If a stage is pending, approve it on npm before retrying. For changed plugin code, prepare a new version; rerunning an already-published version does not publish those changes. Keep the type-only core import CI guard: this peer-dependency arrangement does not itself reduce the bundle or guarantee one core instance across every application dependency graph.
 
 #### Recovering a partial `publish-v2` workflow run
 
