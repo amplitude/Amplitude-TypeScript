@@ -306,8 +306,8 @@ importers:
         specifier: workspace:*
         version: link:../plugin-autocapture-browser
       '@amplitude/plugin-custom-enrichment-browser':
-        specifier: 0.1.28
-        version: 0.1.28
+        specifier: 1.0.0
+        version: 1.0.0(@amplitude/analytics-core@packages+analytics-core)
       '@amplitude/plugin-event-property-attribution-browser':
         specifier: workspace:*
         version: link:../plugin-event-property-attribution-browser
@@ -1273,8 +1273,10 @@ importers:
         version: 0.20.4
 
 packages:
-  '@amplitude/plugin-custom-enrichment-browser@0.1.28':
-    resolution: {integrity: sha512-pTc9gTuV1ALfYvYtloS1xHe/hGI0skencMe8mvmyrTqw/6M8hRQAVM6KnWLW8KpVOh/pF1s8GJUu28h8ElwznQ==}
+  '@amplitude/plugin-custom-enrichment-browser@1.0.0':
+    resolution: {integrity: sha512-OqPBrWayaZ9jZqFYgqlmiBFHwL+rzwgHomSnN3Q+51X5CRUkf/2zjdPnaUCrDKvZc3OrOJhI67L+YyAYbjRvzw==}
+    peerDependencies:
+      '@amplitude/analytics-core': ^2.61.0
 
   '@amplitude/analytics-core@2.61.0':
     resolution: {integrity: sha512-emwBT39vq/kjaXt2HoRkeSG4shjLmDgrZUDpIXCQdgI3Xvi9GwjMG3T6xjtjf+/THCB4NIhHrJhqbqx7tq+hMw==}
@@ -12892,9 +12894,9 @@ packages:
         optional: true
 
 snapshots:
-  '@amplitude/plugin-custom-enrichment-browser@0.1.28':
+  '@amplitude/plugin-custom-enrichment-browser@1.0.0(@amplitude/analytics-core@packages+analytics-core)':
     dependencies:
-      '@amplitude/analytics-core': 2.61.0
+      '@amplitude/analytics-core': link:packages/analytics-core
       tslib: 2.8.1
 
   '@amplitude/analytics-core@2.61.0':
