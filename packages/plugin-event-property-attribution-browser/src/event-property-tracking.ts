@@ -20,7 +20,15 @@ const EVENT_PROPERTY_EXCLUDED_EVENT_TYPES = new Set<string>([
 
 type HistoryStateMethod = History['pushState'];
 
-const toEventPropertyCampaign = (campaign: Campaign): Partial<Campaign> => omitUndefined(campaign);
+const toEventPropertyCampaign = (campaign: Campaign): Partial<Campaign> => {
+  const properties = omitUndefined(campaign);
+  const isEmptyCampaign = Object.keys(properties).length === 0;
+  if (!isEmptyCampaign) {
+    properties.referrer = properties.referrer || 'EMPTY';
+    properties.referring_domain = properties.referring_domain || 'EMPTY';
+  }
+  return properties;
+};
 
 export const eventPropertyTrackingPlugin = (
   options: AttributionOptions = {},
