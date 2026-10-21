@@ -64,16 +64,22 @@ async function assertValid(page: Page) {
   }));
   expect(result.errors).toEqual([]);
   expect(result.validation).toEqual([]);
-  for (const event of result.events) expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
+  for (const event of result.events) {
+    expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
+    expect(event.data.payload?.tab_id).toEqual(expect.any(String));
+    expect(event.data.payload?.document_id).toEqual(expect.any(String));
+  }
+  expect(new Set(result.events.map((event) => event.data.payload?.tab_id)).size).toBeLessThanOrEqual(1);
+  expect(new Set(result.events.map((event) => event.data.payload?.document_id)).size).toBeLessThanOrEqual(1);
   expect(JSON.stringify(result.events)).not.toContain(privateValue);
   expect(JSON.stringify(result.events)).not.toContain('MASKED_FIXTURE_SECRET');
   expect(JSON.stringify(result.events)).not.toContain('BLOCKED_FIXTURE_SECRET');
   return result.events;
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ context }) => {
   // A regression must never send fixture recordings to a real Amplitude endpoint.
-  await page.route('**/*', (route) => {
+  await context.route('**/*', (route) => {
     const url = new URL(route.request().url());
     if (url.hostname !== '127.0.0.1' && url.hostname !== 'localhost') return route.abort();
     return route.continue();
@@ -184,11 +190,12 @@ for (const [label, params] of [
       })
       .toBe(true);
     expect(await assertValid(page)).toEqual([]);
+    expect(await page.evaluate(() => sessionStorage.getItem('AMP_semantic_tab_v1'))).toBeNull();
   });
 }
 
 test('disables individual families while keeping click capture active', async ({ page }) => {
-  await open(page, { disabled: 'field,notice,dialog' });
+  await open(page, { disabled: 'context,field,notice,dialog' });
   await page.locator('#display-name').fill(privateValue);
   await page.locator('#show-notice').click();
   await page.locator('#open-dialog').click();
@@ -197,7 +204,9 @@ test('disables individual families while keeping click capture active', async ({
   const events = await assertValid(page);
   expect(
     events.some((event) =>
-      ['amp-semantic/field', 'amp-semantic/notice', 'amp-semantic/dialog'].includes(event.data.tag ?? ''),
+      ['amp-semantic/context', 'amp-semantic/field', 'amp-semantic/notice', 'amp-semantic/dialog'].includes(
+        event.data.tag ?? '',
+      ),
     ),
   ).toBe(false);
 });
@@ -244,4 +253,90 @@ test('supports the web-worker transport path', async ({ page }) => {
   await page.locator('#public-button').click();
   await waitFor(page, 'click', 'key', 'public-target');
   await assertValid(page);
+});
+
+async function identity(page: Page) {
+  await waitFor(page, 'context');
+  const events = await assertValid(page);
+  const payload = events.find((event) => event.data.tag === 'amp-semantic/context')?.data.payload;
+  return { tab_id: payload?.tab_id, document_id: payload?.document_id };
+}
+
+test('keeps tab identity across reloads and separates independent and opener-created tabs', async ({
+  page,
+  context,
+}) => {
+  await open(page);
+  const first = await identity(page);
+  await page.locator('#navigate').click();
+  await waitFor(page, 'page', 'nav', 'push');
+  expect(await identity(page)).toEqual(first);
+  await page.reload();
+  const reloaded = await identity(page);
+  expect(reloaded.tab_id).toBe(first.tab_id);
+  expect(reloaded.document_id).not.toBe(first.document_id);
+
+  const popupPromise = page.waitForEvent('popup');
+  await page.evaluate(() => window.open('about:blank', '_blank'));
+  const popup = await popupPromise;
+  // An opener-created page inherits sessionStorage, reproducing the duplicate-tab collision.
+  expect(await popup.evaluate(() => sessionStorage.getItem('AMP_semantic_tab_v1'))).toBe(
+    await page.evaluate(() => sessionStorage.getItem('AMP_semantic_tab_v1')),
+  );
+  await open(popup);
+  const copied = await identity(popup);
+  expect(copied.tab_id).not.toBe(reloaded.tab_id);
+  expect(copied.document_id).not.toBe(reloaded.document_id);
+  expect(await identity(page)).toEqual(reloaded);
+  await popup.close();
+
+  const separate = await context.newPage();
+  await open(separate);
+  expect((await identity(separate)).tab_id).not.toBe(reloaded.tab_id);
+  await separate.close();
+});
+
+test('records focus changes and stops visibility listeners with capture', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => true });
+  });
+  await open(page);
+  const initial = await identity(page);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => false });
+    window.dispatchEvent(new Event('blur'));
+    window.dispatchEvent(new Event('blur'));
+  });
+  await waitFor(page, 'visibility', 'trigger', 'blur');
+  let events = await assertValid(page);
+  const observations = events.filter((event) => event.data.tag === 'amp-semantic/visibility');
+  expect(observations).toHaveLength(1);
+  expect(observations[0].data.payload).toMatchObject({ ...initial, focused: false, trigger: 'blur' });
+  await page.evaluate(() => window.semanticHarness.stop());
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => true });
+    window.dispatchEvent(new Event('focus'));
+  });
+  await page.evaluate(() => window.semanticHarness.flush());
+  events = await assertValid(page);
+  expect(events.filter((event) => event.data.tag === 'amp-semantic/visibility')).toHaveLength(1);
+});
+
+test('storage-blocked capture still emits stable identity without claiming reload continuity', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'sessionStorage', {
+      get: () => {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+    });
+  });
+  await open(page);
+  const first = await identity(page);
+  await page.locator('#public-button').click();
+  await waitFor(page, 'click', 'key', 'public-target');
+  expect(await identity(page)).toEqual(first);
+  await page.reload();
+  const second = await identity(page);
+  expect(second.tab_id).not.toBe(first.tab_id);
+  expect(second.document_id).not.toBe(first.document_id);
 });

@@ -67,6 +67,7 @@
                 "visibility_state": {
                   "enum": ["hidden", "visible"]
                 },
+                "focused": { "type": "boolean" },
                 "user_agent": {
                   "type": "string"
                 },
@@ -93,6 +94,8 @@
                     "minimum": 1
                   }
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -257,6 +260,8 @@
                 "trusted": {
                   "type": "boolean"
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -334,6 +339,8 @@
                 "loading": {
                   "type": "boolean"
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -412,6 +419,8 @@
                   "type": ["string", "null"],
                   "maxLength": 80
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -542,6 +551,8 @@
                 "prevented": {
                   "type": "boolean"
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -613,6 +624,8 @@
                 "cause_click_ts": {
                   "type": ["number", "null"]
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -669,6 +682,8 @@
                 "cause_click_ts": {
                   "type": ["number", "null"]
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -717,6 +732,8 @@
                     "error"
                   ]
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -753,6 +770,10 @@
                 "state": {
                   "enum": ["hidden", "visible"]
                 },
+                "focused": { "type": "boolean" },
+                "trigger": { "enum": ["visibilitychange", "focus", "blur"] },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -789,6 +810,8 @@
                 "type": {
                   "enum": ["pagehide", "pageshow", "pageshow_bfcache", "freeze", "resume"]
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -863,6 +886,8 @@
                   "required": [],
                   "additionalProperties": false
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }
@@ -960,6 +985,8 @@
                 "first_change_ms": {
                   "type": ["number", "null"]
                 },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 },
                 "v": {
                   "const": 1
                 }

@@ -29,6 +29,7 @@ export * from './types';
 export type { SemanticCapture } from './capture';
 export { SEMANTIC_CAPS } from './capture';
 export { createHelpers, roleOf, urlTemplate } from './helpers';
+export { getDocumentIdentity } from './identity';
 
 export function createSemanticCapture(
   config: SemanticCaptureConfig,

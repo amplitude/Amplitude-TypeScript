@@ -25,6 +25,7 @@ function captureContext(context: RecorderContext): void {
     device,
     language: scope.navigator.language,
     visibility_state: document.visibilityState === 'hidden' ? 'hidden' : 'visible',
+    focused: document.hasFocus(),
     user_agent: scope.navigator.userAgent,
     analytics_sdk: host.getAnalyticsContext?.() ?? { present: false, autocapture: [] },
     ...(Object.keys(caps).length ? { caps_hit: caps } : {}),
@@ -44,11 +45,32 @@ export const lifecycleRecorder: SemanticRecorder = {
       cleanups.push(context.on('recording', (signal) => context.emit('recording', signal)));
     }
     if (context.enabled('visibility')) {
-      const onVisibility = () => {
-        context.emit('visibility', { state: document.visibilityState === 'hidden' ? 'hidden' : 'visible' });
+      const readState = () => ({
+        state: document.visibilityState === 'hidden' ? ('hidden' as const) : ('visible' as const),
+        focused: document.hasFocus(),
+      });
+      let previous = readState();
+      const observe = (trigger: SemanticPayloads['visibility']['trigger']) => {
+        const current = readState();
+        if (current.state === previous.state && current.focused === previous.focused) return;
+        previous = current;
+        context.emit('visibility', { ...current, trigger });
+      };
+      const onVisibility = () => observe('visibilitychange');
+      const onFocus = (event: Event) => {
+        if (event.target === scope) observe('focus');
+      };
+      const onBlur = (event: Event) => {
+        if (event.target === scope) observe('blur');
       };
       document.addEventListener('visibilitychange', onVisibility, true);
-      cleanups.push(() => document.removeEventListener('visibilitychange', onVisibility, true));
+      scope.addEventListener('focus', onFocus);
+      scope.addEventListener('blur', onBlur);
+      cleanups.push(() => {
+        document.removeEventListener('visibilitychange', onVisibility, true);
+        scope.removeEventListener('focus', onFocus);
+        scope.removeEventListener('blur', onBlur);
+      });
     }
     if (context.enabled('lifecycle')) {
       const listen = (target: EventTarget, name: string, type: SemanticPayloads['lifecycle']['type']) => {

@@ -27,7 +27,10 @@
             "elementInteractions",
             "frustrationInteractions"
           ]
-        }
+        },
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d",
+        "focused": true
       }
     }
   },
@@ -59,7 +62,9 @@
         "heading": "Budgets",
         "keyboard": false,
         "modifiers": [],
-        "trusted": true
+        "trusted": true,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -77,7 +82,9 @@
         "check": "change",
         "controls": 6,
         "empty": false,
-        "loading": true
+        "loading": true,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -95,7 +102,9 @@
         "check": "2s",
         "controls": 11,
         "empty": false,
-        "loading": false
+        "loading": false,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -114,7 +123,9 @@
         "valid": true,
         "validity": [],
         "masked": true,
-        "option_label": null
+        "option_label": null,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -145,7 +156,9 @@
             ]
           }
         ],
-        "prevented": true
+        "prevented": true,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -164,7 +177,9 @@
           "role": "main",
           "name": null
         },
-        "cause_click_ts": 1791113563890
+        "cause_click_ts": 1791113563890,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -181,7 +196,9 @@
         "state": "open",
         "modal": true,
         "visible": true,
-        "cause_click_ts": 1791112920480
+        "cause_click_ts": 1791112920480,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -193,7 +210,9 @@
       "payload": {
         "v": 1,
         "state": "stop",
-        "reason": "customer_stop"
+        "reason": "customer_stop",
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -204,7 +223,11 @@
       "tag": "amp-semantic/visibility",
       "payload": {
         "v": 1,
-        "state": "hidden"
+        "state": "hidden",
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d",
+        "focused": false,
+        "trigger": "visibilitychange"
       }
     }
   },
@@ -215,7 +238,9 @@
       "tag": "amp-semantic/lifecycle",
       "payload": {
         "v": 1,
-        "type": "pageshow_bfcache"
+        "type": "pageshow_bfcache",
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -233,7 +258,9 @@
           "[Amplitude] Element Text": "Create budget",
           "[Amplitude] Element Tag": "button",
           "[Amplitude] Clicks": 6
-        }
+        },
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },
@@ -254,7 +281,9 @@
         "error_text": null,
         "notice_text": null,
         "no_change": true,
-        "first_change_ms": null
+        "first_change_ms": null,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   }

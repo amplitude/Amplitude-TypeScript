@@ -1,5 +1,6 @@
 import type { RecordingSignal } from '@amplitude/amp-semantic';
 import { ReplaySemanticAdapter } from './semantic';
+import { getSemanticIdentity } from './semantic-identity';
 import { finder } from './libs/finder';
 import {
   createPrivacyRecorderOptions,
@@ -1116,6 +1117,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
         getPrivacy: () => this.config?.privacyConfig ?? {},
         getUrl: () => scope.location.href,
+        getIdentity: () => getSemanticIdentity(scope),
         getAnalyticsContext: () => this.config?.semanticAnalyticsContext ?? { present: false, autocapture: [] },
         inlineStylesheet: config.shouldInlineStylesheet,
         getSelector: (element) => {

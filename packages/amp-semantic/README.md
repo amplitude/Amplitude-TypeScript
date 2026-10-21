@@ -26,6 +26,37 @@ The analytics Session Replay plugin accepts the same `semanticCapture` option. T
 
 The adapter emits synchronously through `recordFunction.addCustomEvent`, avoiding debug metadata and asynchronous size lookups. It queues initial snapshot notifications until rrweb returns its cancellation callback and emits terminal recording state before cancellation.
 
+## Semantic identity and visibility
+
+Every new semantic payload includes `tab_id` and `document_id`. The capture runtime stamps these
+fields centrally, including when the context family is disabled. The host can inject `getIdentity()`;
+without it, the package uses shared in-memory IDs for its host document, with no storage or listeners.
+
+The Session Replay host lazily creates identity only when a semantic event is accepted. In a top-level
+page it stores an opaque tab ID and document owner in sessionStorage (`AMP_semantic_tab_v1`).
+Actual `pagehide` releases ownership so normal same-origin reloads/navigation reuse the tab ID;
+each newly loaded document gets a new document ID. A copied record with a live owner gets a fresh
+tab ID. A bfcache restore preserves the original document identity and reclaims ownership.
+SPA navigation, stop/resume, and session resets preserve both IDs within the current document.
+These IDs are unrelated to the replay event store's internal ownership ID.
+
+Storage unavailable, corrupt, or a missing navigation boundary can break tab continuity. Capture
+falls back to document-scoped in-memory IDs when storage is blocked; it never requires storage to
+emit. Child-frame hosts use document-scoped IDs without modifying top-level tab storage; they are
+not correlated to the parent's tab. The lightweight identity ownership listeners last for the
+page lifetime once initialized, while recorder listeners are removed on stop. Disabled or
+sampled-out capture does not initialize identity storage or listeners.
+
+Context includes `visibility_state`, `focused` (`document.hasFocus()`), and `user_agent`.
+Visibility emits `{ state, focused, trigger }` for changed visibility/focus pairs, where trigger is
+`visibilitychange`, `focus`, or `blur`. Window focus changes are observed separately from focus
+moving between form controls. Identical state notifications are deduplicated. Focus and visibility
+are observations, not proof of attention or a reason for leaving the page.
+
+The wire version remains `v: 1`; the schema accepts legacy payloads without these fields. Missing
+identity/focus/visibility means unknown. These additions only identify semantic events. They do not
+attribute interleaved raw rrweb events, link an opener to its child, or implement multi-tab DOM replay.
+
 ## Host API and extensions
 
 ```ts

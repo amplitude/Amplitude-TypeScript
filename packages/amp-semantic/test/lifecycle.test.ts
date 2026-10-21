@@ -55,18 +55,20 @@ describe('lifecycle recorder', () => {
 
   test('captures initial hidden state and refreshes context without the visibility family', () => {
     const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    const focused = jest.spyOn(document, 'hasFocus').mockReturnValue(false);
     jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue('SemanticContextTest/1.0');
     const { context, cleanup, signals } = setup(['context']);
     signals.snapshot?.(undefined as never);
     expect(context.emit).toHaveBeenLastCalledWith(
       'context',
-      expect.objectContaining({ visibility_state: 'hidden', user_agent: 'SemanticContextTest/1.0' }),
+      expect.objectContaining({ visibility_state: 'hidden', focused: false, user_agent: 'SemanticContextTest/1.0' }),
     );
     visibility.mockReturnValue('visible');
+    focused.mockReturnValue(true);
     signals.snapshot?.(undefined as never);
     expect(context.emit).toHaveBeenLastCalledWith(
       'context',
-      expect.objectContaining({ visibility_state: 'visible', user_agent: 'SemanticContextTest/1.0' }),
+      expect.objectContaining({ visibility_state: 'visible', focused: true, user_agent: 'SemanticContextTest/1.0' }),
     );
     expect(context.emit).toHaveBeenCalledTimes(2);
     cleanup();
@@ -123,6 +125,8 @@ describe('lifecycle recorder', () => {
   });
 
   test('captures visibility and persisted pageshow, and cleans up every listener', () => {
+    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    jest.spyOn(document, 'hasFocus').mockReturnValue(false);
     const { context, cleanup } = setup(['visibility', 'lifecycle']);
     jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     document.dispatchEvent(new Event('visibilitychange'));
@@ -131,7 +135,11 @@ describe('lifecycle recorder', () => {
     window.dispatchEvent(new Event('pagehide'));
     document.dispatchEvent(new Event('freeze'));
     document.dispatchEvent(new Event('resume'));
-    expect(context.emit).toHaveBeenCalledWith('visibility', { state: 'hidden' });
+    expect(context.emit).toHaveBeenCalledWith('visibility', {
+      state: 'hidden',
+      focused: false,
+      trigger: 'visibilitychange',
+    });
     for (const type of ['pageshow_bfcache', 'pageshow', 'pagehide', 'freeze', 'resume']) {
       expect(context.emit).toHaveBeenCalledWith('lifecycle', { type });
     }
@@ -141,6 +149,36 @@ describe('lifecycle recorder', () => {
     window.dispatchEvent(new Event('pagehide'));
     document.dispatchEvent(new Event('resume'));
     expect(context.emit).not.toHaveBeenCalled();
+  });
+
+  test('captures window focus changes, deduplicates state, ignores element focus, and tears down', () => {
+    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    const focused = jest.spyOn(document, 'hasFocus').mockReturnValue(true);
+    const { context, cleanup } = setup(['visibility']);
+    window.dispatchEvent(new Event('focus'));
+    expect(context.emit).not.toHaveBeenCalled();
+    focused.mockReturnValue(false);
+    document.body.dispatchEvent(new Event('blur', { bubbles: true }));
+    expect(context.emit).not.toHaveBeenCalled();
+    window.dispatchEvent(new Event('blur'));
+    expect(context.emit).toHaveBeenLastCalledWith('visibility', {
+      state: 'visible',
+      focused: false,
+      trigger: 'blur',
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(context.emit).toHaveBeenCalledTimes(1);
+    focused.mockReturnValue(true);
+    window.dispatchEvent(new Event('focus'));
+    expect(context.emit).toHaveBeenLastCalledWith('visibility', {
+      state: 'visible',
+      focused: true,
+      trigger: 'focus',
+    });
+    cleanup();
+    focused.mockReturnValue(false);
+    window.dispatchEvent(new Event('blur'));
+    expect(context.emit).toHaveBeenCalledTimes(2);
   });
 
   test('attaches no browser listeners when browser families are disabled', () => {
