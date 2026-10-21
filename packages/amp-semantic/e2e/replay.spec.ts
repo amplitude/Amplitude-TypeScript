@@ -296,33 +296,34 @@ test('keeps tab identity across reloads and separates independent and opener-cre
   await separate.close();
 });
 
-test('records focus changes and stops visibility listeners with capture', async ({ page }) => {
+test('ignores focus-only changes and stops visibility listeners with capture', async ({ page }) => {
   await page.addInitScript(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
     Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => true });
   });
   await open(page);
-  const initial = await identity(page);
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => false });
     window.dispatchEvent(new Event('blur'));
-    window.dispatchEvent(new Event('blur'));
-  });
-  await waitFor(page, 'visibility', 'trigger', 'blur');
-  let events = await assertValid(page);
-  const observations = events.filter((event) => event.data.tag === 'amp-semantic/visibility');
-  expect(observations).toHaveLength(1);
-  expect(observations[0].data.payload).toMatchObject({ ...initial, focused: false, trigger: 'blur' });
-  await page.evaluate(() => window.semanticHarness.stop());
-  await page.evaluate(() => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
     Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => true });
     window.dispatchEvent(new Event('focus'));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await window.semanticHarness.flush();
+  });
+  let events = await assertValid(page);
+  expect(events.filter((event) => event.data.tag === 'amp-semantic/visibility')).toHaveLength(0);
+  await page.evaluate(() => window.semanticHarness.stop());
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
   });
   await page.evaluate(() => window.semanticHarness.flush());
   events = await assertValid(page);
-  expect(events.filter((event) => event.data.tag === 'amp-semantic/visibility')).toHaveLength(1);
+  expect(events.filter((event) => event.data.tag === 'amp-semantic/visibility')).toHaveLength(0);
 });
 
-test('coalesces a rapid hidden-visible-focus sequence into two transported observations', async ({ page }) => {
+test('transports only visibility boundaries during a hidden-visible-focus sequence', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
     Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => true });
@@ -340,13 +341,13 @@ test('coalesces a rapid hidden-visible-focus sequence into two transported obser
     Object.defineProperty(document, 'hasFocus', { configurable: true, value: () => true });
     window.dispatchEvent(new Event('focus'));
   });
-  await waitFor(page, 'visibility', 'trigger', 'focus');
+  await waitFor(page, 'visibility', 'state', 'visible');
   const events = await assertValid(page);
   expect(
     events.filter((event) => event.data.tag === 'amp-semantic/visibility').map((event) => event.data.payload),
   ).toEqual([
     { v: 1, ...initial, state: 'hidden', focused: false, trigger: 'visibilitychange' },
-    { v: 1, ...initial, state: 'visible', focused: true, trigger: 'focus' },
+    { v: 1, ...initial, state: 'visible', focused: false, trigger: 'visibilitychange' },
   ]);
 });
 

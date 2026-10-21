@@ -108,7 +108,7 @@ export interface SemanticPayloads {
   visibility: {
     state: 'hidden' | 'visible';
     focused: boolean;
-    trigger: 'visibilitychange' | 'focus' | 'blur';
+    trigger: 'visibilitychange';
   };
   lifecycle: { type: 'pagehide' | 'pageshow' | 'pageshow_bfcache' | 'freeze' | 'resume' };
   'amp-event': {

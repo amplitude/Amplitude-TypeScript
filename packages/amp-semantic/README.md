@@ -48,17 +48,14 @@ page lifetime once initialized, while recorder listeners are removed on stop. Di
 sampled-out capture does not initialize identity storage or listeners.
 
 Context includes `visibility_state`, `focused` (`document.hasFocus()`), and `user_agent`.
-Visibility emits `{ state, focused, trigger }` for changed visibility/focus pairs, where trigger is
-`visibilitychange`, `focus`, or `blur`. Window focus changes are observed separately from focus
-moving between form controls. Hidden observations emit immediately and cancel pending visible
-observations. Visible/focus changes settle for 50 ms after the last distinct state change before
-emitting one observation; duplicate notifications do not restart that timer. A short focus round
-trip returning to the last emitted state produces no event. Settled focus-only changes still emit.
-The trigger identifies the last state-changing notification in the coalesced observation. The rrweb
-wire timestamp is emission time, so settling delays visible observations (normally by 50 ms; browser
-timer throttling can extend this). Pending observations are discarded on pagehide, stop, or family
-disabling. No new payload fields are required. Focus and visibility
+Visibility emits `{ state, focused, trigger: "visibilitychange" }` only when the document changes
+between hidden and visible. Both transitions emit immediately, with no settling timer. Duplicate
+visibility notifications and standalone window/element focus or blur events emit nothing.
+`focused` is a snapshot at the visibility boundary; focus can arrive later, so a visible event may
+contain `focused: false`. It is not a continuously updated focus signal. Initial state is included
+in context. The visibility listener is removed on stop or family disabling. Focus and visibility
 are observations, not proof of attention or a reason for leaving the page.
+The wire schema still accepts legacy `focus` and `blur` triggers from earlier recordings.
 
 The wire version remains `v: 1`; the schema accepts legacy payloads without these fields. Missing
 identity/focus/visibility means unknown. These additions only identify semantic events. They do not
