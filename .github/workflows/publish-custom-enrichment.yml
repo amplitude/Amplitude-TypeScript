@@ -5,7 +5,7 @@ on:
     inputs:
       version:
         type: string
-        description: Exact plugin version already committed on the selected main or hotfix branch
+        description: Exact stable plugin version to release (reuse the same version to retry)
         required: true
 
 concurrency:
@@ -35,60 +35,96 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   stage:
-    name: Build and stage custom enrichment
+    name: Release custom enrichment
     needs: authorize
     runs-on: ubuntu-latest
     environment: npm-release
     permissions:
       contents: read
       id-token: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_BRANCH: ${{ github.ref_name }}
+    outputs:
+      sha: ${{ steps.prepare.outputs.sha }}
     steps:
+      - name: Generate release token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.AMPLITUDE_DEV_EXP_APP_ID }}
+          private-key: ${{ secrets.AMPLITUDE_DEV_EXP_PRIVATE_KEY }}
+          permission-contents: write
       - name: Check out selected commit
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ github.sha }}
-      - name: Validate intended stable version
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+      - name: Set up Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: 24.x
+          install: 'false'
+      - name: Prepare release commit and tag
+        id: prepare
         env:
-          EXPECTED_VERSION: ${{ inputs.version }}
-        run: |
-          node <<'NODE'
-          const pkg = require('./packages/plugin-custom-enrichment-browser/package.json');
-          if (pkg.version !== process.env.EXPECTED_VERSION || !/^\d+\.\d+\.\d+$/.test(pkg.version)) {
-            throw new Error('Commit the intended stable plugin version before running this workflow.');
-          }
-          NODE
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: node scripts/publish/release-custom-enrichment.js prepare
       - name: Build and test
+        if: steps.prepare.outputs.complete != 'true'
         uses: ./.github/actions/build-and-test
         with:
           node-version: 24.x
           package-scope: '@amplitude/plugin-custom-enrichment-browser'
           configure-git: 'false'
           configure-aws: 'false'
+      - name: Push release commit and tag
+        if: steps.prepare.outputs.complete != 'true'
+        run: node scripts/publish/release-custom-enrichment.js push
       - name: Stage plugin through Trusted Publishing
+        if: steps.prepare.outputs.complete != 'true'
         id: stage
         run: bash scripts/publish/stage-custom-enrichment.sh
 
-      - name: Show publishing status and next steps
+  github-release:
+    name: Create GitHub Release
+    needs: stage
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_BRANCH: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          ref: ${{ needs.stage.outputs.sha }}
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+      - name: Create GitHub Release
+        id: release
+        run: node scripts/publish/release-custom-enrichment.js release
+      - name: Show release links
         env:
-          PLUGIN_VERSION: ${{ steps.stage.outputs.version }}
-          STAGE_REQUIRED: ${{ steps.stage.outputs.required }}
+          RELEASE_URL: ${{ steps.release.outputs.url }}
+          RELEASE_SHA: ${{ needs.stage.outputs.sha }}
         run: |
           {
             echo '## Custom enrichment publishing'
             echo
-            echo "Package: @amplitude/plugin-custom-enrichment-browser@$PLUGIN_VERSION"
+            echo "Package: @amplitude/plugin-custom-enrichment-browser@$RELEASE_VERSION"
             echo
-            if [ "$STAGE_REQUIRED" = 'true' ]; then
-              echo 'Staging succeeded. This version is awaiting npm approval and is not live yet.'
-              echo
-              echo 'Open [npmjs.com](https://www.npmjs.com/), sign in, and go to **Staged Packages**. Review this package version and click **Approve** to publish it.'
-              echo
-              echo 'No further confirmation in GitHub Actions is needed.'
-              echo
-              echo '[npm staged publishing instructions](https://docs.npmjs.com/staged-publishing/)'
-            else
-              echo 'This version is already live on npm. No approval is needed.'
-            fi
+            echo "[Release commit](https://github.com/$GITHUB_REPOSITORY/commit/$RELEASE_SHA)"
             echo
-            echo "[View package version on npm](https://www.npmjs.com/package/@amplitude/plugin-custom-enrichment-browser/v/$PLUGIN_VERSION)"
+            echo "[GitHub Release]($RELEASE_URL)"
+            echo
+            echo "[Package on npm](https://www.npmjs.com/package/@amplitude/plugin-custom-enrichment-browser/v/$RELEASE_VERSION)"
+            echo
+            echo 'To approve the package, open [npmjs.com](https://www.npmjs.com/) and select **Staged Packages**. No additional GitHub Actions confirmation is required.'
           } | tee -a "$GITHUB_STEP_SUMMARY"
