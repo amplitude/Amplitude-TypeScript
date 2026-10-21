@@ -64,7 +64,33 @@ Recorders include context, clicks, page identity/checks, field state, form submi
 
 Build dependencies first, then run the package's build, test, and lint scripts. `schema.json` validates complete rrweb custom-event envelopes and is shipped with the package for downstream consumers. Fixture tests cover each specified family and reject extra raw-value fields.
 
-For a real Chromium smoke check, from the repository root:
+### Local Session Replay inspector
+
+From the repository root, run:
+
+```sh
+pnpm dev:semantic
+```
+
+This builds Session Replay and its workspace dependencies, then opens `http://127.0.0.1:5174/session-replay-browser/sr-semantic-test.html` in the existing Vite test server. After package source changes, run `pnpm build:semantic` again and reload. The page also works with the repository's normal `pnpm dev` watch workflow.
+
+Interact with the checkout form, dialog, notice, navigation, and privacy fixtures. The inspector decodes actual Session Replay transport batches, validates every `amp-semantic/*` rrweb envelope against `schema.json`, and displays its payload. Use **Flush batches** to inspect the current recording immediately, filter by family, or **Export semantic JSON** to save the captured envelopes.
+
+Controls let you change replay masking, semantic sampling, family switches, and worker transport. **Stop recording** and **Resume recording** exercise the public SDK lifecycle. Disabled or sampled-out semantic capture should leave ordinary replay events flowing. The inspector lives in a blocked shadow tree so its own log updates do not change click-outcome observations.
+
+No real API key is needed. Custom config and transport callbacks handle data locally in memory; the fixture does not upload to Amplitude. Reloading clears its log, which retains up to 10,000 replay events. The analytics mirror is not connected to this SDK path yet.
+
+### Browser integration tests
+
+```sh
+pnpm test:semantic
+```
+
+This builds the dependencies and runs the package's Chromium Playwright suite, starting the local Vite server automatically. If Chromium is not installed, run `pnpm exec playwright install chromium` first. After a build, use `pnpm --filter @amplitude/amp-semantic test:playwright --ui` for interactive debugging.
+
+The suite covers real SDK → rrweb → serialized transport delivery, schema validation, direct-button click node ID matching, fields/submits, notices/dialogs/navigation, masking, disabled capture, sampling, the remote kill switch, individual family switches, stop/resume, JSON export, and worker transport. It also checks that inspector rendering does not falsely classify a no-change click. These fixture checks do not establish production byte budgets or exact timestamp alignment.
+
+For an isolated Chromium recorder smoke check, from the repository root:
 
 ```sh
 node packages/amp-semantic/test/e2e/smoke.cjs

@@ -50,7 +50,10 @@
     "test:playwright:debug": "playwright test --debug",
     "test:playwright:ci": "playwright test",
     "graph": "nx graph",
-    "version": "git add -A"
+    "version": "git add -A",
+    "build:semantic": "pnpm --filter @amplitude/session-replay-browser... build",
+    "dev:semantic": "pnpm build:semantic && vite --host 127.0.0.1 --port 5174 --strictPort --open /session-replay-browser/sr-semantic-test.html",
+    "test:semantic": "pnpm build:semantic && pnpm --filter @amplitude/amp-semantic test:playwright"
   },
   "devDependencies": {
     "@amplitude/analytics-browser": "workspace:*",
@@ -98,7 +101,8 @@
     "typedoc": "^0.23.22",
     "typescript": "^4.9.4",
     "vite": "^6.3.4",
-    "yargs": "^17.7.1"
+    "yargs": "^17.7.1",
+    "ajv": "^8.17.1"
   },
   "lint-staged": {
     "*.ts": [
