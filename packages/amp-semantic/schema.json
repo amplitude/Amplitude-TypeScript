@@ -64,6 +64,12 @@
                 "language": {
                   "type": "string"
                 },
+                "visibility_state": {
+                  "enum": ["hidden", "visible"]
+                },
+                "user_agent": {
+                  "type": "string"
+                },
                 "analytics_sdk": {
                   "type": "object",
                   "properties": {

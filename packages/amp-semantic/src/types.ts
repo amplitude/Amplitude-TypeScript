@@ -40,6 +40,8 @@ export interface SemanticPayloads {
     viewport: { w: number; h: number };
     device: 'desktop' | 'tablet' | 'mobile';
     language: string;
+    visibility_state: 'hidden' | 'visible';
+    user_agent: string;
     analytics_sdk: AnalyticsContext;
     caps_hit?: Partial<Record<SemanticFamily, number>>;
   };

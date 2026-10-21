@@ -83,6 +83,15 @@ test.beforeEach(async ({ page }) => {
 test('delivers real rrweb envelopes through replay transport with matching click node IDs', async ({ page }) => {
   await open(page);
   await waitFor(page, 'context');
+  const browserContext = await page.evaluate(() => ({
+    visibility_state: document.visibilityState,
+    user_agent: navigator.userAgent,
+  }));
+  const contextPayload = await page.evaluate(
+    () =>
+      window.semanticHarness.semanticEvents.find((event) => event.data.tag === 'amp-semantic/context')?.data.payload,
+  );
+  expect(contextPayload).toMatchObject(browserContext);
   await waitFor(page, 'recording', 'state', 'start');
   await waitFor(page, 'page');
   await page.locator('#display-name').fill(privateValue);

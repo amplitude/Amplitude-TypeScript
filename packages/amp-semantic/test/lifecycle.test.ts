@@ -53,6 +53,25 @@ describe('lifecycle recorder', () => {
     expect(signals).toEqual({});
   });
 
+  test('captures initial hidden state and refreshes context without the visibility family', () => {
+    const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue('SemanticContextTest/1.0');
+    const { context, cleanup, signals } = setup(['context']);
+    signals.snapshot?.(undefined as never);
+    expect(context.emit).toHaveBeenLastCalledWith(
+      'context',
+      expect.objectContaining({ visibility_state: 'hidden', user_agent: 'SemanticContextTest/1.0' }),
+    );
+    visibility.mockReturnValue('visible');
+    signals.snapshot?.(undefined as never);
+    expect(context.emit).toHaveBeenLastCalledWith(
+      'context',
+      expect.objectContaining({ visibility_state: 'visible', user_agent: 'SemanticContextTest/1.0' }),
+    );
+    expect(context.emit).toHaveBeenCalledTimes(2);
+    cleanup();
+  });
+
   test('counts unreadable stylesheets and includes dropped counts', () => {
     const { context, cleanup, signals } = setup(['context']);
     const sheet = {

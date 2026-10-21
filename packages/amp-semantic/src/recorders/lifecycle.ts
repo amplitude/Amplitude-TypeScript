@@ -24,6 +24,8 @@ function captureContext(context: RecorderContext): void {
     viewport: { w: scope.innerWidth, h: scope.innerHeight },
     device,
     language: scope.navigator.language,
+    visibility_state: document.visibilityState === 'hidden' ? 'hidden' : 'visible',
+    user_agent: scope.navigator.userAgent,
     analytics_sdk: host.getAnalyticsContext?.() ?? { present: false, autocapture: [] },
     ...(Object.keys(caps).length ? { caps_hit: caps } : {}),
   });
