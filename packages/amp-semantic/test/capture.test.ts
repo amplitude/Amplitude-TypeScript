@@ -53,7 +53,8 @@ describe('capture runtime', () => {
     capture.start();
     capture.start();
     expect(setup).toHaveBeenCalledTimes(1);
-    for (let i = 0; i < 201; i++) context.emit('visibility', { state: 'visible', focused: true, trigger: 'focus' });
+    for (let i = 0; i < 201; i++)
+      context.emit('visibility', { state: 'visible', focused: true, trigger: 'visibilitychange' });
     expect(host.emit).toHaveBeenCalledTimes(200);
     expect(context.dropped()).toEqual({ visibility: 1 });
     capture.updateConfig({ enabled: true, families: { click: false } });
@@ -74,7 +75,7 @@ describe('capture runtime', () => {
     capture.stop();
     capture.notify('snapshot', undefined);
     expect(callback).toHaveBeenCalledTimes(1);
-    expect(context.emit('visibility', { state: 'visible', focused: true, trigger: 'focus' })).toBe(false);
+    expect(context.emit('visibility', { state: 'visible', focused: true, trigger: 'visibilitychange' })).toBe(false);
   });
   test('preserves timestamp and version and isolates host errors', () => {
     host.onError = jest.fn();
@@ -96,21 +97,24 @@ describe('capture runtime', () => {
     host.emit = () => {
       throw new Error('host');
     };
-    expect(context.emit('visibility', { state: 'visible', focused: true, trigger: 'focus' })).toBe(false);
+    expect(context.emit('visibility', { state: 'visible', focused: true, trigger: 'visibilitychange' })).toBe(false);
     expect(host.onError).toHaveBeenCalled();
     host.onError = () => {
       throw new Error('diagnostic');
     };
-    expect(() => context.emit('visibility', { state: 'visible', focused: true, trigger: 'focus' })).not.toThrow();
+    expect(() =>
+      context.emit('visibility', { state: 'visible', focused: true, trigger: 'visibilitychange' }),
+    ).not.toThrow();
   });
   test('reserves caps before calling a reentrant host emitter', () => {
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
-    for (let i = 0; i < 199; i++) context.emit('visibility', { state: 'visible', focused: true, trigger: 'focus' });
+    for (let i = 0; i < 199; i++)
+      context.emit('visibility', { state: 'visible', focused: true, trigger: 'visibilitychange' });
     host.emit = jest.fn(() => {
       context.emit('visibility', { state: 'hidden', focused: false, trigger: 'visibilitychange' });
     });
-    context.emit('visibility', { state: 'visible', focused: true, trigger: 'focus' });
+    context.emit('visibility', { state: 'visible', focused: true, trigger: 'visibilitychange' });
     expect(host.emit).toHaveBeenCalledTimes(1);
     expect(context.dropped()).toEqual({ visibility: 1 });
   });

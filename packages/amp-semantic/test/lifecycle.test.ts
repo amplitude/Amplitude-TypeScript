@@ -152,46 +152,21 @@ describe('lifecycle recorder', () => {
     expect(context.emit).not.toHaveBeenCalled();
   });
 
-  test('captures window focus changes, deduplicates state, ignores element focus, and tears down', () => {
-    jest.useFakeTimers();
-    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+  test('ignores focus-only changes and duplicate visibility notifications', () => {
+    const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     const focused = jest.spyOn(document, 'hasFocus').mockReturnValue(true);
     const { context, cleanup } = setup(['visibility']);
-    window.dispatchEvent(new Event('focus'));
-    expect(context.emit).not.toHaveBeenCalled();
     focused.mockReturnValue(false);
+    window.dispatchEvent(new Event('blur'));
     document.body.dispatchEvent(new Event('blur', { bubbles: true }));
-    expect(context.emit).not.toHaveBeenCalled();
-    window.dispatchEvent(new Event('blur'));
-    jest.advanceTimersByTime(50);
-    expect(context.emit).toHaveBeenLastCalledWith('visibility', {
-      state: 'visible',
-      focused: false,
-      trigger: 'blur',
-    });
     document.dispatchEvent(new Event('visibilitychange'));
-    expect(context.emit).toHaveBeenCalledTimes(1);
     focused.mockReturnValue(true);
     window.dispatchEvent(new Event('focus'));
-    jest.advanceTimersByTime(50);
-    expect(context.emit).toHaveBeenLastCalledWith('visibility', {
-      state: 'visible',
-      focused: true,
-      trigger: 'focus',
-    });
-    cleanup();
-    focused.mockReturnValue(false);
-    window.dispatchEvent(new Event('blur'));
-    expect(context.emit).toHaveBeenCalledTimes(2);
-  });
+    expect(context.emit).not.toHaveBeenCalled();
 
-  test('emits hidden immediately and coalesces the observed 3 ms / 35 ms return sequence', () => {
-    jest.useFakeTimers();
-    const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-    const focused = jest.spyOn(document, 'hasFocus').mockReturnValue(true);
-    const { context, cleanup } = setup(['visibility']);
     visibility.mockReturnValue('hidden');
     focused.mockReturnValue(false);
+    document.dispatchEvent(new Event('visibilitychange'));
     document.dispatchEvent(new Event('visibilitychange'));
     expect(context.emit).toHaveBeenCalledTimes(1);
     expect(context.emit).toHaveBeenLastCalledWith('visibility', {
@@ -199,83 +174,25 @@ describe('lifecycle recorder', () => {
       focused: false,
       trigger: 'visibilitychange',
     });
-    jest.advanceTimersByTime(3);
+
+    // Capture focus at the visibility boundary, even if focus arrives later.
     visibility.mockReturnValue('visible');
     document.dispatchEvent(new Event('visibilitychange'));
-    jest.advanceTimersByTime(32);
-    focused.mockReturnValue(true);
-    window.dispatchEvent(new Event('focus'));
-    jest.advanceTimersByTime(49);
-    expect(context.emit).toHaveBeenCalledTimes(1);
-    // A duplicate does not push out the deadline or change its meaningful trigger.
-    document.dispatchEvent(new Event('visibilitychange'));
-    jest.advanceTimersByTime(1);
     expect(context.emit).toHaveBeenCalledTimes(2);
     expect(context.emit).toHaveBeenLastCalledWith('visibility', {
       state: 'visible',
-      focused: true,
-      trigger: 'focus',
-    });
-    cleanup();
-  });
-
-  test('a hidden transition replaces pending blur without a stale timer emission', () => {
-    jest.useFakeTimers();
-    const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-    const focused = jest.spyOn(document, 'hasFocus').mockReturnValue(true);
-    const { context, cleanup } = setup(['visibility']);
-    focused.mockReturnValue(false);
-    window.dispatchEvent(new Event('blur'));
-    jest.advanceTimersByTime(20);
-    expect(context.emit).not.toHaveBeenCalled();
-    visibility.mockReturnValue('hidden');
-    document.dispatchEvent(new Event('visibilitychange'));
-    expect(context.emit).toHaveBeenCalledTimes(1);
-    expect(context.emit).toHaveBeenLastCalledWith('visibility', {
-      state: 'hidden',
       focused: false,
       trigger: 'visibilitychange',
     });
-    jest.runOnlyPendingTimers();
-    expect(context.emit).toHaveBeenCalledTimes(1);
-    cleanup();
-  });
-
-  test('drops transient focus churn but emits a settled visible unfocused state', () => {
-    jest.useFakeTimers();
-    jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
-    const focused = jest.spyOn(document, 'hasFocus').mockReturnValue(true);
-    const { context, cleanup } = setup(['visibility']);
-    focused.mockReturnValue(false);
-    window.dispatchEvent(new Event('blur'));
-    jest.advanceTimersByTime(20);
     focused.mockReturnValue(true);
     window.dispatchEvent(new Event('focus'));
-    jest.runOnlyPendingTimers();
-    expect(context.emit).not.toHaveBeenCalled();
-    focused.mockReturnValue(false);
-    window.dispatchEvent(new Event('blur'));
-    jest.advanceTimersByTime(50);
-    expect(context.emit).toHaveBeenCalledWith('visibility', {
-      state: 'visible',
-      focused: false,
-      trigger: 'blur',
-    });
-    cleanup();
-  });
-
-  test.each(['stop', 'pagehide'])('cancels a pending visible observation on %s', (boundary) => {
-    jest.useFakeTimers();
-    const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
-    jest.spyOn(document, 'hasFocus').mockReturnValue(false);
-    const { context, cleanup } = setup(['visibility']);
-    visibility.mockReturnValue('visible');
     document.dispatchEvent(new Event('visibilitychange'));
-    if (boundary === 'stop') cleanup();
-    else window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
-    jest.runOnlyPendingTimers();
-    expect(context.emit).not.toHaveBeenCalled();
+    expect(context.emit).toHaveBeenCalledTimes(2);
+
     cleanup();
+    visibility.mockReturnValue('hidden');
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(context.emit).toHaveBeenCalledTimes(2);
   });
 
   test('attaches no browser listeners when browser families are disabled', () => {
