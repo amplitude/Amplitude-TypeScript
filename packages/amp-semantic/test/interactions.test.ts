@@ -1,5 +1,6 @@
 import { isMasked } from '@amplitude/session-replay-dom-privacy';
 import type { PrivacyConfig } from '@amplitude/session-replay-dom-privacy';
+import { createHelpers } from '../src/helpers';
 import { interactionsRecorder } from '../src/recorders/interactions';
 import type {
   HostSignals,
@@ -309,6 +310,58 @@ describe('interactions recorder', () => {
     input.className = 'amp-unmask';
     dispatch(input, 'change');
     expect(h.emitted[3].payload).toHaveProperty('value', 'sensitive');
+  });
+
+  it('emits fresh field states and consistent ARIA validity without requiring a value change', () => {
+    document.body.innerHTML = '<input aria-label="Notes" required readonly aria-expanded="false">';
+    const h = harness({ defaultMaskLevel: 'light' });
+    h.context.helpers = createHelpers(h.context.host);
+    cleanup = h.start();
+    const input = document.querySelector('input')!;
+    input.value = 'same value';
+    dispatch(input, 'change');
+    expect(h.emitted[0].payload).toMatchObject({
+      name: 'Notes',
+      name_source: 'aria-label',
+      states: ['required', 'collapsed', 'readonly'],
+      valid: true,
+    });
+    input.setAttribute('aria-invalid', 'grammar');
+    input.setAttribute('aria-expanded', 'true');
+    dispatch(input, 'focusout');
+    expect(h.emitted[1].payload).toMatchObject({
+      states: ['required', 'invalid', 'expanded', 'readonly'],
+      valid: false,
+      validity: ['ariaInvalid'],
+    });
+    input.setAttribute('aria-invalid', 'spelling');
+    dispatch(input, 'focusout');
+    expect(h.emitted).toHaveLength(2);
+    input.setAttribute('aria-invalid', 'false');
+    dispatch(input, 'focusout');
+    expect(h.emitted[2].payload).toMatchObject({
+      valid: true,
+      validity: [],
+      states: ['required', 'expanded', 'readonly'],
+    });
+  });
+
+  it('preserves field name provenance for labels, fallback, masked and unnamed controls', () => {
+    document.body.innerHTML =
+      '<label for="labelled">Name</label><input id="labelled"><input placeholder="Hint"><input aria-label="PRIVATE" class="amp-mask"><input><div contenteditable role="textbox">PRIVATE</div><div contenteditable role="button">PRIVATE</div>';
+    const h = harness({ defaultMaskLevel: 'light' });
+    h.context.helpers = createHelpers(h.context.host);
+    cleanup = h.start();
+    document.querySelectorAll('input,[contenteditable]').forEach((element) => dispatch(element, 'focusout'));
+    expect(h.emitted.map((entry) => (entry.payload as SemanticPayloads['field']).name_source)).toEqual([
+      'label-for',
+      'placeholder',
+      'masked',
+      'unnamed',
+      'unnamed',
+      'masked',
+    ]);
+    expect(JSON.stringify(h.emitted)).not.toContain('PRIVATE');
   });
 
   it('deduplicates unchanged field events and reports a changed state immediately', () => {

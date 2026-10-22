@@ -107,3 +107,20 @@ test('new family schemas reject typed keys, verbose resource fields, and invalid
     ).toBe(false);
   }
 });
+
+test.each(['field', 'keys', 'dialog'])('%s accepts additive a11y metadata and legacy payloads', (family) => {
+  const event = examples.find((event) => event.data.tag === `amp-semantic/${family}`);
+  if (!event) throw new Error('fixture missing');
+  const withMetadata = (update: Record<string, unknown>) => {
+    const payload =
+      family === 'keys'
+        ? { ...event.data.payload, target: { ...event.data.payload.target, ...update } }
+        : { ...event.data.payload, ...update };
+    return { ...event, data: { ...event.data, payload } };
+  };
+  expect(validate(event)).toBe(true);
+  expect(validate(withMetadata({ name_source: 'masked' }))).toBe(true);
+  expect(validate(withMetadata({ name_source: 'unrecognized' }))).toBe(false);
+  expect(validate(withMetadata({ states: ['required', 'invalid', 'readonly'] }))).toBe(family !== 'dialog');
+  expect(validate(withMetadata({ states: ['unrecognized'] }))).toBe(false);
+});

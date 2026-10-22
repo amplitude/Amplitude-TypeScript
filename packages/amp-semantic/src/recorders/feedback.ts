@@ -70,6 +70,7 @@ export const feedbackRecorder: SemanticRecorder = {
           // Detachment loses masking ancestors and labelledby sources. Never replay a cached name
           // under a potentially stricter current policy; retain only the node identity.
           name: element.isConnected ? description.name : null,
+          name_source: element.isConnected ? description.name_source : 'masked',
           state: open ? 'open' : 'closed',
           modal: !element.isConnected && previous ? previous.payload.modal : modal,
           visible: open && helpers.visible(element),
@@ -157,6 +158,7 @@ export const feedbackRecorder: SemanticRecorder = {
                 id: null,
                 role: 'dialog',
                 name: null,
+                name_source: 'unnamed',
                 state: open ? 'open' : 'closed',
                 modal: false,
                 visible: false,
@@ -206,6 +208,7 @@ export const feedbackRecorder: SemanticRecorder = {
             id: helpers.id(element),
             role: 'dialog',
             name: null,
+            name_source: 'unnamed',
             state: 'closed',
             modal,
             visible: false,

@@ -64,14 +64,15 @@ export interface SemanticPayloads {
     modifiers: string[];
     trusted: boolean;
   };
-  keys: { key: string; target: TargetDescription };
+  keys: { key: string; target: NamedTarget & { states: string[] } };
   'resource-error': {
     rt: 'img' | 'css' | 'font' | 'script';
     count: number;
     container?: TargetDescription;
     path?: string;
   };
-  field: TargetDescription & {
+  field: NamedTarget & {
+    states: string[];
     kind: string;
     value_state: 'empty' | 'filled';
     /** Unmasked native input/textarea value; omitted for sensitive and non-scalar controls. */
@@ -97,7 +98,7 @@ export interface SemanticPayloads {
     region: { role: string; name: string | null } | null;
     cause_click_ts: number | null;
   };
-  dialog: TargetDescription & {
+  dialog: NamedTarget & {
     role: 'dialog' | 'alertdialog';
     state: 'open' | 'closed';
     modal: boolean;
