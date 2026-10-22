@@ -1,5 +1,6 @@
 import { getInputType, isMasked } from '@amplitude/session-replay-dom-privacy';
-import type { RecorderContext, SemanticPayloads, SemanticRecorder, TargetDescription } from '../types';
+import { isAriaInvalid } from '../helpers';
+import type { NamedTarget, RecorderContext, SemanticPayloads, SemanticRecorder, TargetDescription } from '../types';
 
 const FIELD_SELECTOR =
   'input, select, textarea, [contenteditable=""], [contenteditable="true"], [contenteditable="plaintext-only"]';
@@ -50,7 +51,7 @@ function validityOf(element: Element): { valid: boolean; validity: string[] } {
       if (element.validity[flag]) flags.push(flag);
     }
   }
-  if (element.getAttribute('aria-invalid') === 'true') flags.push('ariaInvalid');
+  if (isAriaInvalid(element)) flags.push('ariaInvalid');
   return {
     valid: (!isFormControl(element) || element.validity.valid) && !flags.includes('ariaInvalid'),
     validity: flags,
@@ -58,12 +59,13 @@ function validityOf(element: Element): { valid: boolean; validity: string[] } {
 }
 
 /** Never use a field's contents as its accessible name, even when text is unmasked. */
-function fieldDescription(context: RecorderContext, element: Element): TargetDescription {
+function fieldDescription(context: RecorderContext, element: Element): NamedTarget {
   const { name, source } = context.helpers.name(element);
   return {
     id: context.helpers.id(element),
     role: context.helpers.role(element),
     name: source === 'text' || source === 'value' ? null : name,
+    name_source: source === 'text' || source === 'value' ? 'masked' : source,
   };
 }
 
@@ -178,6 +180,7 @@ export const interactionsRecorder: SemanticRecorder = {
       const masked = isMasked('input', host.getPrivacy(), element as HTMLElement, host.getUrl());
       const payload: SemanticPayloads['field'] = {
         ...fieldDescription(context, element),
+        states: helpers.states(element),
         kind:
           element.tagName === 'INPUT'
             ? (element as HTMLInputElement).type

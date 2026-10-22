@@ -56,7 +56,10 @@ describe('keys', () => {
     key(button, 'k', { metaKey: true });
     key(button, 'P', { ctrlKey: true, shiftKey: true });
     expect(events.map((event) => event.payload)).toEqual([
-      expect.objectContaining({ key: 'Escape', target: { id: 213, role: 'button', name: 'Close' } }),
+      expect.objectContaining({
+        key: 'Escape',
+        target: { id: 213, role: 'button', name: 'Close', name_source: 'text', states: [] },
+      }),
       expect.objectContaining({ key: 'Meta+K' }),
       expect.objectContaining({ key: 'Ctrl+Shift+P' }),
     ]);
@@ -87,6 +90,26 @@ describe('keys', () => {
     shadow.innerHTML = '<button>PRIVATE</button>';
     key(shadow.querySelector('button')!, 'Escape');
     expect(events).toHaveLength(3);
+    expect(JSON.stringify(events)).not.toContain('PRIVATE');
+  });
+  test('reads key target states and name provenance at each observation', () => {
+    document.body.innerHTML =
+      '<input aria-label="Search" aria-expanded="false" readonly><input placeholder="Hint"><input><input type="button" value="PRIVATE"><button class="amp-mask">PRIVATE</button>';
+    start(keysRecorder);
+    const input = document.querySelector('input')!;
+    key(input, 'ArrowDown');
+    input.setAttribute('aria-expanded', 'true');
+    input.setAttribute('aria-invalid', 'spelling');
+    key(input, 'ArrowDown');
+    expect(events[0].payload).toMatchObject({
+      target: { name: 'Search', name_source: 'aria-label', states: ['collapsed', 'readonly'] },
+    });
+    expect(events[1].payload).toMatchObject({
+      target: { name_source: 'aria-label', states: ['invalid', 'expanded', 'readonly'] },
+    });
+    document.querySelectorAll('input,button').forEach((element) => key(element, 'Tab'));
+    const targets = events.flatMap((event) => (event.name === 'keys' ? [event.payload.target] : [])).slice(3);
+    expect(targets.map((target) => target.name_source)).toEqual(['placeholder', 'unnamed', 'masked', 'masked']);
     expect(JSON.stringify(events)).not.toContain('PRIVATE');
   });
   test('independent disable, sample-out, teardown, and cap apply', () => {

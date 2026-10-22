@@ -109,6 +109,8 @@ The page event and its title observer, scheduled checks, and page-wide scans are
 
 Recorders include context, clicks, keys, resource load failures, field state, form submissions, notices, dialogs, recording state, visibility, lifecycle, and an accepted-analytics-event mirror.
 
+Field events and key targets include the same event-time `states` as clicks, including native disabled fieldset inheritance (with the first-legend exception) and native/ARIA invalid state. Reading native validity does not dispatch validation events. Fields, key targets and dialogs include `name_source`; excluded editable names and detached dialog names report `masked`. These additive v1 fields remain optional in the wire schema for older recordings. No new listeners, observers, scans or timers are introduced; states describe the observation, not a post-action outcome.
+
 ## Work limits
 
 Recorders call `context.canEmit(family)` before expensive payload construction when possible.

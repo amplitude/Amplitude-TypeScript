@@ -32,6 +32,10 @@ export const keysRecorder: SemanticRecorder = {
       if (target.matches('input[type="password"], input[type="hidden"]')) return;
       if (!context.canEmit('keys')) return;
       const description = helpers.name(target);
+      // Exclude editable contents and input/button values from target names.
+      const suppressName =
+        description.source === 'value' ||
+        (description.source === 'text' && !!target.closest('input,textarea,select,[contenteditable]'));
       context.emit('keys', {
         key: [
           event.ctrlKey ? 'Ctrl' : '',
@@ -45,12 +49,9 @@ export const keysRecorder: SemanticRecorder = {
         target: {
           id: helpers.id(target),
           role: helpers.role(target),
-          // Also protect input/button values and contenteditable text when unmasked.
-          name:
-            description.source === 'value' ||
-            (description.source === 'text' && !!target.closest('input,textarea,select,[contenteditable]'))
-              ? null
-              : description.name,
+          name: suppressName ? null : description.name,
+          name_source: suppressName ? 'masked' : description.source,
+          states: helpers.states(target),
         },
       });
     };

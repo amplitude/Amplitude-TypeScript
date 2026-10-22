@@ -154,6 +154,12 @@ export function roleOf(element: Element): string {
   return roles[tag] ?? 'generic';
 }
 
+/** ARIA treats unknown nonempty tokens as true, alongside grammar and spelling. */
+export function isAriaInvalid(element: Element): boolean {
+  const value = element.getAttribute('aria-invalid')?.trim().toLowerCase();
+  return !!value && value !== 'false';
+}
+
 export function createHelpers(host: SemanticHost): SemanticHelpers {
   const blocked = (element: Element): boolean => {
     try {
@@ -368,9 +374,10 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
         element.getAttribute('aria-checked') === 'mixed' ||
         element.getAttribute('aria-pressed') === 'mixed';
       for (const [state, yes] of Object.entries({
-        disabled: native.disabled || element.getAttribute('aria-disabled') === 'true',
+        // :disabled includes fieldset inheritance and the first-legend exception.
+        disabled: element.matches(':disabled') || element.getAttribute('aria-disabled') === 'true',
         required: native.required || element.getAttribute('aria-required') === 'true',
-        invalid: element.getAttribute('aria-invalid') === 'true',
+        invalid: isAriaInvalid(element) || (native.willValidate && !native.validity.valid),
         checked: !mixed && (native.checked || element.getAttribute('aria-checked') === 'true'),
         mixed,
         busy: element.getAttribute('aria-busy') === 'true',

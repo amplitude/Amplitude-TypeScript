@@ -314,6 +314,41 @@
             "payload": {
               "type": "object",
               "properties": {
+                "name_source": {
+                  "enum": [
+                    "aria-labelledby",
+                    "aria-label",
+                    "label-for",
+                    "label-wrap",
+                    "alt",
+                    "value",
+                    "title",
+                    "text",
+                    "placeholder",
+                    "masked",
+                    "unnamed"
+                  ]
+                },
+                "states": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "disabled",
+                      "required",
+                      "invalid",
+                      "checked",
+                      "mixed",
+                      "busy",
+                      "open",
+                      "expanded",
+                      "collapsed",
+                      "selected",
+                      "current",
+                      "pressed",
+                      "readonly"
+                    ]
+                  }
+                },
                 "id": {
                   "type": ["integer", "null"],
                   "minimum": 0
@@ -609,6 +644,21 @@
             "payload": {
               "type": "object",
               "properties": {
+                "name_source": {
+                  "enum": [
+                    "aria-labelledby",
+                    "aria-label",
+                    "label-for",
+                    "label-wrap",
+                    "alt",
+                    "value",
+                    "title",
+                    "text",
+                    "placeholder",
+                    "masked",
+                    "unnamed"
+                  ]
+                },
                 "id": {
                   "type": ["integer", "null"],
                   "minimum": 0
@@ -882,6 +932,41 @@
                 "target": {
                   "type": "object",
                   "properties": {
+                    "name_source": {
+                      "enum": [
+                        "aria-labelledby",
+                        "aria-label",
+                        "label-for",
+                        "label-wrap",
+                        "alt",
+                        "value",
+                        "title",
+                        "text",
+                        "placeholder",
+                        "masked",
+                        "unnamed"
+                      ]
+                    },
+                    "states": {
+                      "type": "array",
+                      "items": {
+                        "enum": [
+                          "disabled",
+                          "required",
+                          "invalid",
+                          "checked",
+                          "mixed",
+                          "busy",
+                          "open",
+                          "expanded",
+                          "collapsed",
+                          "selected",
+                          "current",
+                          "pressed",
+                          "readonly"
+                        ]
+                      }
+                    },
                     "id": {
                       "type": ["integer", "null"]
                     },

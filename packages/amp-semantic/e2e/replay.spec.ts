@@ -280,6 +280,47 @@ test('explicit unmask permits a native value and later masking omits it', async 
   expect(fields[fields.length - 1].data.payload).not.toHaveProperty('value');
 });
 
+test('captures event-time a11y states, disabled fieldset exceptions and name provenance', async ({ page }) => {
+  await open(page, { mask: 'light' });
+  await page.evaluate(() => {
+    const root = document.createElement('section');
+    root.innerHTML =
+      '<fieldset disabled><legend><input aria-label="Legend input"></legend><input aria-label="Disabled input"></fieldset><input aria-label="Validation input" aria-invalid="grammar" readonly aria-required="true">';
+    document.body.append(root);
+    root.querySelectorAll('input').forEach((input) => {
+      // Synthetic events exercise the observation path on a natively disabled control.
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    });
+  });
+  await waitFor(page, 'field', 'name', 'Validation input');
+  const events = await assertValid(page);
+  for (const family of ['field', 'keys']) {
+    const targets = events
+      .filter((event) => event.data.tag === `amp-semantic/${family}`)
+      .map((event) => (family === 'keys' ? event.data.payload?.target : event.data.payload) as Record<string, unknown>);
+    expect(targets.find((target) => target.name === 'Legend input')).toMatchObject({
+      name_source: 'aria-label',
+      states: [],
+    });
+    expect(targets.find((target) => target.name === 'Disabled input')).toMatchObject({
+      name_source: 'aria-label',
+      states: ['disabled'],
+    });
+    expect(targets.find((target) => target.name === 'Validation input')).toMatchObject({
+      name_source: 'aria-label',
+      states: ['required', 'invalid', 'readonly'],
+    });
+  }
+  await page.locator('#open-dialog').click();
+  await waitFor(page, 'dialog', 'state', 'open');
+  const updated = await assertValid(page);
+  const dialog = updated.find(
+    (event) => event.data.tag === 'amp-semantic/dialog' && event.data.payload?.state === 'open',
+  );
+  expect(dialog?.data.payload).toMatchObject({ name: 'Confirm checkout', name_source: 'aria-labelledby' });
+});
+
 for (const [label, params] of [
   ['disabled', { enabled: 'false' }],
   ['sampled out', { sampleRate: '0' }],

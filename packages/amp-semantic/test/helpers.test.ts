@@ -69,6 +69,51 @@ describe('shared privacy helpers', () => {
       expect(helpers.states(element)).toEqual([]);
     }
   });
+  test('resolves native disabled fieldsets with legend exceptions and nested fieldsets', () => {
+    document.body.innerHTML =
+      '<fieldset disabled><legend><input id="legend"><fieldset disabled><input id="nested"></fieldset></legend><input id="inherited"><legend><input id="second-legend"></legend></fieldset><input id="own" disabled><div id="aria" aria-disabled="true"></div><div id="generic" disabled></div>';
+    const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
+    for (const id of ['inherited', 'nested', 'second-legend', 'own', 'aria']) {
+      expect(helpers.states(document.getElementById(id)!)).toContain('disabled');
+    }
+    for (const id of ['legend', 'generic']) {
+      expect(helpers.states(document.getElementById(id)!)).not.toContain('disabled');
+    }
+    document.querySelector('fieldset')!.disabled = false;
+    expect(helpers.states(document.getElementById('inherited')!)).not.toContain('disabled');
+    expect(helpers.states(document.getElementById('nested')!)).toContain('disabled');
+  });
+
+  test.each([
+    [null, false],
+    ['', false],
+    ['false', false],
+    ['true', true],
+    ['grammar', true],
+    ['spelling', true],
+    ['unknown-token', true],
+  ])('reports aria-invalid=%s consistently', (value, invalid) => {
+    const element = document.createElement('div');
+    if (value !== null) element.setAttribute('aria-invalid', String(value));
+    const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
+    expect(helpers.states(element).includes('invalid')).toBe(invalid);
+  });
+
+  test('reads native validity without dispatching invalid events', () => {
+    const input = document.createElement('input');
+    input.required = true;
+    const invalid = jest.fn();
+    input.addEventListener('invalid', invalid);
+    const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
+    expect(helpers.states(input)).toEqual(['required', 'invalid']);
+    input.value = 'filled';
+    expect(helpers.states(input)).toEqual(['required']);
+    input.value = '';
+    input.disabled = true;
+    expect(helpers.states(input)).toEqual(['disabled', 'required']);
+    expect(invalid).not.toHaveBeenCalled();
+  });
+
   test.each(['light', 'medium', 'conservative'] as const)('uses replay policy at %s level', (defaultMaskLevel) => {
     document.body.innerHTML =
       '<button>Save</button><input aria-label="Email" type="email" value="private@example.com">';

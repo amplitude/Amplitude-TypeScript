@@ -1,3 +1,4 @@
+import { createHelpers } from '../src/helpers';
 import { feedbackRecorder } from '../src/recorders/feedback';
 import { recorderContext } from './page-feedback-helpers';
 
@@ -108,8 +109,32 @@ describe('feedback recorder', () => {
     await mutations();
     expect(emit).toHaveBeenLastCalledWith(
       'dialog',
-      expect.objectContaining({ ...opened, name: null, state: 'closed', visible: false }),
+      expect.objectContaining({ ...opened, name: null, name_source: 'masked', state: 'closed', visible: false }),
     );
+    cleanup();
+  });
+
+  test('reports dialog name provenance and clears it safely on detachment', async () => {
+    const { context, emit } = recorderContext();
+    context.host.getPrivacy = () => ({ defaultMaskLevel: 'light' });
+    context.helpers = createHelpers(context.host);
+    const cleanup = feedbackRecorder.setup(context);
+    document.body.innerHTML =
+      '<dialog open aria-label="Confirm"></dialog><dialog open aria-label="PRIVATE" class="amp-mask"></dialog><dialog open></dialog>';
+    await mutations();
+    expect(emit.mock.calls.map(([, payload]) => (payload as { name_source: string }).name_source)).toEqual([
+      'aria-label',
+      'masked',
+      'unnamed',
+    ]);
+    const dialog = document.querySelector('dialog')!;
+    dialog.remove();
+    await mutations();
+    expect(emit).toHaveBeenLastCalledWith(
+      'dialog',
+      expect.objectContaining({ name: null, name_source: 'masked', state: 'closed' }),
+    );
+    expect(JSON.stringify(emit.mock.calls)).not.toContain('PRIVATE');
     cleanup();
   });
 
@@ -218,7 +243,7 @@ describe('feedback recorder', () => {
     await mutations();
     expect(emit).toHaveBeenLastCalledWith(
       'dialog',
-      expect.objectContaining({ ...previous, name: null, state: 'closed', visible: false }),
+      expect.objectContaining({ ...previous, name: null, name_source: 'masked', state: 'closed', visible: false }),
     );
     cleanup();
   });
