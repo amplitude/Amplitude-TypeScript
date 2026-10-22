@@ -83,6 +83,9 @@ import {
   getOrCreatePageViewId,
   getCurrentPageViewId,
   clearPageViewState,
+  AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET,
+  getSdkInitializationOffset,
+  clearSdkInitializationOffset,
 } from '../src/index';
 
 describe('index', () => {
@@ -187,6 +190,9 @@ describe('index', () => {
     expect(typeof getOrCreatePageViewId).toBe('function');
     expect(typeof getCurrentPageViewId).toBe('function');
     expect(typeof clearPageViewState).toBe('function');
+    expect(AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET).toBe('[Amplitude] SDK Initialization Offset');
+    expect(typeof getSdkInitializationOffset).toBe('function');
+    expect(typeof clearSdkInitializationOffset).toBe('function');
   });
 
   describe('EXCLUDE_INTERNAL_REFERRERS_CONDITIONS export', () => {

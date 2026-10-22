@@ -21,7 +21,7 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then echo 'required=true' >> "$GITHUB_OUTPUT"; f
 package_dir_tmp=$(mktemp -d)
 trap 'rm -rf "$package_dir_tmp"' EXIT
 
-# pnpm pack resolves workspace:* dependencies to the versions in this release.
+# Pack the independently versioned plugin with its fixed analytics-core range.
 pnpm --dir "$package_dir" pack --pack-destination "$package_dir_tmp"
 tarball=$(find "$package_dir_tmp" -maxdepth 1 -name '*.tgz' -print -quit)
 if [ -z "$tarball" ]; then
@@ -36,6 +36,16 @@ if [ ! -f "$publish_dir/package.json" ]; then
   echo 'Packed plugin manifest was not found.' >&2
   exit 1
 fi
+
+# private keeps Lerna and recursive publishing from releasing this package.
+# Only the staged artifact is made public; the repository manifest stays private.
+node - "$publish_dir/package.json" <<'NODE'
+const fs = require('node:fs');
+const file = process.argv[2];
+const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
+delete manifest.private;
+fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + '\n');
+NODE
 
 echo "Staging $package_name@$version from $publish_dir"
 stage_options=(--access public --provenance --no-git-checks)
