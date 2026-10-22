@@ -328,6 +328,7 @@
                 "kind": {
                   "type": "string"
                 },
+                "value": { "type": "string" },
                 "value_state": {
                   "enum": ["empty", "filled"]
                 },
@@ -379,6 +380,12 @@
                 "masked",
                 "option_label",
                 "v"
+              ],
+              "allOf": [
+                {
+                  "if": { "properties": { "masked": { "const": true } }, "required": ["masked"] },
+                  "then": { "properties": { "value": false } }
+                }
               ],
               "additionalProperties": false
             }

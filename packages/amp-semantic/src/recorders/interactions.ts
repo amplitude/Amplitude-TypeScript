@@ -1,4 +1,4 @@
-import { isMasked } from '@amplitude/session-replay-dom-privacy';
+import { getInputType, isMasked } from '@amplitude/session-replay-dom-privacy';
 import type { RecorderContext, SemanticPayloads, SemanticRecorder, TargetDescription } from '../types';
 
 const FIELD_SELECTOR =
@@ -28,7 +28,19 @@ function isFormControl(element: Element): element is FormControl {
 }
 
 function sensitiveField(element: Element): boolean {
-  return element.tagName === 'INPUT' && ['password', 'hidden'].includes((element as HTMLInputElement).type);
+  return (
+    element.tagName === 'INPUT' && ['password', 'hidden'].includes(getInputType(element as HTMLInputElement) ?? '')
+  );
+}
+
+/** Native scalar values only: selection state and editable DOM have separate contracts. */
+function fieldValue(element: Element, masked: boolean): { value?: string } {
+  if (masked) return {};
+  if (element.tagName === 'TEXTAREA') return { value: (element as HTMLTextAreaElement).value };
+  if (element.tagName !== 'INPUT') return {};
+  const input = element as HTMLInputElement;
+  if (['checkbox', 'radio', 'file', 'button', 'submit', 'reset', 'image'].includes(input.type)) return {};
+  return { value: input.value };
 }
 
 function validityOf(element: Element): { valid: boolean; validity: string[] } {
@@ -178,6 +190,7 @@ export const interactionsRecorder: SemanticRecorder = {
         ...(element.tagName === 'INPUT' && ['checkbox', 'radio'].includes((element as HTMLInputElement).type)
           ? { checked: (element as HTMLInputElement).checked }
           : {}),
+        ...fieldValue(element, masked),
         ...validityOf(element),
         masked,
         option_label: optionLabel(context, element, masked),

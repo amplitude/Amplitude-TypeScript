@@ -198,7 +198,7 @@ describe('interactions recorder', () => {
   });
 
   it.each(['light', 'medium', 'conservative'] as const)(
-    'never captures typed values at %s masking',
+    'captures only permitted native values at %s masking',
     (defaultMaskLevel) => {
       document.body.innerHTML =
         '<input type="email" aria-label="Email"><input type="password"><input type="hidden"><textarea></textarea><div contenteditable="true"></div>';
@@ -214,13 +214,16 @@ describe('interactions recorder', () => {
         dispatch(input, 'change');
       }
       const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-      textarea.value = 'TEXTAREA_SECRET';
+      textarea.value = 'Public textarea';
       dispatch(textarea, 'change');
       const editable = document.querySelector('[contenteditable]') as HTMLElement;
       editable.textContent = 'EDITABLE_SECRET';
       dispatch(editable, 'focusout');
       expect(h.emitted).toHaveLength(3);
       expect(JSON.stringify(h.emitted)).not.toMatch(/SECRET/);
+      expect((h.emitted[1].payload as SemanticPayloads['field']).value).toBe(
+        defaultMaskLevel === 'light' ? 'Public textarea' : undefined,
+      );
       expect(h.emitted[0].payload).toMatchObject({
         value_state: 'filled',
         valid: false,
@@ -229,6 +232,84 @@ describe('interactions recorder', () => {
       });
     },
   );
+
+  it('preserves long values and whitespace, deduplicates unchanged values, and reports clearing', () => {
+    document.body.innerHTML = '<input><textarea></textarea>';
+    const h = harness({ defaultMaskLevel: 'light' });
+    cleanup = h.start();
+    const input = document.querySelector('input')!;
+    input.value = '  public '.repeat(2000);
+    dispatch(input, 'change');
+    dispatch(input, 'focusout');
+    expect(h.emitted).toHaveLength(1);
+    expect(h.emitted[0].payload).toHaveProperty('value', input.value);
+    input.value = 'different';
+    dispatch(input, 'focusout');
+    expect(h.emitted[1].payload).toHaveProperty('value', 'different');
+    input.value = '';
+    dispatch(input, 'change');
+    expect(h.emitted[2].payload).toMatchObject({ value: '', value_state: 'empty' });
+    const textarea = document.querySelector('textarea')!;
+    textarea.value = 'line one\n  line two';
+    dispatch(textarea, 'change');
+    expect(h.emitted[3].payload).toHaveProperty('value', textarea.value);
+  });
+
+  it('honors ancestor mask/unmask precedence, selectors, URL rules and policy changes', () => {
+    document.body.innerHTML = '<div class="public"><input></div>';
+    const privacy: PrivacyConfig = { defaultMaskLevel: 'conservative', unmaskSelector: ['.public'] };
+    const h = harness(privacy);
+    cleanup = h.start();
+    const input = document.querySelector('input')!;
+    input.value = 'allowed';
+    dispatch(input, 'change');
+    expect(h.emitted[0].payload).toHaveProperty('value', 'allowed');
+    privacy.maskSelector = ['.public'];
+    dispatch(input, 'change');
+    expect(h.emitted[1].payload).not.toHaveProperty('value');
+    privacy.maskSelector = [];
+    privacy.unmaskSelector = [];
+    input.parentElement!.className = 'amp-unmask';
+    dispatch(input, 'change');
+    expect(h.emitted[2].payload).toHaveProperty('value', 'allowed');
+    input.className = 'amp-mask';
+    dispatch(input, 'change');
+    expect(h.emitted[3].payload).not.toHaveProperty('value');
+    input.className = '';
+    input.parentElement!.className = '';
+    privacy.urlMaskLevels = [{ match: '*', maskLevel: 'light' }];
+    dispatch(input, 'change');
+    expect(h.emitted[4].payload).toHaveProperty('value', 'allowed');
+    privacy.urlMaskLevels = [{ match: '*', maskLevel: 'medium' }];
+    dispatch(input, 'change');
+    expect(h.emitted[5].payload).not.toHaveProperty('value');
+  });
+
+  it('excludes passwords, revealed passwords, hidden fields, files and non-scalar values even when unmasked', () => {
+    document.body.innerHTML =
+      '<div class="amp-unmask"><input type="password"><input data-rr-is-password type="text"><input type="hidden"><input type="file"><input type="checkbox" value="SECRET"><input type="radio" value="SECRET"><select><option value="SECRET">Public</option></select><div contenteditable>SECRET</div><input class="amp-block"></div>';
+    const h = harness();
+    cleanup = h.start();
+    document.querySelectorAll('input,select,[contenteditable]').forEach((element) => dispatch(element, 'focusout'));
+    expect(h.emitted).toHaveLength(5);
+    h.emitted.forEach((entry) => expect(entry.payload).not.toHaveProperty('value'));
+    expect(JSON.stringify(h.emitted)).not.toContain('SECRET');
+  });
+
+  it('masks light-level sensitive inputs unless explicitly unmasked by policy', () => {
+    document.body.innerHTML = '<input type="email"><input type="tel"><input autocomplete="cc-number">';
+    const h = harness({ defaultMaskLevel: 'light' });
+    cleanup = h.start();
+    document.querySelectorAll('input').forEach((input) => {
+      input.value = 'sensitive';
+      dispatch(input, 'change');
+    });
+    h.emitted.forEach((entry) => expect(entry.payload).not.toHaveProperty('value'));
+    const input = document.querySelector('input')!;
+    input.className = 'amp-unmask';
+    dispatch(input, 'change');
+    expect(h.emitted[3].payload).toHaveProperty('value', 'sensitive');
+  });
 
   it('deduplicates unchanged field events and reports a changed state immediately', () => {
     document.body.innerHTML = '<input aria-label="Name">';
