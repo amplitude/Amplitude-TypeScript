@@ -22,7 +22,6 @@ export const SEMANTIC_CAPS: Record<SemanticFamily, number> = {
   notice: 300,
   dialog: 300,
   'amp-event': 500,
-  'click-outcome': 1000,
   context: 200,
   recording: 200,
   visibility: 200,

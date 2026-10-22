@@ -31,8 +31,7 @@ let noticeCount = 0;
 let truncated = false;
 const MAX_EVENTS = 10000;
 
-// The inspector lives in a blocked shadow tree. Updating its log must not become a
-// page mutation that changes the result of the click-outcome recorder under test.
+// Keep inspector controls and log updates outside recorded page content.
 const inspector = document.querySelector('#inspector').attachShadow({ mode: 'open' });
 inspector.innerHTML = `
   <style>

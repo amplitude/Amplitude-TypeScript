@@ -3,19 +3,16 @@ import { interactionsRecorder } from './recorders/interactions';
 import { pageRecorder } from './recorders/page';
 import { feedbackRecorder } from './recorders/feedback';
 import { lifecycleRecorder } from './recorders/lifecycle';
-import { clickOutcomeRecorder } from './recorders/click-outcome';
 import { keysRecorder } from './recorders/keys';
 import { resourceErrorRecorder } from './recorders/resource-error';
 import { analyticsRecorder } from './recorders/analytics';
 import type { SemanticCaptureConfig, SemanticHost, SemanticRecorder } from './types';
-export { isDeadClickChange, DEAD_CLICK_MUTATION_OBSERVER_OPTIONS } from './activity';
 
 export {
   interactionsRecorder,
   pageRecorder,
   feedbackRecorder,
   lifecycleRecorder,
-  clickOutcomeRecorder,
   analyticsRecorder,
   keysRecorder,
   resourceErrorRecorder,
@@ -25,7 +22,6 @@ export const defaultRecorders: readonly SemanticRecorder[] = [
   pageRecorder,
   feedbackRecorder,
   lifecycleRecorder,
-  clickOutcomeRecorder,
   analyticsRecorder,
   keysRecorder,
   resourceErrorRecorder,

@@ -595,9 +595,6 @@ importers:
 
   packages/plugin-autocapture-browser:
     dependencies:
-      '@amplitude/amp-semantic':
-        specifier: workspace:*
-        version: link:../amp-semantic
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core

@@ -225,11 +225,11 @@ test('delivers real rrweb envelopes through replay transport with matching click
   expect(await page.evaluate(() => window.semanticHarness.batches.some((batch) => batch.compressed))).toBe(true);
 });
 
-test('inspector updates do not turn a no-change click into a DOM change', async ({ page }) => {
+test('captures clicks without requiring a page change', async ({ page }) => {
   await open(page);
   await waitFor(page, 'page');
   await page.locator('#no-change').click();
-  await waitFor(page, 'click-outcome', 'no_change', true);
+  await waitFor(page, 'click', 'key', 'no-change');
   await assertValid(page);
 });
 

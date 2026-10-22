@@ -17,7 +17,7 @@ sessionReplay.init(API_KEY, {
   semanticCapture: {
     enabled: true,
     sampleRate: 1,
-    families: { 'click-outcome': false },
+    families: { keys: false },
   },
 });
 ```
@@ -105,7 +105,7 @@ Recorder processing timestamps are supplied to generic hosts. rrweb's `addCustom
 
 All captured text uses the replay privacy policy, including referenced labels and nested text sources. Blocked elements are skipped, masked text is `null`, and typed values and browser validation messages are never included. Text traversal is bounded and fails closed when its budget is exceeded. Unsupported URL schemes are discarded; HTTP(S) paths and hash routes are templated without queries or secondary fragments. Detached dialog names are cleared because their former masking ancestry cannot safely be reconstructed.
 
-Recorders include context, clicks, keys, resource load failures, page identity/checks, field state, form submissions, notices, dialogs, recording state, visibility, lifecycle, click outcomes, and an accepted-analytics-event mirror. Click outcomes reuse autocapture's mutation/navigation definition and observer categories. They are suppressed when dead/error frustration capture is available.
+Recorders include context, clicks, keys, resource load failures, page identity/checks, field state, form submissions, notices, dialogs, recording state, visibility, lifecycle, and an accepted-analytics-event mirror.
 
 ## Work limits
 
@@ -130,16 +130,12 @@ is cached. Navigation, snapshots, disconnected candidates and hidden candidates 
 New higher-priority headings may take up to 250 ms to be selected, and over-budget discovery can omit
 a heading. These budgets are checked between DOM operations, not hard deadlines for browser calls.
 
-The fallback click-outcome observer disconnects after the first mutation changes all pending windows;
-a subsequent click starts a fresh observer. Timers and notice/dialog/navigation correlation continue
-until the original outcome windows finish. The SDK still has separate autocapture/replay observers;
-this change does not introduce a shared observer across those packages.
+The SDK still has separate autocapture/replay observers; this package does not introduce a shared observer across those packages.
 
 ## Remaining integration and release work
 
 - The analytics mirror requires a host signal after analytics enrichment/filtering accepts an event for delivery. The existing Session Replay plugin `execute()` runs too early; SDK forwarding is intentionally not wired there.
 - Coordinated cross-origin child iframe capture bypasses the ordinary snapshot callback and needs an additional rrweb lifecycle bridge. Semantic recorders currently operate on their host document, not a shadow-root/iframe forest.
-- The click-outcome wire payload cannot distinguish auxiliary clicks; modifier clicks and `_blank` links are excluded, but auxiliary eligibility is not yet identical to autocapture.
 - Within-frame dialog open/close transitions can coalesce in the observer batch.
 - The inherited 100% unit-coverage threshold is retained and is not yet met. Do not treat passing tests with coverage disabled as a passing release gate.
 - The real-browser smoke fixture checks shapes, privacy, teardown, reconfiguration, and click dispatch overhead. It does not establish the ≤5% replay-byte budget or exact rrweb timestamp/ID alignment on production journeys. Actionable-ancestor click IDs can differ from rrweb's raw target IDs; that spec tension needs explicit resolution before release.
@@ -160,7 +156,7 @@ This builds Session Replay and its workspace dependencies, then opens `http://12
 
 Interact with the checkout form, dialog, notice, navigation, and privacy fixtures. The inspector decodes actual Session Replay transport batches, validates every `amp-semantic/*` rrweb envelope against `schema.json`, and displays its payload. Use **Flush batches** to inspect the current recording immediately, filter by family, or **Export semantic JSON** to save the captured envelopes.
 
-Controls let you change replay masking, semantic sampling, family switches, and worker transport. **Stop recording** and **Resume recording** exercise the public SDK lifecycle. Disabled or sampled-out semantic capture should leave ordinary replay events flowing. The inspector lives in a blocked shadow tree so its own log updates do not change click-outcome observations.
+Controls let you change replay masking, semantic sampling, family switches, and worker transport. **Stop recording** and **Resume recording** exercise the public SDK lifecycle. Disabled or sampled-out semantic capture should leave ordinary replay events flowing. The inspector lives in a blocked shadow tree to keep its own controls and log updates outside recorded content.
 
 No real API key is needed. Custom config and transport callbacks handle data locally in memory; the fixture does not upload to Amplitude. Reloading clears its log, which retains up to 10,000 replay events. The analytics mirror is not connected to this SDK path yet.
 
@@ -172,7 +168,7 @@ pnpm test:semantic
 
 This builds the dependencies and runs the package's Chromium Playwright suite, starting the local Vite server automatically. If Chromium is not installed, run `pnpm exec playwright install chromium` first. After a build, use `pnpm --filter @amplitude/amp-semantic test:playwright --ui` for interactive debugging.
 
-The suite covers real SDK → rrweb → serialized transport delivery, schema validation, direct-button click node ID matching, fields/submits, notices/dialogs/navigation, masking, disabled capture, sampling, the remote kill switch, individual family switches, stop/resume, JSON export, and worker transport. It also checks that inspector rendering does not falsely classify a no-change click. These fixture checks do not establish production byte budgets or exact timestamp alignment.
+The suite covers real SDK → rrweb → serialized transport delivery, schema validation, direct-button click node ID matching, fields/submits, notices/dialogs/navigation, masking, disabled capture, sampling, the remote kill switch, individual family switches, stop/resume, JSON export, and worker transport. It also checks ordinary clicks without a page change. These fixture checks do not establish production byte budgets or exact timestamp alignment.
 
 For an isolated Chromium recorder smoke check, from the repository root:
 
