@@ -124,19 +124,6 @@ export interface SemanticPayloads {
     id: number | null;
     props: Record<string, string | number | null>;
   };
-  'click-outcome': {
-    click_ts: number;
-    id: number | null;
-    window_ms: number;
-    navigated: boolean;
-    changed: boolean;
-    opened: { role: string; name: string | null }[];
-    closed: { role: string; name: string | null }[];
-    error_text: string | null;
-    notice_text: string | null;
-    no_change: boolean;
-    first_change_ms: number | null;
-  };
 }
 export type SemanticFamily = keyof SemanticPayloads;
 export type SemanticEvent = {

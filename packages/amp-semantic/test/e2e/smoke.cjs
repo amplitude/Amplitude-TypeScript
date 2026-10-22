@@ -59,9 +59,9 @@ const schema = require('../../schema.json');
       });
       document.querySelector('[role="status"]').textContent = 'Saved';
       document.querySelector('dialog').showModal();
-      await new Promise((resolve) => setTimeout(resolve, 1600));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       // Exercise reconfiguration after the first snapshot, with no new snapshot.
-      capture.updateConfig({ enabled: true, families: { 'click-outcome': false } });
+      capture.updateConfig({ enabled: true, families: { keys: false } });
       capture.notify('navigation', 'push');
       await new Promise((resolve) => setTimeout(resolve, 50));
       const timings = [];
@@ -96,18 +96,7 @@ const schema = require('../../schema.json');
     }
     assert(!JSON.stringify(result.events).includes('typed-secret'), 'Typed values leaked');
     assert(result.unchanged, 'Events emitted after teardown or while disabled');
-    for (const name of [
-      'context',
-      'recording',
-      'click',
-      'page',
-      'field',
-      'submit',
-      'notice',
-      'dialog',
-      'click-outcome',
-      'amp-event',
-    ])
+    for (const name of ['context', 'recording', 'click', 'page', 'field', 'submit', 'notice', 'dialog', 'amp-event'])
       assert(
         result.events.some((event) => event.name === name),
         `Missing ${name}`,

@@ -261,29 +261,6 @@
   },
   {
     "type": 5,
-    "timestamp": 1791112928016,
-    "data": {
-      "tag": "amp-semantic/click-outcome",
-      "payload": {
-        "v": 1,
-        "click_ts": 1791112926514,
-        "id": 1411,
-        "window_ms": 1500,
-        "navigated": false,
-        "changed": false,
-        "opened": [],
-        "closed": [],
-        "error_text": null,
-        "notice_text": null,
-        "no_change": true,
-        "first_change_ms": null,
-        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
-        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
-      }
-    }
-  },
-  {
-    "type": 5,
     "timestamp": 1700000000000,
     "data": {
       "tag": "amp-semantic/keys",

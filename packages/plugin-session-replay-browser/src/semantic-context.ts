@@ -22,7 +22,6 @@ export function semanticAutocaptureFamilies(autocapture: BrowserConfig['autocapt
     if (frustration === true) return true;
     if (!frustration || typeof frustration !== 'object') return false;
     // Dead clicks default on. Error clicks are currently opt-in in frustration-plugin.
-    // Rage/thrashed-cursor-only capture must not suppress the click-outcome fallback.
     return (frustration.deadClicks !== false && frustration.deadClicks !== null) || Boolean(frustration.errorClicks);
   });
 }
