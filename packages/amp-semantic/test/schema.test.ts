@@ -20,6 +20,26 @@ test('schema rejects raw field values and unknown versions', () => {
   expect(validate({ ...field, data: { ...field.data, payload: { ...field.data.payload, v: 2 } } })).toBe(false);
 });
 
+test('schema accepts additive interaction states and optional boolean checked', () => {
+  const click = examples.find((event) => event.data.tag === 'amp-semantic/click');
+  const field = examples.find((event) => event.data.tag === 'amp-semantic/field');
+  if (!click || !field) throw new Error('interaction fixtures missing');
+  expect(
+    validate({
+      ...click,
+      data: { ...click.data, payload: { ...click.data.payload, states: ['mixed', 'busy', 'open'] } },
+    }),
+  ).toBe(true);
+  for (const checked of [true, false]) {
+    expect(
+      validate({ ...field, data: { ...field.data, payload: { ...field.data.payload, kind: 'checkbox', checked } } }),
+    ).toBe(true);
+  }
+  for (const checked of ['false', 0, null]) {
+    expect(validate({ ...field, data: { ...field.data, payload: { ...field.data.payload, checked } } })).toBe(false);
+  }
+});
+
 test('context accepts older v1 payloads while validating new browser context fields', () => {
   const context = examples.find((event) => event.data.tag === 'amp-semantic/context');
   if (!context) throw new Error('context fixture missing');

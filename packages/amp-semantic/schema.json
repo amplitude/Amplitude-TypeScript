@@ -188,6 +188,9 @@
                       "required",
                       "invalid",
                       "checked",
+                      "mixed",
+                      "busy",
+                      "open",
                       "expanded",
                       "collapsed",
                       "selected",
@@ -390,6 +393,9 @@
                 },
                 "value_state": {
                   "enum": ["empty", "filled"]
+                },
+                "checked": {
+                  "type": "boolean"
                 },
                 "valid": {
                   "type": "boolean"

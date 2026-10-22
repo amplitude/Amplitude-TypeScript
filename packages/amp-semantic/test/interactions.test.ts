@@ -221,6 +221,35 @@ describe('interactions recorder', () => {
     expect(h.emitted).toHaveLength(3);
   });
 
+  it.each(['checkbox', 'radio'])('captures both %s states even when labels are masked', (type) => {
+    document.body.innerHTML = `<input type="${type}" value="PRIVATE_VALUE" aria-label="PRIVATE_LABEL">`;
+    const h = harness({ defaultMaskLevel: 'conservative' });
+    cleanup = h.start();
+    const input = document.querySelector('input') as HTMLInputElement;
+    dispatch(input, 'change');
+    input.checked = true;
+    dispatch(input, 'change');
+    dispatch(input, 'focusout');
+    input.checked = false;
+    dispatch(input, 'change');
+    expect(h.emitted.map((entry) => (entry.payload as SemanticPayloads['field']).checked)).toEqual([
+      false,
+      true,
+      false,
+    ]);
+    expect(JSON.stringify(h.emitted)).not.toContain('PRIVATE');
+  });
+
+  it('omits checked from non-checkable fields and skips blocked checkboxes', () => {
+    document.body.innerHTML =
+      '<input><select><option>A</option></select><textarea></textarea><div class="amp-block"><input type="checkbox"></div>';
+    const h = harness();
+    cleanup = h.start();
+    document.querySelectorAll('input,select,textarea').forEach((element) => dispatch(element, 'change'));
+    expect(h.emitted).toHaveLength(3);
+    h.emitted.forEach((entry) => expect(entry.payload).not.toHaveProperty('checked'));
+  });
+
   it('keeps distinct unknown nodes separate when deduplicating', () => {
     document.body.innerHTML = '<input><input>';
     const h = harness();

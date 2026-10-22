@@ -86,6 +86,36 @@ test.beforeEach(async ({ context }) => {
   });
 });
 
+test('captures native check transitions and additive click states through replay', async ({ page }) => {
+  await open(page);
+  await page.locator('#updates').check();
+  await page.locator('#updates').uncheck();
+  await page.locator('#delivery-email').check();
+  await page.locator('#delivery-browser').check();
+  await page.evaluate(() => {
+    const button = document.createElement('button');
+    button.id = 'mixed-busy';
+    button.textContent = 'Selection';
+    button.setAttribute('aria-pressed', 'mixed');
+    button.setAttribute('aria-busy', 'true');
+    document.body.append(button);
+  });
+  await page.locator('#mixed-busy').click();
+  await waitFor(page, 'click', 'key', 'mixed-busy');
+  const events = await assertValid(page);
+  const fields = events.filter((event) => event.data.tag === 'amp-semantic/field');
+  expect(
+    fields.filter((event) => event.data.payload?.kind === 'checkbox').map((event) => event.data.payload?.checked),
+  ).toEqual([true, false]);
+  expect(
+    fields.filter((event) => event.data.payload?.kind === 'radio').map((event) => event.data.payload?.checked),
+  ).toEqual([true, true]);
+  expect(
+    events.find((event) => event.data.tag === 'amp-semantic/click' && event.data.payload?.key === 'mixed-busy')?.data
+      .payload?.states,
+  ).toEqual(['mixed', 'busy']);
+});
+
 test('delivers real rrweb envelopes through replay transport with matching click node IDs', async ({ page }) => {
   await open(page);
   await waitFor(page, 'context');
