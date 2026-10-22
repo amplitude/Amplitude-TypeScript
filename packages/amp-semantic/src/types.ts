@@ -189,6 +189,8 @@ export interface RecorderContext {
   helpers: SemanticHelpers;
   now: () => number;
   enabled: (family: SemanticFamily) => boolean;
+  /** Check session capacity without counting a dropped event. */
+  hasCapacity: (family: SemanticFamily) => boolean;
   /** Check before expensive payload work. A rejected candidate increments the dropped count. */
   canEmit: (family: SemanticFamily) => boolean;
   emit: <K extends SemanticFamily>(family: K, payload: SemanticPayloads[K], timestamp?: number) => boolean;

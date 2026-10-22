@@ -68,6 +68,8 @@ describe('capture runtime', () => {
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
     for (let i = 0; i < 200; i++) context.emit('visibility', { state: 'visible', trigger: 'visibilitychange' });
+    for (let i = 0; i < 10; i++) expect(context.hasCapacity('visibility')).toBe(false);
+    expect(context.dropped()).toEqual({});
     const payload = jest.fn(() => ({ state: 'hidden' as const, trigger: 'visibilitychange' as const }));
     if (context.canEmit('visibility')) context.emit('visibility', payload());
     expect(payload).not.toHaveBeenCalled();

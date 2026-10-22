@@ -116,15 +116,30 @@ Field events and key targets include the same event-time `states` as clicks, inc
 Recorders call `context.canEmit(family)` before expensive payload construction when possible.
 A cap-rejected candidate increments the dropped count without resolving its text, selector, or
 layout; `emit()` still enforces the cap independently. This is not a reservation. Recorders retain
-cheap transition bookkeeping and shared subscriptions so another family is not silently disabled.
+shared subscriptions while another family still has capacity. `hasCapacity()` checks capacity without
+incrementing dropped counts; feedback disconnects once both families are exhausted, including on
+same-session resume, and reattaches after a session reset.
 Field candidates rejected before deduplication can contribute to the dropped count.
 
-Notice/dialog mutation callbacks enqueue affected roots. Overlapping subtree discovery is deduplicated
-and processed in batches of at most 1,000 visited elements and a cooperative 4 ms budget; payload
-processing is limited to 50 candidates per batch and shares that time budget. Blocked subtrees are
-skipped. Large bursts may span multiple animation frames, so these are observation-time facts, not
-precise timestamps of each DOM mutation. One initial dialog selector query establishes the baseline;
-it no longer resolves names or reads layout for every existing dialog.
+Notice/dialog mutation intake is capped at 1,000 record/node visits and a cooperative 4 ms per
+callback. Discovery retains at most 128 roots plus one active walker. Delivery retains at most
+256 notice candidates (ready plus trailing timers), 256 dialog candidates, and 256 known open
+dialogs. Overflow drops excess work and reports a payload-free diagnostic through `host.onError`,
+once per limit per recorder setup; these diagnostics are not exact dropped-event counts.
+
+Each frame gives ready events the first 2 ms, alternating notices and dialogs, before discovery.
+Discovery visits at most 1,000 elements; delivery processes at most 50 candidates. Both share a
+cooperative 4 ms frame budget. Trailing notice timers only enqueue work for that scheduler.
+Duplicate notice discovery within a mutation batch is suppressed. Blocked subtrees are skipped;
+disconnected notice candidates/timers and discovery roots are discarded. Removal checks the bounded
+set of known open dialogs rather than traversing detached subtrees.
+
+Large bursts can span frames or overflow the queues. State and timestamps still reflect processing
+time: short-lived notices and open/close transitions may coalesce or be omitted. One synchronous
+startup dialog selector query remains to establish the baseline, without name/layout extraction;
+its traversal is not covered by the frame budget. CSS-only visibility and full-page visibility
+tracking remain out of scope. These are cooperative limits, not hard deadlines for individual DOM
+or host callbacks.
 
 Heading discovery traverses at most 2,000 elements with a cooperative 2 ms budget and reuses only the
 DOM candidate for up to 250 ms. Text, masking and visibility are re-read when emitted; no private text
