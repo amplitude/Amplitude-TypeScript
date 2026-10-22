@@ -1,4 +1,5 @@
 import { createSemanticCapture, RecordingSignal, SemanticCaptureConfig, SemanticHost } from '@amplitude/amp-semantic';
+import { EventType, IncrementalSource, eventWithTime } from '@amplitude/rrweb-types';
 import { subscribeToUrlChanges } from './plugins/url-tracking-plugin';
 
 /** Bridges recorder startup ordering and the shared URL subscription into semantic capture. */
@@ -8,6 +9,7 @@ export class ReplaySemanticAdapter {
   private ready = false;
   private firstSnapshot = false;
   private pendingSnapshots = 0;
+  private pendingDom: eventWithTime[] = [];
   private navigationCleanup?: () => void;
   private startSignal: RecordingSignal = { state: 'start', reason: 'init' };
   private resumeReason: RecordingSignal['reason'] = 'focus';
@@ -31,6 +33,7 @@ export class ReplaySemanticAdapter {
     this.ready = false;
     this.firstSnapshot = false;
     this.pendingSnapshots = 0;
+    this.pendingDom = [];
   }
 
   /** rrweb may synchronously emit its initial snapshot before returning its cancellation callback. */
@@ -44,9 +47,32 @@ export class ReplaySemanticAdapter {
         onNavigation: (reason) => this.capture.notify('navigation', reason),
       });
     }
+    const dom = this.pendingDom;
+    this.pendingDom = [];
+    for (const event of dom) this.event(event);
     const pending = this.pendingSnapshots;
     this.pendingSnapshots = 0;
     for (let i = 0; i < pending; i++) this.snapshot();
+  }
+
+  /** Called only after the underlying replay event is accepted for delivery. */
+  event(event: eventWithTime): void {
+    if (!this.config.enabled) return;
+    const snapshot = event.type === EventType.FullSnapshot;
+    const mutation = event.type === EventType.IncrementalSnapshot && event.data.source === IncrementalSource.Mutation;
+    if (!snapshot && !mutation) return;
+    if (!this.ready) {
+      // Startup is synchronous; retain a bounded number of recorder events until start().
+      if (this.pendingDom.length < 128) this.pendingDom.push(event);
+      return;
+    }
+    if (!this.capture.isActive()) return;
+    if (event.type === EventType.FullSnapshot) {
+      this.capture.notify('dom', { type: 'snapshot', node: event.data.node });
+      this.snapshot();
+    } else if (event.type === EventType.IncrementalSnapshot && event.data.source === IncrementalSource.Mutation) {
+      this.capture.notify('dom', { ...event.data, type: 'mutation' });
+    }
   }
 
   click(event: MouseEvent): void {
@@ -77,6 +103,7 @@ export class ReplaySemanticAdapter {
     this.navigationCleanup?.();
     this.navigationCleanup = undefined;
     this.capture.stop();
+    this.pendingDom = [];
     this.ready = false;
     this.pendingSnapshots = 0;
   }

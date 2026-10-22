@@ -674,3 +674,41 @@ test('delivers notices and dialog transitions while large subtrees keep changing
     .toBe(true);
   await assertValid(page);
 });
+
+test('tracks an existing dialog moved under a hidden ancestor through rrweb mutations', async ({ page }) => {
+  await open(page, { mask: 'light' });
+  await page.evaluate(() => {
+    const wrapper = document.createElement('section');
+    wrapper.id = 'move-dialog-wrapper';
+    wrapper.innerHTML = '<div role="dialog" aria-label="Moved dialog"></div>';
+    document.body.appendChild(wrapper);
+    const hidden = document.createElement('aside');
+    hidden.id = 'move-dialog-hidden';
+    hidden.hidden = true;
+    document.body.appendChild(hidden);
+  });
+  await waitFor(page, 'dialog', 'name', 'Moved dialog');
+  const opened = (await assertValid(page)).find(
+    (event) => event.data.tag === 'amp-semantic/dialog' && event.data.payload?.name === 'Moved dialog',
+  );
+  expect(opened?.data.payload?.state).toBe('open');
+  await page.evaluate(() => {
+    document.getElementById('move-dialog-hidden')!.appendChild(document.getElementById('move-dialog-wrapper')!);
+  });
+  await expect
+    .poll(async () => {
+      await page.evaluate(() => window.semanticHarness.flush());
+      return page.evaluate(
+        (id) =>
+          window.semanticHarness.semanticEvents.some(
+            (event) =>
+              event.data.tag === 'amp-semantic/dialog' &&
+              event.data.payload?.id === id &&
+              event.data.payload?.state === 'closed',
+          ),
+        opened?.data.payload?.id,
+      );
+    })
+    .toBe(true);
+  await assertValid(page);
+});

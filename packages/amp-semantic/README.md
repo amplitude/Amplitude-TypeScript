@@ -6,7 +6,7 @@ Experimental browser semantic capture for Amplitude Session Replay. The package 
 
 `amp-semantic` depends on the shared DOM privacy package, not rrweb, the analytics client, or Session Replay. A `SemanticHost` supplies the DOM, replay node IDs, current privacy/URL configuration, analytics capability information, and a synchronous event sink. The Session Replay adapter translates these events into `amp-semantic/<family>` rrweb custom events.
 
-Capture is disabled by default. The runtime owns sampling, per-session caps, family switches, subscriptions, error containment, and teardown. Each recorder owns its DOM listeners, observers, and timers. Stopping capture preserves session caps and the sampling decision; `resetSession()` starts a new accounting period. Hosts should forward `snapshot` only after the corresponding full snapshot has entered the recording stream.
+Capture is disabled by default. The runtime owns sampling, per-session caps, family switches, subscriptions, error containment, and teardown. Each recorder owns its signal subscriptions, DOM listeners, and timers. Stopping capture preserves session caps and the sampling decision; `resetSession()` starts a new accounting period. Hosts should forward `snapshot` only after the corresponding full snapshot has entered the recording stream.
 
 ## Session Replay integration
 
@@ -25,6 +25,13 @@ sessionReplay.init(API_KEY, {
 The analytics Session Replay plugin accepts the same `semanticCapture` option. The remote `sr_semantic_config` object can override enabled, sample rate, and individual families. The standalone capture runtime also supports immediate `updateConfig()` calls; SDK remote settings follow the existing SDK config-refresh/restart lifecycle.
 
 The adapter emits synchronously through `recordFunction.addCustomEvent`, avoiding debug metadata and asynchronous size lookups. It queues initial snapshot notifications until rrweb returns its cancellation callback and emits terminal recording state before cancellation.
+
+Notice/dialog capture consumes the accepted rrweb full snapshots and mutation batches through
+`notify('dom', change)`, resolving relevant elements with `host.getNode(id)`. It does not install a
+MutationObserver or perform an initial dialog selector query. Standalone hosts must provide both
+this signal and resolver for these two families; there is no independent observation fallback.
+Full snapshots seed existing dialogs silently, while later changes produce the same wire payloads.
+The adapter queues startup input until capture starts and ignores custom events to prevent feedback.
 
 ## Semantic identity and visibility
 
@@ -121,25 +128,26 @@ incrementing dropped counts; feedback disconnects once both families are exhaust
 same-session resume, and reattaches after a session reset.
 Field candidates rejected before deduplication can contribute to the dropped count.
 
-Notice/dialog mutation intake is capped at 1,000 record/node visits and a cooperative 4 ms per
-callback. Discovery retains at most 128 roots plus one active walker. Delivery retains at most
-256 notice candidates (ready plus trailing timers), 256 dialog candidates, and 256 known open
-dialogs. Overflow drops excess work and reports a payload-free diagnostic through `host.onError`,
-once per limit per recorder setup; these diagnostics are not exact dropped-event counts.
+Notice/dialog processing retains at most 128 replay batches, 256 notice candidates (ready plus
+trailing timers), 256 dialog candidates, and 256 tracked dialogs (including closed/hidden dialogs).
+Serialized trees are traversed incrementally without building a second tree or walking live DOM
+subtrees. Ordinary serialized elements need no live-node lookup; repeated parent lookups in a
+mutation batch are deduplicated with a bounded set. References to queued serialized batches retain
+their source data until consumed. Overflow drops excess work and reports a payload-free diagnostic
+through `host.onError`, once per limit per recorder setup; these are not exact dropped-event counts.
 
-Each frame gives ready events the first 2 ms, alternating notices and dialogs, before discovery.
-Discovery visits at most 1,000 elements; delivery processes at most 50 candidates. Both share a
-cooperative 4 ms frame budget. Trailing notice timers only enqueue work for that scheduler.
-Duplicate notice discovery within a mutation batch is suppressed. Blocked subtrees are skipped;
-disconnected notice candidates/timers and discovery roots are discarded. Removal checks the bounded
-set of known open dialogs rather than traversing detached subtrees.
+Each frame gives ready events the first 2 ms, alternating notices and dialogs, before inspecting
+recorded changes. It processes at most 1,000 work items and 50 payload candidates within a cooperative
+4 ms frame budget. Trailing notice timers only enqueue work. Detached notice work is discarded;
+removal checks the bounded dialog registry without traversing removed subtrees. Privacy helpers
+still recheck live text, names and blocking before emission; detached dialog names stay null.
 
-Large bursts can span frames or overflow the queues. State and timestamps still reflect processing
-time: short-lived notices and open/close transitions may coalesce or be omitted. One synchronous
-startup dialog selector query remains to establish the baseline, without name/layout extraction;
-its traversal is not covered by the frame budget. CSS-only visibility and full-page visibility
-tracking remain out of scope. These are cooperative limits, not hard deadlines for individual DOM
-or host callbacks.
+State and timestamps reflect processing time. rrweb batching and deferred enrichment can coalesce
+or omit transient states, including nodes removed before discovery. Masked/blocked or otherwise
+unrecorded DOM changes cannot be recovered from this input. Snapshot baseline processing is also
+incremental. CSS-only visibility and full-page visibility tracking remain out of scope. These are
+cooperative limits, not hard deadlines for individual DOM or host callbacks. No production CPU
+improvement is claimed without a representative browser benchmark.
 
 Heading discovery traverses at most 2,000 elements with a cooperative 2 ms budget and reuses only the
 DOM candidate for up to 250 ms. Text, masking and visibility are re-read when emitted; no private text

@@ -1,4 +1,5 @@
 import { createSemanticCapture, SemanticHost } from '@amplitude/amp-semantic';
+import { eventWithTime, EventType, IncrementalSource } from '@amplitude/rrweb-types';
 import { ReplaySemanticAdapter } from '../src/semantic';
 import { subscribeToUrlChanges } from '../src/plugins/url-tracking-plugin';
 
@@ -30,6 +31,61 @@ describe('ReplaySemanticAdapter', () => {
     capture.isActive.mockReturnValue(true);
     jest.mocked(createSemanticCapture).mockReturnValue(capture);
     jest.mocked(subscribeToUrlChanges).mockReturnValue(unsubscribe);
+  });
+
+  const snapshot = {
+    type: EventType.FullSnapshot,
+    timestamp: 1,
+    data: { node: { type: 0, id: 1, childNodes: [] }, initialOffset: { top: 0, left: 0 } },
+  } as Extract<eventWithTime, { type: EventType.FullSnapshot }>;
+  const mutation = {
+    type: EventType.IncrementalSnapshot,
+    timestamp: 2,
+    data: {
+      source: IncrementalSource.Mutation,
+      adds: [],
+      removes: [],
+      attributes: [],
+      texts: [{ id: 2, value: 'Updated' }],
+    },
+  } as Extract<eventWithTime, { type: EventType.IncrementalSnapshot }>;
+
+  test('forwards accepted DOM input in order after startup and ignores semantic custom events', () => {
+    const adapter = new ReplaySemanticAdapter(host);
+    adapter.prepare({ enabled: true }, 1);
+    adapter.event(snapshot);
+    adapter.event(mutation);
+    expect(capture.notify).not.toHaveBeenCalled();
+    adapter.recordingReady();
+    expect(capture.notify.mock.calls).toEqual([
+      ['dom', { type: 'snapshot', node: (snapshot.data as { node: unknown }).node }],
+      ['recording', { state: 'start', reason: 'init' }],
+      ['snapshot', undefined],
+      ['dom', { ...mutation.data, type: 'mutation' }],
+    ]);
+    capture.notify.mockClear();
+    adapter.event({ type: EventType.Custom, timestamp: 3, data: { tag: 'amp-semantic/notice', payload: {} } });
+    expect(capture.notify).not.toHaveBeenCalled();
+    adapter.event(mutation);
+    expect(capture.notify).toHaveBeenCalledTimes(1);
+  });
+
+  test('drops startup DOM input on stop/reprepare, disable, and sample-out', () => {
+    const adapter = new ReplaySemanticAdapter(host);
+    adapter.prepare({ enabled: true }, 1);
+    adapter.event(snapshot);
+    adapter.stop();
+    adapter.prepare({ enabled: true }, 2);
+    adapter.recordingReady();
+    expect(capture.notify).not.toHaveBeenCalled();
+    capture.isActive.mockReturnValue(false);
+    adapter.event(mutation);
+    expect(capture.notify).not.toHaveBeenCalled();
+    adapter.stop();
+    adapter.prepare({ enabled: false }, 2);
+    adapter.event(snapshot);
+    adapter.recordingReady();
+    expect(capture.notify).not.toHaveBeenCalled();
   });
 
   test('forwards native clicks only while the recorder is ready', () => {

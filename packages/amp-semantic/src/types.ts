@@ -134,7 +134,25 @@ export interface AcceptedAnalyticsEvent {
   properties: Record<string, unknown>;
   element?: Element;
 }
+/** Structural replay input; no dependency on a particular recorder implementation. */
+export interface SemanticDomNode {
+  id: number;
+  type: number;
+  tagName?: string;
+  attributes?: Record<string, unknown>;
+  childNodes?: SemanticDomNode[];
+}
+export type SemanticDomChange =
+  | { type: 'snapshot'; node: SemanticDomNode }
+  | {
+      type: 'mutation';
+      adds: { parentId: number; node: SemanticDomNode }[];
+      removes: { parentId: number; id: number }[];
+      texts: { id: number }[];
+      attributes: { id: number; attributes: Record<string, unknown> }[];
+    };
 export interface HostSignals {
+  dom: SemanticDomChange;
   snapshot: undefined;
   navigation: NavigationReason;
   recording: RecordingSignal;
@@ -149,6 +167,8 @@ export interface SemanticHost {
   window: Window;
   emit: (event: SemanticEvent) => void;
   getNodeId: (node: Node) => number;
+  /** Resolve recorded nodes for notice/dialog enrichment. Requires notify('dom', ...). */
+  getNode?: (id: number) => Node | null;
   getPrivacy: () => PrivacyConfig;
   getUrl: () => string;
   sdk: string;

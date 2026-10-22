@@ -1,9 +1,9 @@
 import { createCapture, SEMANTIC_CAPS } from '../src/capture';
 import { feedbackRecorder } from '../src/recorders/feedback';
 import { recorderContext } from './page-feedback-helpers';
+import { replaySource } from './replay-feedback-helpers';
 
-/** Deterministic work costs exercise deadlines instead of benchmarking jsdom. */
-describe('feedback under mutation pressure', () => {
+describe('replay feedback budgets', () => {
   let clock: number;
   let frames: Map<number, FrameRequestCallback>;
   let nextFrame: number;
@@ -39,243 +39,184 @@ describe('feedback under mutation pressure', () => {
     jest.restoreAllMocks();
   });
 
-  test('delivers ready events during continuous discovery that exhausts the time budget', async () => {
-    document.body.innerHTML = '<div role="status">Ready</div><dialog></dialog>';
-    const { context, emit } = recorderContext();
-    const cleanup = feedbackRecorder.setup(context);
-    const blocked = context.helpers.blocked;
-    context.helpers.blocked = (element) => {
-      clock += 0.25;
-      return blocked(element);
-    };
-    const dialog = document.querySelector('dialog')!;
-    for (let i = 0; i < 12; i++) {
-      const tree = document.createElement('section');
-      tree.innerHTML = '<span></span>'.repeat(300);
-      document.body.appendChild(tree);
-      dialog.toggleAttribute('open', i % 2 === 0);
-      document.querySelector('[role="status"]')!.textContent = `Update ${i}`;
-      await Promise.resolve();
-      const before = clock;
-      step();
-      expect(clock - before).toBeLessThanOrEqual(4.5);
-      expect(emit).toHaveBeenCalledWith('dialog', expect.objectContaining({ state: i % 2 === 0 ? 'open' : 'closed' }));
-      expect(emit.mock.calls.filter(([family]) => family === 'dialog')).toHaveLength(i + 1);
-    }
-    expect(emit).toHaveBeenCalledWith('notice', expect.objectContaining({ text: 'Update 0' }));
+  test('inspects large serialized additions incrementally without resolving ordinary DOM nodes', () => {
+    const fixture = recorderContext();
+    const replay = replaySource(fixture);
+    const cleanup = feedbackRecorder.setup(fixture.context);
+    document.body.innerHTML = '<section>' + '<span></span>'.repeat(5000) + '<div role="status">Ready</div></section>';
+    const resolve = jest.spyOn(fixture.context.host, 'getNode');
+    const blocked = jest.spyOn(fixture.context.helpers, 'blocked');
+    replay.add(document.body.firstChild!);
+    expect(resolve).not.toHaveBeenCalled();
+    step();
+    expect(fixture.emit).not.toHaveBeenCalled();
+    expect(frames.size).toBe(1);
+    drain();
+    expect(fixture.emit).toHaveBeenCalledWith('notice', expect.objectContaining({ text: 'Ready' }));
+    // One parent lookup and one relevant element, rather than checking 5,000 spans.
+    expect(resolve).toHaveBeenCalledTimes(2);
+    expect(blocked.mock.calls.length).toBeLessThanOrEqual(3);
     cleanup();
-    expect(frames.size).toBe(0);
   });
 
-  test('alternates families even when one payload exceeds a whole frame budget', async () => {
-    const { context, emit } = recorderContext();
-    const cleanup = feedbackRecorder.setup(context);
-    context.helpers.visible = () => {
+  test('deduplicates parents for flat rrweb additions and budgets irrelevant attributes', () => {
+    const fixture = recorderContext();
+    const replay = replaySource(fixture);
+    const cleanup = feedbackRecorder.setup(fixture.context);
+    document.body.innerHTML = '<span></span>'.repeat(5000);
+    const resolve = jest.spyOn(fixture.context.host, 'getNode');
+    const parentId = replay.id(document.body);
+    replay.mutation({
+      adds: Array.from(document.body.children, (element) => ({ parentId, node: replay.serialize(element) })),
+      attributes: Array.from({ length: 5000 }, () => ({ id: parentId, attributes: { class: 'unrelated' } })),
+    });
+    step();
+    expect(resolve).not.toHaveBeenCalled();
+    expect(frames.size).toBe(1);
+    drain();
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(fixture.emit).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  test('alternates families when a payload exceeds the cooperative time budget', () => {
+    const fixture = recorderContext();
+    const replay = replaySource(fixture);
+    const cleanup = feedbackRecorder.setup(fixture.context);
+    fixture.context.helpers.visible = () => {
       clock += 5;
       return true;
     };
     document.body.innerHTML =
       '<section>' + '<div role="status">Notice</div>'.repeat(80) + '<dialog open></dialog></section>';
-    await Promise.resolve();
+    replay.add(document.body.firstChild!);
     step();
-    expect(emit.mock.calls.map(([family]) => family)).toEqual(['notice']);
+    expect(fixture.emit.mock.calls.map(([family]) => family)).toEqual(['notice']);
     step();
-    expect(emit.mock.calls.map(([family]) => family)).toEqual(['notice', 'dialog']);
+    expect(fixture.emit.mock.calls.map(([family]) => family)).toEqual(['notice', 'dialog']);
     cleanup();
   });
 
-  test('trailing notice timers enqueue work without bypassing the payload limit', async () => {
-    const { context, emit } = recorderContext();
-    const cleanup = feedbackRecorder.setup(context);
+  test('trailing timers enqueue work without bypassing the 50-payload frame limit', () => {
+    const fixture = recorderContext();
+    const replay = replaySource(fixture);
+    const cleanup = feedbackRecorder.setup(fixture.context);
     document.body.innerHTML = '<section>' + '<div role="status">First</div>'.repeat(60) + '</section>';
-    await Promise.resolve();
+    replay.add(document.body.firstChild!);
     drain();
-    expect(emit).toHaveBeenCalledTimes(60);
+    expect(fixture.emit).toHaveBeenCalledTimes(60);
     document.querySelectorAll('[role="status"]').forEach((element) => {
-      element.textContent = 'Latest';
+      element.firstChild!.textContent = 'Latest';
+      replay.text(element.firstChild!);
     });
-    await Promise.resolve();
     drain();
     expect(jest.getTimerCount()).toBe(60);
     jest.advanceTimersByTime(500);
-    expect(emit).toHaveBeenCalledTimes(60);
-    expect(frames.size).toBe(1);
+    expect(fixture.emit).toHaveBeenCalledTimes(60);
     step();
-    expect(emit).toHaveBeenCalledTimes(110);
+    expect(fixture.emit).toHaveBeenCalledTimes(110);
     step();
-    expect(emit).toHaveBeenCalledTimes(120);
-    expect(jest.getTimerCount()).toBe(0);
+    expect(fixture.emit).toHaveBeenCalledTimes(120);
     cleanup();
   });
 
-  test('bounds discovery and notice queues and reports each overflow once', async () => {
-    const { context, emit } = recorderContext(['dialog']);
+  test('bounds notice queues and replay batch retention with isolated diagnostics', () => {
+    const fixture = recorderContext(['dialog']);
+    const replay = replaySource(fixture);
     const diagnostic = jest.fn();
-    context.host.onError = diagnostic;
-    const cleanup = feedbackRecorder.setup(context);
-    document.body.innerHTML = '<div role="status">First</div>'.repeat(400);
-    await Promise.resolve();
+    fixture.context.host.onError = diagnostic;
+    const cleanup = feedbackRecorder.setup(fixture.context);
+    document.body.innerHTML = '<section>' + '<div role="status">Notice</div>'.repeat(400) + '</section>';
+    replay.add(document.body.firstChild!);
     drain();
-    expect(emit).toHaveBeenCalledTimes(256);
-    expect(diagnostic.mock.calls.map(([error]) => (error as Error).message)).toEqual([
-      expect.stringContaining('discovery queue'),
-      expect.stringContaining('notice queue'),
-    ]);
-    document.body.innerHTML = '<div role="status">Second</div>'.repeat(400);
-    await Promise.resolve();
-    drain();
+    expect(fixture.emit).toHaveBeenCalledTimes(256);
+    expect(diagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('notice queue') }),
+    );
+    diagnostic.mockImplementation(() => {
+      throw new Error('diagnostic failure');
+    });
+    for (let i = 0; i < 300; i++) replay.mutation({});
     expect(diagnostic).toHaveBeenCalledTimes(2);
     cleanup();
+    expect(frames.size).toBe(0);
   });
 
-  test('bounds mutation intake even when one record adds thousands of nodes', async () => {
-    const { context } = recorderContext();
-    context.host.onError = jest.fn(() => {
-      throw new Error('diagnostics failed');
-    });
-    const cleanup = feedbackRecorder.setup(context);
-    const blocked = jest.spyOn(context.helpers, 'blocked');
-    document.body.innerHTML = '<span></span>'.repeat(5000);
-    await Promise.resolve();
-    expect(blocked.mock.calls.length).toBeLessThanOrEqual(1000);
-    expect(context.host.onError).toHaveBeenCalledWith(
-      expect.objectContaining({ message: expect.stringContaining('mutation intake') }),
-    );
-    cleanup();
-  });
-
-  test('closes known dialogs without traversing a large detached subtree', async () => {
+  test('bounds dialog registry and checks removal without traversing detached subtrees', () => {
     document.body.innerHTML =
-      '<section><dialog open aria-label="Existing"></dialog>' + '<span></span>'.repeat(5000) + '</section>';
-    const { context, emit } = recorderContext();
-    const cleanup = feedbackRecorder.setup(context);
+      '<section>' + '<dialog open></dialog>'.repeat(300) + '<span></span>'.repeat(5000) + '</section>';
+    const fixture = recorderContext();
+    const replay = replaySource(fixture);
+    fixture.context.host.onError = jest.fn();
+    const cleanup = feedbackRecorder.setup(fixture.context);
+    replay.snapshot();
+    drain();
+    expect(fixture.context.host.onError).toHaveBeenCalledTimes(1);
+    expect(fixture.emit).not.toHaveBeenCalled();
     const walk = jest.spyOn(document, 'createTreeWalker');
-    document.querySelector('section')!.remove();
-    await Promise.resolve();
+    replay.remove(document.body.firstChild!);
     drain();
     expect(walk).not.toHaveBeenCalled();
-    expect(emit).toHaveBeenCalledWith('dialog', expect.objectContaining({ state: 'closed', name: null }));
+    expect(fixture.emit).toHaveBeenCalledTimes(256);
+    expect(fixture.emit.mock.calls.every(([, payload]) => 'state' in payload && payload.state === 'closed')).toBe(true);
     cleanup();
   });
 
-  test('discards detached discovery roots, pending notices and trailing timers', async () => {
-    const { context, emit } = recorderContext();
-    const cleanup = feedbackRecorder.setup(context);
-    const wrapper = document.createElement('section');
-    wrapper.innerHTML = '<div role="status">First</div>';
-    document.body.appendChild(wrapper);
-    await Promise.resolve();
-    drain();
-    wrapper.firstElementChild!.textContent = 'Trailing';
-    await Promise.resolve();
-    drain();
-    expect(jest.getTimerCount()).toBe(1);
-    wrapper.innerHTML += '<section>' + '<span></span>'.repeat(2000) + '</section>';
-    await Promise.resolve();
-    const walk = jest.spyOn(document, 'createTreeWalker');
-    wrapper.remove();
-    await Promise.resolve();
-    drain();
-    jest.advanceTimersByTime(1000);
-    expect(walk).not.toHaveBeenCalled();
-    expect(emit).toHaveBeenCalledTimes(1);
-    expect(jest.getTimerCount()).toBe(0);
-    cleanup();
-  });
-
-  test('recovers discovery when a framework removes the active walker cursor between frames', async () => {
-    const { context, emit } = recorderContext();
-    const cleanup = feedbackRecorder.setup(context);
-    const blocked = context.helpers.blocked;
-    context.helpers.blocked = (element) => {
-      clock += 0.5;
-      return blocked(element);
-    };
-    const walk = jest.spyOn(document, 'createTreeWalker');
-    document.body.innerHTML =
-      '<section>' + '<span></span>'.repeat(30) + '<div role="status">Still discoverable</div></section>';
-    await Promise.resolve();
-    step();
-    const walker = walk.mock.results[0].value as TreeWalker;
-    (walker.currentNode as Element).remove();
-    await Promise.resolve();
-    drain();
-    expect(emit).toHaveBeenCalledTimes(1);
-    expect(emit).toHaveBeenCalledWith('notice', expect.objectContaining({ text: 'Still discoverable' }));
-    cleanup();
-  });
-
-  test('keeps dialog capture alive after notices cap, then disconnects when both are exhausted', async () => {
-    const { context, emit } = recorderContext();
+  test('keeps dialogs active after notices cap and unsubscribes when both exhaust', () => {
+    const fixture = recorderContext();
+    const replay = replaySource(fixture);
     const counts = { notice: 0, dialog: 0 };
-    context.hasCapacity = (family) => counts[family as keyof typeof counts] < 2;
-    emit.mockImplementation((family) => {
+    fixture.context.hasCapacity = (family) => counts[family as keyof typeof counts] < 2;
+    fixture.emit.mockImplementation((family) => {
       counts[family as keyof typeof counts]++;
       return true;
     });
-    const disconnect = jest.spyOn(MutationObserver.prototype, 'disconnect');
-    const cleanup = feedbackRecorder.setup(context);
+    const cleanup = feedbackRecorder.setup(fixture.context);
     document.body.innerHTML =
       '<section><div role="status">One</div><div role="status">Two</div><dialog open></dialog></section>';
-    await Promise.resolve();
+    replay.add(document.body.firstChild!);
     drain();
     expect(counts).toEqual({ notice: 2, dialog: 1 });
-    expect(disconnect).not.toHaveBeenCalled();
-    document.querySelector('[role="status"]')!.textContent = 'Ignored';
-    document.querySelector('dialog')!.removeAttribute('open');
-    await Promise.resolve();
+    const dialog = document.querySelector('dialog')!;
+    dialog.removeAttribute('open');
+    replay.attrs(dialog, 'open');
     drain();
     expect(counts).toEqual({ notice: 2, dialog: 2 });
-    expect(disconnect).toHaveBeenCalledTimes(1);
+    replay.mutation({});
     expect(frames.size).toBe(0);
-    expect(jest.getTimerCount()).toBe(0);
     cleanup();
   });
 
-  test('bounds baseline open-dialog tracking and retains their close transitions', async () => {
-    document.body.innerHTML = '<section>' + '<dialog open></dialog>'.repeat(300) + '</section>';
-    const { context, emit } = recorderContext();
-    context.host.onError = jest.fn();
-    const cleanup = feedbackRecorder.setup(context);
-    expect(context.host.onError).toHaveBeenCalledTimes(1);
-    expect(emit).not.toHaveBeenCalled();
-    document.querySelector('section')!.remove();
-    await Promise.resolve();
-    drain();
-    expect(emit).toHaveBeenCalledTimes(256);
-    expect(emit.mock.calls.every(([, payload]) => 'state' in payload && payload.state === 'closed')).toBe(true);
-    cleanup();
-  });
-
-  test('disconnects at real session caps, stays stopped on resume, and reattaches on reset', async () => {
-    const { context } = recorderContext(['notice']);
+  test('preserves real session caps on resume and resumes feedback after reset', () => {
+    const fixture = recorderContext(['notice']);
+    const replay = replaySource(fixture);
     const output = jest.fn();
-    const host = { ...context.host, emit: output, random: () => 0 };
-    const disconnect = jest.spyOn(MutationObserver.prototype, 'disconnect');
-    const observe = jest.spyOn(MutationObserver.prototype, 'observe');
-    const capture = createCapture({ enabled: true, families: { notice: false } }, host, [feedbackRecorder]);
+    const capture = createCapture(
+      { enabled: true, families: { notice: false } },
+      { ...fixture.context.host, emit: output, random: () => 0 },
+      [feedbackRecorder],
+    );
+    fixture.signal = capture.notify;
     capture.start();
-    const dialog = document.createElement('dialog');
-    document.body.appendChild(dialog);
-    await Promise.resolve();
+    document.body.innerHTML = '<dialog></dialog>';
+    const dialog = document.querySelector('dialog')!;
+    replay.snapshot();
     drain();
     for (let i = 0; i < SEMANTIC_CAPS.dialog; i++) {
       dialog.toggleAttribute('open', i % 2 === 0);
-      await Promise.resolve();
+      replay.attrs(dialog, 'open');
       drain();
     }
     expect(output).toHaveBeenCalledTimes(SEMANTIC_CAPS.dialog);
-    expect(disconnect).toHaveBeenCalledTimes(1);
-    dialog.setAttribute('open', '');
-    await Promise.resolve();
-    expect(frames.size).toBe(0);
     capture.stop();
     capture.start();
-    expect(observe).toHaveBeenCalledTimes(1);
+    replay.snapshot();
+    expect(frames.size).toBe(0);
     capture.resetSession();
-    expect(observe).toHaveBeenCalledTimes(2);
-    dialog.removeAttribute('open');
-    await Promise.resolve();
+    replay.snapshot();
+    drain();
+    dialog.setAttribute('open', '');
+    replay.attrs(dialog, 'open');
     drain();
     expect(output).toHaveBeenCalledTimes(SEMANTIC_CAPS.dialog + 1);
     capture.stop();
