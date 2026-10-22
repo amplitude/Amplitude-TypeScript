@@ -91,7 +91,7 @@ const eventGuide = {
   visibility: {
     description: 'The document changes between visible and hidden.',
     fields:
-      'state and trigger (visibilitychange). This is tab/document visibility, not element visibility or keyboard focus; blur/focus alone does not emit this event.',
+      'state (visible or hidden). This is tab/document visibility, not element visibility or keyboard focus; blur/focus alone does not emit this event.',
     tryIt:
       'Switch away from this tab and return. Use Chrome to check native tab timing; embedded browsers may report different timing.',
   },

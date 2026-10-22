@@ -140,7 +140,6 @@ describe('lifecycle recorder', () => {
     document.dispatchEvent(new Event('resume'));
     expect(context.emit).toHaveBeenCalledWith('visibility', {
       state: 'hidden',
-      trigger: 'visibilitychange',
     });
     for (const type of ['pageshow_bfcache', 'pageshow', 'pagehide', 'freeze', 'resume']) {
       expect(context.emit).toHaveBeenCalledWith('lifecycle', { type });
@@ -172,7 +171,6 @@ describe('lifecycle recorder', () => {
     expect(context.emit).toHaveBeenCalledTimes(1);
     expect(context.emit).toHaveBeenLastCalledWith('visibility', {
       state: 'hidden',
-      trigger: 'visibilitychange',
     });
 
     // Emit visibility without implying that the page has already gained focus.
@@ -181,7 +179,6 @@ describe('lifecycle recorder', () => {
     expect(context.emit).toHaveBeenCalledTimes(2);
     expect(context.emit).toHaveBeenLastCalledWith('visibility', {
       state: 'visible',
-      trigger: 'visibilitychange',
     });
     focused.mockReturnValue(true);
     window.dispatchEvent(new Event('focus'));

@@ -76,10 +76,15 @@ test.each(examples.map((event) => [event.data.tag, event] as const))(
   },
 );
 
-test('visibility accepts legacy state-only events and validates focus observations', () => {
+test('visibility accepts compact events and legacy trigger/focus fields', () => {
   const event = examples.find((event) => event.data.tag === 'amp-semantic/visibility');
   if (!event) throw new Error('visibility fixture missing');
   expect(validate({ ...event, data: { ...event.data, payload: { v: 1, state: 'hidden' } } })).toBe(true);
+  for (const trigger of ['visibilitychange', 'focus', 'blur']) {
+    expect(
+      validate({ ...event, data: { ...event.data, payload: { ...event.data.payload, focused: false, trigger } } }),
+    ).toBe(true);
+  }
   for (const invalid of [{ focused: 'yes' }, { trigger: 'click' }]) {
     expect(validate({ ...event, data: { ...event.data, payload: { ...event.data.payload, ...invalid } } })).toBe(false);
   }

@@ -63,15 +63,16 @@ page lifetime once initialized, while recorder listeners are removed on stop. Di
 sampled-out capture does not initialize identity storage or listeners.
 
 Context includes `visibility_state`, `focused` (`document.hasFocus()`), and `user_agent`.
-Visibility emits `{ state, trigger: "visibilitychange" }` only when the document changes
+Visibility emits `{ state }` plus the shared version and identity fields only when the document changes
 between hidden and visible. Both transitions emit immediately, with no settling timer. Duplicate
 visibility notifications and standalone window/element focus or blur events emit nothing.
 Visibility payloads omit `focused`: focus may arrive after the visibility boundary, and a one-time
 snapshot would be misleading as the focus state for the visible interval. Initial visibility is
 included in context. The visibility listener is removed on stop or family disabling. Visibility
 is an observation, not proof of attention or a reason for leaving the page.
-The wire schema still accepts legacy `focused` fields and `focus`/`blur` triggers from earlier
-recordings. Context retains its observation-time `focused` snapshot; local diagnostics also show
+The redundant `trigger` field is no longer emitted. The wire schema still accepts legacy
+`focused` and `trigger` fields (`visibilitychange`, `focus`, or `blur`) from earlier recordings.
+Context retains its observation-time `focused` snapshot; local diagnostics also show
 raw focus notifications, but neither is continuous semantic focus tracking.
 
 The local replay inspector displays millisecond timestamps and separate visibility diagnostics for

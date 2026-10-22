@@ -53,24 +53,24 @@ describe('capture runtime', () => {
     capture.start();
     capture.start();
     expect(setup).toHaveBeenCalledTimes(1);
-    for (let i = 0; i < 201; i++) context.emit('visibility', { state: 'visible', trigger: 'visibilitychange' });
+    for (let i = 0; i < 201; i++) context.emit('visibility', { state: 'visible' });
     expect(host.emit).toHaveBeenCalledTimes(200);
     expect(context.dropped()).toEqual({ visibility: 1 });
     capture.updateConfig({ enabled: true, families: { click: false } });
     expect(cleanup).toHaveBeenCalledTimes(1);
     expect(setup).toHaveBeenCalledTimes(1);
     capture.updateConfig({ enabled: true });
-    expect(context.emit('visibility', { state: 'hidden', trigger: 'visibilitychange' })).toBe(false);
+    expect(context.emit('visibility', { state: 'hidden' })).toBe(false);
     capture.resetSession();
-    expect(context.emit('visibility', { state: 'hidden', trigger: 'visibilitychange' })).toBe(true);
+    expect(context.emit('visibility', { state: 'hidden' })).toBe(true);
   });
   test('preflight avoids payload work after the cap and counts each dropped candidate once', () => {
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
-    for (let i = 0; i < 200; i++) context.emit('visibility', { state: 'visible', trigger: 'visibilitychange' });
+    for (let i = 0; i < 200; i++) context.emit('visibility', { state: 'visible' });
     for (let i = 0; i < 10; i++) expect(context.hasCapacity('visibility')).toBe(false);
     expect(context.dropped()).toEqual({});
-    const payload = jest.fn(() => ({ state: 'hidden' as const, trigger: 'visibilitychange' as const }));
+    const payload = jest.fn(() => ({ state: 'hidden' as const }));
     if (context.canEmit('visibility')) context.emit('visibility', payload());
     expect(payload).not.toHaveBeenCalled();
     expect(context.dropped()).toEqual({ visibility: 1 });
@@ -93,19 +93,18 @@ describe('capture runtime', () => {
     capture.stop();
     capture.notify('snapshot', undefined);
     expect(callback).toHaveBeenCalledTimes(1);
-    expect(context.emit('visibility', { state: 'visible', trigger: 'visibilitychange' })).toBe(false);
+    expect(context.emit('visibility', { state: 'visible' })).toBe(false);
   });
   test('preserves timestamp and version and isolates host errors', () => {
     host.onError = jest.fn();
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
-    context.emit('visibility', { state: 'hidden', trigger: 'visibilitychange' }, 99);
+    context.emit('visibility', { state: 'hidden' }, 99);
     expect(host.emit).toHaveBeenCalledWith({
       name: 'visibility',
       payload: {
         v: 1,
         state: 'hidden',
-        trigger: 'visibilitychange',
         tab_id: 'tab-test',
         document_id: 'document-test',
       },
@@ -114,21 +113,21 @@ describe('capture runtime', () => {
     host.emit = () => {
       throw new Error('host');
     };
-    expect(context.emit('visibility', { state: 'visible', trigger: 'visibilitychange' })).toBe(false);
+    expect(context.emit('visibility', { state: 'visible' })).toBe(false);
     expect(host.onError).toHaveBeenCalled();
     host.onError = () => {
       throw new Error('diagnostic');
     };
-    expect(() => context.emit('visibility', { state: 'visible', trigger: 'visibilitychange' })).not.toThrow();
+    expect(() => context.emit('visibility', { state: 'visible' })).not.toThrow();
   });
   test('reserves caps before calling a reentrant host emitter', () => {
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
-    for (let i = 0; i < 199; i++) context.emit('visibility', { state: 'visible', trigger: 'visibilitychange' });
+    for (let i = 0; i < 199; i++) context.emit('visibility', { state: 'visible' });
     host.emit = jest.fn(() => {
-      context.emit('visibility', { state: 'hidden', trigger: 'visibilitychange' });
+      context.emit('visibility', { state: 'hidden' });
     });
-    context.emit('visibility', { state: 'visible', trigger: 'visibilitychange' });
+    context.emit('visibility', { state: 'visible' });
     expect(host.emit).toHaveBeenCalledTimes(1);
     expect(context.dropped()).toEqual({ visibility: 1 });
   });

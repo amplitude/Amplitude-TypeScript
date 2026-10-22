@@ -774,7 +774,10 @@
                   "type": "boolean",
                   "description": "Legacy observation-time focus snapshot; no longer emitted by visibility producers."
                 },
-                "trigger": { "enum": ["visibilitychange", "focus", "blur"] },
+                "trigger": {
+                  "enum": ["visibilitychange", "focus", "blur"],
+                  "description": "Legacy trigger; new visibility events emit only state plus version and identity."
+                },
                 "tab_id": { "type": "string", "minLength": 1 },
                 "document_id": { "type": "string", "minLength": 1 },
                 "v": {
