@@ -1,0 +1,92 @@
+name: Publish custom enrichment
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: Exact plugin version already committed on the selected main or hotfix branch
+        required: true
+
+concurrency:
+  group: publish-custom-enrichment
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate protected branch
+        env:
+          REF: ${{ github.ref_name }}
+        run: |
+          case "$REF" in
+            main|hotfix/*) ;;
+            *) echo 'Run from main or hotfix/* only.' >&2; exit 1 ;;
+          esac
+      - name: Check release permission
+        uses: lannonbr/repo-permission-check-action@2bb8c89ba8bf115c4bfab344d6a6f442b24c9a1f
+        with:
+          permission: write
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  stage:
+    name: Build and stage custom enrichment
+    needs: authorize
+    runs-on: ubuntu-latest
+    environment: npm-release
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      version: ${{ steps.stage.outputs.version }}
+      required: ${{ steps.stage.outputs.required }}
+    steps:
+      - name: Check out selected commit
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          ref: ${{ github.sha }}
+      - name: Validate intended stable version
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          node <<'NODE'
+          const pkg = require('./packages/plugin-custom-enrichment-browser/package.json');
+          if (pkg.version !== process.env.EXPECTED_VERSION || !/^\d+\.\d+\.\d+$/.test(pkg.version)) {
+            throw new Error('Commit the intended stable plugin version before running this workflow.');
+          }
+          NODE
+      - name: Build and test
+        uses: ./.github/actions/build-and-test
+        with:
+          node-version: 24.x
+          configure-git: 'false'
+          configure-aws: 'false'
+      - name: Stage plugin through Trusted Publishing
+        id: stage
+        run: bash scripts/publish/stage-custom-enrichment.sh
+
+  approve:
+    name: Confirm custom enrichment approval on npm
+    needs: stage
+    if: ${{ needs.stage.outputs.required == 'true' }}
+    runs-on: ubuntu-latest
+    environment: npm-custom-enrichment-approval
+    steps:
+      - name: Check out staged commit
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          ref: ${{ github.sha }}
+      - name: Set up Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          node-version: 24.x
+          install: 'false'
+      - name: Verify approved plugin version is live
+        env:
+          PLUGIN_VERSION: ${{ needs.stage.outputs.version }}
+        run: bash scripts/publish/verify-custom-enrichment.sh "$PLUGIN_VERSION"
