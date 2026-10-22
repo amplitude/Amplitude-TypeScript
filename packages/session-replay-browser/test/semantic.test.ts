@@ -52,6 +52,25 @@ describe('ReplaySemanticAdapter', () => {
     expect(capture.notify).toHaveBeenCalledTimes(4);
   });
 
+  test('diagnostics distinguish active capture from a sampled-out runtime', () => {
+    const diagnostic = jest.fn();
+    const adapter = new ReplaySemanticAdapter(host, diagnostic);
+    adapter.prepare({ enabled: true }, 1);
+    expect(diagnostic).not.toHaveBeenCalled();
+    adapter.recordingReady();
+    expect(diagnostic).toHaveBeenLastCalledWith('active: semantic listeners started.');
+    adapter.stop('customer_stop');
+    expect(diagnostic).toHaveBeenLastCalledWith('stop: customer_stop.');
+    diagnostic.mockClear();
+    capture.isActive.mockReturnValue(false);
+    adapter.prepare({ enabled: true, sampleRate: 0 }, 2);
+    adapter.recordingReady();
+    expect(diagnostic).toHaveBeenCalledTimes(1);
+    expect(diagnostic).toHaveBeenCalledWith(
+      'inactive: semantic runtime did not start (check semantic sampling and environment).',
+    );
+  });
+
   test('preserves the sampling and cap session across resume; resets for a new session', () => {
     const adapter = new ReplaySemanticAdapter(host);
     adapter.prepare({ enabled: true }, 1);
