@@ -76,27 +76,6 @@ page uses, and travels as JSON. Regexes have nowhere to live in JSON, so `toJson
 
 ## Things worth knowing
 
-### Semantic capture diagnostics
-
-In the instrumented site's DevTools console, filter for `[amp-semantic]`. The runner displays these
-messages at normal console visibility without enabling all SDK debug output:
-
-- `requested`: the local options enable semantic capture; this alone does not confirm it started.
-- `not requested`: replay or semantic options were omitted/disabled locally. Remote options may override semantic configuration.
-- `waiting`: replay has not started; inspect replay sampling, targeting, opt-out and remote capture settings.
-- `disabled by effective configuration`: the SDK's final options disable semantic capture.
-- `active`: the semantic runtime started its listeners.
-- `inactive`: the semantic runtime did not start, for example because semantic sampling excluded it.
-- `emitting amp-semantic/<family>`: the first event of that family was passed to rrweb. This confirms
-  capture, not upload success. Event payloads and DOM text are not printed by these diagnostics.
-- `pause` / `stop`: capture stopped, with its reason.
-
-Replay plugin setup completion is reported separately; it does not prove semantic capture is active.
-If setup completes without `active`/`emitting`, check the other diagnostics and that the injected bundle
-is current. Rebuild `pnpm --filter @amplitude/plugin-session-replay-browser... build`, run
-`node test-server/configurator-extension/sync-vendor.mjs`, reload the extension, then reload the
-configurator and start a new run. The dependency build includes `amp-semantic`.
-
 - **Host permissions are `*://*/*`.** That's what "any URL a customer gives us" means. A version anyone
   else installs should ask per-site with `optional_host_permissions` and a prompt instead.
 - **The site's CSP is removed for the tab, and reported.** Injecting bundles works on a page that forbids

@@ -13,10 +13,7 @@ export class ReplaySemanticAdapter {
   private resumeReason: RecordingSignal['reason'] = 'focus';
   private config: SemanticCaptureConfig = { enabled: false };
 
-  constructor(
-    private readonly host: SemanticHost,
-    private readonly diagnostic: (message: string) => void = () => undefined,
-  ) {
+  constructor(private readonly host: SemanticHost) {
     this.capture = createSemanticCapture(this.config, { ...host, externalNavigation: true });
   }
 
@@ -41,11 +38,6 @@ export class ReplaySemanticAdapter {
     if (!this.config.enabled || this.ready) return;
     this.ready = true;
     this.capture.start();
-    this.diagnostic(
-      this.capture.isActive()
-        ? 'active: semantic listeners started.'
-        : 'inactive: semantic runtime did not start (check semantic sampling and environment).',
-    );
     if (this.capture.isActive() && this.config.families?.page !== false) {
       this.navigationCleanup = subscribeToUrlChanges(this.host.window, () => undefined, {
         onNavigation: (reason) => this.capture.notify('navigation', reason),
@@ -70,7 +62,6 @@ export class ReplaySemanticAdapter {
   }
 
   stop(reason: RecordingSignal['reason'] = 'targeting', state: 'stop' | 'pause' = 'stop'): void {
-    if (this.capture.isActive()) this.diagnostic(`${state}: ${reason}.`);
     const emitStop = this.ready && this.firstSnapshot;
     this.ready = false;
     this.firstSnapshot = false;

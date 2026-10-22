@@ -85,7 +85,6 @@ describe('Session Replay semantic integration', () => {
 
   test('uses direct synchronous rrweb emission without debug metadata and gates on active recording', () => {
     const { sdk, record } = prepare(true);
-    const diagnostic = jest.spyOn(sdk.loggerProvider, 'debug');
     const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
     const event = {
       name: 'visibility' as const,
@@ -100,15 +99,9 @@ describe('Session Replay semantic integration', () => {
     };
     host.emit(event);
     expect(record.addCustomEvent).not.toHaveBeenCalled();
-    expect(diagnostic).not.toHaveBeenCalled();
     sdk.recordCancelCallback = jest.fn();
     host.emit(event);
     expect(record.addCustomEvent).toHaveBeenCalledWith('amp-semantic/visibility', event.payload);
-    host.emit(event);
-    expect(diagnostic).toHaveBeenCalledTimes(1);
-    expect(diagnostic).toHaveBeenCalledWith(
-      '[amp-semantic] emitting amp-semantic/visibility into rrweb (first observed).',
-    );
     expect(host.getNodeId(document.body)).toBe(42);
     expect(host.getPrivacy()).toEqual({ defaultMaskLevel: 'conservative' });
   });
