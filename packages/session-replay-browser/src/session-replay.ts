@@ -115,6 +115,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
   private semanticAdapter?: ReplaySemanticAdapter;
+  private semanticWaitingLogged = false;
   private recordEventsInFlight = false;
   /**
    * When false, capture is paused by a customer `stop()` (or `shutdown()`) call.
@@ -940,6 +941,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
+      if (config?.semanticCapture?.enabled && !this.semanticWaitingLogged) {
+        this.semanticWaitingLogged = true;
+        this.loggerProvider.debug(
+          '[amp-semantic] waiting: replay is not recording; check replay sampling, targeting, opt-out and remote capture configuration.',
+        );
+      }
       if (config?.semanticCapture?.enabled && this.semanticAdapter && this.recordCancelCallback) {
         this.stopRecordingEvents(
           this.shouldOptOut() ? 'opt_out' : config?.targetingConfig ? 'targeting' : 'sampled_out',
@@ -947,6 +954,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
       return;
     }
+    this.semanticWaitingLogged = false;
     this.stopRecordingEvents('focus', 'pause');
     const generation = this.recordingGeneration;
 
@@ -1105,35 +1113,46 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const scope = getGlobalScope() as Window | undefined;
     if (!scope?.document) return;
     if (!config.semanticCapture?.enabled) {
+      this.loggerProvider.debug('[amp-semantic] disabled by effective configuration.');
       this.semanticAdapter?.stop('targeting');
       this.semanticAdapter?.prepare({ enabled: false }, sessionId);
       return;
     }
     if (!this.semanticAdapter) {
-      this.semanticAdapter = new ReplaySemanticAdapter({
-        document: scope.document,
-        window: scope,
-        sdk: `@amplitude/session-replay-browser@${VERSION}`,
-        getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
-        getPrivacy: () => this.config?.privacyConfig ?? {},
-        getUrl: () => scope.location.href,
-        getIdentity: () => getSemanticIdentity(scope),
-        getAnalyticsContext: () => this.config?.semanticAnalyticsContext ?? { present: false, autocapture: [] },
-        inlineStylesheet: config.shouldInlineStylesheet,
-        getSelector: (element) => {
-          try {
-            return finder(element, { ...this.config?.performanceConfig?.interaction, timeoutMs: 1 });
-          } catch {
-            return null;
-          }
+      const observedFamilies = new Set<string>();
+      this.semanticAdapter = new ReplaySemanticAdapter(
+        {
+          document: scope.document,
+          window: scope,
+          sdk: `@amplitude/session-replay-browser@${VERSION}`,
+          getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
+          getPrivacy: () => this.config?.privacyConfig ?? {},
+          getUrl: () => scope.location.href,
+          getIdentity: () => getSemanticIdentity(scope),
+          getAnalyticsContext: () => this.config?.semanticAnalyticsContext ?? { present: false, autocapture: [] },
+          inlineStylesheet: config.shouldInlineStylesheet,
+          getSelector: (element) => {
+            try {
+              return finder(element, { ...this.config?.performanceConfig?.interaction, timeoutMs: 1 });
+            } catch {
+              return null;
+            }
+          },
+          emit: (event) => {
+            if (this.recordCancelCallback && this.recordFunction) {
+              this.recordFunction.addCustomEvent(`amp-semantic/${event.name}`, event.payload);
+              if (!observedFamilies.has(event.name)) {
+                observedFamilies.add(event.name);
+                this.loggerProvider.debug(
+                  `[amp-semantic] emitting amp-semantic/${event.name} into rrweb (first observed).`,
+                );
+              }
+            }
+          },
+          onError: (error) => this.loggerProvider.debug('[amp-semantic] capture error:', error),
         },
-        emit: (event) => {
-          if (this.recordCancelCallback && this.recordFunction) {
-            this.recordFunction.addCustomEvent(`amp-semantic/${event.name}`, event.payload);
-          }
-        },
-        onError: (error) => this.loggerProvider.debug('Semantic capture error:', error),
-      });
+        (message) => this.loggerProvider.debug(`[amp-semantic] ${message}`),
+      );
     }
     this.semanticAdapter.prepare(config.semanticCapture, sessionId);
   }

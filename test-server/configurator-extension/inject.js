@@ -40,6 +40,49 @@
   const config = revive(payload.analytics);
   const replayOptions = payload.sessionReplay ? revive(payload.sessionReplay) : null;
 
+  // Surface semantic diagnostics at normal console visibility without enabling all SDK debug logs.
+  // SDK lifecycle/emission messages report actual state; requested configuration alone is not proof.
+  let logLevel = config.logLevel ?? 2;
+  let loggerDisabled = false;
+  config.loggerProvider = {
+    enable(level = 2) {
+      logLevel = level;
+      loggerDisabled = false;
+    },
+    disable() {
+      loggerDisabled = true;
+    },
+    log(...args) {
+      if (!loggerDisabled && logLevel >= 3) console.log('[amplitude-configurator]', ...args);
+    },
+    warn(...args) {
+      if (!loggerDisabled && logLevel >= 2) console.warn('[amplitude-configurator]', ...args);
+    },
+    error(...args) {
+      if (!loggerDisabled && logLevel >= 1) console.error('[amplitude-configurator]', ...args);
+    },
+    debug(...args) {
+      if (loggerDisabled) return;
+      if (typeof args[0] === 'string' && args[0].startsWith('[amp-semantic]')) console.info(...args);
+      else if (logLevel >= 4) console.debug('[amplitude-configurator]', ...args);
+    },
+  };
+  if (!replayOptions) {
+    console.info('[amp-semantic] not requested: Session Replay is not configured for this run.');
+  } else if (!replayOptions.semanticCapture?.enabled) {
+    console.info(
+      '[amp-semantic] not requested locally: semanticCapture.enabled is not true; remote configuration may override it.',
+    );
+  } else {
+    console.info('[amp-semantic] requested; waiting for SDK confirmation.', {
+      replaySampleRate: replayOptions.sampleRate ?? 0,
+      semanticSampleRate: replayOptions.semanticCapture.sampleRate ?? 1,
+      disabledFamilies: Object.entries(replayOptions.semanticCapture.families ?? {})
+        .filter(([, enabled]) => enabled === false)
+        .map(([family]) => family),
+    });
+  }
+
   // Read back rather than echoed from the payload, so this also reports an override that didn't take. A
   // mocked referrer changes what attribution reports and nothing else on the page gives it away, which
   // makes it worth a line of its own before anything reads it.
@@ -76,9 +119,21 @@
 
   if (replayOptions) {
     if (window.sessionReplay?.plugin) {
-      client.add(window.sessionReplay.plugin(replayOptions));
+      const replayPlugin = window.sessionReplay.plugin(replayOptions);
+      client
+        .add(replayPlugin)
+        .promise.then(() => {
+          const eligible = Object.keys(replayPlugin.getSessionReplayProperties()).length > 0;
+          console.info(
+            `[amp-semantic] replay plugin setup completed; replay ${
+              eligible ? 'reports eligibility for recording' : 'does not report eligibility for recording yet'
+            }. Look for "active" and "emitting" messages to confirm semantic capture.`,
+          );
+        })
+        .catch((error) => console.error('[amp-semantic] replay plugin setup failed:', error));
     } else {
       console.warn('[amplitude-configurator] session replay was configured but its bundle is missing');
+      console.warn('[amp-semantic] unavailable: rebuild/sync the replay plugin bundle and reload the extension.');
     }
   }
 
