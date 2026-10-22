@@ -347,6 +347,7 @@ async function boot() {
           configs: {
             sessionReplay: {
               sr_sampling_config: { capture_enabled: true, sample_rate: 1 },
+              sr_interaction_config: { enabled: params.get('heatmaps') === 'true', trackEveryNms: 0 },
               ...(params.has('remoteEnabled')
                 ? { sr_semantic_config: { enabled: params.get('remoteEnabled') === 'true' } }
                 : {}),

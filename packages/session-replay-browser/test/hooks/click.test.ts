@@ -36,6 +36,54 @@ describe('click', () => {
     });
   });
 
+  describe('shared click hook', () => {
+    afterEach(() => jest.clearAllMocks());
+
+    test('shares selectors per element for one click and preserves the native event', () => {
+      const handler = new ClickHandler(mockLoggerProvider);
+      const button = document.createElement('button');
+      const span = document.createElement('span');
+      button.append(span);
+      mockFinder.mockReturnValue('button');
+      mockFinder.mockClear();
+      const semantic = jest.fn((event: MouseEvent) => {
+        expect(event.ctrlKey).toBe(true);
+        handler.getSelector(button);
+        handler.getSelector(span);
+      });
+      const hook = handler.createSharedHook(() => {
+        handler.getSelector(button);
+      }, semantic);
+      const event = new MouseEvent('click', { ctrlKey: true });
+      const data = { id: 1, type: MouseInteractions.Click, x: 0, y: 0 };
+      hook(data, event);
+      expect(semantic).toHaveBeenCalledWith(event);
+      expect(mockFinder).toHaveBeenCalledTimes(2);
+      expect(mockFinder.mock.calls.map(([node]) => node)).toEqual([button, span]);
+      hook(data, event);
+      expect(mockFinder).toHaveBeenCalledTimes(4);
+      expect(Object.keys(data).sort()).toEqual(['id', 'type', 'x', 'y']);
+    });
+
+    test('isolates consumer failures and ignores non-click or missing native events', () => {
+      const handler = new ClickHandler(mockLoggerProvider);
+      const semantic = jest.fn(() => {
+        throw new Error('semantic');
+      });
+      const heatmap = jest.fn(() => {
+        throw new Error('heatmap');
+      });
+      const hook = handler.createSharedHook(heatmap, semantic);
+      const data = { id: 1, type: MouseInteractions.Click };
+      expect(() => hook(data, new MouseEvent('click'))).not.toThrow();
+      expect(semantic).toHaveBeenCalledTimes(1);
+      hook(data);
+      hook({ ...data, type: MouseInteractions.MouseDown }, new MouseEvent('mousedown'));
+      expect(semantic).toHaveBeenCalledTimes(1);
+      expect(heatmap).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('clickHook', () => {
     const mockEventsManager: jest.Mocked<SessionReplayEventsManager<'interaction', string>> = {
       sendStoredEvents: jest.fn(),

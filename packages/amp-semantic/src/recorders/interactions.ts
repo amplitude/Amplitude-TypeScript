@@ -262,10 +262,8 @@ export const interactionsRecorder: SemanticRecorder = {
 
     if (context.enabled('click')) {
       if (host.externalClicks) cleanups.push(context.on('click', click));
-      else {
-        listen('click', (event) => click(event as MouseEvent));
-        listen('auxclick', (event) => click(event as MouseEvent));
-      }
+      else listen('click', (event) => click(event as MouseEvent));
+      if (!(host.externalAuxClicks ?? host.externalClicks)) listen('auxclick', (event) => click(event as MouseEvent));
     }
     if (context.enabled('field')) {
       listen('change', field);

@@ -1,0 +1,62 @@
+diff --git a/dist/rrweb-record.cjs b/dist/rrweb-record.cjs
+index 383bd5189a681aa55203374b2b96580ffa1f38b2..6b107df584d39eade7383e3660662e7f69a16b46 100644
+--- a/dist/rrweb-record.cjs
++++ b/dist/rrweb-record.cjs
+@@ -10366,7 +10366,7 @@ function initMouseInteractionObserver({
+         x: clientX,
+         y: clientY,
+         ...pointerType !== null && { pointerType }
+-      });
++      }, event);
+     };
+   };
+   Object.keys(MouseInteractions).filter(
+@@ -11084,7 +11084,7 @@ function mergeHooks(o2, hooks) {
+     if (hooks.mouseInteraction) {
+       hooks.mouseInteraction(...p);
+     }
+-    mouseInteractionCb(...p);
++    mouseInteractionCb(p[0]);
+   };
+   o2.scrollCb = (...p) => {
+     if (hooks.scroll) {
+@@ -12760,7 +12760,7 @@ record.takeFullSnapshot = (isCheckout) => {
+   }
+   takeFullSnapshot$1(isCheckout);
+ };
+-record.mirror = mirror;
++record.mirror = mirror; record.supportsNativeMouseInteraction = true;
+ var n;
+ !(function(t2) {
+   t2[t2.NotStarted = 0] = "NotStarted", t2[t2.Running = 1] = "Running", t2[t2.Stopped = 2] = "Stopped";
+diff --git a/dist/rrweb-record.js b/dist/rrweb-record.js
+index 18a91b0dd51c69d359c0332bc252ab056c171493..8dd92c49254b4c901bc0ba26ac4ddc82862a4766 100644
+--- a/dist/rrweb-record.js
++++ b/dist/rrweb-record.js
+@@ -10364,7 +10364,7 @@ function initMouseInteractionObserver({
+         x: clientX,
+         y: clientY,
+         ...pointerType !== null && { pointerType }
+-      });
++      }, event);
+     };
+   };
+   Object.keys(MouseInteractions).filter(
+@@ -11082,7 +11082,7 @@ function mergeHooks(o2, hooks) {
+     if (hooks.mouseInteraction) {
+       hooks.mouseInteraction(...p);
+     }
+-    mouseInteractionCb(...p);
++    mouseInteractionCb(p[0]);
+   };
+   o2.scrollCb = (...p) => {
+     if (hooks.scroll) {
+@@ -12758,7 +12758,7 @@ record.takeFullSnapshot = (isCheckout) => {
+   }
+   takeFullSnapshot$1(isCheckout);
+ };
+-record.mirror = mirror;
++record.mirror = mirror; record.supportsNativeMouseInteraction = true;
+ var n;
+ !(function(t2) {
+   t2[t2.NotStarted = 0] = "NotStarted", t2[t2.Running = 1] = "Running", t2[t2.Stopped = 2] = "Stopped";

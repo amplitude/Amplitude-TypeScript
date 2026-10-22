@@ -95,7 +95,11 @@ Pass a third argument containing recorder factories to replace the default recor
 
 To add an event family, add its payload to `SemanticPayloads`, its session limit to `SEMANTIC_CAPS`, its wire variant to `schema.json`, and its factory to the desired recorder set. Wire tags and payload `v` are stable contracts. Breaking payload changes require a new version; avoid encoding application classification into capture facts.
 
-`SemanticHost.externalClicks` and `externalNavigation` let hosts reuse existing native hooks instead of attaching duplicate hooks. The current replay hook does not expose the native `MouseEvent`; the adapter therefore uses the package's native click listener. Recorder processing timestamps are supplied to generic hosts. rrweb's current `addCustomEvent` controls its own wire timestamp, so exact ±1 ms alignment with MouseInteraction remains a browser integration requirement.
+`SemanticHost.externalClicks` and `externalNavigation` let hosts reuse existing native hooks. Session Replay routes primary clicks through its existing heatmap `ClickHandler` and rrweb's `mouseInteraction` hook, including when heatmaps are disabled. The hook receives the original event in memory, preserving modifiers, keyboard activation, trust and composed-path targeting. Native events are never added to recorded rrweb data. Selector lookup is shared for the same element within one click; an actionable ancestor gets its own lookup when it differs from the raw target. Consumer failures are isolated.
+
+The pinned rrweb recorder has a workspace patch adding an optional native-event hook argument and `record.supportsNativeMouseInteraction`. Replace this patch with a published recorder release before publishing the SDK: workspace patches do not propagate to consumers of the unbundled package. Older recorders retain the independent native listener as a compatibility fallback. `externalAuxClicks: false` keeps the middle-button `auxclick` listener because rrweb does not forward auxiliary clicks. Standalone semantic capture still installs its own native listeners.
+
+Recorder processing timestamps are supplied to generic hosts. rrweb's `addCustomEvent` controls its own wire timestamp, so exact ±1 ms alignment with MouseInteraction remains a browser integration requirement.
 
 ## Privacy and limits
 

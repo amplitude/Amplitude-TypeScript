@@ -971,21 +971,25 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }, networkLoggingConfig);
     const { interactionConfig, loggingConfig } = config;
 
-    const hooks = interactionConfig?.enabled
-      ? {
-          mouseInteraction:
-            this.eventsManager &&
-            this.clickHandler?.createHook({
-              eventsManager: this.eventsManager,
-              sessionId,
-              deviceIdFn: this.getDeviceId.bind(this),
-              mirror: recordFunction.mirror,
-              ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
-              performanceOptions: config.performanceConfig?.interaction,
-            }),
-          scroll: this.scrollHook,
-        }
-      : {};
+    const heatmapHook =
+      interactionConfig?.enabled && this.eventsManager
+        ? this.clickHandler?.createHook({
+            eventsManager: this.eventsManager,
+            sessionId,
+            deviceIdFn: this.getDeviceId.bind(this),
+            mirror: recordFunction.mirror,
+            ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
+            performanceOptions: config.performanceConfig?.interaction,
+          })
+        : undefined;
+    const sharedSemanticClicks = config.semanticCapture?.enabled && recordFunction.supportsNativeMouseInteraction;
+    if (sharedSemanticClicks && !this.clickHandler) this.clickHandler = new ClickHandler(this.loggerProvider);
+    const hooks = {
+      mouseInteraction: sharedSemanticClicks
+        ? this.clickHandler?.createSharedHook(heatmapHook, (event) => this.semanticAdapter?.click(event))
+        : heatmapHook,
+      ...(interactionConfig?.enabled ? { scroll: this.scrollHook } : {}),
+    };
 
     const ugcFilterRules =
       interactionConfig?.enabled && interactionConfig.ugcFilterRules ? interactionConfig.ugcFilterRules : [];
@@ -1114,6 +1118,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         document: scope.document,
         window: scope,
         sdk: `@amplitude/session-replay-browser@${VERSION}`,
+        externalClicks: this.recordFunction?.supportsNativeMouseInteraction === true,
+        // rrweb does not report auxiliary clicks through its mouseInteraction hook.
+        externalAuxClicks: false,
         getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
         getPrivacy: () => this.config?.privacyConfig ?? {},
         getUrl: () => scope.location.href,
@@ -1122,7 +1129,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
         inlineStylesheet: config.shouldInlineStylesheet,
         getSelector: (element) => {
           try {
-            return finder(element, { ...this.config?.performanceConfig?.interaction, timeoutMs: 1 });
+            const options = { ...this.config?.performanceConfig?.interaction, timeoutMs: 1 };
+            return this.clickHandler ? this.clickHandler.getSelector(element, options) : finder(element, options);
           } catch {
             return null;
           }

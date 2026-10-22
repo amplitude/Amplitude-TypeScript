@@ -22,6 +22,7 @@ type Harness = {
 declare global {
   interface Window {
     semanticHarness: Harness;
+    primaryClickListeners: Set<EventListenerOrEventListenerObject>;
   }
 }
 
@@ -85,6 +86,63 @@ test.beforeEach(async ({ context }) => {
     return route.continue();
   });
 });
+
+for (const heatmaps of ['false', 'true']) {
+  test(`reuses rrweb primary clicks and preserves native metadata (heatmaps=${heatmaps})`, async ({ page }) => {
+    await page.addInitScript(() => {
+      window.primaryClickListeners = new Set();
+      const add = document.addEventListener.bind(document);
+      const remove = document.removeEventListener.bind(document);
+      document.addEventListener = (...args: Parameters<Document['addEventListener']>) => {
+        const [type, listener, options] = args;
+        if (type === 'click' && listener) window.primaryClickListeners.add(listener);
+        add(type, listener, options);
+      };
+      document.removeEventListener = (...args: Parameters<Document['removeEventListener']>) => {
+        const [type, listener, options] = args;
+        if (type === 'click' && listener) window.primaryClickListeners.delete(listener);
+        remove(type, listener, options);
+      };
+    });
+    await open(page, { enabled: 'false', heatmaps });
+    const baseline = await page.evaluate(() => window.primaryClickListeners.size);
+    expect(baseline).toBeGreaterThan(0);
+    await open(page, { heatmaps });
+    expect(await page.evaluate(() => window.primaryClickListeners.size)).toBe(baseline);
+    await page.locator('#public-button').click({ modifiers: ['Shift'] });
+    await page.locator('#public-button').focus();
+    await page.keyboard.press('Enter');
+    await page.locator('#public-button').click({ button: 'middle' });
+    await waitFor(page, 'click', 'keyboard', true);
+    const events = await assertValid(page);
+    const clicks = events.filter(
+      (event) => event.data.tag === 'amp-semantic/click' && event.data.payload?.key === 'public-target',
+    );
+    expect(clicks).toHaveLength(3);
+    expect(clicks[0].data.payload).toMatchObject({ modifiers: ['shift'], trusted: true, keyboard: false });
+    expect(clicks[1].data.payload).toMatchObject({ trusted: true, keyboard: true });
+    const raw = await page.evaluate(() =>
+      window.semanticHarness.events.filter(
+        (event) => event.type === 3 && event.data.source === 2 && event.data.type === 2,
+      ),
+    );
+    expect(raw.length).toBeGreaterThanOrEqual(2);
+    for (const event of raw) {
+      expect(
+        Object.keys(event.data).every((key) => ['source', 'type', 'id', 'x', 'y', 'pointerType'].includes(key)),
+      ).toBe(true);
+    }
+    if (heatmaps === 'true') {
+      const heatmapClicks = await page.evaluate(() =>
+        (window.semanticHarness.events as unknown as { type: string; selector?: string }[]).filter(
+          (event) => event.type === 'click',
+        ),
+      );
+      expect(heatmapClicks.length).toBeGreaterThan(0);
+      expect(heatmapClicks.some((event) => event.selector?.includes('public-button'))).toBe(true);
+    }
+  });
+}
 
 test('captures native check transitions and additive click states through replay', async ({ page }) => {
   await open(page);
