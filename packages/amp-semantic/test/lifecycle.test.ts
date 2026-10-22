@@ -138,7 +138,6 @@ describe('lifecycle recorder', () => {
     document.dispatchEvent(new Event('resume'));
     expect(context.emit).toHaveBeenCalledWith('visibility', {
       state: 'hidden',
-      focused: false,
       trigger: 'visibilitychange',
     });
     for (const type of ['pageshow_bfcache', 'pageshow', 'pagehide', 'freeze', 'resume']) {
@@ -171,17 +170,15 @@ describe('lifecycle recorder', () => {
     expect(context.emit).toHaveBeenCalledTimes(1);
     expect(context.emit).toHaveBeenLastCalledWith('visibility', {
       state: 'hidden',
-      focused: false,
       trigger: 'visibilitychange',
     });
 
-    // Capture focus at the visibility boundary, even if focus arrives later.
+    // Emit visibility without implying that the page has already gained focus.
     visibility.mockReturnValue('visible');
     document.dispatchEvent(new Event('visibilitychange'));
     expect(context.emit).toHaveBeenCalledTimes(2);
     expect(context.emit).toHaveBeenLastCalledWith('visibility', {
       state: 'visible',
-      focused: false,
       trigger: 'visibilitychange',
     });
     focused.mockReturnValue(true);

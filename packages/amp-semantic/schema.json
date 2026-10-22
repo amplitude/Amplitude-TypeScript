@@ -770,7 +770,10 @@
                 "state": {
                   "enum": ["hidden", "visible"]
                 },
-                "focused": { "type": "boolean" },
+                "focused": {
+                  "type": "boolean",
+                  "description": "Legacy observation-time focus snapshot; no longer emitted by visibility producers."
+                },
                 "trigger": { "enum": ["visibilitychange", "focus", "blur"] },
                 "tab_id": { "type": "string", "minLength": 1 },
                 "document_id": { "type": "string", "minLength": 1 },
