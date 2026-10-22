@@ -100,7 +100,6 @@ describe('Session Replay semantic integration', () => {
       payload: {
         v: 1 as const,
         state: 'hidden' as const,
-        trigger: 'visibilitychange' as const,
         tab_id: 'tab-test',
         document_id: 'document-test',
       },

@@ -180,9 +180,7 @@
         "v": 1,
         "state": "hidden",
         "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
-        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d",
-        "focused": false,
-        "trigger": "visibilitychange"
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
       }
     }
   },

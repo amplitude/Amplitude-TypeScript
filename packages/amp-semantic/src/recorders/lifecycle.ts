@@ -54,7 +54,6 @@ export const lifecycleRecorder: SemanticRecorder = {
         previous = state;
         context.emit('visibility', {
           state,
-          trigger: 'visibilitychange',
         });
       };
       document.addEventListener('visibilitychange', onVisibility, true);
