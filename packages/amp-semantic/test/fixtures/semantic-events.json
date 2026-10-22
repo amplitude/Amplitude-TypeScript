@@ -67,46 +67,6 @@
   },
   {
     "type": 5,
-    "timestamp": 1791112917278,
-    "data": {
-      "tag": "amp-semantic/page",
-      "payload": {
-        "v": 1,
-        "url": "/#/budgets",
-        "title": "Budgets \u00b7 Ledger",
-        "heading": "Budgets",
-        "nav": "hash",
-        "check": "change",
-        "controls": 6,
-        "empty": false,
-        "loading": true,
-        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
-        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
-      }
-    }
-  },
-  {
-    "type": 5,
-    "timestamp": 1791112919280,
-    "data": {
-      "tag": "amp-semantic/page",
-      "payload": {
-        "v": 1,
-        "url": "/#/budgets",
-        "title": "Budgets \u00b7 Ledger",
-        "heading": "Budgets",
-        "nav": "hash",
-        "check": "2s",
-        "controls": 11,
-        "empty": false,
-        "loading": false,
-        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
-        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
-      }
-    }
-  },
-  {
-    "type": 5,
     "timestamp": 1791112925702,
     "data": {
       "tag": "amp-semantic/field",

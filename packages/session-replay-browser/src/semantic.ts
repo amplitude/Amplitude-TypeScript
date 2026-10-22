@@ -14,7 +14,7 @@ export class ReplaySemanticAdapter {
   private config: SemanticCaptureConfig = { enabled: false };
 
   constructor(private readonly host: SemanticHost) {
-    this.capture = createSemanticCapture(this.config, { ...host, externalNavigation: true });
+    this.capture = createSemanticCapture(this.config, host);
   }
 
   prepare(config: SemanticCaptureConfig, sessionId: string | number): void {
@@ -38,7 +38,8 @@ export class ReplaySemanticAdapter {
     if (!this.config.enabled || this.ready) return;
     this.ready = true;
     this.capture.start();
-    if (this.capture.isActive() && this.config.families?.page !== false) {
+    // Navigation invalidates headings used by interactions without emitting a page event.
+    if (this.capture.isActive()) {
       this.navigationCleanup = subscribeToUrlChanges(this.host.window, () => undefined, {
         onNavigation: (reason) => this.capture.notify('navigation', reason),
       });

@@ -187,7 +187,6 @@ test('delivers real rrweb envelopes through replay transport with matching click
   );
   expect(contextPayload).toMatchObject(browserContext);
   await waitFor(page, 'recording', 'state', 'start');
-  await waitFor(page, 'page');
   await page.locator('#display-name').fill(privateValue);
   await page.locator('#email').fill(`${privateValue}@example.com`);
   await page.locator('#password').fill(privateValue);
@@ -200,7 +199,9 @@ test('delivers real rrweb envelopes through replay transport with matching click
   await page.locator('#close-dialog').click();
   await waitFor(page, 'dialog', 'state', 'closed');
   await page.locator('#navigate').click();
-  await waitFor(page, 'page', 'nav', 'push');
+  await expect(page).toHaveURL(/#\/accounts\/8812\?private=hidden$/);
+  await page.locator('#public-button').click();
+  await waitFor(page, 'click', 'key', 'public-target');
   const semantic = await assertValid(page);
   expect(semantic.some((event) => event.data.tag === 'amp-semantic/field')).toBe(true);
   const click = semantic.find(
@@ -218,7 +219,7 @@ test('delivers real rrweb envelopes through replay transport with matching click
   );
   expect(
     semantic
-      .filter((event) => event.data.tag === 'amp-semantic/page')
+      .filter((event) => event.data.tag === 'amp-semantic/click')
       .some((event) => String(event.data.payload?.url).includes('#/accounts/:id')),
   ).toBe(true);
   expect(JSON.stringify(semantic)).not.toContain('private=hidden');
@@ -227,7 +228,6 @@ test('delivers real rrweb envelopes through replay transport with matching click
 
 test('captures clicks without requiring a page change', async ({ page }) => {
   await open(page);
-  await waitFor(page, 'page');
   await page.locator('#no-change').click();
   await waitFor(page, 'click', 'key', 'no-change');
   await assertValid(page);
@@ -357,7 +357,9 @@ test('keeps tab identity across reloads and separates independent and opener-cre
   await open(page);
   const first = await identity(page);
   await page.locator('#navigate').click();
-  await waitFor(page, 'page', 'nav', 'push');
+  await expect(page).toHaveURL(/#\/accounts\/8812\?private=hidden$/);
+  await page.locator('#public-button').click();
+  await waitFor(page, 'click', 'key', 'public-target');
   expect(await identity(page)).toEqual(first);
   await page.reload();
   const reloaded = await identity(page);

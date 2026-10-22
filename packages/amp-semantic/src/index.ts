@@ -1,6 +1,5 @@
 import { createCapture } from './capture';
 import { interactionsRecorder } from './recorders/interactions';
-import { pageRecorder } from './recorders/page';
 import { feedbackRecorder } from './recorders/feedback';
 import { lifecycleRecorder } from './recorders/lifecycle';
 import { keysRecorder } from './recorders/keys';
@@ -10,7 +9,6 @@ import type { SemanticCaptureConfig, SemanticHost, SemanticRecorder } from './ty
 
 export {
   interactionsRecorder,
-  pageRecorder,
   feedbackRecorder,
   lifecycleRecorder,
   analyticsRecorder,
@@ -19,7 +17,6 @@ export {
 };
 export const defaultRecorders: readonly SemanticRecorder[] = [
   interactionsRecorder,
-  pageRecorder,
   feedbackRecorder,
   lifecycleRecorder,
   analyticsRecorder,

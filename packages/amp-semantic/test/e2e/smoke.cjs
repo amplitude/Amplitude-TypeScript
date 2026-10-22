@@ -96,15 +96,11 @@ const schema = require('../../schema.json');
     }
     assert(!JSON.stringify(result.events).includes('typed-secret'), 'Typed values leaked');
     assert(result.unchanged, 'Events emitted after teardown or while disabled');
-    for (const name of ['context', 'recording', 'click', 'page', 'field', 'submit', 'notice', 'dialog', 'amp-event'])
+    for (const name of ['context', 'recording', 'click', 'field', 'submit', 'notice', 'dialog', 'amp-event'])
       assert(
         result.events.some((event) => event.name === name),
         `Missing ${name}`,
       );
-    assert(
-      result.events.some((event) => event.name === 'page' && event.payload.nav === 'push'),
-      'Page recorder lost snapshot readiness',
-    );
     console.log(
       JSON.stringify({
         eventsValidated: result.events.length,
