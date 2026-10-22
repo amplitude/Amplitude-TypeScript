@@ -234,9 +234,9 @@ test('captures clicks without requiring a page change', async ({ page }) => {
 });
 
 for (const mask of ['light', 'medium', 'conservative']) {
-  test(`applies ${mask} replay masking and never includes typed values`, async ({ page }) => {
+  test(`applies ${mask} replay masking to field values`, async ({ page }) => {
     await open(page, { mask });
-    await page.locator('#display-name').fill(privateValue);
+    await page.locator('#display-name').fill('Public display name');
     await page.locator('#email').fill(`${privateValue}@example.com`);
     await page.locator('#password').fill(privateValue);
     await page.locator('#masked-button').click();
@@ -244,6 +244,8 @@ for (const mask of ['light', 'medium', 'conservative']) {
     await page.locator('#public-button').click();
     await waitFor(page, 'click', 'key', 'public-target');
     const semantic = await assertValid(page);
+    const fields = semantic.filter((event) => event.data.tag === 'amp-semantic/field');
+    expect(fields.some((event) => event.data.payload?.value === 'Public display name')).toBe(mask === 'light');
     const masked = semantic.find(
       (event) => event.data.tag === 'amp-semantic/click' && event.data.payload?.key === 'masked-target',
     );
@@ -260,6 +262,23 @@ for (const mask of ['light', 'medium', 'conservative']) {
     ).toBe(true);
   });
 }
+
+test('explicit unmask permits a native value and later masking omits it', async ({ page }) => {
+  await open(page, { mask: 'conservative' });
+  const input = page.locator('#display-name');
+  await input.evaluate((element) => element.classList.add('amp-unmask'));
+  await input.fill('Explicitly public');
+  await input.blur();
+  await waitFor(page, 'field', 'value', 'Explicitly public');
+  await input.evaluate((element) => element.classList.add('amp-mask'));
+  await input.fill(privateValue);
+  await input.blur();
+  await page.evaluate(() => window.semanticHarness.flush());
+  const semantic = await assertValid(page);
+  const fields = semantic.filter((event) => event.data.tag === 'amp-semantic/field');
+  expect(fields[fields.length - 1].data.payload).toMatchObject({ masked: true, value_state: 'filled' });
+  expect(fields[fields.length - 1].data.payload).not.toHaveProperty('value');
+});
 
 for (const [label, params] of [
   ['disabled', { enabled: 'false' }],
@@ -502,7 +521,7 @@ test('captures command-palette keys without ordinary typing or blocked inspector
   await page.locator('#public-button').focus();
   await page.keyboard.press('Control+k');
   await expect(page.locator('#command-palette')).toBeVisible();
-  await page.locator('#command-search').pressSequentially(privateValue);
+  await page.locator('#command-search').pressSequentially('Public command search');
   await page.keyboard.press('Escape');
   await expect(page.locator('#command-palette')).not.toBeVisible();
   await waitFor(page, 'keys', 'key', 'Escape');
@@ -511,6 +530,12 @@ test('captures command-palette keys without ordinary typing or blocked inspector
   await page.evaluate(() => window.semanticHarness.flush());
   const events = await assertValid(page);
   const keys = events.filter((event) => event.data.tag === 'amp-semantic/keys');
+  expect(JSON.stringify(keys)).not.toContain('Public command search');
+  expect(
+    events.some(
+      (event) => event.data.tag === 'amp-semantic/field' && event.data.payload?.value === 'Public command search',
+    ),
+  ).toBe(true);
   expect(keys.map((event) => event.data.payload?.key)).toEqual(['Ctrl+K', 'Escape']);
   expect(keys[0].data.payload?.target).toMatchObject({ id: expect.any(Number), role: 'button', name: 'Public action' });
   expect(keys[1].data.payload?.target).toMatchObject({ role: 'textbox' });

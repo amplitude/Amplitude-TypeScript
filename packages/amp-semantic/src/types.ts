@@ -74,6 +74,8 @@ export interface SemanticPayloads {
   field: TargetDescription & {
     kind: string;
     value_state: 'empty' | 'filled';
+    /** Unmasked native input/textarea value; omitted for sensitive and non-scalar controls. */
+    value?: string;
     checked?: boolean;
     valid: boolean;
     validity: string[];

@@ -11,12 +11,20 @@ test.each(examples.map((event) => [event.data.tag, event] as const))(
   },
 );
 
-test('schema rejects raw field values and unknown versions', () => {
+test('schema permits unbounded unmasked field values and rejects masked values and unknown versions', () => {
   const field = examples.find((event) => event.data.tag === 'amp-semantic/field');
   if (!field) throw new Error('field fixture missing');
-  expect(validate({ ...field, data: { ...field.data, payload: { ...field.data.payload, value: 'private' } } })).toBe(
-    false,
-  );
+  expect(
+    validate({ ...field, data: { ...field.data, payload: { ...field.data.payload, masked: true, value: 'private' } } }),
+  ).toBe(false);
+  for (const value of ['', 'public'.repeat(2000)]) {
+    expect(
+      validate({ ...field, data: { ...field.data, payload: { ...field.data.payload, masked: false, value } } }),
+    ).toBe(true);
+  }
+  expect(
+    validate({ ...field, data: { ...field.data, payload: { ...field.data.payload, masked: false, value: 42 } } }),
+  ).toBe(false);
   expect(validate({ ...field, data: { ...field.data, payload: { ...field.data.payload, v: 2 } } })).toBe(false);
 });
 
