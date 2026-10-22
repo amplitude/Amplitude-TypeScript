@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.51.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.5...@amplitude/session-replay-browser@1.51.6) (2026-10-22)
+
+
+### Bug Fixes
+
+* **session-replay:** upgrade `@amplitude/rrweb-*` to 2.1.5 ([SRC-125](https://linear.app/amplitude/issue/SRC-125/upgrade-session-replay-sdks-to-consume-amplituderrweb-215))
+
+
+
+
+
 ## [1.51.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.4...@amplitude/session-replay-browser@1.51.5) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
