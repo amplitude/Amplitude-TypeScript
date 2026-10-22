@@ -31,6 +31,84 @@ let noticeCount = 0;
 let truncated = false;
 const MAX_EVENTS = 10000;
 
+// Local help stays in the blocked inspector, outside captured page content.
+const eventGuide = {
+  context: {
+    description: 'Environment snapshot emitted with each rrweb full snapshot.',
+    fields:
+      'SDK, masking policy, viewport, device, language, user_agent, visibility_state and focused. These describe that moment, not continuous state.',
+    tryIt: 'Reload or resume recording to capture a new snapshot.',
+  },
+  click: {
+    description: 'A primary or middle click, including keyboard-activated clicks.',
+    fields:
+      'Target id, role, name and name_source; container, states, visibility, URL/heading, modifiers, keyboard and trusted. The id identifies a recorded DOM node, not a unique click.',
+    tryIt: 'Click Public action, Open confirmation, or Click with no change.',
+  },
+  field: {
+    description:
+      'A field state observed on change or focus leaving the field; unchanged observations may be deduplicated.',
+    fields:
+      'Target, kind, states, value_state, validity and masking. Checkbox/radio controls include checked; native input/textarea value appears only when the masking policy permits it. Password fields are excluded.',
+    tryIt: 'Edit Display name and leave the field, choose a Plan, or toggle Receive updates.',
+  },
+  submit: {
+    description: 'A form submission or a browser validation failure that prevents submission.',
+    fields:
+      'Form, submitter, valid, invalid_fields and prevented. prevented records whether an application handler canceled submission.',
+    tryIt: 'Click Save checkout with empty required fields, then fill them and try again.',
+  },
+  notice: {
+    description: 'Text appears or changes in an alert, status, log, or live region, detected from rrweb changes.',
+    fields:
+      'Region id, role, privacy-filtered text, visibility, container region and cause_click_ts. Updates are coalesced per region over 500 ms; a nearby click timestamp is correlation, not proof of causation.',
+    tryIt: 'Click Show notice or submit a valid checkout.',
+  },
+  dialog: {
+    description:
+      'A recorded dialog opens, closes, is removed, or changes hidden state. Existing dialogs are seeded silently at startup.',
+    fields:
+      'Dialog id, role, name/name_source, state, modal, visible and cause_click_ts. Removed dialogs retain their id but clear their name. CSS-only visibility changes are not tracked.',
+    tryIt: 'Open and close the confirmation or command palette.',
+  },
+  keys: {
+    description: 'Supported non-character keys and approved shortcuts; ordinary typing is excluded.',
+    fields: 'Canonical key or shortcut plus target role, name, name_source, id and states, subject to privacy rules.',
+    tryIt: 'Press Tab, Escape, Enter, or Ctrl/Cmd+K in the playground.',
+  },
+  'resource-error': {
+    description: 'An image, stylesheet, script, or font fails to load. Matching failures are grouped over 500 ms.',
+    fields:
+      'rt (img, css, script, font), count, and optional container and templated path. CSS parsing mistakes and incorrect visual styling are not load failures.',
+    tryIt: 'Click Trigger resource failures. Font failures may have no path or container.',
+  },
+  recording: {
+    description: 'The recorder starts, stops, pauses, or resumes.',
+    fields:
+      'state and reason explain the recording boundary. These do not themselves prove a replay gap or user inactivity.',
+    tryIt: 'Use Stop recording and Resume recording in this inspector.',
+  },
+  visibility: {
+    description: 'The document changes between visible and hidden.',
+    fields:
+      'state and trigger (visibilitychange). This is tab/document visibility, not element visibility or keyboard focus; blur/focus alone does not emit this event.',
+    tryIt:
+      'Switch away from this tab and return. Use Chrome to check native tab timing; embedded browsers may report different timing.',
+  },
+  lifecycle: {
+    description: 'The browser reports pagehide, pageshow, a back/forward-cache restore, freeze, or resume.',
+    fields:
+      'type identifies the lifecycle boundary. Browser support and delivery vary; freeze/resume are not guaranteed for each tab switch.',
+    tryIt: 'Navigate away and back to exercise page lifecycle. A reload resets this local event list.',
+  },
+  'amp-event': {
+    description:
+      'An allowlisted analytics signal (rage, dead or error click, or thrashed cursor) forwarded after analytics accepts it. Not wired into this test page yet.',
+    fields: 'event_type, insert_id, optional target id and allowlisted props.',
+    tryIt: 'No fixture currently emits this family; its absence here is expected.',
+  },
+};
+
 // Keep inspector controls and log updates outside recorded page content.
 const inspector = document.querySelector('#inspector').attachShadow({ mode: 'open' });
 inspector.innerHTML = `
@@ -44,6 +122,11 @@ inspector.innerHTML = `
     #status { padding: 10px; background: #edf5ef; border-radius: 6px; } #failure { color: #a0182c; white-space: pre-wrap; }
     #events { max-height: 270px; overflow: auto; display: grid; gap: 5px; } #events button { text-align: left; font: 12px ui-monospace, monospace; }
     pre { overflow: auto; max-height: 400px; min-height: 160px; background: #122033; color: #dce8ff; padding: 14px; border-radius: 7px; font: 12px/1.5 ui-monospace, monospace; }
+    details { margin: 14px 0; } summary { cursor: pointer; font: 600 14px/1.5 system-ui; }
+    #event-guide dl { margin: 12px 0; max-height: 330px; overflow: auto; }
+    #event-guide dt { font: 600 13px/1.5 ui-monospace, monospace; margin-top: 14px; }
+    #event-guide dd { margin: 5px 0 14px; font: 13px/1.5 system-ui; color: #526174; }
+    #event-description { padding: 10px 12px; border-left: 3px solid #8baee6; background: #f4f7fc; font: 13px/1.5 system-ui; white-space: pre-line; }
     small { font: 12px/1.5 system-ui; color: #526174; }
   </style>
   <section>
@@ -66,9 +149,14 @@ inspector.innerHTML = `
       <button id="start" type="button">Resume recording</button>
       <button id="export" type="button">Export semantic JSON</button>
     </div>
+    <details id="event-guide"><summary>What each event captures</summary>
+      <p>Events use rrweb type 5 with an amp-semantic/ tag. Shared fields: v is the schema version; tab_id identifies the tab and document_id the loaded document. Node IDs are scoped to the recording/document. Masked names or text may be null; blocked elements are excluded. Disabled families and sampling can suppress events.</p>
+      <dl></dl>
+    </details>
     <p id="counts"></p><p id="failure" role="alert"></p>
     <label>Event family <select id="filter"><option value="">All families</option></select></label>
     <div id="events" aria-label="Captured semantic events"></div>
+    <p id="event-description">Select an event for its trigger, fields, and an example to try.</p>
     <pre id="detail">Events appear after the SDK delivers a batch. Select one to inspect its rrweb envelope.</pre>
     <details><summary>Visibility timing diagnostics (local only)</summary>
       <p>Browser time is event creation time, not a guaranteed physical tab-switch time. Handler time is when this page runs the callback. These diagnostics are not emitted into replay.</p>
@@ -78,6 +166,19 @@ inspector.innerHTML = `
     <small>Schema validation runs on each received semantic event. Disabled capture should still deliver normal replay events. The analytics mirror is not wired into this SDK path yet. Export contains semantic events only.</small>
   </section>`;
 const ui = (selector) => inspector.querySelector(selector);
+for (const [family, guide] of Object.entries(eventGuide)) {
+  const term = document.createElement('dt');
+  term.textContent = `amp-semantic/${family}`;
+  const description = document.createElement('dd');
+  description.textContent = `${guide.description} ${guide.fields} Try it: ${guide.tryIt}`;
+  ui('#event-guide dl').append(term, description);
+}
+function describeEvent(event) {
+  const guide = eventGuide[event.data.tag?.replace('amp-semantic/', '')];
+  ui('#event-description').textContent = guide
+    ? `${guide.description}\nFields: ${guide.fields}\nTry it: ${guide.tryIt}`
+    : 'No description is available for this event family.';
+}
 ui('#enabled').value = String(config.enabled);
 ui('#mask').value = mask;
 ui('#sample-rate').value = String(config.sampleRate);
@@ -127,6 +228,7 @@ function render() {
       button.onclick = () => {
         selectedIndex = index;
         ui('#detail').textContent = JSON.stringify(event, null, 2);
+        describeEvent(event);
         showDeliveryTiming(event);
       };
       list.append(button);
@@ -134,6 +236,7 @@ function render() {
   if (semantic.length && selectedIndex < 0) {
     const latest = semantic[semantic.length - 1];
     ui('#detail').textContent = JSON.stringify(latest, null, 2);
+    describeEvent(latest);
     showDeliveryTiming(latest);
   }
   ui('#stop').disabled = !ready || !recording;
