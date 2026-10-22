@@ -4,6 +4,7 @@ import {
   BrowserConfig,
   ILogger,
   clearPageViewState,
+  clearSdkInitializationOffset,
   getOrCreatePageViewId,
 } from '@amplitude/analytics-core';
 import { createMockBrowserClient } from '../mock-browser-client';
@@ -826,6 +827,57 @@ describe('fireViewportContentUpdated - early return when no changes', () => {
       }),
     );
     expect(elementExposedInSentEvents.has('element-2')).toBe(true);
+  });
+
+  test('should keep the SDK initialization offset from the first sample', () => {
+    clearSdkInitializationOffset();
+    jest.spyOn(performance, 'now').mockReturnValue(1800.9);
+    const trackSpy = jest.spyOn(mockAmplitude, 'track');
+    const currentElementExposed = new Set<string>(['element-1']);
+    const elementExposedForPage = new Set<string>(['element-1']);
+
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      elementExposedInSentEvents: new Set(),
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: undefined, maxY: undefined, minY: undefined },
+      apiKey: 'viewport-api',
+    });
+
+    expect(trackSpy).toHaveBeenCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] SDK Initialization Offset': 1800,
+      }),
+    );
+
+    jest.spyOn(performance, 'now').mockReturnValue(9000);
+    currentElementExposed.add('element-2');
+    elementExposedForPage.add('element-2');
+    fireViewportContentUpdated({
+      amplitude: mockAmplitude,
+      scrollTracker: mockScrollTracker,
+      currentElementExposed,
+      elementExposedForPage,
+      elementExposedInSentEvents: new Set(['element-1']),
+      exposureTracker: undefined,
+      isPageEnd: false,
+      lastScroll: { maxX: 100, maxY: 200, minY: 0 },
+      apiKey: 'viewport-api',
+    });
+
+    expect(trackSpy).toHaveBeenLastCalledWith(
+      '[Amplitude] Viewport Content Updated',
+      expect.objectContaining({
+        '[Amplitude] Element Exposed': ['element-2'],
+        '[Amplitude] SDK Initialization Offset': 1800,
+      }),
+    );
+    clearSdkInitializationOffset();
   });
 });
 

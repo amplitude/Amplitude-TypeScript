@@ -27,6 +27,11 @@ export {
   getCurrentPageViewId,
   clearPageViewState,
 } from './page-view-id';
+export {
+  AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET,
+  getSdkInitializationOffset,
+  clearSdkInitializationOffset,
+} from './sdk-initialization-offset';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
