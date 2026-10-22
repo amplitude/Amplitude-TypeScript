@@ -346,8 +346,8 @@ test('transports only visibility boundaries during a hidden-visible-focus sequen
   expect(
     events.filter((event) => event.data.tag === 'amp-semantic/visibility').map((event) => event.data.payload),
   ).toEqual([
-    { v: 1, ...initial, state: 'hidden', focused: false, trigger: 'visibilitychange' },
-    { v: 1, ...initial, state: 'visible', focused: false, trigger: 'visibilitychange' },
+    { v: 1, ...initial, state: 'hidden', trigger: 'visibilitychange' },
+    { v: 1, ...initial, state: 'visible', trigger: 'visibilitychange' },
   ]);
 });
 

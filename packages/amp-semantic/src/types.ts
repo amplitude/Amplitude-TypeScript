@@ -107,7 +107,6 @@ export interface SemanticPayloads {
   recording: RecordingSignal;
   visibility: {
     state: 'hidden' | 'visible';
-    focused: boolean;
     trigger: 'visibilitychange';
   };
   lifecycle: { type: 'pagehide' | 'pageshow' | 'pageshow_bfcache' | 'freeze' | 'resume' };

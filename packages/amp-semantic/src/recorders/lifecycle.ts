@@ -53,7 +53,6 @@ export const lifecycleRecorder: SemanticRecorder = {
         previous = state;
         context.emit('visibility', {
           state,
-          focused: document.hasFocus(),
           trigger: 'visibilitychange',
         });
       };
