@@ -32,6 +32,22 @@ describe('ReplaySemanticAdapter', () => {
     jest.mocked(subscribeToUrlChanges).mockReturnValue(unsubscribe);
   });
 
+  test('forwards native clicks only while the recorder is ready', () => {
+    const adapter = new ReplaySemanticAdapter(host);
+    const event = new MouseEvent('click', { ctrlKey: true });
+    adapter.prepare({ enabled: true }, 1);
+    adapter.click(event);
+    expect(capture.notify).not.toHaveBeenCalled();
+    adapter.recordingReady();
+    capture.notify.mockClear();
+    adapter.click(event);
+    expect(capture.notify).toHaveBeenCalledWith('click', event);
+    adapter.stop();
+    capture.notify.mockClear();
+    adapter.click(event);
+    expect(capture.notify).not.toHaveBeenCalled();
+  });
+
   test('defers initial signals until rrweb returns and emits one context per snapshot', () => {
     const adapter = new ReplaySemanticAdapter(host);
     adapter.prepare({ enabled: true }, 1);

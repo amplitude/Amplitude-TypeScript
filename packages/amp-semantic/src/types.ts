@@ -178,6 +178,8 @@ export interface SemanticHost {
   getSelector?: (element: Element) => string | null;
   /** True when the host forwards native clicks via notify('click', event). */
   externalClicks?: boolean;
+  /** Override when the host supplies primary clicks but not auxclick. Defaults to externalClicks. */
+  externalAuxClicks?: boolean;
   /** True when the host forwards navigation; otherwise the page recorder tracks it. */
   externalNavigation?: boolean;
   inlineStylesheet?: boolean;

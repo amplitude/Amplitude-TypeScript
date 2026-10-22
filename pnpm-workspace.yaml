@@ -42,3 +42,5 @@ trustPolicyExclude:
   - 'rollup@2.80.0'
   - 'semver@5.7.2'
   - 'semver@6.3.1'
+patchedDependencies:
+  '@amplitude/rrweb-record@2.0.0-alpha.40': patches/@amplitude__rrweb-record@2.0.0-alpha.40.patch

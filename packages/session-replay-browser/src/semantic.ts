@@ -48,6 +48,10 @@ export class ReplaySemanticAdapter {
     for (let i = 0; i < pending; i++) this.snapshot();
   }
 
+  click(event: MouseEvent): void {
+    if (this.ready) this.capture.notify('click', event);
+  }
+
   snapshot(): void {
     if (!this.config.enabled) return;
     if (!this.ready) {

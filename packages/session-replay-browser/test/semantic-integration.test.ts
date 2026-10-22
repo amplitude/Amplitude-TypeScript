@@ -27,13 +27,14 @@ describe('Session Replay semantic integration', () => {
     jest.mocked(createSemanticCapture).mockReturnValue(capture);
   });
 
-  function prepare(enabled: boolean) {
+  function prepare(enabled: boolean, supportsNativeMouseInteraction = false) {
     const sdk = new SessionReplay();
     sdk.config = {
       semanticCapture: { enabled },
       privacyConfig: { defaultMaskLevel: 'conservative' },
     } as SessionReplayJoinedConfig;
     const record = Object.assign(jest.fn(), {
+      supportsNativeMouseInteraction,
       addCustomEvent: jest.fn(),
       takeFullSnapshot: jest.fn(),
       mirror: { getId: jest.fn(() => 42), getNode: jest.fn() },
@@ -46,6 +47,13 @@ describe('Session Replay semantic integration', () => {
     internal.prepareSemanticCapture(sdk.config, 1);
     return { sdk, record, internal };
   }
+
+  test.each([true, false])('uses native rrweb clicks only when the recorder supports them (%s)', (supported) => {
+    prepare(true, supported);
+    const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
+    expect(host.externalClicks).toBe(supported);
+    expect(host.externalAuxClicks).toBe(false);
+  });
 
   test('disabled capture never constructs the semantic runtime', () => {
     prepare(false);

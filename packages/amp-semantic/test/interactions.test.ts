@@ -184,6 +184,19 @@ describe('interactions recorder', () => {
     expect(h.signals.size).toBe(0);
   });
 
+  it('retains middle clicks when the host forwards only primary clicks', () => {
+    document.body.innerHTML = '<button>Save</button>';
+    const h = harness();
+    h.context.host.externalClicks = true;
+    h.context.host.externalAuxClicks = false;
+    const add = jest.spyOn(document, 'addEventListener');
+    cleanup = h.start();
+    expect(add.mock.calls.map(([type]) => type)).not.toContain('click');
+    expect(add.mock.calls.map(([type]) => type)).toContain('auxclick');
+    document.querySelector('button')!.dispatchEvent(new MouseEvent('auxclick', { bubbles: true, button: 1 }));
+    expect(h.emitted).toHaveLength(1);
+  });
+
   it.each(['light', 'medium', 'conservative'] as const)(
     'never captures typed values at %s masking',
     (defaultMaskLevel) => {
