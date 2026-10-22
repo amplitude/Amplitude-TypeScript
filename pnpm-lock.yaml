@@ -8,9 +8,6 @@ overrides:
   typescript: ^4.9.4
   js-cookie: ^3.0.7
 
-patchedDependencies:
-  '@amplitude/rrweb-record@2.0.0-alpha.40': c11277f2aa3b75babad0a9dd81818d3fa55af9702c25f8acdc696aa13539ec04
-
 importers:
   .:
     dependencies:
@@ -866,11 +863,11 @@ importers:
         specifier: workspace:*
         version: link:../analytics-types
       '@amplitude/rrweb-plugin-console-record':
-        specifier: 2.0.0-alpha.40
-        version: 2.0.0-alpha.40(@amplitude/rrweb@2.0.0-alpha.40)
+        specifier: 2.1.5
+        version: 2.1.5(@amplitude/rrweb@2.1.5)
       '@amplitude/rrweb-record':
-        specifier: 2.0.0-alpha.40
-        version: 2.0.0-alpha.40(patch_hash=c11277f2aa3b75babad0a9dd81818d3fa55af9702c25f8acdc696aa13539ec04)
+        specifier: 2.1.5
+        version: 2.1.5
       '@amplitude/session-replay-browser':
         specifier: workspace:*
         version: link:../session-replay-browser
@@ -1100,14 +1097,14 @@ importers:
         specifier: workspace:*
         version: link:../analytics-types
       '@amplitude/rrweb-plugin-console-record':
-        specifier: 2.0.0-alpha.40
-        version: 2.0.0-alpha.40(@amplitude/rrweb@2.0.0-alpha.40)
+        specifier: 2.1.5
+        version: 2.1.5(@amplitude/rrweb@2.1.5)
       '@amplitude/rrweb-record':
-        specifier: 2.0.0-alpha.40
-        version: 2.0.0-alpha.40(patch_hash=c11277f2aa3b75babad0a9dd81818d3fa55af9702c25f8acdc696aa13539ec04)
+        specifier: 2.1.5
+        version: 2.1.5
       '@amplitude/rrweb-types':
-        specifier: 2.0.0-alpha.40
-        version: 2.0.0-alpha.40
+        specifier: 2.1.5
+        version: 2.1.5
       '@amplitude/session-replay-dom-privacy':
         specifier: workspace:*
         version: link:../session-replay-dom-privacy
@@ -12915,6 +12912,36 @@ packages:
       use-sync-external-store:
         optional: true
 
+  '@amplitude/rrdom@2.1.5':
+    resolution:
+      integrity: sha512-dKDxmjLiJ/J5cCOv65ux84qrJ5XnNPvR/5FnbNHI795fz6vqXjwrYWjZM9G0xmsCRldDvKBvdZwd9oZDSbZW8g==
+
+  '@amplitude/rrweb-plugin-console-record@2.1.5':
+    resolution:
+      integrity: sha512-VpnisarxAu8a4qfWHPdPgwXuJlPTPpLYoprWTPA6O8IlgmB4qOvNKcJYyXskAWdVzQlje5sawZv1iALo0mt7mg==
+    peerDependencies:
+      '@amplitude/rrweb': ^2.1.0
+
+  '@amplitude/rrweb-record@2.1.5':
+    resolution:
+      integrity: sha512-e+atJA8T8POwb2X7hOZYXmB8QOo96kXtbdOgiF5DZh/louNVsHvTGRPIW6GoQacxJSh2vvzmkNEHpUpv8p4TGA==
+
+  '@amplitude/rrweb-snapshot@2.1.5':
+    resolution:
+      integrity: sha512-6X/4JpSDRQZ0klB9Xg1g89/0Kd234pAg3lHexYhc7VgjJ9/FBXU5xKLzUd3sKfvZb9fv0yz8N+4R0+kRNwGX+w==
+
+  '@amplitude/rrweb-types@2.1.5':
+    resolution:
+      integrity: sha512-wP+LTKYQbZtwSzZQXfxNLFKjJdIfS/7ACYvfzuzmMUwddAvPTydq+n/mvR3gkJdK8PtLTDHOpR8s2sVV48IFog==
+
+  '@amplitude/rrweb-utils@2.1.2':
+    resolution:
+      integrity: sha512-FRiJj7h1ziiWqW9hbmr1PfQoCgpX7zxhqVdlVaFE9NkqzXlePmStjOgkBLNnz/WbBD0A4pZp26o9Cy0he47Qwg==
+
+  '@amplitude/rrweb@2.1.5':
+    resolution:
+      integrity: sha512-TRUxRSojYKM3k4ejWDUt20t5OW/KLr+Dd10eKtHZq7q12BdVoFEQdC88VvWCkoKvoSEbRiLcLU6CX/ilmf1SIQ==
+
 snapshots:
   '@amplitude/analytics-browser@2.44.1':
     dependencies:
@@ -13062,7 +13089,7 @@ snapshots:
       '@amplitude/analytics-core': 2.50.0
       '@amplitude/analytics-types': 2.11.1
       '@amplitude/rrweb-plugin-console-record': 2.0.0-alpha.40(@amplitude/rrweb@2.0.0-alpha.40)
-      '@amplitude/rrweb-record': 2.0.0-alpha.40(patch_hash=c11277f2aa3b75babad0a9dd81818d3fa55af9702c25f8acdc696aa13539ec04)
+      '@amplitude/rrweb-record': 2.0.0-alpha.40
       '@amplitude/session-replay-browser': 1.46.1-publish-sr-targeting.0(@amplitude/rrweb@2.0.0-alpha.40)(rollup@4.60.1)
       idb-keyval: 6.2.2
       tslib: 2.8.1
@@ -13089,7 +13116,7 @@ snapshots:
     dependencies:
       '@amplitude/rrweb': 2.0.0-alpha.40
 
-  '@amplitude/rrweb-record@2.0.0-alpha.40(patch_hash=c11277f2aa3b75babad0a9dd81818d3fa55af9702c25f8acdc696aa13539ec04)':
+  '@amplitude/rrweb-record@2.0.0-alpha.40':
     dependencies:
       '@amplitude/rrweb': 2.0.0-alpha.40
       '@amplitude/rrweb-types': 2.0.0-alpha.40
@@ -13121,7 +13148,7 @@ snapshots:
       '@amplitude/experiment-core': 0.7.2
       '@amplitude/rrweb-packer': 2.0.0-alpha.40
       '@amplitude/rrweb-plugin-console-record': 2.0.0-alpha.40(@amplitude/rrweb@2.0.0-alpha.40)
-      '@amplitude/rrweb-record': 2.0.0-alpha.40(patch_hash=c11277f2aa3b75babad0a9dd81818d3fa55af9702c25f8acdc696aa13539ec04)
+      '@amplitude/rrweb-record': 2.0.0-alpha.40
       '@amplitude/rrweb-types': 2.0.0-alpha.40
       '@amplitude/rrweb-utils': 2.0.0-alpha.40
       '@amplitude/targeting': 0.3.0-publish-sr-targeting.0
@@ -25734,3 +25761,35 @@ snapshots:
       '@types/react': 18.3.26
       react: 18.3.1
       use-sync-external-store: 1.6.0(react@18.3.1)
+
+  '@amplitude/rrdom@2.1.5':
+    dependencies:
+      '@amplitude/rrweb-snapshot': 2.1.5
+
+  '@amplitude/rrweb-plugin-console-record@2.1.5(@amplitude/rrweb@2.1.5)':
+    dependencies:
+      '@amplitude/rrweb': 2.1.5
+
+  '@amplitude/rrweb-record@2.1.5':
+    dependencies:
+      '@amplitude/rrweb': 2.1.5
+      '@amplitude/rrweb-types': 2.1.5
+
+  '@amplitude/rrweb-snapshot@2.1.5':
+    dependencies:
+      postcss: 8.5.13
+
+  '@amplitude/rrweb-types@2.1.5': {}
+
+  '@amplitude/rrweb-utils@2.1.2': {}
+
+  '@amplitude/rrweb@2.1.5':
+    dependencies:
+      '@amplitude/rrdom': 2.1.5
+      '@amplitude/rrweb-snapshot': 2.1.5
+      '@amplitude/rrweb-types': 2.1.5
+      '@amplitude/rrweb-utils': 2.1.2
+      '@types/css-font-loading-module': 0.0.7
+      '@xstate/fsm': 1.6.5
+      base64-arraybuffer: 1.0.2
+      mitt: 3.0.1

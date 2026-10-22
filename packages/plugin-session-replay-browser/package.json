@@ -41,8 +41,8 @@
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
     "@amplitude/analytics-types": "workspace:*",
-    "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.40",
-    "@amplitude/rrweb-record": "2.0.0-alpha.40",
+    "@amplitude/rrweb-plugin-console-record": "2.1.5",
+    "@amplitude/rrweb-record": "2.1.5",
     "@amplitude/session-replay-browser": "workspace:*",
     "tslib": "^2.4.1"
   },
