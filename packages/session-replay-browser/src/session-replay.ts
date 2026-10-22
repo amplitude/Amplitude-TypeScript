@@ -984,10 +984,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
         : undefined;
     const sharedSemanticClicks = config.semanticCapture?.enabled && recordFunction.supportsNativeMouseInteraction;
     if (sharedSemanticClicks && !this.clickHandler) this.clickHandler = new ClickHandler(this.loggerProvider);
+    const mouseInteraction = sharedSemanticClicks
+      ? this.clickHandler?.createSharedHook(heatmapHook, (event) => this.semanticAdapter?.click(event))
+      : heatmapHook;
     const hooks = {
-      mouseInteraction: sharedSemanticClicks
-        ? this.clickHandler?.createSharedHook(heatmapHook, (event) => this.semanticAdapter?.click(event))
-        : heatmapHook,
+      ...(mouseInteraction ? { mouseInteraction } : {}),
       ...(interactionConfig?.enabled ? { scroll: this.scrollHook } : {}),
     };
 
