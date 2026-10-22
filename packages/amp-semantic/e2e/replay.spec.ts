@@ -406,3 +406,62 @@ test('storage-blocked capture still emits stable identity without claiming reloa
   expect(second.tab_id).not.toBe(first.tab_id);
   expect(second.document_id).not.toBe(first.document_id);
 });
+
+test('captures command-palette keys without ordinary typing or blocked inspector shortcuts', async ({ page }) => {
+  await open(page, { mask: 'light' });
+  await page.locator('#public-button').focus();
+  await page.keyboard.press('Control+k');
+  await expect(page.locator('#command-palette')).toBeVisible();
+  await page.locator('#command-search').pressSequentially(privateValue);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#command-palette')).not.toBeVisible();
+  await waitFor(page, 'keys', 'key', 'Escape');
+  await page.locator('#disabled').focus();
+  await page.keyboard.press('Control+k');
+  await page.evaluate(() => window.semanticHarness.flush());
+  const events = await assertValid(page);
+  const keys = events.filter((event) => event.data.tag === 'amp-semantic/keys');
+  expect(keys.map((event) => event.data.payload?.key)).toEqual(['Ctrl+K', 'Escape']);
+  expect(keys[0].data.payload?.target).toMatchObject({ id: expect.any(Number), role: 'button', name: 'Public action' });
+  expect(keys[1].data.payload?.target).toMatchObject({ role: 'textbox' });
+});
+
+for (const worker of [false, true])
+  test(`captures failed resources with compact payloads (worker=${String(worker)})`, async ({ page }) => {
+    // Verify the playground's actual local missing-resource URLs as well as aborted requests.
+    if (worker) await page.route('**/api/status/404/semantic-missing/**', (route) => route.abort('failed'));
+    await open(page, { mask: 'light', worker: String(worker) });
+    await page.locator('#fail-resources').click();
+    for (const rt of ['img', 'css', 'script', 'font']) await waitFor(page, 'resource-error', 'rt', rt);
+    const events = await assertValid(page);
+    const resources = events.filter((event) => event.data.tag === 'amp-semantic/resource-error');
+    expect(resources.find((event) => event.data.payload?.rt === 'img')?.data.payload).toMatchObject({
+      count: 2,
+      path: '/api/status/:id/semantic-missing/:id/image.png',
+    });
+    const font = resources.find((event) => event.data.payload?.rt === 'font')?.data.payload;
+    expect(font).toMatchObject({ count: 1 });
+    expect(font).not.toHaveProperty('path');
+    expect(font).not.toHaveProperty('container');
+    expect(JSON.stringify(resources)).not.toContain('RESOURCE_QUERY_SECRET');
+    expect(
+      resources.every(
+        (event) => !('kind' in (event.data.payload || {})) && !('resource_type' in (event.data.payload || {})),
+      ),
+    ).toBe(true);
+  });
+
+test('new families respect disabled capture and individual family toggles', async ({ page }) => {
+  await page.route('**/api/status/404/semantic-missing/**', (route) => route.abort('failed'));
+  await open(page, { disabled: 'keys,resource-error' });
+  await page.locator('#public-button').focus();
+  await page.keyboard.press('Tab');
+  await page.locator('#fail-resources').click();
+  await page.waitForTimeout(700);
+  await page.evaluate(() => window.semanticHarness.flush());
+  expect(
+    (await assertValid(page)).filter((event) =>
+      ['amp-semantic/keys', 'amp-semantic/resource-error'].includes(event.data.tag || ''),
+    ),
+  ).toEqual([]);
+});

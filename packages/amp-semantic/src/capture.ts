@@ -14,6 +14,8 @@ import {
 
 export const SEMANTIC_CAPS: Record<SemanticFamily, number> = {
   click: 2000,
+  keys: 1000,
+  'resource-error': 200,
   page: 500,
   field: 1000,
   submit: 300,

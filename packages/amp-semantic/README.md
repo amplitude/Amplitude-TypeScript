@@ -93,7 +93,7 @@ To add an event family, add its payload to `SemanticPayloads`, its session limit
 
 All captured text uses the replay privacy policy, including referenced labels and nested text sources. Blocked elements are skipped, masked text is `null`, and typed values and browser validation messages are never included. Text traversal is bounded and fails closed when its budget is exceeded. Unsupported URL schemes are discarded; HTTP(S) paths and hash routes are templated without queries or secondary fragments. Detached dialog names are cleared because their former masking ancestry cannot safely be reconstructed.
 
-Recorders include context, clicks, page identity/checks, field state, form submissions, notices, dialogs, recording state, visibility, lifecycle, click outcomes, and an accepted-analytics-event mirror. Click outcomes reuse autocapture's mutation/navigation definition and observer categories. They are suppressed when dead/error frustration capture is available.
+Recorders include context, clicks, keys, resource load failures, page identity/checks, field state, form submissions, notices, dialogs, recording state, visibility, lifecycle, click outcomes, and an accepted-analytics-event mirror. Click outcomes reuse autocapture's mutation/navigation definition and observer categories. They are suppressed when dead/error frustration capture is available.
 
 ## Remaining integration and release work
 
@@ -141,3 +141,31 @@ node packages/amp-semantic/test/e2e/smoke.cjs
 ```
 
 The smoke check uses the workspace's Vite and Playwright installations. It validates actual emitted events against the schema and reports measured click-dispatch p95 for its fixture.
+
+
+## Keys and resource errors
+
+`keys` emits `{ key, target: { id, role, name } }` with common identity/version fields. It allows
+Escape, Enter, Tab, arrows, Home/End, PageUp/PageDown, F1–F12 and Ctrl/Meta+K/P/F (optionally Shift).
+Modifier prefixes are canonical. Ordinary typing, Backspace/Delete, repeat, IME/composition,
+AltGraph, password/hidden inputs, and blocked targets are excluded. Names use shared masking;
+control values and editable text are never names. Browser/OS-intercepted shortcuts are unavailable.
+The target is the actual DOM key target, not an inferred cause of a dialog transition.
+
+`resource-error` emits `{ rt, count, container?, path? }`, where `rt` is img/css/font/script. Only
+observed load failures are captured, not runtime exceptions or fetch/XHR. Identical resource type,
+templated path, and container are aggregated over 500 ms; 100 pending groups force an early flush.
+Counts saturate at 65,535. Hidden/pagehide flushes immediately; stop/disable discards pending groups.
+The rrweb timestamp is batch emission time. Do not infer exact click attribution from that timestamp.
+Paths omit origins, queries and fragments; data/blob/invalid/over-200-character paths are omitted.
+Detached/blocked elements are dropped and container masking is checked again at emission.
+
+FontFaceSet loadingerror supplies a failed-face count; font URLs and affected containers are not
+available, so those fields are omitted. Font family names are never sent. Document-level font counts
+cannot attribute or exclude a failure specific to a blocked region. Element errors in shadow roots
+and other frame documents, and failures before capture starts, are outside this recorder's coverage.
+There are no retrospective requests, polling, or DOM/CSS scans.
+
+Caps are 1,000 keys and 200 resource-error groups per session. Disable either independently with
+`families: { keys: false, 'resource-error': false }`. The local playground has a command palette
+(Ctrl/Cmd+K, Escape) and a button that triggers real missing local image/CSS/script/font requests.

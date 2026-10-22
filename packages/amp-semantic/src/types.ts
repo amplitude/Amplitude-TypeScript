@@ -64,6 +64,13 @@ export interface SemanticPayloads {
     modifiers: string[];
     trusted: boolean;
   };
+  keys: { key: string; target: TargetDescription };
+  'resource-error': {
+    rt: 'img' | 'css' | 'font' | 'script';
+    count: number;
+    container?: TargetDescription;
+    path?: string;
+  };
   page: {
     url: string;
     title: string | null;

@@ -56,3 +56,26 @@ test('visibility accepts legacy state-only events and validates focus observatio
     expect(validate({ ...event, data: { ...event.data, payload: { ...event.data.payload, ...invalid } } })).toBe(false);
   }
 });
+
+test('new family schemas reject typed keys, verbose resource fields, and invalid counts', () => {
+  const keys = examples.find((event) => event.data.tag === 'amp-semantic/keys');
+  const resource = examples.find((event) => event.data.tag === 'amp-semantic/resource-error');
+  if (!keys || !resource) throw new Error('new family fixtures missing');
+  for (const key of ['a', 'PRIVATE', 'Ctrl+S', 'Alt+k', 'Dead']) {
+    expect(validate({ ...keys, data: { ...keys.data, payload: { ...keys.data.payload, key } } })).toBe(false);
+  }
+  for (const update of [
+    { rt: 'xhr' },
+    { kind: 'img' },
+    { resource_type: 'img' },
+    { count: 0 },
+    { count: 1.5 },
+    { count: 65536 },
+    { path: '/image.png?secret=value' },
+    { path: 'https://example.com/image.png' },
+  ]) {
+    expect(
+      validate({ ...resource, data: { ...resource.data, payload: { ...resource.data.payload, ...update } } }),
+    ).toBe(false);
+  }
+});
