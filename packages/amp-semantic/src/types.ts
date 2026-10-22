@@ -84,6 +84,7 @@ export interface SemanticPayloads {
   field: TargetDescription & {
     kind: string;
     value_state: 'empty' | 'filled';
+    checked?: boolean;
     valid: boolean;
     validity: string[];
     masked: boolean;

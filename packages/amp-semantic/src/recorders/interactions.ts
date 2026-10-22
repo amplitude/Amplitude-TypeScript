@@ -173,6 +173,9 @@ export const interactionsRecorder: SemanticRecorder = {
         value_state: (isFormControl(element) ? element.value.length > 0 : (element.textContent?.length ?? 0) > 0)
           ? 'filled'
           : 'empty',
+        ...(element.tagName === 'INPUT' && ['checkbox', 'radio'].includes((element as HTMLInputElement).type)
+          ? { checked: (element as HTMLInputElement).checked }
+          : {}),
         ...validityOf(element),
         masked,
         option_label: optionLabel(context, element, masked),

@@ -325,11 +325,18 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
     states: (element) => {
       const states: string[] = [];
       const native = element as HTMLInputElement & HTMLOptionElement;
+      const mixed =
+        (element.tagName === 'INPUT' && native.type === 'checkbox' && native.indeterminate) ||
+        element.getAttribute('aria-checked') === 'mixed' ||
+        element.getAttribute('aria-pressed') === 'mixed';
       for (const [state, yes] of Object.entries({
         disabled: native.disabled || element.getAttribute('aria-disabled') === 'true',
         required: native.required || element.getAttribute('aria-required') === 'true',
         invalid: element.getAttribute('aria-invalid') === 'true',
-        checked: native.checked || element.getAttribute('aria-checked') === 'true',
+        checked: !mixed && (native.checked || element.getAttribute('aria-checked') === 'true'),
+        mixed,
+        busy: element.getAttribute('aria-busy') === 'true',
+        open: (element.tagName === 'DETAILS' || element.tagName === 'DIALOG') && element.hasAttribute('open'),
         expanded: element.getAttribute('aria-expanded') === 'true',
         collapsed: element.getAttribute('aria-expanded') === 'false',
         selected: native.selected || element.getAttribute('aria-selected') === 'true',

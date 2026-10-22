@@ -28,6 +28,14 @@ The adapter emits synchronously through `recordFunction.addCustomEvent`, avoidin
 
 ## Semantic identity and visibility
 
+Click `states` includes `mixed` (native checkbox indeterminate or ARIA checked/pressed mixed),
+`busy` (the target's aria-busy), and `open` (native details/dialog), alongside existing states.
+Mixed observations omit the checked token. Field events include optional `checked: true | false`
+for native checkbox/radio controls, including masked controls; blocked controls remain excluded.
+Other field types omit it, and older events without it mean unknown. These reads use existing
+event handlers, with no extra observers, scans, or layout checks. Radio peers and silent programmatic
+state changes are not continuously tracked. `value_state` is not checkbox selection state.
+
 Every new semantic payload includes `tab_id` and `document_id`. The capture runtime stamps these
 fields centrally, including when the context family is disabled. The host can inject `getIdentity()`;
 without it, the package uses shared in-memory IDs for its host document, with no storage or listeners.

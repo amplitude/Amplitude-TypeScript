@@ -16,6 +16,33 @@ describe('shared privacy helpers', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
   });
+  test('reads mixed, busy and native open states without treating mixed as checked', () => {
+    const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true;
+    checkbox.indeterminate = true;
+    expect(helpers.states(checkbox)).toEqual(['mixed']);
+    checkbox.indeterminate = false;
+    expect(helpers.states(checkbox)).toEqual(['checked']);
+    checkbox.checked = false;
+    expect(helpers.states(checkbox)).toEqual([]);
+    const control = document.createElement('button');
+    control.setAttribute('aria-pressed', 'mixed');
+    control.setAttribute('aria-busy', 'true');
+    expect(helpers.states(control)).toEqual(['mixed', 'busy']);
+    control.removeAttribute('aria-pressed');
+    control.setAttribute('aria-checked', 'mixed');
+    control.setAttribute('aria-busy', 'false');
+    expect(helpers.states(control)).toEqual(['mixed']);
+    for (const tag of ['dialog', 'details', 'div']) {
+      const element = document.createElement(tag);
+      element.setAttribute('open', '');
+      expect(helpers.states(element)).toEqual(tag === 'div' ? [] : ['open']);
+      element.removeAttribute('open');
+      expect(helpers.states(element)).toEqual([]);
+    }
+  });
   test.each(['light', 'medium', 'conservative'] as const)('uses replay policy at %s level', (defaultMaskLevel) => {
     document.body.innerHTML =
       '<button>Save</button><input aria-label="Email" type="email" value="private@example.com">';
