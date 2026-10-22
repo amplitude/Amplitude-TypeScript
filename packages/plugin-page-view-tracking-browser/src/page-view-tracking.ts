@@ -15,6 +15,8 @@ import {
   omitUndefined,
   getCurrentPageViewId,
   getOrCreatePageViewId,
+  AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET,
+  getSdkInitializationOffset,
 } from '@amplitude/analytics-core';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 
@@ -47,6 +49,11 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   };
 
   const createPageViewEvent = async (pageViewId: string | undefined): Promise<Event> => {
+    // Scroll and viewport are read before the campaign await so a later change stays off this event.
+    // The init offset was sampled when the plugin was installed, so this read does not move it.
+    const minPageY = readMinPageY();
+    const viewportWidth = readViewportWidth();
+    const sdkInitializationOffset = getSdkInitializationOffset(localConfig.apiKey);
     /* istanbul ignore next */
     const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
     return {
@@ -60,6 +67,9 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
         '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
         '[Amplitude] Page URL': locationHREF.split('?')[0],
+        '[Amplitude] Min Page Y': minPageY,
+        '[Amplitude] Viewport Width': viewportWidth,
+        [AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET]: sdkInitializationOffset,
         '[Amplitude] Page View ID': pageViewId,
       },
     };
@@ -111,6 +121,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
 
       isTracking = true;
+      // Freeze the navigation-to-init offset now, including when the first page view is deferred.
+      getSdkInitializationOffset(localConfig.apiKey);
       if (globalScope) {
         // init session storage
         try {
@@ -192,6 +204,25 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
 /* istanbul ignore next */
 const currentHref = (): string => (typeof location !== 'undefined' && location.href) || '';
+
+/** Top of the viewport (`scrollY`) when the page view event is created. */
+const readMinPageY = (): number => {
+  const scope = getGlobalScope();
+  if (!scope) {
+    return 0;
+  }
+  const offset = scope.scrollY ?? scope.pageYOffset ?? 0;
+  return Math.floor(offset);
+};
+
+/** `window.innerWidth` when the page view event is created. Same property as other autocapture events. */
+const readViewportWidth = (): number => {
+  const scope = getGlobalScope();
+  if (!scope) {
+    return 0;
+  }
+  return scope.innerWidth ?? 0;
+};
 
 const getCampaignParams = async () => omitUndefined(await new CampaignParser().parse());
 
