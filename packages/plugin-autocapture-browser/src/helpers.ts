@@ -98,8 +98,6 @@ export const isTextNode = (node: Node) => {
   return !!node && node.nodeType === 3;
 };
 
-type ContentEditableValue = 'true' | '' | 'false' | 'plaintext-only';
-
 /**
  * True when `element` is effectively editable. Editability is inherited: the nearest
  * ancestor with a `contenteditable` attribute wins. Any value other than `"false"`
@@ -111,8 +109,18 @@ type ContentEditableValue = 'true' | '' | 'false' | 'plaintext-only';
  * not inherit across shadow boundaries.
  */
 export const isContentEditableElement = (element: Element): boolean => {
-  const contentEditable = element.getAttribute('contenteditable') as ContentEditableValue;
-  return ['true', 'plaintext-only', ''].includes(contentEditable?.toLowerCase());
+  if (!(element instanceof HTMLElement)) return false;
+  const contentEditable = element.getAttribute('contenteditable');
+  if (contentEditable === null) {
+    return false;
+  }
+  return contentEditable.toLowerCase() !== 'false';
+};
+
+export const isElementWithinContentEditableElement = (element: Element): boolean => {
+  if (isContentEditableElement(element)) return true;
+  const closestContentEditable = element.closest('[contenteditable]');
+  return closestContentEditable ? isContentEditableElement(closestContentEditable) : false;
 };
 
 export const isNonSensitiveElement = (element: Element) => {

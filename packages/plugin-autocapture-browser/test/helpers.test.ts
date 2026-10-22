@@ -1,5 +1,6 @@
 import {
   isTextNode,
+  isContentEditableElement,
   isNonSensitiveElement,
   parseAttributesToMask,
   isEmpty,
@@ -69,6 +70,15 @@ describe('autocapture-plugin helpers', () => {
       const node = document.createTextNode('text');
       const result = isTextNode(node);
       expect(result).toEqual(true);
+    });
+  });
+
+  describe('isContentEditableElement', () => {
+    test('should return false when element is not an HTMLElement', () => {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('contenteditable', 'true');
+
+      expect(isContentEditableElement(svg)).toEqual(false);
     });
   });
 

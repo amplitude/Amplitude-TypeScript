@@ -129,16 +129,16 @@ describe('data extractor', () => {
       element.setAttribute('contenteditable', 'true');
       element.innerHTML = '<p><span>Editable</span><span>More Editable</span></p>';
 
-      expect(dataExtractor.getText(element)).toEqual('');
+      expect(dataExtractor.getText(element)).toEqual(MASKED_TEXT_VALUE);
 
       element.setAttribute('contenteditable', 'True');
-      expect(dataExtractor.getText(element)).toEqual('');
+      expect(dataExtractor.getText(element)).toEqual(MASKED_TEXT_VALUE);
 
       element.setAttribute('contenteditable', '');
-      expect(dataExtractor.getText(element)).toEqual('');
+      expect(dataExtractor.getText(element)).toEqual(MASKED_TEXT_VALUE);
 
       element.setAttribute('contenteditable', 'plaintext-only');
-      expect(dataExtractor.getText(element)).toEqual('');
+      expect(dataExtractor.getText(element)).toEqual(MASKED_TEXT_VALUE);
     });
 
     test('should still return text when contenteditable is false', () => {
@@ -751,7 +751,7 @@ describe('data extractor', () => {
 
       const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
 
-      expect(result['[Amplitude] Element Text']).toBeUndefined();
+      expect(result['[Amplitude] Element Text']).toBe(MASKED_TEXT_VALUE);
       expect(result['[Amplitude] Element Tag']).toBe('div');
 
       document.body.removeChild(element);
