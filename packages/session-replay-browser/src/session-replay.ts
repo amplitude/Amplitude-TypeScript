@@ -14,6 +14,7 @@ import {
   generateHashCode,
   getOrCreateWindowMessenger,
   enableBackgroundCapture,
+  getBackgroundCaptureSession,
   AMPLITUDE_ORIGINS_MAP,
 } from '@amplitude/analytics-core';
 
@@ -405,12 +406,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     await this.initializeNetworkObservers();
 
-    // Enable background capture when this page is opened by the Amplitude app
-    // (window.opener exists). Uses the shared messenger singleton so that if
-    // autocapture is also loaded, both share a single messenger and script load.
-    if (getGlobalScope()?.opener) {
+    // Enable background capture when this page is opened by the Amplitude app:
+    // either window.opener exists, or the URL carries a capture session (the
+    // page's Cross-Origin-Opener-Policy can sever window.opener). Uses the shared
+    // messenger singleton so that if autocapture is also loaded, both share a
+    // single messenger and script load.
+    const backgroundCaptureSession = getBackgroundCaptureSession();
+    if (getGlobalScope()?.opener || backgroundCaptureSession) {
       const messenger = getOrCreateWindowMessenger();
-      enableBackgroundCapture(messenger);
+      enableBackgroundCapture(messenger, { captureSession: backgroundCaptureSession });
       messenger.setup({
         logger: this.loggerProvider,
         ...(this.config.serverZone && { endpoint: AMPLITUDE_ORIGINS_MAP[this.config.serverZone] }),

@@ -1300,11 +1300,13 @@ describe('SessionReplay', () => {
       let mockMessenger: { setup: jest.Mock };
       let getOrCreateSpy: jest.SpyInstance;
       let enableBgCaptureSpy: jest.SpyInstance;
+      let getCaptureSessionSpy: jest.SpyInstance;
 
       beforeEach(() => {
         mockMessenger = { setup: jest.fn() };
         getOrCreateSpy = jest.spyOn(AnalyticsCore, 'getOrCreateWindowMessenger').mockReturnValue(mockMessenger as any);
         enableBgCaptureSpy = jest.spyOn(AnalyticsCore, 'enableBackgroundCapture').mockImplementation(jest.fn());
+        getCaptureSessionSpy = jest.spyOn(AnalyticsCore, 'getBackgroundCaptureSession').mockReturnValue(null);
       });
 
       test('should enable background capture when window.opener exists', async () => {
@@ -1316,10 +1318,23 @@ describe('SessionReplay', () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
 
         expect(getOrCreateSpy).toHaveBeenCalled();
-        expect(enableBgCaptureSpy).toHaveBeenCalledWith(mockMessenger);
+        expect(enableBgCaptureSpy).toHaveBeenCalledWith(mockMessenger, { captureSession: null });
         expect(mockMessenger.setup).toHaveBeenCalledTimes(1);
         const setupArg = mockMessenger.setup.mock.calls[0][0];
         expect(setupArg.endpoint).toBe(AnalyticsCore.AMPLITUDE_ORIGINS_MAP[mockOptions.serverZone!]);
+      });
+
+      test('should enable background capture with the capture session when window.opener is absent', async () => {
+        const captureSession = {
+          captureId: 'capture-id',
+          uploadUrl: 'https://com-amplitude-page-backgrounds-prod.s3.us-west-2.amazonaws.com/key',
+        };
+        getCaptureSessionSpy.mockReturnValue(captureSession);
+
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        expect(enableBgCaptureSpy).toHaveBeenCalledWith(mockMessenger, { captureSession });
+        expect(mockMessenger.setup).toHaveBeenCalledTimes(1);
       });
 
       test('should not enable background capture when window.opener is absent', async () => {

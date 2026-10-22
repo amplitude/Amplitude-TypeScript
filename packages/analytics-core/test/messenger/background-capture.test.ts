@@ -3,9 +3,16 @@
  */
 
 /* eslint-disable @typescript-eslint/unbound-method */
+import * as GlobalScope from '../../src/global-scope';
 import { enableBackgroundCapture } from '../../src/messenger/background-capture';
 import type { BaseWindowMessenger, ActionHandler } from '../../src/messenger/base-window-messenger';
 import { AMPLITUDE_BACKGROUND_CAPTURE_SCRIPT_URL } from '../../src/messenger/constants';
+import { clearBackgroundCaptureSession, uploadBackgroundCapture } from '../../src/messenger/background-capture-session';
+
+jest.mock('../../src/messenger/background-capture-session', () => ({
+  clearBackgroundCaptureSession: jest.fn(),
+  uploadBackgroundCapture: jest.fn().mockResolvedValue(undefined),
+}));
 
 const BG_CAPTURE_BRAND = '__AMPLITUDE_BACKGROUND_CAPTURE__';
 
@@ -411,5 +418,148 @@ describe('enableBackgroundCapture', () => {
     expect(messenger.logger?.warn).toHaveBeenCalledWith('Failed to initialize background capture');
 
     delete (window as any).amplitudeBackgroundCapture;
+  });
+
+  describe('capture session', () => {
+    const captureSession = {
+      captureId: 'capture-id',
+      uploadUrl: 'https://com-amplitude-page-backgrounds-prod.s3.us-west-2.amazonaws.com/key',
+    };
+    const snapshotData = { pageUrl: 'https://example.com', fullSnapshotEvent: '{}' };
+
+    beforeEach(() => {
+      (window as any).amplitudeBackgroundCapture = jest.fn().mockReturnValue({ close: jest.fn() });
+    });
+
+    afterEach(() => {
+      delete (window as any).amplitudeBackgroundCapture;
+      (uploadBackgroundCapture as jest.Mock).mockReset().mockResolvedValue(undefined);
+      (clearBackgroundCaptureSession as jest.Mock).mockClear();
+    });
+
+    const getOnBackgroundCapture = () =>
+      ((window as any).amplitudeBackgroundCapture as jest.Mock).mock.calls[0][0].onBackgroundCapture as (
+        type: string,
+        data: Record<string, unknown>,
+      ) => void;
+
+    test('should start capture on its own when there is no window.opener', async () => {
+      const messenger = createMockMessenger();
+
+      enableBackgroundCapture(messenger, { captureSession: { ...captureSession, deviceMode: 'mobile' } });
+      await new Promise(process.nextTick);
+
+      expect(messenger.loadScriptOnce).toHaveBeenCalled();
+      expect((window as any).amplitudeBackgroundCapture).toHaveBeenCalledWith({
+        messenger,
+        onBackgroundCapture: expect.any(Function),
+        initialDeviceMode: 'mobile',
+      });
+    });
+
+    test('should wait for initialize-background-capture when window.opener exists', async () => {
+      const messenger = createMockMessenger();
+      const originalOpener = window.opener as unknown;
+      Object.defineProperty(window, 'opener', { value: {}, configurable: true, writable: true });
+
+      try {
+        enableBackgroundCapture(messenger, { captureSession });
+        await new Promise(process.nextTick);
+
+        expect(messenger.loadScriptOnce).not.toHaveBeenCalled();
+      } finally {
+        Object.defineProperty(window, 'opener', { value: originalOpener, configurable: true, writable: true });
+      }
+    });
+
+    test('should not start capture without a session', async () => {
+      const messenger = createMockMessenger();
+
+      enableBackgroundCapture(messenger, { captureSession: null });
+      await new Promise(process.nextTick);
+
+      expect(messenger.loadScriptOnce).not.toHaveBeenCalled();
+    });
+
+    test('should upload the snapshot, notify the opener and clear the session', async () => {
+      const messenger = createMockMessenger();
+
+      enableBackgroundCapture(messenger, { captureSession });
+      await new Promise(process.nextTick);
+      getOnBackgroundCapture()('background-capture-complete', snapshotData);
+      await new Promise(process.nextTick);
+
+      expect(messenger.notify).toHaveBeenCalledWith({ action: 'background-capture-complete', data: snapshotData });
+      expect(uploadBackgroundCapture).toHaveBeenCalledWith(captureSession, snapshotData);
+      expect(clearBackgroundCaptureSession).toHaveBeenCalled();
+    });
+
+    test('should not upload a failed capture', async () => {
+      const messenger = createMockMessenger();
+
+      enableBackgroundCapture(messenger, { captureSession });
+      await new Promise(process.nextTick);
+      getOnBackgroundCapture()('background-capture-complete', { pageUrl: 'https://example.com', error: 'boom' });
+      await new Promise(process.nextTick);
+
+      expect(uploadBackgroundCapture).not.toHaveBeenCalled();
+    });
+
+    test('should not upload when the capture reports no data', async () => {
+      const messenger = createMockMessenger();
+
+      enableBackgroundCapture(messenger, { captureSession });
+      await new Promise(process.nextTick);
+      getOnBackgroundCapture()('background-capture-complete', null as unknown as Record<string, unknown>);
+      await new Promise(process.nextTick);
+
+      expect(uploadBackgroundCapture).not.toHaveBeenCalled();
+    });
+
+    test('should upload without a logger', async () => {
+      const messenger = createMockMessenger({ logger: undefined });
+
+      enableBackgroundCapture(messenger, { captureSession });
+      await new Promise(process.nextTick);
+      getOnBackgroundCapture()('background-capture-complete', snapshotData);
+      await new Promise(process.nextTick);
+
+      expect(clearBackgroundCaptureSession).toHaveBeenCalled();
+    });
+
+    test('should handle an upload failure without a logger', async () => {
+      const messenger = createMockMessenger({ logger: undefined });
+      (uploadBackgroundCapture as jest.Mock).mockRejectedValue(new Error('403'));
+
+      enableBackgroundCapture(messenger, { captureSession });
+      await new Promise(process.nextTick);
+      getOnBackgroundCapture()('background-capture-complete', snapshotData);
+      await new Promise(process.nextTick);
+
+      expect(clearBackgroundCaptureSession).not.toHaveBeenCalled();
+    });
+
+    test('should start capture when there is no global scope to read window.opener from', async () => {
+      const messenger = createMockMessenger();
+      jest.spyOn(GlobalScope, 'getGlobalScope').mockReturnValue(undefined);
+
+      enableBackgroundCapture(messenger, { captureSession });
+      await new Promise(process.nextTick);
+
+      expect(messenger.loadScriptOnce).toHaveBeenCalled();
+    });
+
+    test('should warn and keep the session when the upload fails', async () => {
+      const messenger = createMockMessenger();
+      (uploadBackgroundCapture as jest.Mock).mockRejectedValue(new Error('403'));
+
+      enableBackgroundCapture(messenger, { captureSession });
+      await new Promise(process.nextTick);
+      getOnBackgroundCapture()('background-capture-complete', snapshotData);
+      await new Promise(process.nextTick);
+
+      expect(messenger.logger?.warn).toHaveBeenCalledWith('Failed to upload background capture');
+      expect(clearBackgroundCaptureSession).not.toHaveBeenCalled();
+    });
   });
 });

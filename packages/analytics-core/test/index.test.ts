@@ -71,6 +71,10 @@ import {
   getOrCreateWindowMessenger,
   enableBackgroundCapture,
   parseBackgroundCaptureDeviceMode,
+  BACKGROUND_CAPTURE_FRAGMENT_KEY,
+  getBackgroundCaptureSession,
+  clearBackgroundCaptureSession,
+  uploadBackgroundCapture,
   AMPLITUDE_ORIGIN,
   AMPLITUDE_ORIGIN_EU,
   AMPLITUDE_ORIGIN_STAGING,
@@ -178,6 +182,10 @@ describe('index', () => {
     expect(typeof parseBackgroundCaptureDeviceMode).toBe('function');
     expect(parseBackgroundCaptureDeviceMode('tablet')).toBe('tablet');
     expect(parseBackgroundCaptureDeviceMode('invalid')).toBeUndefined();
+    expect(BACKGROUND_CAPTURE_FRAGMENT_KEY).toBe('amp_bg_capture');
+    expect(typeof getBackgroundCaptureSession).toBe('function');
+    expect(typeof clearBackgroundCaptureSession).toBe('function');
+    expect(typeof uploadBackgroundCapture).toBe('function');
     expect(typeof AMPLITUDE_ORIGIN).toBe('string');
     expect(typeof AMPLITUDE_ORIGIN_EU).toBe('string');
     expect(typeof AMPLITUDE_ORIGIN_STAGING).toBe('string');
