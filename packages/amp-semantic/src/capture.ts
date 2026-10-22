@@ -68,9 +68,10 @@ export function createCapture(
     }
   };
   const enabled = (family: SemanticFamily) => active && settings.families?.[family] !== false;
+  const hasCapacity = (family: SemanticFamily) => enabled(family) && (counts[family] ?? 0) < SEMANTIC_CAPS[family];
   const canEmit = (family: SemanticFamily): boolean => {
     if (!enabled(family)) return false;
-    if ((counts[family] ?? 0) < SEMANTIC_CAPS[family]) return true;
+    if (hasCapacity(family)) return true;
     dropped[family] = (dropped[family] ?? 0) + 1;
     return false;
   };
@@ -83,6 +84,7 @@ export function createCapture(
     now,
     enabled,
     canEmit,
+    hasCapacity,
     dropped: () => ({ ...dropped }),
     hasSnapshot: () => snapshotSeen,
     emit: <K extends SemanticFamily>(family: K, payload: SemanticPayloads[K], timestamp = now()): boolean => {

@@ -47,6 +47,7 @@ export function recorderContext(disabled: SemanticFamily[] = []) {
   const context: RecorderContext = {
     onCleanup: () => undefined,
     canEmit: () => true,
+    hasCapacity: (family) => !disabled.includes(family) && context.canEmit(family),
     host: {
       document,
       window,

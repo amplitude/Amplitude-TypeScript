@@ -621,3 +621,56 @@ test('new families respect disabled capture and individual family toggles', asyn
     ),
   ).toEqual([]);
 });
+
+test('delivers notices and dialog transitions while large subtrees keep changing', async ({ page }) => {
+  await open(page, { mask: 'light', heatmaps: 'false' });
+  await page.evaluate(() => {
+    const notice = document.createElement('div');
+    notice.id = 'pressure-notice';
+    notice.setAttribute('role', 'status');
+    document.body.appendChild(notice);
+    const dialog = document.createElement('dialog');
+    dialog.id = 'pressure-dialog';
+    dialog.setAttribute('aria-label', 'Pressure dialog');
+    document.body.appendChild(dialog);
+    const root = document.createElement('section');
+    root.id = 'pressure-root';
+    document.body.appendChild(root);
+  });
+  await page.waitForTimeout(50);
+  await page.evaluate(async () => {
+    const root = document.getElementById('pressure-root')!;
+    const notice = document.getElementById('pressure-notice')!;
+    const dialog = document.getElementById('pressure-dialog')!;
+    for (let i = 0; i < 12; i++) {
+      const tree = document.createElement('section');
+      tree.innerHTML = '<span></span>'.repeat(1000);
+      root.replaceChildren(tree);
+      notice.textContent = 'Pressure update';
+      dialog.setAttribute('open', '');
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    }
+  });
+  await waitFor(page, 'notice', 'text', 'Pressure update');
+  await waitFor(page, 'dialog', 'name', 'Pressure dialog');
+  const opened = (await assertValid(page)).find(
+    (event) => event.data.tag === 'amp-semantic/dialog' && event.data.payload?.name === 'Pressure dialog',
+  );
+  await page.evaluate(() => document.getElementById('pressure-dialog')!.remove());
+  await expect
+    .poll(async () => {
+      await page.evaluate(() => window.semanticHarness.flush());
+      return page.evaluate(
+        (id) =>
+          window.semanticHarness.semanticEvents.some(
+            (event) =>
+              event.data.tag === 'amp-semantic/dialog' &&
+              event.data.payload?.id === id &&
+              event.data.payload?.state === 'closed',
+          ),
+        opened?.data.payload?.id,
+      );
+    })
+    .toBe(true);
+  await assertValid(page);
+});

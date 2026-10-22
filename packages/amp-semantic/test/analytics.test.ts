@@ -26,6 +26,7 @@ function harness(privacy: PrivacyConfig = { defaultMaskLevel: 'medium' }) {
   const context: RecorderContext = {
     onCleanup: () => undefined,
     canEmit: () => true,
+    hasCapacity: (family) => context.canEmit(family),
     host,
     helpers: createHelpers(host),
     now: () => Date.now(),
