@@ -292,6 +292,44 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       return false;
     }
   };
+  // Cache only the DOM candidate, never captured text or privacy decisions. Short-lived
+  // discovery avoids whole-document queries on rapid clicks without adding an observer.
+  let headingCandidate: Element | null = null;
+  let headingUntil = 0;
+  let headingUrl = '';
+  const heading = (): string | null => {
+    const now = host.window.performance.now();
+    const url = host.getUrl();
+    if (
+      now < headingUntil &&
+      url === headingUrl &&
+      (!headingCandidate || (headingCandidate.isConnected && visible(headingCandidate)))
+    ) {
+      return headingCandidate ? text(headingCandidate) : null;
+    }
+    headingCandidate = null;
+    headingUntil = now + 250;
+    headingUrl = url;
+    const root = host.document.body;
+    if (!root) return null;
+    const walker = host.document.createTreeWalker(root, 1);
+    let node = walker.nextNode() as Element | null;
+    let visited = 0;
+    while (node && visited++ < 2000 && host.window.performance.now() - now < 2) {
+      const isH1 = node.tagName === 'H1';
+      if (isH1 || node.matches('[role="heading"][aria-level="1"]')) {
+        if (visible(node)) {
+          if (node.closest('main,[role="main"]')) {
+            headingCandidate = node;
+            break;
+          }
+          if (isH1 && !headingCandidate) headingCandidate = node;
+        }
+      }
+      node = walker.nextNode() as Element | null;
+    }
+    return headingCandidate ? text(headingCandidate) : null;
+  };
   return {
     id,
     blocked,
@@ -348,16 +386,10 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       }
       return states;
     },
-    heading: () => {
-      for (const selector of [
-        'main h1, [role="main"] h1, main [role="heading"][aria-level="1"], [role="main"] [role="heading"][aria-level="1"]',
-        'h1',
-      ]) {
-        const candidates = host.document.querySelectorAll(selector);
-        for (let i = 0; i < Math.min(candidates.length, 40); i++)
-          if (visible(candidates[i])) return text(candidates[i]);
-      }
-      return null;
+    heading,
+    invalidateHeading: () => {
+      headingUntil = 0;
+      headingCandidate = null;
     },
     attributes: (element) => {
       const result: Record<string, string> = {};

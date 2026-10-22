@@ -46,6 +46,7 @@ export function recorderContext(disabled: SemanticFamily[] = []) {
   const emit = jest.fn<boolean, [SemanticFamily, SemanticPayloads[SemanticFamily]]>(() => true);
   const context: RecorderContext = {
     onCleanup: () => undefined,
+    canEmit: () => true,
     host: {
       document,
       window,

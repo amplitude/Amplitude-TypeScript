@@ -30,6 +30,7 @@ export const keysRecorder: SemanticRecorder = {
       const target = elements[0];
       if (!target || elements.some((element) => helpers.blocked(element))) return;
       if (target.matches('input[type="password"], input[type="hidden"]')) return;
+      if (!context.canEmit('keys')) return;
       const description = helpers.name(target);
       context.emit('keys', {
         key: [

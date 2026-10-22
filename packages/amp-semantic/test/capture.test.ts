@@ -64,6 +64,23 @@ describe('capture runtime', () => {
     capture.resetSession();
     expect(context.emit('visibility', { state: 'hidden', trigger: 'visibilitychange' })).toBe(true);
   });
+  test('preflight avoids payload work after the cap and counts each dropped candidate once', () => {
+    const capture = createCapture({ enabled: true }, host, [recorder]);
+    capture.start();
+    for (let i = 0; i < 200; i++) context.emit('visibility', { state: 'visible', trigger: 'visibilitychange' });
+    const payload = jest.fn(() => ({ state: 'hidden' as const, trigger: 'visibilitychange' as const }));
+    if (context.canEmit('visibility')) context.emit('visibility', payload());
+    expect(payload).not.toHaveBeenCalled();
+    expect(context.dropped()).toEqual({ visibility: 1 });
+    capture.stop();
+    expect(context.canEmit('visibility')).toBe(false);
+    expect(context.dropped()).toEqual({ visibility: 1 });
+    capture.start();
+    capture.resetSession();
+    expect(context.canEmit('visibility')).toBe(true);
+    capture.stop();
+  });
+
   test('dispatches signals synchronously and tears down subscriptions', () => {
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();

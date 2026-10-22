@@ -5,51 +5,53 @@ const CONTROLS =
 const CONTENT = 'h1,h2,h3,h4,h5,h6,[role="heading"],p,li,pre,blockquote,dd,dt,[role="paragraph"],div';
 const LOADING = '[aria-busy="true"],[role="progressbar"],.spinner,.skeleton,.loader,.loading,.shimmer';
 
-/** Page-wide work runs outside input handlers and stops after an eight millisecond budget. */
+/** Bound traversal itself, rather than collecting an unbounded selector result first. */
 function scan(context: RecorderContext): Pick<SemanticPayloads['page'], 'controls' | 'empty' | 'loading'> {
   const { document, window } = context.host;
   const { helpers } = context;
   const started = window.performance.now();
-  const withinBudget = () => window.performance.now() - started < 8;
-  const main = document.querySelector('main,[role="main"]') ?? document.body;
   let controls = 0;
   let content = 0;
   let loading = false;
-  const seen = new Set<Element>();
-  const controlsList = document.querySelectorAll(CONTROLS);
-  for (let index = 0; index < controlsList.length; index++) {
-    const element = controlsList[index];
-    if (!withinBudget() || controls >= 200) break;
-    if (!helpers.blocked(element) && helpers.visible(element)) {
-      controls++;
-      if (main?.contains(element)) {
-        content++;
-        seen.add(element);
+  const root = document.body;
+  if (!root) return { controls, empty: true, loading };
+  let main: Element | null = null;
+  const walker = document.createTreeWalker(root, 1);
+  let element = walker.nextNode() as Element | null;
+  let visited = 0;
+  while (element && visited++ < 2000 && window.performance.now() - started < 8) {
+    if (helpers.blocked(element)) {
+      // Skip an entire blocked subtree without walking its descendants.
+      let next = walker.nextSibling();
+      while (!next && walker.parentNode() && walker.currentNode !== root) next = walker.nextSibling();
+      element = next as Element | null;
+      continue;
+    }
+    if (!main && element.matches('main,[role="main"]')) {
+      main = element;
+      content = 0;
+    }
+    const control = controls < 200 && element.matches(CONTROLS);
+    const candidate = content < 5 && (main ?? root).contains(element) && element.matches(CONTENT);
+    const loader = !loading && element.matches(LOADING);
+    if ((control || candidate || loader) && helpers.visible(element)) {
+      if (control) {
+        controls++;
+        if ((main ?? root).contains(element)) content++;
+      } else if (candidate && !(element.tagName === 'DIV' && element.children.length)) {
+        const heading = element.matches('h1,h2,h3,h4,h5,h6,[role="heading"]');
+        const text = document.createTreeWalker(element, 4);
+        let length = 0;
+        let nodes = 0;
+        let node: Node | null;
+        while (!heading && length < 20 && nodes++ < 64 && (node = text.nextNode())) {
+          length += (node.nodeValue ?? '').trim().length;
+        }
+        if (heading || length >= 20) content++;
       }
+      if (loader) loading = true;
     }
-  }
-  if (main && content < 5 && withinBudget()) {
-    const contentList = main.querySelectorAll(CONTENT);
-    for (let index = 0; index < contentList.length; index++) {
-      const element = contentList[index];
-      if (!withinBudget() || content >= 5) break;
-      if (seen.has(element) || helpers.blocked(element) || !helpers.visible(element)) continue;
-      const heading = element.matches('h1,h2,h3,h4,h5,h6,[role="heading"]');
-      // Count leaf divs as text blocks, not every ancestor of the same paragraph.
-      if (element.tagName === 'DIV' && element.children.length > 0) continue;
-      if (heading || (element.textContent ?? '').trim().length >= 20) content++;
-    }
-  }
-  if (withinBudget()) {
-    const loadingList = document.querySelectorAll(LOADING);
-    for (let index = 0; index < loadingList.length; index++) {
-      const element = loadingList[index];
-      if (!withinBudget()) break;
-      if (!helpers.blocked(element) && helpers.visible(element)) {
-        loading = true;
-        break;
-      }
-    }
+    element = walker.nextNode() as Element | null;
   }
   return { controls, empty: content < 5, loading };
 }
@@ -98,12 +100,14 @@ export const pageRecorder: SemanticRecorder = {
     const changed = (nav: NavigationReason) => {
       if (!active || !initialized) return;
       cancelPending();
+      helpers.invalidateHeading?.();
       lastUrl = host.getUrl();
       lastTitle = document.title;
       const current = generation;
       const check = (phase: SemanticPayloads['page']['check']) =>
         idle(() => {
           if (generation !== current) return;
+          if (!context.canEmit('page')) return;
           const facts = scan(context);
           const title = document.querySelector('title');
           context.emit('page', {

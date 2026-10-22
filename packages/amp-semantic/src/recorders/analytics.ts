@@ -30,6 +30,7 @@ export const analyticsRecorder: SemanticRecorder = {
       const { helpers } = context;
       const element = event.element;
       if (element && helpers.blocked(element)) return;
+      if (!context.canEmit('amp-event')) return;
       const source = event.properties;
       const props: SemanticPayloads['amp-event']['props'] = {};
       let text: string | null = null;

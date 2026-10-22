@@ -17,6 +17,10 @@ export const feedbackRecorder: SemanticRecorder = {
     let lastClick: number | null = null;
     let frame: number | undefined;
     let fallbackFrame = false;
+    // Mutation callbacks only enqueue roots. Discovery and payload work run in
+    // bounded batches; overlapping roots are deduplicated before traversal.
+    const roots = new Map<Element, number>();
+    let scan: { root: Element; flags: number; walker: TreeWalker; node: Element | null } | undefined;
     const pendingNotices = new Set<Element>();
     const pendingDialogs = new Set<Element>();
     const lastNotices = new WeakMap<Element, number>();
@@ -29,13 +33,16 @@ export const feedbackRecorder: SemanticRecorder = {
       lastClick !== null && context.now() - lastClick >= 0 && context.now() - lastClick <= 3000 ? lastClick : null;
     const sendNotice = (element: Element) => {
       noticeTimers.delete(element);
-      if (!active || !element.isConnected || helpers.blocked(element) || !element.textContent?.trim()) return;
+      if (!active || !element.isConnected || helpers.blocked(element)) return;
+      if (!context.canEmit('notice')) return;
+      const text = helpers.text(element, undefined, 200);
+      if (text !== null && !text.trim()) return;
       const role = element.getAttribute('role');
       const container = helpers.container(element);
       context.emit('notice', {
         id: helpers.id(element),
         role: role === 'alert' || role === 'status' || role === 'log' ? role : 'live',
-        text: helpers.text(element, undefined, 200),
+        text,
         visible: helpers.visible(element),
         region: container ? { role: container.role, name: container.name } : null,
         cause_click_ts: cause(),
@@ -70,10 +77,59 @@ export const feedbackRecorder: SemanticRecorder = {
         },
       };
     };
+    const isOpen = (element: Element) =>
+      element.isConnected &&
+      !element.closest('[hidden],[aria-hidden="true"]') &&
+      (element.tagName !== 'DIALOG' || element.hasAttribute('open'));
     const flush = () => {
       frame = undefined;
       if (!active) return;
+      const start = window.performance.now();
+      let visited = 0;
+      while ((scan || roots.size) && visited < 1000 && window.performance.now() - start < 4) {
+        if (!scan) {
+          const [root, flags] = roots.entries().next().value as [Element, number];
+          roots.delete(root);
+          // If a queued ancestor covers this root, let that one visit it once.
+          let ancestor = root.parentElement;
+          let covered = false;
+          while (ancestor) {
+            if (((roots.get(ancestor) ?? 0) & flags) === flags) {
+              covered = true;
+              break;
+            }
+            ancestor = ancestor.parentElement;
+          }
+          if (covered) continue;
+          scan = { root, flags, walker: document.createTreeWalker(root, 1), node: root };
+        }
+        const { node, walker, root, flags } = scan;
+        if (!node) {
+          scan = undefined;
+          continue;
+        }
+        visited++;
+        if (((roots.get(node) ?? 0) & flags) === (roots.get(node) ?? 0)) roots.delete(node);
+        if (helpers.blocked(node)) {
+          // Do not traverse blocked descendants, even to discover their roles.
+          if (node === root) {
+            scan = undefined;
+            continue;
+          }
+          let next = walker.nextSibling();
+          while (!next && walker.parentNode() && walker.currentNode !== root) next = walker.nextSibling();
+          scan.node = next as Element | null;
+          continue;
+        }
+        if (flags & 1 && node.matches(LIVE)) pendingNotices.add(node);
+        if (flags & 2 && node.matches(DIALOG)) pendingDialogs.add(node);
+        scan.node = walker.nextNode() as Element | null;
+      }
+      // Bound payload work too; large mutation bursts can span multiple frames.
+      let processed = 0;
       for (const element of pendingNotices) {
+        if (processed++ >= 50 || window.performance.now() - start >= 4) break;
+        pendingNotices.delete(element);
         if (noticeTimers.has(element)) continue;
         const last = lastNotices.get(element);
         const remaining = last === undefined ? 0 : 500 - (context.now() - last);
@@ -84,16 +140,36 @@ export const feedbackRecorder: SemanticRecorder = {
             window.setTimeout(() => sendNotice(element), remaining),
           );
       }
-      pendingNotices.clear();
       for (const element of pendingDialogs) {
+        if (processed++ >= 50 || window.performance.now() - start >= 4) break;
+        pendingDialogs.delete(element);
         if (helpers.blocked(element)) continue;
         const previous = dialogStates.get(element);
+        const open = isOpen(element);
+        if (previous?.open === open || (!previous && !open)) continue;
+        if (!context.canEmit('dialog')) {
+          // Retain transition state without resolving names/layout after the cap.
+          if (previous) dialogStates.set(element, { ...previous, open });
+          else
+            dialogStates.set(element, {
+              open,
+              payload: {
+                id: null,
+                role: 'dialog',
+                name: null,
+                state: open ? 'open' : 'closed',
+                modal: false,
+                visible: false,
+                cause_click_ts: null,
+              },
+            });
+          continue;
+        }
         const current = readDialog(element);
         dialogStates.set(element, current);
-        if ((previous && previous.open !== current.open) || (!previous && current.open))
-          context.emit('dialog', current.payload);
+        context.emit('dialog', current.payload);
       }
-      pendingDialogs.clear();
+      if (scan || roots.size || pendingNotices.size || pendingDialogs.size) schedule();
     };
     const schedule = () => {
       if (frame !== undefined) return;
@@ -102,21 +178,42 @@ export const feedbackRecorder: SemanticRecorder = {
     };
     const collect = (node: Node, descendants: boolean, changedText = true) => {
       const element = node.nodeType === 1 ? (node as Element) : node.parentElement;
-      if (!element) return;
+      if (!element || helpers.blocked(element)) return;
       if (notices && changedText) {
         const region = element.closest(LIVE);
         if (region) pendingNotices.add(region);
-        if (descendants) element.querySelectorAll(LIVE).forEach((nested) => pendingNotices.add(nested));
       }
-      if (dialogs) {
-        if (element.matches(DIALOG)) pendingDialogs.add(element);
-        if (descendants) element.querySelectorAll(DIALOG).forEach((nested) => pendingDialogs.add(nested));
+      if (dialogs && element.matches(DIALOG)) pendingDialogs.add(element);
+      if (descendants) {
+        const flags = (notices && changedText ? 1 : 0) | (dialogs ? 2 : 0);
+        if (flags) roots.set(element, (roots.get(element) ?? 0) | flags);
       }
     };
-    if (dialogs)
+    // One startup discovery preserves the baseline for existing dialogs. Avoid
+    // name and layout extraction here; subsequent discovery is batched above.
+    if (dialogs) {
       document.body.querySelectorAll(DIALOG).forEach((element) => {
-        if (!helpers.blocked(element)) dialogStates.set(element, readDialog(element));
+        if (helpers.blocked(element)) return;
+        let modal = element.getAttribute('aria-modal') === 'true';
+        try {
+          modal = modal || element.matches(':modal');
+        } catch {
+          /* Older engines. */
+        }
+        dialogStates.set(element, {
+          open: isOpen(element),
+          payload: {
+            id: helpers.id(element),
+            role: 'dialog',
+            name: null,
+            state: 'closed',
+            modal,
+            visible: false,
+            cause_click_ts: null,
+          },
+        });
       });
+    }
     const observer = new Observer((records) => {
       for (const record of records) {
         if (record.type === 'attributes') {
@@ -127,7 +224,7 @@ export const feedbackRecorder: SemanticRecorder = {
           if (dialogs) record.removedNodes.forEach((node) => collect(node, true, false));
         }
       }
-      if (pendingNotices.size || pendingDialogs.size) schedule();
+      if (roots.size || pendingNotices.size || pendingDialogs.size) schedule();
     });
     observer.observe(document.body, {
       childList: true,
@@ -146,6 +243,8 @@ export const feedbackRecorder: SemanticRecorder = {
       }
       noticeTimers.forEach((timer) => window.clearTimeout(timer));
       noticeTimers.clear();
+      roots.clear();
+      scan = undefined;
       pendingNotices.clear();
       pendingDialogs.clear();
     };
