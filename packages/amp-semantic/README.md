@@ -85,7 +85,7 @@ const capture = createSemanticCapture(config, host);
 capture.start();
 capture.notify('recording', { state: 'start', reason: 'init' });
 capture.notify('snapshot', undefined);
-// When the host owns navigation tracking:
+// Invalidate cached interaction headings after host navigation:
 capture.notify('navigation', 'push');
 capture.notify('recording', { state: 'stop', reason: 'customer_stop' });
 capture.stop();
@@ -95,7 +95,7 @@ Pass a third argument containing recorder factories to replace the default recor
 
 To add an event family, add its payload to `SemanticPayloads`, its session limit to `SEMANTIC_CAPS`, its wire variant to `schema.json`, and its factory to the desired recorder set. Wire tags and payload `v` are stable contracts. Breaking payload changes require a new version; avoid encoding application classification into capture facts.
 
-`SemanticHost.externalClicks` and `externalNavigation` let hosts reuse existing native hooks. Session Replay routes primary clicks through its existing heatmap `ClickHandler` and rrweb's `mouseInteraction` hook, including when heatmaps are disabled. The hook receives the original event in memory, preserving modifiers, keyboard activation, trust and composed-path targeting. Native events are never added to recorded rrweb data. Selector lookup is shared for the same element within one click; an actionable ancestor gets its own lookup when it differs from the raw target. Consumer failures are isolated.
+`SemanticHost.externalClicks` lets hosts reuse existing native click hooks. Session Replay routes primary clicks through its existing heatmap `ClickHandler` and rrweb's `mouseInteraction` hook, including when heatmaps are disabled. The hook receives the original event in memory, preserving modifiers, keyboard activation, trust and composed-path targeting. Native events are never added to recorded rrweb data. Selector lookup is shared for the same element within one click; an actionable ancestor gets its own lookup when it differs from the raw target. Consumer failures are isolated.
 
 The pinned rrweb recorder has a workspace patch adding an optional native-event hook argument and `record.supportsNativeMouseInteraction`. Replace this patch with a published recorder release before publishing the SDK: workspace patches do not propagate to consumers of the unbundled package. Older recorders retain the independent native listener as a compatibility fallback. `externalAuxClicks: false` keeps the middle-button `auxclick` listener because rrweb does not forward auxiliary clicks. Standalone semantic capture still installs its own native listeners.
 
@@ -105,7 +105,9 @@ Recorder processing timestamps are supplied to generic hosts. rrweb's `addCustom
 
 All captured text uses the replay privacy policy, including referenced labels and nested text sources. Blocked elements are skipped, masked text is `null`, and typed values and browser validation messages are never included. Text traversal is bounded and fails closed when its budget is exceeded. Unsupported URL schemes are discarded; HTTP(S) paths and hash routes are templated without queries or secondary fragments. Detached dialog names are cleared because their former masking ancestry cannot safely be reconstructed.
 
-Recorders include context, clicks, keys, resource load failures, page identity/checks, field state, form submissions, notices, dialogs, recording state, visibility, lifecycle, and an accepted-analytics-event mirror.
+The page event and its title observer, scheduled checks, and page-wide scans are deferred. URL/heading context on interactions remains; the replay adapter forwards navigation solely to invalidate cached headings.
+
+Recorders include context, clicks, keys, resource load failures, field state, form submissions, notices, dialogs, recording state, visibility, lifecycle, and an accepted-analytics-event mirror.
 
 ## Work limits
 
@@ -122,8 +124,6 @@ skipped. Large bursts may span multiple animation frames, so these are observati
 precise timestamps of each DOM mutation. One initial dialog selector query establishes the baseline;
 it no longer resolves names or reads layout for every existing dialog.
 
-Page checks traverse at most 2,000 elements with a cooperative 8 ms budget instead of first collecting
-all matching elements. Counts/empty/loading remain bounded heuristics, not a census of the document.
 Heading discovery traverses at most 2,000 elements with a cooperative 2 ms budget and reuses only the
 DOM candidate for up to 250 ms. Text, masking and visibility are re-read when emitted; no private text
 is cached. Navigation, snapshots, disconnected candidates and hidden candidates invalidate discovery.
@@ -168,7 +168,7 @@ pnpm test:semantic
 
 This builds the dependencies and runs the package's Chromium Playwright suite, starting the local Vite server automatically. If Chromium is not installed, run `pnpm exec playwright install chromium` first. After a build, use `pnpm --filter @amplitude/amp-semantic test:playwright --ui` for interactive debugging.
 
-The suite covers real SDK → rrweb → serialized transport delivery, schema validation, direct-button click node ID matching, fields/submits, notices/dialogs/navigation, masking, disabled capture, sampling, the remote kill switch, individual family switches, stop/resume, JSON export, and worker transport. It also checks ordinary clicks without a page change. These fixture checks do not establish production byte budgets or exact timestamp alignment.
+The suite covers real SDK → rrweb → serialized transport delivery, schema validation, direct-button click node ID matching, fields/submits, notices/dialogs, post-navigation click context, masking, disabled capture, sampling, the remote kill switch, individual family switches, stop/resume, JSON export, and worker transport. It also checks ordinary clicks without a page change. These fixture checks do not establish production byte budgets or exact timestamp alignment.
 
 For an isolated Chromium recorder smoke check, from the repository root:
 

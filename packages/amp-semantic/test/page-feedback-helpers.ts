@@ -55,7 +55,6 @@ export function recorderContext(disabled: SemanticFamily[] = []) {
       getPrivacy: () => ({}),
       getUrl: () => window.location.href,
       sdk: 'test',
-      externalNavigation: true,
     },
     helpers,
     now: () => Date.now(),

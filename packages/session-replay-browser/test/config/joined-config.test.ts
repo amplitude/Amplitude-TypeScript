@@ -146,13 +146,13 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         };
         const generator = await createSessionReplayJoinedConfigGenerator('static_key', {
           ...mockOptions,
-          semanticCapture: { enabled: true, sampleRate: 0.25, families: { click: true, page: false } },
+          semanticCapture: { enabled: true, sampleRate: 0.25, families: { click: true, keys: false } },
         });
         const { joinedConfig, remoteConfig } = await generator.generateJoinedConfig();
         expect(joinedConfig.semanticCapture).toEqual({
           enabled: false,
           sampleRate: 0.25,
-          families: { click: false, page: false },
+          families: { click: false, keys: false },
         });
         expect(remoteConfig?.sr_semantic_config?.enabled).toBe(false);
       });

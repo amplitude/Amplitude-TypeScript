@@ -71,16 +71,6 @@ export interface SemanticPayloads {
     container?: TargetDescription;
     path?: string;
   };
-  page: {
-    url: string;
-    title: string | null;
-    heading: string | null;
-    nav: NavigationReason;
-    check: 'change' | '2s' | '5s';
-    controls: number;
-    empty: boolean;
-    loading: boolean;
-  };
   field: TargetDescription & {
     kind: string;
     value_state: 'empty' | 'filled';
@@ -167,8 +157,6 @@ export interface SemanticHost {
   externalClicks?: boolean;
   /** Override when the host supplies primary clicks but not auxclick. Defaults to externalClicks. */
   externalAuxClicks?: boolean;
-  /** True when the host forwards navigation; otherwise the page recorder tracks it. */
-  externalNavigation?: boolean;
   inlineStylesheet?: boolean;
   now?: () => number;
   random?: () => number;

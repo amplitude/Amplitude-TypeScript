@@ -106,7 +106,7 @@ describe('ReplaySemanticAdapter', () => {
     expect(subscribeToUrlChanges).not.toHaveBeenCalled();
   });
 
-  test('reuses URL tracking with navigation reasons, and skips it when page family is disabled', () => {
+  test('forwards navigation for shared heading invalidation and unsubscribes on stop', () => {
     const adapter = new ReplaySemanticAdapter(host);
     adapter.prepare({ enabled: true }, 1);
     adapter.recordingReady();
@@ -114,9 +114,6 @@ describe('ReplaySemanticAdapter', () => {
     callback?.('push');
     expect(capture.notify).toHaveBeenCalledWith('navigation', 'push');
     adapter.stop();
-    jest.mocked(subscribeToUrlChanges).mockClear();
-    adapter.prepare({ enabled: true, families: { page: false } }, 1);
-    adapter.recordingReady();
-    expect(subscribeToUrlChanges).not.toHaveBeenCalled();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
   });
 });
