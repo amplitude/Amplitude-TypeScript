@@ -23,10 +23,7 @@
         "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
         "analytics_sdk": {
           "present": true,
-          "autocapture": [
-            "elementInteractions",
-            "frustrationInteractions"
-          ]
+          "autocapture": ["elementInteractions", "frustrationInteractions"]
         },
         "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
         "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d",
@@ -151,9 +148,7 @@
           {
             "id": 1392,
             "name": "Monthly limit",
-            "validity": [
-              "valueMissing"
-            ]
+            "validity": ["valueMissing"]
           }
         ],
         "prevented": true,
@@ -284,6 +279,39 @@
         "first_change_ms": null,
         "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
         "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1700000000000,
+    "data": {
+      "tag": "amp-semantic/keys",
+      "payload": {
+        "v": 1,
+        "tab_id": "tab-example",
+        "document_id": "document-example",
+        "key": "Escape",
+        "target": {
+          "id": 42,
+          "role": "button",
+          "name": "Close"
+        }
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1700000000500,
+    "data": {
+      "tag": "amp-semantic/resource-error",
+      "payload": {
+        "v": 1,
+        "tab_id": "tab-example",
+        "document_id": "document-example",
+        "rt": "img",
+        "count": 2,
+        "path": "/products/:id/image.webp"
       }
     }
   }

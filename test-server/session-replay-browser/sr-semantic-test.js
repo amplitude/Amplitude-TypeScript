@@ -255,6 +255,44 @@ document.querySelector('#close-dialog').onclick = () => document.querySelector('
 document.querySelector('#navigate').onclick = () =>
   history.pushState({}, '', `${location.pathname}${location.search}#/accounts/8812?private=hidden`);
 
+const palette = document.querySelector('#command-palette');
+document.querySelector('#open-palette').onclick = () => palette.showModal();
+document.querySelector('#close-palette').onclick = () => palette.close();
+document.addEventListener('keydown', (event) => {
+  if (event.composedPath().includes(document.querySelector('#inspector'))) return;
+  if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'k') {
+    event.preventDefault();
+    if (!palette.open) palette.showModal();
+  }
+});
+let resourceAttempt = 0;
+document.querySelector('#fail-resources').onclick = () => {
+  const fixtures = document.querySelector('#resource-fixtures');
+  fixtures.replaceChildren();
+  const base = `/api/status/404/semantic-missing/${++resourceAttempt}`;
+  for (let i = 0; i < 2; i++) {
+    const img = document.createElement('img');
+    img.alt = 'Intentional broken image';
+    img.src = `${base}/image.png?private=RESOURCE_QUERY_SECRET`;
+    fixtures.append(img);
+  }
+  const css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = `${base}/theme.css`;
+  const script = document.createElement('script');
+  script.type = 'module';
+  script.src = `${base}/app.js`;
+  const style = document.createElement('style');
+  const family = `SemanticMissing${resourceAttempt}`;
+  style.textContent = `@font-face { font-family: "${family}"; src: url("${base}/font.woff2"); }`;
+  const text = document.createElement('span');
+  text.style.fontFamily = family;
+  text.textContent = 'Intentional font failure';
+  fixtures.append(css, script, style, text);
+  // The rejection is expected; document.fonts reports the failure to the recorder.
+  void document.fonts?.load(`16px "${family}"`).catch(() => undefined);
+};
+
 // Explicit test API observes transport output, never intercepts amp-semantic.emit or rrweb hooks.
 window.semanticHarness = {
   get ready() {

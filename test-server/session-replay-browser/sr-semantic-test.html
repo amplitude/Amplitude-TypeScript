@@ -123,6 +123,20 @@
           <button id="no-change" data-amp-key="no-change" type="button">Click with no change</button>
           <p>“Click with no change” should produce a click-outcome after about 1.5 seconds.</p>
         </div>
+        <section class="examples" aria-label="Keyboard and resource fixtures">
+          <h2>Keyboard and resource capture</h2>
+          <button id="open-palette" type="button">Open command palette</button>
+          <button id="fail-resources" type="button">Trigger resource failures</button>
+          <p>
+            Press Ctrl/Cmd+K to open the palette, Tab to move focus, and Escape to close it. Resource failures
+            intentionally request missing local images, CSS, script, and font files.
+          </p>
+          <div id="resource-fixtures"></div>
+        </section>
+        <dialog id="command-palette" aria-label="Command palette">
+          <label>Search commands <input id="command-search" autocomplete="off" /></label>
+          <button id="close-palette" type="button">Close palette</button>
+        </dialog>
         <div class="examples">
           <h2>Privacy examples</h2>
           <button id="masked-button" data-amp-key="masked-target" class="amp-mask" type="button">
