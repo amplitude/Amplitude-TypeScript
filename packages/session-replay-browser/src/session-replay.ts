@@ -1079,7 +1079,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
               // Buffer the event so it can be flushed once the compressor is initialized.
               this.pendingEmitEvents.push({ event, sessionId });
             }
-            if (event.type === RRWebEventType.FullSnapshot) this.semanticAdapter?.snapshot();
+            this.semanticAdapter?.event(event);
           },
           'Error while capturing replay: ',
         ),
@@ -1123,6 +1123,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // rrweb does not report auxiliary clicks through its mouseInteraction hook.
         externalAuxClicks: false,
         getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
+        getNode: (id) => this.recordFunction?.mirror.getNode(id) ?? null,
         getPrivacy: () => this.config?.privacyConfig ?? {},
         getUrl: () => scope.location.href,
         getIdentity: () => getSemanticIdentity(scope),

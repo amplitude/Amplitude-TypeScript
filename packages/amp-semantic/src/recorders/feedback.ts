@@ -1,24 +1,69 @@
-import type { SemanticPayloads, SemanticRecorder } from '../types';
+import type { SemanticDomChange, SemanticDomNode, SemanticPayloads, SemanticRecorder } from '../types';
 const LIVE = '[role="alert"],[role="status"],[role="log"],[aria-live="polite"],[aria-live="assertive"]';
 const DIALOG = 'dialog,[role="dialog"],[role="alertdialog"],[aria-modal="true"]';
-const MAX_ROOTS = 128;
+const MAX_BATCHES = 128;
 const MAX_PENDING = 256;
-const MAX_MUTATIONS = 1000;
+const MAX_VISITS = 1000;
 const FRAME_MS = 4;
 const DELIVERY_MS = 2;
 const MAX_PAYLOADS = 50;
 type DialogState = { open: boolean; payload: SemanticPayloads['dialog'] };
 
-/** Live regions and dialogs share one observer and one animation-frame batch. */
+type Work =
+  | { node: SemanticDomNode; baseline: boolean; hidden: boolean }
+  | { id: number; text?: boolean; dialogs?: boolean };
+
+/** Walk serialized children without building a second tree or a width-sized queue. */
+function* nodes(node: SemanticDomNode, baseline: boolean): Generator<Work> {
+  const stack = [{ children: [node], index: 0, hidden: false }];
+  while (stack.length) {
+    const frame = stack[stack.length - 1];
+    if (frame.index === frame.children.length) {
+      stack.pop();
+      continue;
+    }
+    const current = frame.children[frame.index++];
+    const attrs = current.attributes;
+    const hidden = frame.hidden || attrs?.hidden !== undefined || attrs?.['aria-hidden'] === 'true';
+    yield { node: current, baseline, hidden };
+    if (current.childNodes?.length) stack.push({ children: current.childNodes, index: 0, hidden });
+  }
+}
+function* changes(change: SemanticDomChange): Generator<Work> {
+  if (change.type === 'snapshot') {
+    yield* nodes(change.node, true);
+  } else {
+    // Deliver direct changes before potentially large additions.
+    for (const text of change.texts) yield { id: text.id, text: true };
+    for (const attr of change.attributes) {
+      yield {
+        id: attr.id,
+        dialogs: ['open', 'hidden', 'aria-hidden', 'role', 'aria-modal'].some((key) => key in attr.attributes),
+      };
+    }
+    const parents = new Set<number>();
+    const parentChanged = (id: number): Work => {
+      const text = !parents.has(id);
+      if (parents.size < MAX_VISITS) parents.add(id);
+      return { id, text };
+    };
+    for (const remove of change.removes) yield parentChanged(remove.parentId);
+    for (const add of change.adds) {
+      yield parentChanged(add.parentId);
+      yield* nodes(add.node, false);
+    }
+  }
+}
+
+/** Enrich accepted replay changes; never observe or rediscover the DOM independently. */
 export const feedbackRecorder: SemanticRecorder = {
   families: ['notice', 'dialog'],
   setup(context) {
     let notices = context.hasCapacity('notice');
     let dialogs = context.hasCapacity('dialog');
     const { host, helpers } = context;
-    const { document, window } = host;
-    const Observer = document.defaultView?.MutationObserver;
-    if ((!notices && !dialogs) || !Observer || !document.body) return () => undefined;
+    const { window } = host;
+    if ((!notices && !dialogs) || !host.getNode) return () => undefined;
     let active = true;
     let lastClick: number | null = null;
     let frame: number | undefined;
@@ -26,10 +71,8 @@ export const feedbackRecorder: SemanticRecorder = {
     // Bound retained elements as well as per-frame work. Overflow is lossy and
     // reported once per queue through the existing host diagnostics channel.
     let generation = 0;
-    const roots = new Map<Element, { flags: number; generation: number }>();
-    let scan:
-      | { root: Element; flags: number; generation: number; walker: TreeWalker; node: Element | null }
-      | undefined;
+    const batches: { work: Generator<Work>; generation: number }[] = [];
+    const trackedDialogs = new Set<Element>();
     const pendingNotices = new Set<Element>();
     const pendingDialogs = new Set<Element>();
     const lastNotices = new WeakMap<Element, number>();
@@ -38,7 +81,7 @@ export const feedbackRecorder: SemanticRecorder = {
     const dialogStates = new WeakMap<Element, DialogState>();
     const openDialogs = new Set<Element>();
     const overflows = new Set<string>();
-    let checkDetached = false;
+    let checkStructure = false;
     let nextDialog = false;
     const overflow = (queue: string) => {
       if (overflows.has(queue)) return;
@@ -67,7 +110,7 @@ export const feedbackRecorder: SemanticRecorder = {
       if (!dialogs || pendingDialogs.has(element)) return;
       if (pendingDialogs.size >= MAX_PENDING) {
         overflow('dialog queue');
-        if (!element.isConnected && openDialogs.has(element)) checkDetached = true;
+        if (!element.isConnected && openDialogs.has(element)) checkStructure = true;
       } else pendingDialogs.add(element);
     };
     const unsubscribe = context.subscribe((event) => {
@@ -96,6 +139,7 @@ export const feedbackRecorder: SemanticRecorder = {
       const previous = dialogStates.get(element);
       const open =
         element.isConnected &&
+        element.matches(DIALOG) &&
         !element.closest('[hidden],[aria-hidden="true"]') &&
         (element.tagName !== 'DIALOG' || element.hasAttribute('open'));
       let modal = element.getAttribute('aria-modal') === 'true';
@@ -123,6 +167,7 @@ export const feedbackRecorder: SemanticRecorder = {
     };
     const isOpen = (element: Element) =>
       element.isConnected &&
+      element.matches(DIALOG) &&
       !element.closest('[hidden],[aria-hidden="true"]') &&
       (element.tagName !== 'DIALOG' || element.hasAttribute('open'));
     const clearNotices = () => {
@@ -138,12 +183,12 @@ export const feedbackRecorder: SemanticRecorder = {
     };
     const cleanup = () => {
       active = false;
-      observer.disconnect();
+      unsubscribeDom();
       unsubscribe();
       cancelFrame();
       clearNotices();
-      roots.clear();
-      scan = undefined;
+      batches.length = 0;
+      trackedDialogs.clear();
       pendingDialogs.clear();
       openDialogs.clear();
     };
@@ -156,6 +201,7 @@ export const feedbackRecorder: SemanticRecorder = {
         dialogs = false;
         pendingDialogs.clear();
         openDialogs.clear();
+        trackedDialogs.clear();
       }
       if (!notices && !dialogs) cleanup();
       return active;
@@ -184,6 +230,7 @@ export const feedbackRecorder: SemanticRecorder = {
       pendingDialogs.delete(element);
       if (helpers.blocked(element)) {
         openDialogs.delete(element);
+        trackedDialogs.delete(element);
         return;
       }
       const previous = dialogStates.get(element);
@@ -198,16 +245,18 @@ export const feedbackRecorder: SemanticRecorder = {
       if (open) openDialogs.add(element);
       else openDialogs.delete(element);
       context.emit('dialog', current.payload);
+      if (!element.isConnected) trackedDialogs.delete(element);
     };
     const flush = () => {
       frame = undefined;
       if (!active || !refreshCapacity()) return;
       const start = window.performance.now();
-      if (checkDetached) {
-        checkDetached = false;
+      if (checkStructure) {
+        checkStructure = false;
         // This set is bounded. Never traverse a detached subtree for discovery.
-        for (const element of openDialogs) {
-          if (!element.isConnected) enqueueDialog(element);
+        for (const element of trackedDialogs) {
+          // A move can change a connected dialog's hidden ancestry too.
+          enqueueDialog(element);
         }
         for (const element of pendingNotices) {
           if (!element.isConnected) pendingNotices.delete(element);
@@ -218,10 +267,9 @@ export const feedbackRecorder: SemanticRecorder = {
             noticeTimers.delete(element);
           }
         }
-        for (const root of roots.keys()) {
-          if (!root.isConnected) roots.delete(root);
+        for (const element of trackedDialogs) {
+          if (!element.isConnected && !openDialogs.has(element)) trackedDialogs.delete(element);
         }
-        if (scan && !scan.root.isConnected) scan = undefined;
       }
       let processed = 0;
       const deliver = (deadline: number) => {
@@ -243,147 +291,98 @@ export const feedbackRecorder: SemanticRecorder = {
       // frames too, so an expensive notice cannot repeatedly starve a dialog.
       deliver(start + DELIVERY_MS);
       let visited = 0;
-      while (active && (scan || roots.size) && visited < 1000 && window.performance.now() - start < FRAME_MS) {
-        if (!scan) {
-          const [root, entry] = roots.entries().next().value as [Element, { flags: number; generation: number }];
-          const flags = entry.flags & ((notices ? 1 : 0) | (dialogs ? 2 : 0));
-          roots.delete(root);
-          if (!root.isConnected || !flags) continue;
-          let ancestor = root.parentElement;
-          let covered = false;
-          while (ancestor) {
-            if (((roots.get(ancestor)?.flags ?? 0) & flags) === flags) {
-              covered = true;
-              break;
-            }
-            ancestor = ancestor.parentElement;
-          }
-          if (covered) continue;
-          scan = { root, flags, generation: entry.generation, walker: document.createTreeWalker(root, 1), node: root };
-        }
-        const { node, walker, root, flags, generation: scanGeneration } = scan;
-        if (!node || !root.isConnected || !(flags & ((notices ? 1 : 0) | (dialogs ? 2 : 0)))) {
-          scan = undefined;
-          continue;
-        }
-        visited++;
-        // DOM mutations can detach the walker's cursor between frames.
-        if (!node.isConnected || !root.contains(node)) {
-          // Restart discovery from this still-connected root. Retained
-          // work remains bounded, and known notices are generation-deduplicated.
-          if (roots.has(root) || roots.size < MAX_ROOTS) {
-            const queued = roots.get(root);
-            roots.set(root, { flags: flags | (queued?.flags ?? 0), generation: queued?.generation ?? scanGeneration });
-          } else overflow('discovery queue');
-          scan = undefined;
-          continue;
-        }
-        if (
-          (roots.get(node)?.generation ?? -1) <= scanGeneration &&
-          ((roots.get(node)?.flags ?? 0) & flags) === (roots.get(node)?.flags ?? 0)
-        )
-          roots.delete(node);
-        if (helpers.blocked(node)) {
-          if (node === root) {
-            scan = undefined;
-            continue;
-          }
-          let next = walker.nextSibling();
-          while (!next && walker.parentNode() && walker.currentNode !== root) next = walker.nextSibling();
-          scan.node = next as Element | null;
-          continue;
-        }
-        if (notices && flags & 1 && node.matches(LIVE)) enqueueNotice(node, scanGeneration);
-        if (dialogs && flags & 2 && node.matches(DIALOG)) enqueueDialog(node);
-        scan.node = walker.nextNode() as Element | null;
+      while (active && batches.length && visited++ < MAX_VISITS && window.performance.now() - start < FRAME_MS) {
+        const batch = batches[0];
+        const item = batch.work.next();
+        if (item.done) batches.shift();
+        else consume(item.value, batch.generation);
       }
       deliver(start + FRAME_MS);
-      if (active && (checkDetached || scan || roots.size || pendingNotices.size || pendingDialogs.size)) schedule();
+      if (active && (checkStructure || batches.length || pendingNotices.size || pendingDialogs.size)) schedule();
     };
     const schedule = () => {
       if (!active || frame !== undefined) return;
       fallbackFrame = typeof window.requestAnimationFrame !== 'function';
       frame = fallbackFrame ? window.setTimeout(flush, 16) : window.requestAnimationFrame(flush);
     };
-    const collect = (node: Node, descendants: boolean, changedText = true) => {
-      const element = node.nodeType === 1 ? (node as Element) : node.parentElement;
-      if (!element || !element.isConnected || helpers.blocked(element)) return;
-      if (notices && changedText) {
-        const region = element.closest(LIVE);
-        if (region) enqueueNotice(region, generation);
+    const track = (element: Element) => {
+      if (trackedDialogs.has(element)) return true;
+      if (trackedDialogs.size >= MAX_PENDING) {
+        overflow('dialog tracking');
+        return false;
       }
-      if (dialogs && element.matches(DIALOG)) enqueueDialog(element);
-      if (descendants) {
-        const flags = (notices && changedText ? 1 : 0) | (dialogs ? 2 : 0);
-        if (flags) {
-          if (!roots.has(element) && roots.size >= MAX_ROOTS) overflow('discovery queue');
-          else roots.set(element, { flags: (roots.get(element)?.flags ?? 0) | flags, generation });
+      trackedDialogs.add(element);
+      return true;
+    };
+    const consume = (work: Work, batchGeneration: number) => {
+      if ('node' in work) {
+        const { node, baseline, hidden } = work;
+        if (node.type !== 2) return;
+        const attrs = node.attributes ?? {};
+        const dialog =
+          node.tagName === 'dialog' ||
+          attrs.role === 'dialog' ||
+          attrs.role === 'alertdialog' ||
+          attrs['aria-modal'] === 'true';
+        const live =
+          ['alert', 'status', 'log'].includes(attrs.role as string) ||
+          ['polite', 'assertive'].includes(attrs['aria-live'] as string);
+        if (!(dialogs && dialog) && !(notices && live && !baseline)) return;
+        const element = host.getNode?.(node.id);
+        if (!element || element.nodeType !== 1 || helpers.blocked(element as Element)) return;
+        const target = element as Element;
+        if (dialogs && dialog && track(target)) {
+          if (baseline && !dialogStates.has(target)) {
+            // Seed from recorded state, not a later live DOM state. Initial snapshots do
+            // not announce pre-existing notices or synthesize dialog-open events.
+            const open = !hidden && (node.tagName !== 'dialog' || attrs.open !== undefined);
+            dialogStates.set(target, {
+              open,
+              payload: {
+                id: node.id,
+                role: attrs.role === 'alertdialog' ? 'alertdialog' : 'dialog',
+                name: null,
+                name_source: 'unnamed',
+                state: open ? 'open' : 'closed',
+                modal: attrs['aria-modal'] === 'true' || attrs.rr_open_mode === 'modal',
+                visible: false,
+                cause_click_ts: null,
+              },
+            });
+            if (open) openDialogs.add(target);
+          } else {
+            const previous = dialogStates.get(target);
+            if (previous && baseline) previous.payload.id = node.id;
+            enqueueDialog(target);
+          }
+        }
+        if (notices && live && !baseline) enqueueNotice(target, batchGeneration);
+        return;
+      }
+      if (!(notices && work.text) && !(dialogs && work.dialogs)) return;
+      const node = host.getNode?.(work.id);
+      const element = node?.nodeType === 1 ? (node as Element) : node?.parentElement;
+      if (!element || !element.isConnected || helpers.blocked(element)) return;
+      if (notices && work.text) {
+        const region = element.closest(LIVE);
+        if (region) enqueueNotice(region, batchGeneration);
+      }
+      if (dialogs && work.dialogs) {
+        if (element.matches(DIALOG) && track(element)) enqueueDialog(element);
+        // Ancestor visibility can affect already recorded dialogs. This registry is
+        // bounded; no selector query or subtree walk is needed.
+        for (const dialog of trackedDialogs) {
+          if (element.contains(dialog)) enqueueDialog(dialog);
         }
       }
     };
-    // One startup discovery preserves the baseline for existing dialogs. Avoid
-    // name and layout extraction here; subsequent discovery is batched above.
-    if (dialogs) {
-      for (const element of Array.from(document.body.querySelectorAll(DIALOG))) {
-        if (helpers.blocked(element) || !isOpen(element)) continue;
-        if (openDialogs.size >= MAX_PENDING) {
-          overflow('open dialog tracking');
-          break;
-        }
-        openDialogs.add(element);
-        let modal = element.getAttribute('aria-modal') === 'true';
-        try {
-          modal = modal || element.matches(':modal');
-        } catch {
-          /* Older engines. */
-        }
-        dialogStates.set(element, {
-          open: isOpen(element),
-          payload: {
-            id: helpers.id(element),
-            role: 'dialog',
-            name: null,
-            name_source: 'unnamed',
-            state: 'open',
-            modal,
-            visible: false,
-            cause_click_ts: null,
-          },
-        });
-      }
-    }
-    const observer = new Observer((records) => {
+    const unsubscribeDom = context.on('dom', (change) => {
       if (!active || !refreshCapacity()) return;
       generation++;
-      // Even an overflowing mutation batch must check known dialogs for removal.
-      checkDetached = dialogs || notices;
-      const start = window.performance.now();
-      let intake = 0;
-      const withinBudget = () => {
-        if (++intake <= MAX_MUTATIONS && window.performance.now() - start < FRAME_MS) return true;
-        overflow('mutation intake');
-        return false;
-      };
-      records: for (const record of records) {
-        if (!withinBudget()) break;
-        if (record.type === 'attributes') {
-          if (dialogs) collect(record.target, true, false);
-        } else {
-          collect(record.target, false);
-          for (let i = 0; i < record.addedNodes.length; i++) {
-            if (!withinBudget()) break records;
-            collect(record.addedNodes[i], true);
-          }
-        }
-      }
-      if (checkDetached || roots.size || pendingNotices.size || pendingDialogs.size) schedule();
-    });
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: notices,
-      attributes: dialogs,
-      ...(dialogs ? { attributeFilter: ['open', 'hidden', 'aria-hidden'] } : {}),
+      if (change.type === 'snapshot' || change.removes.length) checkStructure = true;
+      if (batches.length >= MAX_BATCHES) overflow('replay batch queue');
+      else batches.push({ work: changes(change), generation });
+      schedule();
     });
     return cleanup;
   },

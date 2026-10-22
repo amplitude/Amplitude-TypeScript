@@ -27,6 +27,7 @@ const schema = require('../../schema.json');
     const result = await page.evaluate(async () => {
       const events = [];
       const ids = new WeakMap();
+      const nodes = new Map();
       let nextId = 1;
       const host = {
         window,
@@ -36,14 +37,29 @@ const schema = require('../../schema.json');
         getUrl: () => 'https://example.com/accounts/123?secret=hidden',
         getNodeId: (node) => {
           if (!ids.has(node)) ids.set(node, nextId++);
+          nodes.set(ids.get(node), node);
           return ids.get(node);
         },
+        getNode: (id) => nodes.get(id) ?? null,
         emit: (event) => events.push(event),
       };
       const capture = AmpSemantic.createSemanticCapture({ enabled: true }, host);
       capture.start();
       capture.notify('recording', { state: 'start', reason: 'init' });
+      const serialize = (node) => ({
+        id: host.getNodeId(node),
+        type: node.nodeType === 1 ? 2 : 3,
+        ...(node.nodeType === 1
+          ? {
+              tagName: node.tagName.toLowerCase(),
+              attributes: Object.fromEntries(Array.from(node.attributes, (attr) => [attr.name, attr.value])),
+            }
+          : {}),
+        childNodes: Array.from(node.childNodes, serialize),
+      });
+      capture.notify('dom', { type: 'snapshot', node: serialize(document.body) });
       capture.notify('snapshot', undefined);
+      await new Promise((resolve) => setTimeout(resolve, 50));
       const form = document.querySelector('form');
       form.addEventListener('submit', (event) => event.preventDefault());
       for (const input of document.querySelectorAll('input')) {
@@ -59,6 +75,14 @@ const schema = require('../../schema.json');
       });
       document.querySelector('[role="status"]').textContent = 'Saved';
       document.querySelector('dialog').showModal();
+      // Standalone fixture supplies explicit replay-style input. The SDK suite uses real rrweb.
+      capture.notify('dom', {
+        type: 'mutation',
+        adds: [],
+        removes: [],
+        texts: [{ id: host.getNodeId(document.querySelector('[role="status"]').firstChild) }],
+        attributes: [{ id: host.getNodeId(document.querySelector('dialog')), attributes: { open: '' } }],
+      });
       await new Promise((resolve) => setTimeout(resolve, 100));
       // Exercise reconfiguration after the first snapshot, with no new snapshot.
       capture.updateConfig({ enabled: true, families: { keys: false } });
