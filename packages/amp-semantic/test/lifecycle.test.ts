@@ -13,6 +13,7 @@ function setup(families: SemanticFamily[] = ['context', 'recording', 'visibility
     },
     enabled: (family: SemanticFamily) => families.includes(family),
     emit: jest.fn(() => true),
+    canEmit: () => true,
     dropped: jest.fn(() => ({})),
     on: jest.fn((name: keyof HostSignals, callback: (value: never) => void) => {
       signals[name] = callback;

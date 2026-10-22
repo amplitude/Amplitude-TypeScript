@@ -10,10 +10,46 @@ describe('feedback recorder', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     document.body.innerHTML = '';
+    jest.spyOn(window.performance, 'now').mockReturnValue(0);
   });
   afterEach(() => {
     jest.useRealTimers();
     jest.restoreAllMocks();
+  });
+
+  test('defers and deduplicates overlapping subtree discovery before scanning', async () => {
+    const { context, emit } = recorderContext();
+    const cleanup = feedbackRecorder.setup(context);
+    const walk = jest.spyOn(document, 'createTreeWalker');
+    const query = jest.spyOn(Element.prototype, 'querySelectorAll');
+    const wrapper = document.createElement('section');
+    document.body.appendChild(wrapper);
+    wrapper.innerHTML = '<section><div role="dialog" aria-label="One"></div></section>';
+    const child = wrapper.firstElementChild as HTMLElement;
+    child.hidden = true;
+    child.hidden = false;
+    await Promise.resolve();
+    expect(walk).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(20);
+    expect(walk.mock.calls.map(([root]) => root)).toEqual([wrapper]);
+    expect(emit).toHaveBeenCalledTimes(1);
+    cleanup();
+  });
+
+  test('spreads a burst of dialog payloads over frames and skips names after the cap', async () => {
+    const { context, emit } = recorderContext();
+    const cleanup = feedbackRecorder.setup(context);
+    const describe = jest.spyOn(context.helpers, 'describe');
+    document.body.innerHTML = '<section>' + '<div role="dialog">Dialog</div>'.repeat(150) + '</section>';
+    await mutations();
+    expect(emit.mock.calls.length).toBeGreaterThan(0);
+    expect(emit.mock.calls.length).toBeLessThanOrEqual(50);
+    context.canEmit = () => false;
+    describe.mockClear();
+    jest.advanceTimersByTime(2000);
+    expect(describe).not.toHaveBeenCalled();
+    cleanup();
   });
 
   test('finds nested live regions, batches latest text, throttles and correlates clicks', async () => {

@@ -36,6 +36,10 @@ export const clickOutcomeRecorder: SemanticRecorder = {
         if (outcome.payload.first_change_ms === null)
           outcome.payload.first_change_ms = Math.max(0, timestamp - outcome.payload.click_ts);
       }
+      // Once every pending window has seen its first mutation, additional
+      // mutations cannot change its facts. A later click starts observation again.
+      observer?.disconnect();
+      observer = undefined;
     };
     const startObserver = (): boolean => {
       if (observer) return true;
@@ -61,6 +65,7 @@ export const clickOutcomeRecorder: SemanticRecorder = {
       if (event.name === 'click') {
         if (frustrationEnabled(context) || event.payload.modifiers.length || event.payload.attrs.target === '_blank')
           return;
+        if (!context.canEmit('click-outcome')) return;
         // Drain pre-click mutations for older windows before registering this click.
         if (observer) mutation(observer.takeRecords());
         if (pending.size >= MAX_PENDING_OUTCOMES || !startObserver()) return;

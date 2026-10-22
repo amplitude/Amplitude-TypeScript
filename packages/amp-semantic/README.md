@@ -103,6 +103,34 @@ All captured text uses the replay privacy policy, including referenced labels an
 
 Recorders include context, clicks, keys, resource load failures, page identity/checks, field state, form submissions, notices, dialogs, recording state, visibility, lifecycle, click outcomes, and an accepted-analytics-event mirror. Click outcomes reuse autocapture's mutation/navigation definition and observer categories. They are suppressed when dead/error frustration capture is available.
 
+## Work limits
+
+Recorders call `context.canEmit(family)` before expensive payload construction when possible.
+A cap-rejected candidate increments the dropped count without resolving its text, selector, or
+layout; `emit()` still enforces the cap independently. This is not a reservation. Recorders retain
+cheap transition bookkeeping and shared subscriptions so another family is not silently disabled.
+Field candidates rejected before deduplication can contribute to the dropped count.
+
+Notice/dialog mutation callbacks enqueue affected roots. Overlapping subtree discovery is deduplicated
+and processed in batches of at most 1,000 visited elements and a cooperative 4 ms budget; payload
+processing is limited to 50 candidates per batch and shares that time budget. Blocked subtrees are
+skipped. Large bursts may span multiple animation frames, so these are observation-time facts, not
+precise timestamps of each DOM mutation. One initial dialog selector query establishes the baseline;
+it no longer resolves names or reads layout for every existing dialog.
+
+Page checks traverse at most 2,000 elements with a cooperative 8 ms budget instead of first collecting
+all matching elements. Counts/empty/loading remain bounded heuristics, not a census of the document.
+Heading discovery traverses at most 2,000 elements with a cooperative 2 ms budget and reuses only the
+DOM candidate for up to 250 ms. Text, masking and visibility are re-read when emitted; no private text
+is cached. Navigation, snapshots, disconnected candidates and hidden candidates invalidate discovery.
+New higher-priority headings may take up to 250 ms to be selected, and over-budget discovery can omit
+a heading. These budgets are checked between DOM operations, not hard deadlines for browser calls.
+
+The fallback click-outcome observer disconnects after the first mutation changes all pending windows;
+a subsequent click starts a fresh observer. Timers and notice/dialog/navigation correlation continue
+until the original outcome windows finish. The SDK still has separate autocapture/replay observers;
+this change does not introduce a shared observer across those packages.
+
 ## Remaining integration and release work
 
 - The analytics mirror requires a host signal after analytics enrichment/filtering accepts an event for delivery. The existing Session Replay plugin `execute()` runs too early; SDK forwarding is intentionally not wired there.

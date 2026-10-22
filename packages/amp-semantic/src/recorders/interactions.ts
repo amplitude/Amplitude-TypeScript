@@ -116,6 +116,7 @@ export const interactionsRecorder: SemanticRecorder = {
       if (!target || helpers.blocked(target)) return;
       const element = helpers.actionable(target);
       if (helpers.blocked(element)) return;
+      if (!context.canEmit('click')) return;
       const key = stableKey(context, element);
       let selector: string | null = null;
       if (!key && host.getSelector) {
@@ -161,6 +162,7 @@ export const interactionsRecorder: SemanticRecorder = {
         helpers.blocked(element)
       )
         return;
+      if (!context.canEmit('field')) return;
       const masked = isMasked('input', host.getPrivacy(), element as HTMLElement, host.getUrl());
       const payload: SemanticPayloads['field'] = {
         ...fieldDescription(context, element),
@@ -207,6 +209,7 @@ export const interactionsRecorder: SemanticRecorder = {
       // Do not call checkValidity(): that would dispatch new invalid events into the page.
       defer(() => {
         if (!context.enabled('submit') || helpers.blocked(form)) return;
+        if (!context.canEmit('submit')) return;
         context.emit('submit', {
           form: describeForm(form, submitter && !helpers.blocked(submitter) ? submitter : null),
           submitter:
@@ -240,6 +243,7 @@ export const interactionsRecorder: SemanticRecorder = {
         if (!context.enabled('submit')) return;
         for (const [invalidForm, invalidFields] of batches) {
           if (helpers.blocked(invalidForm)) continue;
+          if (!context.canEmit('submit')) continue;
           context.emit('submit', {
             form: describeForm(invalidForm, null),
             submitter: null,

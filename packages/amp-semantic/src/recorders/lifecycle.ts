@@ -1,6 +1,7 @@
 import type { Cleanup, RecorderContext, SemanticPayloads, SemanticRecorder } from '../types';
 
 function captureContext(context: RecorderContext): void {
+  if (!context.canEmit('context')) return;
   const { host } = context;
   const { document, window: scope } = host;
   const css = { total: 0, inlined: 0, unreadable: 0 };

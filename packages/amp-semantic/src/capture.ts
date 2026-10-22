@@ -70,6 +70,12 @@ export function createCapture(
     }
   };
   const enabled = (family: SemanticFamily) => active && settings.families?.[family] !== false;
+  const canEmit = (family: SemanticFamily): boolean => {
+    if (!enabled(family)) return false;
+    if ((counts[family] ?? 0) < SEMANTIC_CAPS[family]) return true;
+    dropped[family] = (dropped[family] ?? 0) + 1;
+    return false;
+  };
   const context: RecorderContext = {
     onCleanup: (cleanup) => {
       cleanups.push(cleanup);
@@ -78,14 +84,11 @@ export function createCapture(
     helpers: createHelpers(host),
     now,
     enabled,
+    canEmit,
     dropped: () => ({ ...dropped }),
     hasSnapshot: () => snapshotSeen,
     emit: <K extends SemanticFamily>(family: K, payload: SemanticPayloads[K], timestamp = now()): boolean => {
-      if (!enabled(family)) return false;
-      if ((counts[family] ?? 0) >= SEMANTIC_CAPS[family]) {
-        dropped[family] = (dropped[family] ?? 0) + 1;
-        return false;
-      }
+      if (!canEmit(family)) return false;
       let identity;
       try {
         identity = host.getIdentity?.();
@@ -204,6 +207,7 @@ export function createCapture(
     },
     notify: (signal, value) => {
       if (signal === 'snapshot') snapshotSeen = true;
+      if (signal === 'snapshot' || signal === 'navigation') context.helpers.invalidateHeading?.();
       if (!active) return;
       signals.get(signal)?.forEach((callback) => callback(value as never));
     },

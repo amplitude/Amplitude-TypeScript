@@ -185,7 +185,7 @@ export const autocapturePlugin = (
         /* istanbul ignore next */
         getGlobalScope()?.document.addEventListener('change', handler, { capture: true });
         /* istanbul ignore next */
-        return () => getGlobalScope()?.document.removeEventListener('change', handler);
+        return () => getGlobalScope()?.document.removeEventListener('change', handler, { capture: true });
       }),
     );
 

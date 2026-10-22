@@ -198,6 +198,7 @@ export interface SemanticHelpers {
   container: (element: Element) => TargetDescription | null;
   visible: (element: Element) => boolean;
   heading: () => string | null;
+  invalidateHeading?: () => void;
   url: (value?: string) => string;
   attributes: (element: Element) => Record<string, string>;
 }
@@ -208,6 +209,8 @@ export interface RecorderContext {
   helpers: SemanticHelpers;
   now: () => number;
   enabled: (family: SemanticFamily) => boolean;
+  /** Check before expensive payload work. A rejected candidate increments the dropped count. */
+  canEmit: (family: SemanticFamily) => boolean;
   emit: <K extends SemanticFamily>(family: K, payload: SemanticPayloads[K], timestamp?: number) => boolean;
   on: <K extends keyof HostSignals>(signal: K, callback: (value: HostSignals[K]) => void) => Cleanup;
   subscribe: (callback: (event: SemanticEvent) => void) => Cleanup;

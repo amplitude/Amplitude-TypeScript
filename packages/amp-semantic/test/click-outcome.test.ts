@@ -11,6 +11,7 @@ function harness() {
   const output: SemanticPayloads['click-outcome'][] = [];
   const context: RecorderContext = {
     onCleanup: () => undefined,
+    canEmit: () => true,
     host: {
       document,
       window,
@@ -111,6 +112,24 @@ describe('semantic click outcomes', () => {
       characterData: true,
       subtree: true,
     });
+  });
+
+  it('disconnects after the first mutation and starts a fresh observer for the next click', async () => {
+    const h = harness();
+    const disconnect = jest.spyOn(MutationObserver.prototype, 'disconnect');
+    const observe = jest.spyOn(MutationObserver.prototype, 'observe');
+    cleanup = clickOutcomeRecorder.setup(h.context);
+    h.click();
+    document.body.appendChild(document.createElement('span'));
+    await Promise.resolve();
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    h.click();
+    expect(observe).toHaveBeenCalledTimes(2);
+    jest.advanceTimersByTime(1500);
+    expect(h.output[0].changed).toBe(true);
+    expect(h.output[1].changed).toBe(false);
+    disconnect.mockRestore();
+    observe.mockRestore();
   });
 
   it('emits a no-change result only after the observation window', () => {

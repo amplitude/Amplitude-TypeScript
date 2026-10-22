@@ -85,6 +85,24 @@ describe('page recorder', () => {
     cleanup();
   });
 
+  test('does not collect full selector results and skips scans entirely after the cap', () => {
+    const { context, signal, emit } = recorderContext();
+    const queries = jest.spyOn(document, 'querySelectorAll');
+    const walk = jest.spyOn(document, 'createTreeWalker');
+    const cleanup = pageRecorder.setup(context);
+    signal('snapshot', undefined);
+    jest.advanceTimersByTime(1);
+    expect(emit).toHaveBeenCalledTimes(1);
+    expect(queries).not.toHaveBeenCalled();
+    walk.mockClear();
+    context.canEmit = () => false;
+    signal('navigation', 'push');
+    jest.advanceTimersByTime(5001);
+    expect(walk).not.toHaveBeenCalled();
+    expect(emit).toHaveBeenCalledTimes(1);
+    cleanup();
+  });
+
   test('tracks standalone history and restores only its own patch', () => {
     const { context, emit, signal } = recorderContext();
     context.host.externalNavigation = false;

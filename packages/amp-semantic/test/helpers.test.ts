@@ -16,6 +16,32 @@ describe('shared privacy helpers', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
   });
+  test('reuses heading discovery but rechecks text, masking, removal, and invalidation', () => {
+    let time = 0;
+    jest.spyOn(window.performance, 'now').mockImplementation(() => time);
+    document.body.innerHTML = '<main><h1>First</h1></main>';
+    const h1 = document.querySelector('h1')!;
+    Object.defineProperty(h1, 'checkVisibility', { value: () => true });
+    const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
+    const walk = jest.spyOn(document, 'createTreeWalker');
+    expect(helpers.heading()).toBe('First');
+    h1.textContent = 'Changed';
+    expect(helpers.heading()).toBe('Changed');
+    h1.className = 'amp-mask';
+    expect(helpers.heading()).toBeNull();
+    expect(walk.mock.calls.filter(([root]) => root === document.body)).toHaveLength(1);
+    h1.className = '';
+    time = 251;
+    expect(helpers.heading()).toBe('Changed');
+    expect(walk.mock.calls.filter(([root]) => root === document.body)).toHaveLength(2);
+    helpers.invalidateHeading?.();
+    expect(helpers.heading()).toBe('Changed');
+    expect(walk.mock.calls.filter(([root]) => root === document.body)).toHaveLength(3);
+    h1.remove();
+    expect(helpers.heading()).toBeNull();
+    jest.restoreAllMocks();
+  });
+
   test('reads mixed, busy and native open states without treating mixed as checked', () => {
     const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
     const checkbox = document.createElement('input');

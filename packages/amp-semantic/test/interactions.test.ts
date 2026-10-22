@@ -59,6 +59,7 @@ function harness(privacy: PrivacyConfig = { defaultMaskLevel: 'medium' }, disabl
   };
   const context: RecorderContext = {
     onCleanup: () => undefined,
+    canEmit: () => true,
     host: {
       document,
       window,
@@ -102,6 +103,20 @@ function dispatch(element: Element, type: string) {
 
 describe('interactions recorder', () => {
   let cleanup: (() => void) | undefined;
+  test('skips selector, heading, name and field payload work after capacity is exhausted', () => {
+    const h = harness();
+    h.context.canEmit = () => false;
+    const describe = jest.spyOn(h.context.helpers, 'describe');
+    const heading = jest.spyOn(h.context.helpers, 'heading');
+    cleanup = h.start();
+    document.body.innerHTML = '<button>Go</button><input aria-label="Email">';
+    document.querySelector('button')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    dispatch(document.querySelector('input')!, 'change');
+    expect(describe).not.toHaveBeenCalled();
+    expect(heading).not.toHaveBeenCalled();
+    expect(h.context.host.getSelector).not.toHaveBeenCalled();
+    expect(h.emitted).toHaveLength(0);
+  });
   beforeEach(() => {
     jest.useFakeTimers();
     document.body.innerHTML = '';
