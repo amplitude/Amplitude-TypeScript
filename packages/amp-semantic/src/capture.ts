@@ -23,6 +23,7 @@ export const SEMANTIC_CAPS: Record<SemanticFamily, number> = {
   'amp-event': 500,
   context: 200,
   recording: 200,
+  navigation: 200,
   visibility: 200,
   lifecycle: 200,
 };
@@ -207,7 +208,7 @@ export function createCapture(
     },
     notify: (signal, value) => {
       if (signal === 'snapshot') snapshotSeen = true;
-      if (signal === 'snapshot' || signal === 'navigation') context.helpers.invalidateHeading?.();
+      if (signal === 'snapshot' || signal === 'navigation' || signal === 'url') context.helpers.invalidateHeading?.();
       if (!active) return;
       signals.get(signal)?.forEach((callback) => callback(value as never));
     },

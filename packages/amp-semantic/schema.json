@@ -5,6 +5,34 @@
     {
       "type": "object",
       "properties": {
+        "type": { "const": 5 },
+        "timestamp": { "type": "number" },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": { "const": "amp-semantic/navigation" },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "v": { "const": 1 },
+                "url": { "type": "string" },
+                "tab_id": { "type": "string", "minLength": 1 },
+                "document_id": { "type": "string", "minLength": 1 }
+              },
+              "required": ["v", "url"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
         "type": {
           "const": 5
         },

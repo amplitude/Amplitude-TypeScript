@@ -1,6 +1,19 @@
 [
   {
     "type": 5,
+    "timestamp": 1791113560000,
+    "data": {
+      "tag": "amp-semantic/navigation",
+      "payload": {
+        "v": 1,
+        "url": "/accounts/:id/billing",
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
     "timestamp": 1791112910900,
     "data": {
       "tag": "amp-semantic/context",

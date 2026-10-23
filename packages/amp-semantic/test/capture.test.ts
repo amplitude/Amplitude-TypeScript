@@ -131,6 +131,16 @@ describe('capture runtime', () => {
     expect(host.emit).toHaveBeenCalledTimes(1);
     expect(context.dropped()).toEqual({ visibility: 1 });
   });
+  test('URL observations invalidate headings even when navigation emission is disabled', () => {
+    const capture = createCapture({ enabled: true, families: { navigation: false } }, host, [recorder]);
+    capture.start();
+    const invalidate = jest.spyOn(context.helpers, 'invalidateHeading');
+    capture.notify('url', { url: '/new-route', timestamp: 123 });
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(host.emit).not.toHaveBeenCalled();
+    capture.stop();
+  });
+
   test('stamps all families centrally and retains document identity through stop and reset', () => {
     host.getIdentity = undefined;
     const capture = createCapture({ enabled: true }, host, [recorder]);

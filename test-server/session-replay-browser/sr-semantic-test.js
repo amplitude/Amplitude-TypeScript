@@ -39,6 +39,13 @@ const eventGuide = {
       'SDK, masking policy, viewport, device, language, user_agent, visibility_state and focused. These describe that moment, not continuous state.',
     tryIt: 'Reload or resume recording to capture a new snapshot.',
   },
+  navigation: {
+    description: 'The initial page URL and later URL changes, reused from the existing replay URL plugin.',
+    fields:
+      'url is a templated path and optional hash route, without origin or query values. Different navigations may share a template. No title or navigation reason is included.',
+    tryIt:
+      'Click Navigate to account 8812, then use Back/Forward. Resume recording emits the current URL again. Capture follows the replay URL plugin’s event or polling mode.',
+  },
   click: {
     description: 'A primary or middle click, including keyboard-activated clicks.',
     fields:
@@ -435,6 +442,8 @@ async function boot() {
     useWebWorker,
     logLevel: 0,
     semanticCapture: config,
+    enableUrlChangePolling: params.get('urlPolling') === 'true',
+    urlChangePollingInterval: 100,
     privacyConfig: { defaultMaskLevel: mask },
     performanceConfig: { enabled: false },
     eagerFullSnapshotSend: true,
