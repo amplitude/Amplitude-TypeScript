@@ -1,3 +1,4 @@
+import type { AnalyticsContext, SemanticCaptureConfig } from '@amplitude/amp-semantic';
 import { Config, ILogger, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
 import {
   DEFAULT_FLUSH_MAX_INTERVAL_MS,
@@ -36,6 +37,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   apiKey: string;
   sampleRate: number;
   privacyConfig?: PrivacyConfig;
+  semanticCapture?: SemanticCaptureConfig;
+  semanticAnalyticsContext?: AnalyticsContext;
   interactionConfig?: InteractionConfig;
   debugMode?: boolean;
   configServerUrl?: string;
@@ -78,6 +81,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
 
     this.apiKey = apiKey;
     this.sampleRate = options.sampleRate || DEFAULT_SAMPLE_RATE;
+    this.semanticCapture = options.semanticCapture;
+    this.semanticAnalyticsContext = options.semanticAnalyticsContext;
     this.serverZone = options.serverZone || DEFAULT_SERVER_ZONE;
     this.configServerUrl = options.configServerUrl;
     this.trackServerUrl = options.trackServerUrl;
