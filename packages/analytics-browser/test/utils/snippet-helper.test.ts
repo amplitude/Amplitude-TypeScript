@@ -47,5 +47,11 @@ describe('snippet-helper', () => {
       expect(SnippetHelper.convertProxyObjectToRealObject(instance, queue)).toBe(instance);
       expect(resolve).toHaveBeenCalledTimes(1);
     });
+
+    test('should return instance when queue is undefined', () => {
+      const instance = { init: jest.fn() };
+      expect(SnippetHelper.convertProxyObjectToRealObject(instance, undefined)).toBe(instance);
+      expect(instance.init).not.toHaveBeenCalled();
+    });
   });
 });
