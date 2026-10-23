@@ -22,4 +22,11 @@ export interface FormInteractionsOptions {
    * ```
    */
   shouldTrackSubmit?: (event: SubmitEvent) => boolean;
+
+  /**
+   * Whether to track `[Amplitude] Form Abandoned` event
+   * @defaultValue `true`
+   * @experimental This feature is experimental and may not be stable
+   */
+  shouldTrackAbandoned?: boolean;
 }
