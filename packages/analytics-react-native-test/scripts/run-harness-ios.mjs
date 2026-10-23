@@ -50,7 +50,9 @@ const podEnv = {
 const ensurePods = () => {
   const current = readMarker(podsArchMarker);
   const podsPresent = fs.existsSync(podsXcconfig);
-  const needsInstall = !podsPresent || current !== arch.label || forcePods;
+  // A forced build must also pick up newly linked native dependencies even if
+  // the architecture is unchanged (for example, the Session Replay plugin).
+  const needsInstall = !podsPresent || current !== arch.label || forcePods || forceRebuild;
 
   if (!needsInstall) {
     return;
@@ -114,6 +116,9 @@ const buildApp = () => {
       cwd: iosRoot,
       env: {
         ...process.env,
+        // RN's codegen script uses BSD cp -X. Homebrew GNU coreutils earlier
+        // in PATH reject that flag, so prefer macOS utilities for Xcode phases.
+        PATH: `/usr/bin:/bin:/usr/sbin:/sbin:${process.env.PATH ?? ''}`,
         RCT_NO_LAUNCH_PACKAGER: '1',
         RCT_NEW_ARCH_ENABLED: arch.rctFlag,
       },

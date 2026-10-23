@@ -50,6 +50,25 @@ Accepted `NEW_ARCH` values: `0` / `false` / `off` (legacy) and `1` / `true` / `o
 Element-interaction harness tests (`element-interactions.harness.tsx`) require
 `@react-native-harness/ui` and only run when `NEW_ARCH=1`.
 
+### Dead clicks
+
+`dead-click.harness.tsx` also requires `NEW_ARCH=1`. It uses real native presses
+and the linked Session Replay plugin at a 100% sample rate, with remote config
+disabled. It verifies dead clicks for no UI response and a response after the
+3-second threshold, suppression for an immediate UI response, and suppression
+when Replay is stopped. Negative cases wait through the full threshold.
+
+Rebuild the host after adding Session Replay; cached binaries from before it was
+linked cannot run these tests:
+
+```bash
+FORCE_REBUILD=1 pnpm --filter @amplitude/analytics-react-native-test test:harness:android:new-arch dead-click
+FORCE_REBUILD=1 pnpm --filter @amplitude/analytics-react-native-test test:harness:ios:new-arch dead-click
+```
+
+On iOS, `FORCE_REBUILD=1` also reruns `pod install` so newly added native
+dependencies are linked even when the architecture has not changed.
+
 ### Cached binaries
 
 Old- and new-arch binaries are kept separate so you can switch without a full rebuild every time:
