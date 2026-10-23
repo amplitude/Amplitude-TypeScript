@@ -8,6 +8,10 @@
 # All packages
 * @amplitude/dx
 
+# Lockfile updates are shared with Session Replay so dependency bumps in their
+# packages do not require a separate DX review.
+/pnpm-lock.yaml @amplitude/dx @amplitude/session-replay-sdk
+
 # Session Replay Packages (Browser)
 # Owned by the Session Replay SDK team
 /packages/session-replay-browser/ @amplitude/session-replay-sdk
