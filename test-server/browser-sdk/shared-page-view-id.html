@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shared Page View ID</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 24px;
+        max-width: 1080px;
+      }
+      button {
+        margin-right: 8px;
+      }
+      .hint {
+        color: #444;
+        max-width: 80ch;
+      }
+      .pass {
+        color: #047857;
+      }
+      .fail {
+        color: #b91c1c;
+      }
+      .wait {
+        color: #92400e;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+        padding: 4px 8px;
+        font-size: 13px;
+        font-family: ui-monospace, monospace;
+      }
+      pre {
+        background: #f6f6f6;
+        padding: 12px;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Shared Page View ID</h1>
+    <p class="hint">
+      Two SDK instances use the same API key. A third uses a different API key. Events stay in this page
+      (<code>offline: true</code>) and are not uploaded. Reload to start over.
+    </p>
+    <ol class="hint">
+      <li>On load, the two same-project instances should share one Page View ID. The other project should not.</li>
+      <li>Click <strong>Click me</strong>. Element Clicked from both same-project instances should share an id from a Page Viewed event.</li>
+      <li>Click <strong>Client navigate</strong>. The same project should mint one new shared id.</li>
+      <li>Viewport Content Updated should use the page view id that was current for that instance.</li>
+    </ol>
+    <p>
+      <button id="click-target" type="button">Click me</button>
+      <button id="navigate" type="button">Client navigate</button>
+      <button id="flush" type="button">Flush viewport</button>
+    </p>
+    <p id="status">Starting SDKs…</p>
+    <h2>Checks</h2>
+    <ul id="checks"></ul>
+    <h2>Session storage <code>AMP_PAGE_VIEW</code></h2>
+    <pre id="storage">empty</pre>
+    <h2>Events</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Instance</th>
+          <th>Event</th>
+          <th>Page View ID</th>
+        </tr>
+      </thead>
+      <tbody id="events"></tbody>
+    </table>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { createInstance } from '@amplitude/analytics-browser';
+
+      const PAGE_VIEWED = '[Amplitude] Page Viewed';
+      const VIEWPORT_UPDATED = '[Amplitude] Viewport Content Updated';
+      const ELEMENT_CLICKED = '[Amplitude] Element Clicked';
+      const PAGE_VIEW_ID = '[Amplitude] Page View ID';
+      const STORAGE_KEY = 'AMP_PAGE_VIEW';
+      const SAME_API_KEY = 'manual-page-view-id';
+      const OTHER_API_KEY = 'manual-page-view-id-other';
+
+      const events = [];
+      let step = 1;
+
+      const status = document.getElementById('status');
+      const checks = document.getElementById('checks');
+      const storage = document.getElementById('storage');
+      const eventRows = document.getElementById('events');
+
+      const idsFor = (instance, eventType) =>
+        events.filter((event) => event.instance === instance && event.eventType === eventType).map((event) => event.pageViewId);
+
+      const sameId = (left, right) => Boolean(left) && left === right;
+
+      const viewportMatchesPageView = (instance) => {
+        const pageViewIds = new Set(idsFor(instance, PAGE_VIEWED));
+        const viewportIds = idsFor(instance, VIEWPORT_UPDATED);
+        if (pageViewIds.size === 0 || viewportIds.length === 0) {
+          return null;
+        }
+        return viewportIds.every((id) => pageViewIds.has(id));
+      };
+
+      const clickMatchesCurrentPage = () => {
+        const defaultClicks = events.filter((event) => event.instance === 'default' && event.eventType === ELEMENT_CLICKED);
+        const secondClicks = events.filter((event) => event.instance === 'second' && event.eventType === ELEMENT_CLICKED);
+        const pageViewIds = new Set(idsFor('default', PAGE_VIEWED));
+        if (defaultClicks.length === 0 || secondClicks.length === 0) {
+          return null;
+        }
+        if (defaultClicks.length !== secondClicks.length) {
+          return false;
+        }
+        return defaultClicks.every(
+          (event, index) => event.pageViewId === secondClicks[index].pageViewId && pageViewIds.has(event.pageViewId),
+        );
+      };
+
+      const navigationSharesNewId = () => {
+        const first = idsFor('default', PAGE_VIEWED);
+        const second = idsFor('second', PAGE_VIEWED);
+        if (first.length < 2 || second.length < 2) {
+          return null;
+        }
+        return sameId(first[1], second[1]) && first[1] !== first[0];
+      };
+
+      const checkDefinitions = [
+        {
+          label: 'Same project: first Page Viewed ids match',
+          run: () => {
+            const first = idsFor('default', PAGE_VIEWED)[0];
+            const second = idsFor('second', PAGE_VIEWED)[0];
+            if (!first || !second) {
+              return null;
+            }
+            return sameId(first, second);
+          },
+        },
+        {
+          label: 'Different project: first Page Viewed id is different',
+          run: () => {
+            const sameProject = idsFor('default', PAGE_VIEWED)[0];
+            const otherProject = idsFor('other-project', PAGE_VIEWED)[0];
+            if (!sameProject || !otherProject) {
+              return null;
+            }
+            return otherProject !== sameProject;
+          },
+        },
+        {
+          label: 'Viewport Content Updated uses that instance’s Page Viewed id',
+          run: () => {
+            const results = ['default', 'second', 'other-project'].map(viewportMatchesPageView);
+            if (results.some((result) => result === null)) {
+              return null;
+            }
+            return results.every(Boolean);
+          },
+        },
+        {
+          label: 'Element Clicked ids match across the same project',
+          run: clickMatchesCurrentPage,
+        },
+        {
+          label: 'Client navigation mints one new shared id',
+          run: navigationSharesNewId,
+        },
+      ];
+
+      const renderStorage = () => {
+        const raw = sessionStorage.getItem(STORAGE_KEY);
+        storage.textContent = raw ? JSON.stringify(JSON.parse(raw), null, 2) : 'empty';
+      };
+
+      const render = () => {
+        checks.replaceChildren();
+        for (const check of checkDefinitions) {
+          const result = check.run();
+          const item = document.createElement('li');
+          const mark = result === null ? 'Waiting' : result ? 'Pass' : 'Fail';
+          item.className = result === null ? 'wait' : result ? 'pass' : 'fail';
+          item.textContent = `${mark}: ${check.label}`;
+          checks.appendChild(item);
+        }
+
+        eventRows.replaceChildren();
+        for (const event of events) {
+          const row = document.createElement('tr');
+          for (const value of [event.time, event.instance, event.eventType, event.pageViewId || '']) {
+            const cell = document.createElement('td');
+            cell.textContent = value;
+            row.appendChild(cell);
+          }
+          eventRows.appendChild(row);
+        }
+        renderStorage();
+      };
+
+      const record = (instance) => ({
+        name: `manual-page-view-id-log-${instance}`,
+        type: 'enrichment',
+        execute: async (event) => {
+          if (event.event_type === '$identify') {
+            return event;
+          }
+          events.push({
+            instance,
+            eventType: event.event_type,
+            pageViewId: event.event_properties?.[PAGE_VIEW_ID],
+            time: new Date().toISOString().slice(11, 23),
+          });
+          render();
+          return event;
+        },
+      });
+
+      const sdkOptions = (instanceName) => ({
+        instanceName,
+        offline: true,
+        logLevel: 0,
+        autocapture: {
+          attribution: false,
+          fileDownloads: false,
+          formInteractions: false,
+          pageUrlEnrichment: false,
+          sessions: false,
+          pageViews: { trackHistoryChanges: 'all' },
+          elementInteractions: true,
+        },
+      });
+
+      sessionStorage.removeItem(STORAGE_KEY);
+
+      const second = createInstance();
+      const otherProject = createInstance();
+      amplitude.add(record('default'));
+      second.add(record('second'));
+      otherProject.add(record('other-project'));
+
+      window.amplitude = amplitude;
+      window.amplitudeInstances = { default: amplitude, second, otherProject };
+
+      document.getElementById('navigate').addEventListener('click', () => {
+        step += 1;
+        const url = new URL(location.href);
+        url.searchParams.set('step', String(step));
+        history.pushState({ step }, '', url);
+        document.querySelector('h1').textContent = `Shared Page View ID (step ${step})`;
+      });
+
+      document.getElementById('flush').addEventListener('click', () => {
+        window.dispatchEvent(new Event('beforeunload'));
+      });
+
+      const start = async () => {
+        try {
+          await Promise.all([
+            amplitude.init(SAME_API_KEY, 'shared-page-view-id-test', sdkOptions('$default_instance')).promise,
+            second.init(SAME_API_KEY, 'shared-page-view-id-test', sdkOptions('second-instance')).promise,
+            otherProject.init(OTHER_API_KEY, 'shared-page-view-id-test', sdkOptions('other-project')).promise,
+          ]);
+          status.textContent = 'Three SDK instances are running. Use the buttons above, then read the checks.';
+        } catch (error) {
+          status.textContent = `SDK init failed: ${error instanceof Error ? error.message : String(error)}`;
+        }
+        render();
+      };
+
+      void start();
+    </script>
+  </body>
+</html>

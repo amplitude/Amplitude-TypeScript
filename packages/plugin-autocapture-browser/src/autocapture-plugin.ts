@@ -10,6 +10,7 @@ import {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   IDiagnosticsClient,
   getGlobalScope,
+  getSdkInitializationOffset,
   getOrCreateWindowMessenger,
   enableBackgroundCapture,
   multicast,
@@ -288,6 +289,10 @@ export const autocapturePlugin = (
       return;
     }
 
+    dataExtractor.setPageViewApiKey(config.apiKey);
+    // Sample at install time so a later viewport event still reports when the SDK started.
+    getSdkInitializationOffset(config.apiKey);
+
     let pageViewEndFired = false;
 
     // Fetch remote config for pageActions in a non-blocking manner
@@ -446,6 +451,7 @@ export const autocapturePlugin = (
         exposureTracker: trackers.exposure,
         isPageEnd,
         lastScroll,
+        apiKey: config.apiKey,
       });
     };
 

@@ -1,4 +1,4 @@
-import { BrowserClient, getGlobalScope } from '@amplitude/analytics-core';
+import { BrowserClient, getGlobalScope, getSdkInitializationOffset } from '@amplitude/analytics-core';
 import * as constants from '../constants';
 import { getCurrentPageViewId, getNormalizedPageUrl } from '../helpers';
 
@@ -20,6 +20,7 @@ export function fireViewportContentUpdated({
   exposureTracker,
   isPageEnd,
   lastScroll,
+  apiKey,
 }: {
   amplitude: BrowserClient;
   scrollTracker: ScrollTracker;
@@ -29,6 +30,7 @@ export function fireViewportContentUpdated({
   exposureTracker: ExposureTracker | undefined;
   isPageEnd: boolean;
   lastScroll: { maxX: undefined | number; maxY: undefined | number; minY?: undefined | number };
+  apiKey?: string;
 }): void {
   const pageScrollMaxState = scrollTracker.getState();
   const globalScope = getGlobalScope();
@@ -49,10 +51,11 @@ export function fireViewportContentUpdated({
     [constants.AMPLITUDE_EVENT_PROP_MIN_PAGE_Y]: pageScrollMaxState.minY,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: viewportHeight,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: viewportWidth,
+    [constants.AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET]: getSdkInitializationOffset(apiKey),
     '[Amplitude] Element Exposed': newExposures,
   };
 
-  const pageViewId = getCurrentPageViewId();
+  const pageViewId = getCurrentPageViewId(apiKey);
   if (pageViewId) {
     eventProperties[constants.AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID] = pageViewId;
   }

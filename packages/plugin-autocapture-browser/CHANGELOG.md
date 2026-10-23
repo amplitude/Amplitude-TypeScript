@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.30.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.3...@amplitude/plugin-autocapture-browser@1.30.4) (2026-10-20)
+
+
+### Bug Fixes
+
+* **browser:** share page view ids across sdk instances ([#2052](https://github.com/amplitude/Amplitude-TypeScript/issues/2052)) ([4de670b](https://github.com/amplitude/Amplitude-TypeScript/commit/4de670bec16521fbdf93e3541f6c4d57132ecd96))
+
+
+
+
+
+## [1.30.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.2...@amplitude/plugin-autocapture-browser@1.30.3) (2026-10-15)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
 ## [1.30.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.1...@amplitude/plugin-autocapture-browser@1.30.2) (2026-10-09)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

@@ -28,3 +28,7 @@ These steps must pass before you submit your PR.
 
 - PR titles must follow the [conventional commit](https://www.conventionalcommits.org/ ) format and, when possible, include the affected module name. Examples: `feat(browser): add feature` or `fix(plugin): correct bug`.
 - The CI matrix runs on Node.js `22.x`, `24.x`, and `26.x`. Ensure your code is compatible with these versions. Use Node.js >=22.13 for the pnpm 11 development toolchain.
+
+## Publishing
+
+Before preparing or running a release, read [Publishing SDK packages](CONTRIBUTING.md#publishing-sdk-packages) and, for custom enrichment, [Publishing the custom enrichment browser plugin](CONTRIBUTING.md#publishing-the-custom-enrichment-browser-plugin). These are the repository's maintainer runbooks. Browser must keep an exact published npm pin for custom enrichment; do not replace it with `workspace:*`. The runbook explains the source/version mismatch this prevents and the required Browser adoption PR.

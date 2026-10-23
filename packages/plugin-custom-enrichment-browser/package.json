@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-custom-enrichment-browser",
-  "version": "0.1.26",
+  "version": "1.0.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -40,10 +40,10 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "workspace:*",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
+    "@amplitude/analytics-core": "workspace:*",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",
@@ -55,5 +55,9 @@
   "files": [
     "lib",
     "DISCLOSURE"
-  ]
+  ],
+  "private": true,
+  "peerDependencies": {
+    "@amplitude/analytics-core": "^2.61.0"
+  }
 }
