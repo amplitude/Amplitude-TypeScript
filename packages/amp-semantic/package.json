@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/amp-semantic",
-  "version": "0.1.0",
+  "version": "0.2.0-codexsemantic-review-integration.0",
   "description": "Composable, privacy-aware browser semantic capture for Amplitude",
   "license": "MIT",
   "main": "lib/cjs/index.js",
@@ -24,8 +24,8 @@
     "test:playwright": "playwright test --config playwright.config.ts"
   },
   "dependencies": {
-    "tslib": "^2.4.1",
-    "@amplitude/session-replay-dom-privacy": "workspace:*"
+    "@amplitude/session-replay-dom-privacy": "workspace:*",
+    "tslib": "^2.4.1"
   },
   "repository": {
     "type": "git",

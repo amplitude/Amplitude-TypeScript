@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.62.0-codexsemantic-review-integration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.61.0...@amplitude/analytics-core@2.62.0-codexsemantic-review-integration.0) (2026-10-23)
+
+
+### Features
+
+* **analytics-browser:** add page context and SDK initialization offset ([#2067](https://github.com/amplitude/Amplitude-TypeScript/issues/2067)) ([cc7389f](https://github.com/amplitude/Amplitude-TypeScript/commit/cc7389fd5a3547f46d078ebd7971134f1c9f2411))
+
+
+
+
+
 # [2.61.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.3...@amplitude/analytics-core@2.61.0) (2026-10-20)
 
 
