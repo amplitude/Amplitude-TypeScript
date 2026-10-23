@@ -26,8 +26,8 @@ renews its fallback deadline from the last accepted heartbeat and finalizes the 
 stored snapshot if the SDK cannot deliver its final snapshot. Heartbeats do not reset
 the SDK inactivity timer. Expiry and Event API ingestion are separate steps; integration
 testing still needs to verify actual delivery latency. The SDK options are
-`engagementThresholdMillis`, `heartbeatIntervalMillis`, and
-`pageSessionTimeoutMillis` inside `autocapture.pageViews.trackEngagedTime`.
+`activityWindowMillis`, `heartbeatIntervalMillis`, and
+`inactivityTimeoutMillis` inside `autocapture.pageViews.trackEngagedTime`.
 Use `true` or `{}` for default timings, `false` to disable, or an options object to
 customize timings. Omitting `trackEngagedTime` leaves engagement disabled by default.
 Invalid durations fall back to defaults; the heartbeat
@@ -76,9 +76,9 @@ To run the server as HTTPS follow these steps
 autocapture: {
   pageViews: {
     trackEngagedTime: {
-      engagementThresholdMillis: 5_000,
+      activityWindowMillis: 5_000,
       heartbeatIntervalMillis: 15_000,
-      pageSessionTimeoutMillis: 180_000,
+      inactivityTimeoutMillis: 180_000,
     },
   },
 }
@@ -99,9 +99,9 @@ other autocapture options. Under
 {
   "trackEngagedTime": {
     "enabled": true,
-    "engagementThresholdMillis": 5000,
+    "activityWindowMillis": 5000,
     "heartbeatIntervalMillis": 15000,
-    "pageSessionTimeoutMillis": 180000
+    "inactivityTimeoutMillis": 180000
   }
 }
 ```

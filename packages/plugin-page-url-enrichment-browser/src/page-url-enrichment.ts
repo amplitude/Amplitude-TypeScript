@@ -191,9 +191,9 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
       }
     },
     execute: async (event: Event) => {
-      // Engagement snapshots carry their original page context and an admission
-      // hook. Replaying them must not read the source of a later navigation.
-      if (event.delay?.acceptSnapshot) return event;
+      // Engagement snapshots carry their original page context.
+      // Replaying them must not read the source of a later navigation.
+      if (event.extra?.pageEngagementSnapshot) return event;
       const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
 
       if (sessionStorage && isStorageEnabled) {

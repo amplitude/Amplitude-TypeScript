@@ -78,9 +78,9 @@ element('settings').onsubmit = async (event) => {
       sessions: false,
       pageViews: {
         trackEngagedTime: {
-          engagementThresholdMillis: threshold,
+          activityWindowMillis: threshold,
           heartbeatIntervalMillis: pulse,
-          pageSessionTimeoutMillis: timeout,
+          inactivityTimeoutMillis: timeout,
         },
       },
       fileDownloads: false,

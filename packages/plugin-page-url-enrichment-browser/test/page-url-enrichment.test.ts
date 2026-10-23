@@ -240,10 +240,10 @@ describe('pageUrlEnrichmentPlugin', () => {
           [PREVIOUS_PAGE_STORAGE_KEY]: 'https://example.com/a',
         }),
       );
-      const acceptSnapshot = jest.fn(() => true);
       const snapshot = {
         event_type: '[Amplitude] Page Viewed',
-        delay: { id: 'page-a', acceptSnapshot },
+        delay: { id: 'page-a' },
+        extra: { pageEngagementSnapshot: true },
         event_properties: {
           '[Amplitude] Page Location': 'https://example.com/a',
           '[Amplitude] Previous Page Location': 'https://www.google.com/',
@@ -251,9 +251,8 @@ describe('pageUrlEnrichmentPlugin', () => {
         },
       };
       expect(await plugin.execute?.(snapshot)).toEqual(snapshot);
-      expect(acceptSnapshot).not.toHaveBeenCalled();
       // Ordinary delayed events still use the existing enrichment behavior.
-      const ordinary = await plugin.execute?.({ ...snapshot, delay: { id: 'other-event' } });
+      const ordinary = await plugin.execute?.({ ...snapshot, delay: { id: 'other-event' }, extra: undefined });
       expect(ordinary?.event_properties).toMatchObject({
         '[Amplitude] Previous Page Location': 'https://example.com/a',
       });

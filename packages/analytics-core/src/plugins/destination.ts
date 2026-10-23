@@ -102,6 +102,8 @@ export class Destination implements DestinationPlugin {
   // Indicator of whether current flush resolves.
   // When flush resolves, set `flushId` to null
   flushId: ReturnType<typeof setTimeout> | null = null;
+  private flushing = false;
+  private flushRequested = false;
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
   inFlightDelayedEvents: Record<string, boolean> = {};
@@ -123,13 +125,9 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
-    // Engagement snapshots can finish async plugins out of order. Check before
-    // coalescing the queue so an older snapshot cannot replace a newer/final copy.
-    if (event.delay?.acceptSnapshot?.() === false) {
-      return Promise.resolve(buildResult(event, 0, 'Superseded delayed snapshot'));
-    }
-    // Enrichment plugins may have added properties after the snapshot was created.
-    if (event.delay?.omitUserProperties) delete event.user_properties;
+    // Repeated delayed events must not replay stale user-property updates.
+    // This also strips properties added by enrichment plugins.
+    if (event.delay) delete event.user_properties;
     // Assign insert_id for dropping invalid event later
     if (!event.insert_id) {
       event.insert_id = UUID();
@@ -263,12 +261,16 @@ export class Destination implements DestinationPlugin {
       return;
     }
 
-    if (this.flushId) {
+    if (this.flushing || this.flushId) {
+      // Preserve explicit flush requests (for example page exit) until the active upload completes.
+      if (!useRetry) this.flushRequested = true;
       this.resetSchedule();
       this.config.loggerProvider.debug('Skipping flush because previous flush has not resolved.');
       return;
     }
 
+    // An explicit flush may have no scheduleId, so track active uploads separately.
+    this.flushing = true;
     this.flushId = this.scheduleId;
     this.resetSchedule();
 
@@ -301,12 +303,19 @@ export class Destination implements DestinationPlugin {
       eventPromises.push(this.sendDelayedEvents(delayed, useRetry));
     }
 
-    await Promise.all(eventPromises);
+    try {
+      await Promise.all(eventPromises);
+    } finally {
+      this.flushId = null;
+      this.flushing = false;
+    }
 
-    // Mark current flush is done
-    this.flushId = null;
-
-    this.scheduleEvents(this.queue);
+    if (this.flushRequested) {
+      this.flushRequested = false;
+      await this.flush();
+    } else {
+      this.scheduleEvents(this.queue);
+    }
   }
 
   sendDelayedEvents(delayed: DelayedEventsById, useRetry: boolean) {

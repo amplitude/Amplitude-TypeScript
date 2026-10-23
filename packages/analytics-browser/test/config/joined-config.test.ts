@@ -26,9 +26,9 @@ describe('joined-config', () => {
   describe('updateBrowserConfigWithRemoteConfig', () => {
     describe('engaged-time settings', () => {
       const timings = {
-        engagementThresholdMillis: 10_000,
+        activityWindowMillis: 10_000,
         heartbeatIntervalMillis: 20_000,
-        pageSessionTimeoutMillis: 120_000,
+        inactivityTimeoutMillis: 120_000,
       };
 
       test.each([

@@ -111,7 +111,7 @@ describe('engaged page-view plugin', () => {
   });
 
   test('renews once on activity after expiry', async () => {
-    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 100, heartbeatIntervalMillis: 20 } });
+    await setup({ trackEngagedTime: { inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 } });
     await jest.advanceTimersByTimeAsync(100);
     document.dispatchEvent(new Event('keydown'));
     document.dispatchEvent(new Event('keydown'));
@@ -283,7 +283,7 @@ describe('engaged page-view plugin', () => {
   });
 
   test('checks consent again after asynchronous page creation', async () => {
-    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
+    await setup({ trackEngagedTime: { inactivityTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
     await jest.advanceTimersByTimeAsync(10);
     const count = client.track.mock.calls.length;
     document.dispatchEvent(new Event('keydown'));
@@ -305,7 +305,7 @@ describe('engaged page-view plugin', () => {
       },
     } as typeof globalThis);
     const debug = jest.spyOn(config.loggerProvider, 'debug');
-    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
+    await setup({ trackEngagedTime: { inactivityTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
     expect(debug).toHaveBeenCalledWith('sessionStorage is not available in this environment.');
     await jest.advanceTimersByTimeAsync(10);
     document.dispatchEvent(new Event('keydown'));
@@ -315,7 +315,7 @@ describe('engaged page-view plugin', () => {
   });
 
   test('navigation cancels an in-flight inactivity renewal instead of creating a duplicate view', async () => {
-    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
+    await setup({ trackEngagedTime: { inactivityTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
     await jest.advanceTimersByTimeAsync(10);
     document.dispatchEvent(new Event('pointerdown'));
     history.pushState({}, '', '/after-expiry');
@@ -338,7 +338,7 @@ describe('engaged page-view plugin', () => {
   });
 
   test.each([false, true])('pagehide (persisted=%s) cancels a view still being created', async (persisted) => {
-    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
+    await setup({ trackEngagedTime: { inactivityTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
     await jest.advanceTimersByTimeAsync(10);
     const count = captured.length;
     document.dispatchEvent(new Event('keydown'));
@@ -351,7 +351,7 @@ describe('engaged page-view plugin', () => {
   });
 
   test.each([false, true])('rejects an already queued view after pagehide, restored=%s', async (restored) => {
-    await setup({ trackEngagedTime: { pageSessionTimeoutMillis: 100, heartbeatIntervalMillis: 20 } });
+    await setup({ trackEngagedTime: { inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 } });
     await jest.advanceTimersByTimeAsync(100);
     const count = captured.length;
     const track = client.track.getMockImplementation()!;

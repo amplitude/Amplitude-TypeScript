@@ -58,32 +58,22 @@ describe('engagement delivery through the SDK pipeline', () => {
     }
   });
 
-  test.each([
-    ['before', false],
-    ['before', true],
-    ['enrichment', false],
-    ['enrichment', true],
-  ] as const)('drops an old snapshot held by a %s plugin (finalized: %s)', async (type, finalize) => {
-    const send = jest.fn().mockResolvedValue({ status: Status.Success, statusCode: 200, body: { code: 200 } });
+  test('flushes the pagehide final copy as soon as an in-flight heartbeat completes', async () => {
+    let release!: (response: unknown) => void;
+    const success = { status: Status.Success, statusCode: 200, body: { code: 200 } };
+    const send = jest
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      )
+      .mockResolvedValue(success);
     const config = new Config({ apiKey: 'test', transportProvider: { send }, flushIntervalMillis: 10 });
     const client = new TestClient();
     await client.init(config);
     await client.add(new Destination()).promise;
-    let release!: () => void;
-    let held = false;
-    await client.add({
-      name: 'async-plugin',
-      type,
-      async execute(event) {
-        if (!held) {
-          held = true;
-          await new Promise<void>((resolve) => {
-            release = resolve;
-          });
-        }
-        return event;
-      },
-    }).promise;
     const owner = new PageEngagement(
       client as unknown as BrowserClient,
       window,
@@ -94,24 +84,19 @@ describe('engagement delivery through the SDK pipeline', () => {
     try {
       owner.start({ event_type: '[Amplitude] Page Viewed', insert_id: 'page-id' });
       await jest.advanceTimersByTimeAsync(2_000);
-      expect(held).toBe(true);
-      expect(send).not.toHaveBeenCalled();
-      window.dispatchEvent(new Event('blur'));
-      await jest.advanceTimersByTimeAsync(10);
       expect(send).toHaveBeenCalledTimes(1);
-      expect(send.mock.calls[0][1].events[0].event_properties['[Amplitude] Engaged Time']).toBe(2_000);
-      if (finalize) {
-        owner.finish('pagehide');
-        await jest.advanceTimersByTimeAsync(10);
-      }
-      expect(send).toHaveBeenCalledTimes(finalize ? 2 : 1);
-      expect(send.mock.calls[send.mock.calls.length - 1][1].timeout).toBe(finalize ? 0 : 180_000);
-      // A stale positive-timeout copy must not resurrect the finalized delay group.
-      release();
-      await jest.advanceTimersByTimeAsync(100);
+      window.dispatchEvent(new Event('pagehide'));
+      // Drain plugin promises while leaving the transport request unresolved.
       await client.flush().promise;
-      expect(send).toHaveBeenCalledTimes(finalize ? 2 : 1);
-      expect(JSON.stringify(send.mock.calls)).not.toContain('acceptSnapshot');
+      expect(send).toHaveBeenCalledTimes(1);
+      release(success);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(send).toHaveBeenCalledTimes(2);
+      expect(JSON.stringify(send.mock.calls)).not.toContain('pageEngagementSnapshot');
+      expect(send.mock.calls[1][1]).toMatchObject({
+        timeout: 0,
+        instant_events: [{ insert_id: 'page-id', event_properties: { '[Amplitude] Engaged Time': 2_000 } }],
+      });
     } finally {
       owner.teardown();
       await client.flush().promise;

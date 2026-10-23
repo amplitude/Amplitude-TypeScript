@@ -215,7 +215,7 @@ describe('page engagement', () => {
   });
 
   test('accepts custom timings and caps an unsafe heartbeat cadence below the timeout', async () => {
-    await start({ engagementThresholdMillis: 1_000, heartbeatIntervalMillis: 20_000, pageSessionTimeoutMillis: 8_000 });
+    await start({ activityWindowMillis: 1_000, heartbeatIntervalMillis: 20_000, inactivityTimeoutMillis: 8_000 });
     await jest.advanceTimersByTimeAsync(4_000);
     expect(sent).toHaveLength(2);
     expect(engaged()).toBe(1_000);
@@ -226,7 +226,7 @@ describe('page engagement', () => {
 
   test.each([NaN, Infinity, 0, -1, 2_147_483_648])('uses defaults for invalid timing %s', async (value) => {
     const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
-    await start({ engagementThresholdMillis: value, heartbeatIntervalMillis: value, pageSessionTimeoutMillis: value });
+    await start({ activityWindowMillis: value, heartbeatIntervalMillis: value, inactivityTimeoutMillis: value });
     expect(warn).toHaveBeenCalledWith(
       `Page engagement: duration ${value} ms is invalid; using default 180000 ms. Expected a finite value greater than 0 and at most 86400000 ms.`,
     );
@@ -249,40 +249,13 @@ describe('page engagement', () => {
     [86_400_001, 180_000],
     [172_800_000, 180_000],
   ])('resolves page timeout %i to the service-compatible duration %i', async (value, expected) => {
-    await start({ pageSessionTimeoutMillis: value, heartbeatIntervalMillis: 60_000 });
+    await start({ inactivityTimeoutMillis: value, heartbeatIntervalMillis: 60_000 });
     expect(latest().delay!.timeout).toBe(expected);
     // The same resolved duration drives SDK finalization.
     jest.setSystemTime(100_000 + expected - 1);
     await jest.advanceTimersByTimeAsync(60_000);
     expect(latest().delay!.timeout).toBeUndefined();
     expect(latest().event_properties!['[Amplitude] Total Time']).toBe(expected);
-  });
-
-  test('invalidates older snapshots while keeping the final copy valid after a new page starts', async () => {
-    await start();
-    const initial = latest();
-    expect(initial.delay!.acceptSnapshot!()).toBe(true);
-    await jest.advanceTimersByTimeAsync(2_000);
-    window.dispatchEvent(new Event('blur'));
-    const background = latest();
-    expect(background.delay!.acceptSnapshot!()).toBe(true);
-    expect(initial.delay!.acceptSnapshot!()).toBe(false);
-    owner.finish('pagehide');
-    const final = latest();
-    expect(final.delay!.acceptSnapshot!()).toBe(true);
-    expect(background.delay!.acceptSnapshot!()).toBe(false);
-    owner.start({ ...original, insert_id: 'next-page' });
-    await jest.advanceTimersByTimeAsync(1);
-    expect(final.delay!.acceptSnapshot!()).toBe(true);
-  });
-
-  test('allows a slow snapshot until a newer version actually enters the destination queue', async () => {
-    await start();
-    const initial = latest();
-    await jest.advanceTimersByTimeAsync(30_000);
-    expect(initial.delay!.acceptSnapshot!()).toBe(true);
-    expect(latest().delay!.acceptSnapshot!()).toBe(true);
-    expect(initial.delay!.acceptSnapshot!()).toBe(false);
   });
 
   test('background initial load accrues no time and fills missing event IDs', async () => {

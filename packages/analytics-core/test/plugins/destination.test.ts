@@ -91,7 +91,7 @@ describe('destination', () => {
   });
 
   describe('execute', () => {
-    test.each([180_000, undefined])('strips engagement user properties before delivery (timeout=%s)', (timeout) => {
+    test.each([180_000, undefined])('strips delayed user properties before delivery (timeout=%s)', (timeout) => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
@@ -99,26 +99,20 @@ describe('destination', () => {
       const event = {
         event_type: 'page',
         user_properties: { $set: { plan: 'old' }, $unset: { obsolete: '-' } },
-        delay: { id: 'group', timeout, omitUserProperties: true },
+        delay: { id: 'group', timeout },
       };
       void destination.execute(event);
       expect(destination.queue[0].event).not.toHaveProperty('user_properties');
     });
 
-    test('rejects a superseded snapshot without replacing the queued final copy', async () => {
+    test('preserves user properties on ordinary identify events', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
       jest.spyOn(destination, 'saveEvents').mockImplementation(jest.fn);
-      const final = { event_type: 'page', insert_id: 'page-id', delay: { id: 'group', acceptSnapshot: () => true } };
-      void destination.execute(final);
-      const stale = {
-        ...final,
-        delay: { id: 'group', timeout: 180_000, acceptSnapshot: () => false },
-      };
-      const result = await destination.execute(stale);
-      expect(result.code).toBe(0);
-      expect(destination.queue.map((context) => context.event)).toEqual([final]);
+      const userProperties = { $set: { plan: 'new' } };
+      void destination.execute({ event_type: '$identify', user_properties: userProperties });
+      expect(destination.queue[0].event.user_properties).toEqual(userProperties);
     });
 
     test('should execute plugin', async () => {
@@ -634,6 +628,56 @@ describe('destination', () => {
       expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Skipping flush because previous flush has not resolved.');
     });
+
+    test.each([false, true])(
+      'flushes a final delayed event immediately after an active upload (scheduled=%s)',
+      async (scheduled) => {
+        jest.useFakeTimers();
+        try {
+          let release!: (response: Response) => void;
+          const success: Response = {
+            status: Status.Success,
+            statusCode: 200,
+            body: { eventsIngested: 1, payloadSizeBytes: 1, serverUploadTime: 1 },
+          };
+          const send = jest
+            .fn()
+            .mockImplementationOnce(
+              () =>
+                new Promise<Response>((resolve) => {
+                  release = resolve;
+                }),
+            )
+            .mockResolvedValue(success);
+          const destination = new Destination();
+          destination.config = { ...useDefaultConfig(), flushIntervalMillis: 60_000, transportProvider: { send } };
+          const initial = { event_type: 'page', insert_id: 'page', delay: { id: 'page-group', timeout: 180_000 } };
+          const initialResult = destination.execute(initial);
+          if (!scheduled) {
+            clearTimeout(destination.scheduleId!);
+            destination.resetSchedule();
+          }
+          const activeFlush = destination.flush(true);
+          const finalResult = destination.execute({ ...initial, delay: { id: 'page-group' } });
+          await destination.flush();
+          expect(send).toHaveBeenCalledTimes(1);
+          release(success);
+          await activeFlush;
+          // No timer advance: the requested final flush must follow the completed upload directly.
+          expect(send).toHaveBeenCalledTimes(2);
+          expect(send.mock.calls[1][1]).toMatchObject({
+            timeout: 0,
+            events: [],
+            instant_events: [{ insert_id: 'page' }],
+          });
+          expect(destination.queue).toHaveLength(0);
+          await Promise.all([initialResult, finalResult]);
+        } finally {
+          jest.clearAllTimers();
+          jest.useRealTimers();
+        }
+      },
+    );
 
     test('should get batch and call send', async () => {
       const destination = new Destination();

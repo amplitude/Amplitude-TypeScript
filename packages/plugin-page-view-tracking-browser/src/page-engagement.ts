@@ -9,11 +9,11 @@ import {
   UUID,
 } from '@amplitude/analytics-core';
 
-export const DEFAULT_ENGAGEMENT_THRESHOLD = 5_000;
+export const DEFAULT_ACTIVITY_WINDOW = 5_000;
 export const DEFAULT_ENGAGEMENT_HEARTBEAT = 15_000;
-export const DEFAULT_PAGE_SESSION_TIMEOUT = 180_000;
+export const DEFAULT_INACTIVITY_TIMEOUT = 180_000;
 
-interface PageSession {
+interface PageState {
   event: Event;
   heartbeat: Heartbeat;
   started: number;
@@ -21,14 +21,13 @@ interface PageSession {
   lastActivity: number;
   engaged: number;
   version: number;
-  lastQueuedVersion: number;
   nextSnapshotReason: 'initial' | 'heartbeat' | 'background';
 }
 
 // Browser timers use a signed 32-bit millisecond delay. Larger values can overflow.
 const MAX_TIMER_DELAY_MILLIS = 2_147_483_647;
 // The delayed-event service rejects request timeouts greater than 24 hours.
-const MAX_PAGE_SESSION_TIMEOUT_MILLIS = 86_400_000;
+const MAX_INACTIVITY_TIMEOUT_MILLIS = 86_400_000;
 
 function resolveDurationMillis(
   value: number | undefined,
@@ -48,14 +47,12 @@ function resolveDurationMillis(
 
 /** Owns one page-view delay group at a time, independently of the video heartbeat. */
 export class PageEngagement {
-  private session?: PageSession;
+  private pageState?: PageState;
   private inactivityTimer?: ReturnType<typeof setTimeout>;
   private foreground: boolean;
   private enabled = true;
-  // Consent revocation invalidates even snapshots already waiting in async plugins.
-  private consentRevision = 0;
   private skippedPage = false;
-  private readonly threshold: number;
+  private readonly activityWindow: number;
   private readonly pulse: number;
   private readonly timeout: number;
   private readonly removeListeners: (() => void)[] = [];
@@ -68,14 +65,14 @@ export class PageEngagement {
     private newPageView: () => void,
   ) {
     this.timeout = resolveDurationMillis(
-      options.pageSessionTimeoutMillis,
-      DEFAULT_PAGE_SESSION_TIMEOUT,
+      options.inactivityTimeoutMillis,
+      DEFAULT_INACTIVITY_TIMEOUT,
       config.loggerProvider,
-      MAX_PAGE_SESSION_TIMEOUT_MILLIS,
+      MAX_INACTIVITY_TIMEOUT_MILLIS,
     );
-    this.threshold = resolveDurationMillis(
-      options.engagementThresholdMillis,
-      DEFAULT_ENGAGEMENT_THRESHOLD,
+    this.activityWindow = resolveDurationMillis(
+      options.activityWindowMillis,
+      DEFAULT_ACTIVITY_WINDOW,
       config.loggerProvider,
     );
     this.pulse = Math.min(
@@ -110,27 +107,27 @@ export class PageEngagement {
     if (!this.enabled) return false;
     const now = Date.now();
     this.foreground = this.isForeground();
-    const session: PageSession = {
+    const pageState: PageState = {
       event: {
         ...event,
         insert_id: event.insert_id || UUID(),
         time: event.time ?? now,
-        event_properties: { ...event.event_properties },
         // Share the SDK inactivity duration with the service fallback. The SDK counts
         // from last activity; the service counts from the last accepted heartbeat.
-        delay: { id: UUID(), timeout: this.timeout, omitUserProperties: true },
+        delay: { id: UUID(), timeout: this.timeout },
       },
       heartbeat: new Heartbeat(this.client, this.pulse, this.timeout, this.config.loggerProvider, {
         // This owner settles elapsed time and finalizes before sending.
         // Avoid a second set of lifecycle sends.
         sendOnPageLifecycle: false,
         beforeHeartbeat: () => {
-          if (this.session === session) {
-            if (Date.now() >= session.lastActivity + this.timeout) {
-              this.retire(session, 'inactivity');
+          // A heartbeat scheduled by the previous page must not update the new page state.
+          if (this.pageState === pageState) {
+            if (Date.now() >= pageState.lastActivity + this.timeout) {
+              this.retire(pageState, 'inactivity');
             } else {
-              void session.heartbeat.update(this.snapshot(session, session.nextSnapshotReason));
-              session.nextSnapshotReason = 'heartbeat';
+              void pageState.heartbeat.update(this.snapshot(pageState, pageState.nextSnapshotReason));
+              pageState.nextSnapshotReason = 'heartbeat';
             }
           }
         },
@@ -140,12 +137,12 @@ export class PageEngagement {
       lastActivity: now,
       engaged: 0,
       version: 0,
-      lastQueuedVersion: 0,
       nextSnapshotReason: 'initial',
     };
     // Arrival after server expiry must not overwrite more recent identify updates.
-    delete session.event.user_properties;
-    if (!session.heartbeat.enqueue(this.snapshot(session, 'initial'))) {
+    delete pageState.event.user_properties;
+    const isEnqueued = pageState.heartbeat.enqueue(this.snapshot(pageState, 'initial'));
+    if (!isEnqueued) {
       // Do not turn subsequent activity on this page into repeated fallback views.
       this.skippedPage = true;
       this.config.loggerProvider.warn(
@@ -153,42 +150,31 @@ export class PageEngagement {
       );
       return false;
     }
-    this.session = session;
+    this.pageState = pageState;
     this.scheduleInactivity();
-    void session.heartbeat.resetHeartbeat();
+    void pageState.heartbeat.resetHeartbeat();
     return true;
   }
 
-  private settle(session: PageSession) {
+  private settle(pageState: PageState) {
     // Cap a late callback at the inactivity deadline; heartbeats never extend it.
-    const now = Math.max(session.updated, Math.min(Date.now(), session.lastActivity + this.timeout));
+    const now = Math.max(pageState.updated, Math.min(Date.now(), pageState.lastActivity + this.timeout));
     if (this.foreground) {
-      session.engaged += Math.max(0, Math.min(now, session.lastActivity + this.threshold) - session.updated);
+      pageState.engaged += Math.max(0, Math.min(now, pageState.lastActivity + this.activityWindow) - pageState.updated);
     }
-    session.updated = now;
+    pageState.updated = now;
   }
 
-  private snapshot(session: PageSession, reason: string): Event {
-    this.settle(session);
-    const version = ++session.version;
-    const consentRevision = this.consentRevision;
+  private snapshot(pageState: PageState, reason: string): Event {
+    this.settle(pageState);
+    const version = ++pageState.version;
     return {
-      ...session.event,
-      delay: {
-        ...session.event.delay!,
-        acceptSnapshot: () => {
-          // Compare with the last copy that reached Destination, so a slow plugin
-          // can still deliver snapshots while newer copies are being constructed.
-          if (consentRevision !== this.consentRevision || version < session.lastQueuedVersion) return false;
-          session.lastQueuedVersion = version;
-          return true;
-        },
-      },
-      // Prototype taxonomy; SDK-392 tracks final customer-facing names and units.
+      ...pageState.event,
+      extra: { ...pageState.event.extra, pageEngagementSnapshot: true },
       event_properties: {
-        ...session.event.event_properties,
-        '[Amplitude] Engaged Time': session.engaged,
-        '[Amplitude] Total Time': session.updated - session.started,
+        ...pageState.event.event_properties,
+        '[Amplitude] Engaged Time': pageState.engaged,
+        '[Amplitude] Total Time': pageState.updated - pageState.started,
         // Internal diagnostics; version counts constructed snapshots, not requests.
         '[Amplitude] Snapshot Version': version,
         '[Amplitude] Engagement Snapshot Reason': reason,
@@ -209,63 +195,62 @@ export class PageEngagement {
       (this.scope.document as Document & { prerendering?: boolean }).prerendering
     )
       return;
-    if (this.session && Date.now() >= this.session.lastActivity + this.timeout) this.finish('inactivity');
-    if (!this.session) {
+    if (this.pageState && Date.now() >= this.pageState.lastActivity + this.timeout) this.finish('inactivity');
+    if (!this.pageState) {
       this.newPageView();
       return;
     }
-    this.settle(this.session);
-    this.session.lastActivity = Date.now();
+    this.settle(this.pageState);
+    this.pageState.lastActivity = Date.now();
     this.scheduleInactivity();
   };
 
   private resume = () => {
     if (this.scope.document.visibilityState !== 'visible') return;
-    if (this.session) this.settle(this.session);
+    if (this.pageState) this.settle(this.pageState);
     this.foreground = true;
     this.activity();
   };
 
   private pause = () => {
-    if (this.session) this.settle(this.session);
+    if (this.pageState) this.settle(this.pageState);
     this.foreground = false;
-    if (this.session) {
-      this.session.nextSnapshotReason = 'background';
-      void this.session.heartbeat.heartbeat();
+    if (this.pageState) {
+      this.pageState.nextSnapshotReason = 'background';
+      void this.pageState.heartbeat.heartbeat();
       this.client.flush();
     }
   };
 
-  private retire(session: PageSession, reason: string) {
+  private retire(pageState: PageState, reason: string) {
     clearTimeout(this.inactivityTimer);
-    const event = this.snapshot(session, reason);
+    const event = this.snapshot(pageState, reason);
     event.delay = { ...event.delay!, timeout: undefined };
-    void session.heartbeat.update(event);
-    session.heartbeat.pause();
-    this.session = undefined;
+    void pageState.heartbeat.update(event);
+    pageState.heartbeat.pause();
+    this.pageState = undefined;
   }
 
   finish(reason: string) {
     this.skippedPage = false;
-    const session = this.session;
-    if (!session) return;
-    this.retire(session, reason);
+    const pageState = this.pageState;
+    if (!pageState) return;
+    this.retire(pageState, reason);
     // Enqueue the final copy before clearing this page's heartbeat. Destination
     // coalesces pending snapshots and preserves in-flight ordering by delay ID.
-    void session.heartbeat.heartbeat();
+    void pageState.heartbeat.heartbeat();
     // Request delivery before waiting for ingestion, especially during page exit.
     this.client.flush();
-    session.heartbeat.stop();
+    pageState.heartbeat.stop();
   }
 
   setOptOut(optOut: boolean) {
     this.enabled = !optOut;
     if (optOut) {
-      this.consentRevision += 1;
       this.skippedPage = false;
       clearTimeout(this.inactivityTimer);
-      this.session?.heartbeat.stop();
-      this.session = undefined;
+      this.pageState?.heartbeat.stop();
+      this.pageState = undefined;
     }
   }
 
