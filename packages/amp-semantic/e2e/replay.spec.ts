@@ -712,3 +712,63 @@ test('tracks an existing dialog moved under a hidden ancestor through rrweb muta
     .toBe(true);
   await assertValid(page);
 });
+
+for (const polling of [false, true]) {
+  test(`captures navigation from the URL plugin (polling=${String(polling)})`, async ({ page }) => {
+    await open(page, { urlPolling: String(polling), worker: String(polling) });
+    await waitFor(page, 'navigation', 'url', path);
+    const initial = (await assertValid(page)).find((event) => event.data.tag === 'amp-semantic/navigation')!;
+    expect(initial.data.payload).toEqual({
+      v: 1,
+      url: path,
+      tab_id: expect.any(String),
+      document_id: expect.any(String),
+    });
+    await page.locator('#navigate').click();
+    await waitFor(page, 'navigation', 'url', `${path}#/accounts/:id`);
+    await page.evaluate(() => history.replaceState({}, '', '#/settings?secret=NAV_PRIVATE'));
+    await waitFor(page, 'navigation', 'url', `${path}#/settings`);
+    await page.evaluate(() => {
+      location.hash = '/billing/7788?token=NAV_PRIVATE';
+    });
+    await waitFor(page, 'navigation', 'url', `${path}#/billing/:id`);
+    await page.evaluate(() => history.back());
+    await expect
+      .poll(async () => {
+        await page.evaluate(() => window.semanticHarness.flush());
+        return page.evaluate(
+          (url) =>
+            window.semanticHarness.semanticEvents.filter(
+              (event) => event.data.tag === 'amp-semantic/navigation' && event.data.payload?.url === url,
+            ).length,
+          `${path}#/settings`,
+        );
+      })
+      .toBe(2);
+    const events = (await assertValid(page)).filter((event) => event.data.tag === 'amp-semantic/navigation');
+    expect(JSON.stringify(events)).not.toMatch(/NAV_PRIVATE|private=|8812|7788|http:/);
+    await page.evaluate(() => window.semanticHarness.stop());
+    await page.evaluate(() => history.pushState({}, '', '#/resumed/9988?secret=NAV_PRIVATE'));
+    await page.waitForTimeout(150);
+    await page.evaluate(() => window.semanticHarness.flush());
+    expect((await assertValid(page)).filter((event) => event.data.tag === 'amp-semantic/navigation')).toHaveLength(
+      events.length,
+    );
+    await page.evaluate(() => window.semanticHarness.start());
+    await waitFor(page, 'navigation', 'url', `${path}#/resumed/:id`);
+    await assertValid(page);
+  });
+}
+
+test('navigation family can be disabled independently while clicks keep route context', async ({ page }) => {
+  await open(page, { disabled: 'navigation' });
+  await page.locator('#navigate').click();
+  await page.locator('#public-button').click();
+  await waitFor(page, 'click', 'key', 'public-target');
+  const events = await assertValid(page);
+  expect(events.some((event) => event.data.tag === 'amp-semantic/navigation')).toBe(false);
+  expect(
+    events.find((event) => event.data.tag === 'amp-semantic/click' && event.data.payload?.key === 'public-target')?.data
+      .payload?.url,
+  ).toBe(`${path}#/accounts/:id`);
+});

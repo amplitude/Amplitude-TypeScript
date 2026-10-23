@@ -105,6 +105,7 @@ export interface SemanticPayloads {
     visible: boolean;
     cause_click_ts: number | null;
   };
+  navigation: { url: string };
   recording: RecordingSignal;
   visibility: {
     state: 'hidden' | 'visible';
@@ -152,6 +153,8 @@ export type SemanticDomChange =
     };
 export interface HostSignals {
   dom: SemanticDomChange;
+  /** Accepted URL-plugin input, already filtered by the host URL policy. */
+  url: { url: string; timestamp: number };
   snapshot: undefined;
   navigation: NavigationReason;
   recording: RecordingSignal;

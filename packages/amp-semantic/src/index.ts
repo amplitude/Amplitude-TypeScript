@@ -1,6 +1,7 @@
 import { createCapture } from './capture';
 import { interactionsRecorder } from './recorders/interactions';
 import { feedbackRecorder } from './recorders/feedback';
+import { navigationRecorder } from './recorders/navigation';
 import { lifecycleRecorder } from './recorders/lifecycle';
 import { keysRecorder } from './recorders/keys';
 import { resourceErrorRecorder } from './recorders/resource-error';
@@ -11,6 +12,7 @@ export {
   interactionsRecorder,
   feedbackRecorder,
   lifecycleRecorder,
+  navigationRecorder,
   analyticsRecorder,
   keysRecorder,
   resourceErrorRecorder,
@@ -19,6 +21,7 @@ export const defaultRecorders: readonly SemanticRecorder[] = [
   interactionsRecorder,
   feedbackRecorder,
   lifecycleRecorder,
+  navigationRecorder,
   analyticsRecorder,
   keysRecorder,
   resourceErrorRecorder,

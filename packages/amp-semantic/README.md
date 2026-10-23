@@ -93,8 +93,9 @@ const capture = createSemanticCapture(config, host);
 capture.start();
 capture.notify('recording', { state: 'start', reason: 'init' });
 capture.notify('snapshot', undefined);
-// Invalidate cached interaction headings after host navigation:
-capture.notify('navigation', 'push');
+// Forward a URL observation after applying the host URL privacy rules:
+// This also invalidates cached interaction headings.
+capture.notify('url', { url: filteredUrl, timestamp: Date.now() });
 capture.notify('recording', { state: 'stop', reason: 'customer_stop' });
 capture.stop();
 ```
@@ -113,9 +114,21 @@ Recorder processing timestamps are supplied to generic hosts. rrweb's `addCustom
 
 All captured text uses the replay privacy policy, including referenced labels and nested text sources. Blocked elements are skipped, masked text is `null`, and browser validation messages are never included. Field events include an optional `value` for native inputs and textareas only when the input policy permits it, with no length limit or whitespace normalization. Passwords (including `data-rr-is-password`), hidden fields and blocked fields emit nothing. Files, checkbox/radio submitted values, selects and contenteditable contents are excluded from `value`; selection labels and checked state retain their existing contracts. Text traversal is bounded and fails closed when its budget is exceeded. Unsupported URL schemes are discarded; HTTP(S) paths and hash routes are templated without queries or secondary fragments. Detached dialog names are cleared because their former masking ancestry cannot safely be reconstructed.
 
-The page event and its title observer, scheduled checks, and page-wide scans are deferred. URL/heading context on interactions remains; the replay adapter forwards navigation solely to invalidate cached headings.
+The page event and its title observer, scheduled checks, and page-wide scans remain deferred.
+`amp-semantic/navigation` emits `{ url }` plus shared version/identity fields from accepted
+`amplitude/url-tracking@1` plugin events. This covers the initial URL, history/hash changes (or the
+plugin's configured polling), and the current URL when recording resumes. No second URL listener,
+history wrapper, polling timer, title observer, or page scan is added. Plugin observations also
+invalidate cached interaction headings even when the navigation family is disabled.
 
-Recorders include context, clicks, keys, resource load failures, field state, form submissions, notices, dialogs, recording state, visibility, lifecycle, and an accepted-analytics-event mirror.
+The existing URL plugin applies configured UGC URL rules first. Semantic normalization then removes
+origins and query values and templates ID-shaped path segments, preserving hash routes. Literal path
+segments remain: sensitive path content still requires appropriate UGC rules. No title or navigation
+reason is emitted. Separate navigations may produce the same template; consumers should retain the
+boundaries. The limit is 200 events per session. Set `families: { navigation: false }` to disable it.
+Standalone hosts can provide accepted input using `capture.notify('url', { url, timestamp })`.
+
+Recorders include context, clicks, keys, resource load failures, field state, form submissions, notices, dialogs, navigation, recording state, visibility, lifecycle, and an accepted-analytics-event mirror.
 
 Field events and key targets include the same event-time `states` as clicks, including native disabled fieldset inheritance (with the first-legend exception) and native/ARIA invalid state. Reading native validity does not dispatch validation events. Fields, key targets and dialogs include `name_source`; excluded editable names and detached dialog names report `masked`. These additive v1 fields remain optional in the wire schema for older recordings. No new listeners, observers, scans or timers are introduced; states describe the observation, not a post-action outcome.
 
