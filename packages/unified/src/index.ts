@@ -31,3 +31,5 @@ export const {
   track,
 } = client;
 export { Types, Revenue, Identify } from '@amplitude/analytics-browser';
+
+export { createNetworkRequestEvent, type NetworkRequestEventProperties } from '@amplitude/analytics-browser';

@@ -220,3 +220,7 @@ export {
   NetworkCaptureRuleRemoteConfig,
   NetworkTrackingOptionsRemoteConfig,
 } from './config/joined-config';
+
+export { createNetworkRequestEvent } from './utils/network-request-event';
+export { NetworkRequestEventProperties } from './types/event/network-request-event';
+export { parseNetworkRequestUrl } from './utils/network-request-url';

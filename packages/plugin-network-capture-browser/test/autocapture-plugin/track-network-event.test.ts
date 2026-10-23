@@ -19,9 +19,7 @@ import {
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import {
   logNetworkAnalyticsEvent,
-  NetworkAnalyticsEvent,
   parseHeaderCaptureRule,
-  parseUrlFromString,
   shouldTrackNetworkEvent,
 } from '../../src/track-network-event';
 import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
@@ -224,9 +222,9 @@ describe('track-network-event', () => {
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
-        return call[0] === AMPLITUDE_NETWORK_REQUEST_EVENT;
+        return call[0]?.event_type === AMPLITUDE_NETWORK_REQUEST_EVENT;
       });
-      const [eventName, eventProperties] = networkEventCall;
+      const [{ event_type: eventName, event_properties: eventProperties }] = networkEventCall;
       expect(eventName).toBe(AMPLITUDE_NETWORK_REQUEST_EVENT);
       expect(eventProperties).toEqual({
         '[Amplitude] URL': 'https://example.com/track',
@@ -262,9 +260,9 @@ describe('track-network-event', () => {
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
-        return call[0] === AMPLITUDE_NETWORK_REQUEST_EVENT;
+        return call[0]?.event_type === AMPLITUDE_NETWORK_REQUEST_EVENT;
       });
-      const [eventName, eventProperties] = networkEventCall;
+      const [{ event_type: eventName, event_properties: eventProperties }] = networkEventCall;
       expect(eventName).toBe(AMPLITUDE_NETWORK_REQUEST_EVENT);
       expect(eventProperties).toEqual({
         '[Amplitude] URL': 'https://example.com/track',
@@ -300,7 +298,7 @@ describe('track-network-event', () => {
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
-        return call[0] === AMPLITUDE_NETWORK_REQUEST_EVENT;
+        return call[0]?.event_type === AMPLITUDE_NETWORK_REQUEST_EVENT;
       });
       expect(networkEventCall).toBeUndefined();
     });
@@ -326,7 +324,7 @@ describe('track-network-event', () => {
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
-        return call[0] === AMPLITUDE_NETWORK_REQUEST_EVENT;
+        return call[0]?.event_type === AMPLITUDE_NETWORK_REQUEST_EVENT;
       });
       expect(networkEventCall).toBeUndefined();
     });
@@ -368,52 +366,6 @@ describe('track-network-event', () => {
       };
 
       expect(shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions)).toBe(true);
-    });
-  });
-
-  describe('parseUrlFromString()', () => {
-    test('parses plain URL', () => {
-      const url = parseUrlFromString('http://10.0.2.2:5173/api/test');
-      expect(url).toEqual({
-        href: 'http://10.0.2.2:5173/api/test',
-        hrefWithoutQueryOrHash: 'http://10.0.2.2:5173/api/test',
-        host: '10.0.2.2:5173',
-        query: '',
-        fragment: '',
-      });
-    });
-
-    test('parses host and query when URL.host is not implemented', () => {
-      const url = parseUrlFromString('http://10.0.2.2:5173/api/test?foo=bar');
-      expect(url).toEqual({
-        href: 'http://10.0.2.2:5173/api/test?foo=bar',
-        hrefWithoutQueryOrHash: 'http://10.0.2.2:5173/api/test',
-        host: '10.0.2.2:5173',
-        query: 'foo=bar',
-        fragment: '',
-      });
-    });
-
-    test('parses hash fragments', () => {
-      const url = parseUrlFromString('http://10.0.2.2:5173/api/test?foo=bar#hash');
-      expect(url).toEqual({
-        href: 'http://10.0.2.2:5173/api/test?foo=bar#hash',
-        hrefWithoutQueryOrHash: 'http://10.0.2.2:5173/api/test',
-        host: '10.0.2.2:5173',
-        query: 'foo=bar',
-        fragment: 'hash',
-      });
-    });
-
-    test('parses relative URL', () => {
-      const url = parseUrlFromString('/api/test');
-      expect(url).toEqual({
-        href: '/api/test',
-        hrefWithoutQueryOrHash: '/api/test',
-        host: '',
-        query: '',
-        fragment: '',
-      });
     });
   });
 
@@ -915,21 +867,79 @@ describe('track-network-event', () => {
   });
 
   describe('logNetworkAnalyticsEvent', () => {
+    test('does not emit a request without a URL', async () => {
+      const request = new NetworkRequestEvent('fetch', 'GET', 1000, 1000);
+      const amplitude = createMockBrowserClient();
+      const trackSpy = jest.spyOn(amplitude, 'track');
+      await logNetworkAnalyticsEvent(request, amplitude);
+      expect(trackSpy).not.toHaveBeenCalled();
+    });
+
+    test('supports transport errors and missing wrappers and duration', async () => {
+      const request = new NetworkRequestEvent(
+        'fetch',
+        'GET',
+        1000,
+        1000,
+        'https://example.com',
+        undefined,
+        0,
+        undefined,
+        undefined,
+        { name: 'TypeError', message: 'Failed to fetch' },
+      );
+      const amplitude = createMockBrowserClient();
+      const trackSpy = jest.spyOn(amplitude, 'track');
+      await logNetworkAnalyticsEvent(request, amplitude);
+      expect(trackSpy).toHaveBeenCalledWith({
+        event_type: AMPLITUDE_NETWORK_REQUEST_EVENT,
+        event_properties: {
+          '[Amplitude] URL': 'https://example.com/',
+          '[Amplitude] URL Query': '',
+          '[Amplitude] URL Fragment': '',
+          '[Amplitude] Request Method': 'GET',
+          '[Amplitude] Status Code': 0,
+          '[Amplitude] Start Time': 1000,
+          '[Amplitude] Completion Time': 1000,
+          '[Amplitude] Duration': 0,
+          '[Amplitude] Request Type': 'fetch',
+          '[Amplitude] Error Message': 'Failed to fetch',
+        },
+      });
+    });
+
+    test.each(['request', 'response'] as const)('handles a null %s body', async (side) => {
+      const request = new MockNetworkRequestEvent();
+      request[`${side}BodyJson`] = Promise.resolve(null);
+      const amplitude = createMockBrowserClient();
+      const trackSpy = jest.spyOn(amplitude, 'track');
+      await logNetworkAnalyticsEvent(request, amplitude);
+      expect(trackSpy).toHaveBeenCalledTimes(1);
+      expect(amplitude.track.mock.calls[0][0]).toEqual(
+        expect.objectContaining({
+          event_properties: expect.not.objectContaining({
+            [`[Amplitude] ${side === 'request' ? 'Request' : 'Response'} Body`]: expect.anything(),
+          }),
+        }),
+      );
+    });
+
     test('should log network analytics event with request and response body', async () => {
-      const networkAnalyticsEvent: NetworkAnalyticsEvent = {
-        '[Amplitude] URL': 'https://example.com/track',
-        '[Amplitude] URL Query': 'hello=world',
-        '[Amplitude] URL Fragment': 'hash',
-        '[Amplitude] Request Method': 'POST',
-        '[Amplitude] Status Code': 500,
-      };
       const request = new MockNetworkRequestEvent();
       request.requestBodyJson = Promise.resolve({ message: 'hello' });
       request.responseBodyJson = Promise.resolve({ message: 'world' });
       const amplitude = createMockBrowserClient();
-      await logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude, new Logger());
+      await logNetworkAnalyticsEvent(request, amplitude, new Logger());
       /* eslint-disable-next-line @typescript-eslint/unbound-method */
-      expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
+      expect(amplitude.track).toHaveBeenCalledWith(
+        expect.objectContaining({
+          event_type: AMPLITUDE_NETWORK_REQUEST_EVENT,
+          event_properties: expect.objectContaining({
+            '[Amplitude] Request Body': '{"message":"hello"}',
+            '[Amplitude] Response Body': '{"message":"world"}',
+          }),
+        }),
+      );
     });
   });
 });
