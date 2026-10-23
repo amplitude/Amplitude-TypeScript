@@ -88,6 +88,15 @@ export interface NativeSessionReplaySpec {
    */
   getCustomSessionId(): Promise<string>;
 
+  /** Internal UI change signal state used by React Native dead click detection. */
+  getInterfaceSignalState(): Promise<{
+    isProviding: boolean;
+    lastChangeTime: number;
+    generation: number;
+    sessionId: string;
+    deviceId: string | null;
+  }>;
+
   /**
    * Updates whether session replay collection is disabled for the current user.
    * @param optOut - Whether to opt out of session replay collection
