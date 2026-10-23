@@ -1,4 +1,4 @@
-import {Button, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
+import {Button, Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
 import {useEffect, useState} from 'react';
 import {
   add,
@@ -16,6 +16,7 @@ import { NavigationContainer, useNavigationContainerRef } from "@react-navigatio
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FetchNetworkTestScreen from './FetchNetworkTestScreen';
 import AutocaptureConfigScreen, {autocaptureConfigDebugPlugin} from './AutocaptureConfigScreen';
+import DeadClickTestScreen, {deadClickReplay, deadClickDebugPlugin} from './DeadClickTestScreen';
 
 const experiment = experimentPlugin({
   // deploymentKey: 'DEPLOYMENT_KEY', // Optional when Experiment and Analytics use the same project key.
@@ -175,6 +176,11 @@ function HomeScreen({ navigation }) {
         title="Frustration Interactions"
         onPress={() => navigation.navigate('FrustrationInteractions')}
       />
+      <Button
+        accessibilityLabel="Dead Click Test"
+        title="Dead Click Test"
+        onPress={() => navigation.navigate('DeadClickTest')}
+      />
       <Button accessibilityLabel="Make Network Request" title="Make Network Request" onPress={() => {
         track('Making Network Request');
         fetch('https://api.amplitude.com/2/asdf', {
@@ -201,6 +207,8 @@ function SettingsScreen({navigation}: {navigation: any}) {
 }
 
 export default function App() {
+  const [replayReady, setReplayReady] = useState(false);
+  const [replayError, setReplayError] = useState<string>();
   // onStateChange does not fire for the initial route; onReady covers cold-start screen views.
   const navigationRef = useNavigationContainerRef();
 
@@ -208,6 +216,7 @@ export default function App() {
     (async () => {
         await add(experiment).promise;
         await add(autocaptureConfigDebugPlugin).promise;
+        await add(deadClickDebugPlugin).promise;
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
         await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'React Native Test User', {
           logLevel: Types.LogLevel.Debug,
@@ -225,6 +234,15 @@ export default function App() {
             fetchRemoteConfig: false,
           },
         }).promise;
+        if (Platform.OS !== 'web') {
+          try {
+            await add(deadClickReplay).promise;
+            setReplayReady(true);
+          } catch (error) {
+            setReplayError(String(error));
+            console.error('Session Replay setup failed:', error);
+          }
+        }
         track('expo-app/react-native/test-event');
         await identify(new Identify().set('react-native-test', 'yes')).promise;
     })();
@@ -247,6 +265,9 @@ export default function App() {
           component={FrustrationInteractionsTestView}
           options={{title: 'Frustration Interactions'}}
         />
+        <Stack.Screen name="DeadClickTest" options={{title: 'Dead Click Test'}}>
+          {() => <DeadClickTestScreen ready={replayReady} initializationError={replayError} />}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );
