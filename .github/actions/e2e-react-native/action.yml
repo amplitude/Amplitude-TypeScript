@@ -29,6 +29,15 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    # Session Replay's XCFramework requires Swift 6.1; Xcode 15.4 cannot import it.
+    - name: Select Xcode 16.4
+      if: inputs.platform == 'ios'
+      shell: bash
+      run: |
+        sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer
+        xcodebuild -version
+        xcrun swift --version
+
     - name: Setup pnpm
       uses: pnpm/action-setup@ff378ebe6b225b0680b81c1ad4498ae0d1d3a5e3 # v6.0.10
 

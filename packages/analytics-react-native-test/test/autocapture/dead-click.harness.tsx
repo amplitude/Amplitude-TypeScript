@@ -131,6 +131,8 @@ describe('autocapture.deadClicks with native Session Replay', () => {
   });
 
   async function press(changeDelay?: number) {
+    const recording = (await signals.getInterfaceSignalState()).isProviding;
+    const renderStartedAt = Date.now();
     const rendered = await render(
       <DeadClickScreen
         changeDelay={changeDelay}
@@ -146,6 +148,9 @@ describe('autocapture.deadClicks with native Session Replay', () => {
     await waitFor(
       async () => {
         const state = await signals.getInterfaceSignalState();
+        // In particular, zero is not proof of a quiet screen: iOS may not have
+        // delivered the first Replay snapshot yet. Observe this mount first.
+        if (recording) expect(state.lastChangeTime).toBeGreaterThanOrEqual(renderStartedAt);
         expect(Date.now() - state.lastChangeTime).toBeGreaterThan(750);
       },
       { timeout: 5_000 },

@@ -7,8 +7,8 @@
  *   NEW_ARCH=0  → legacy bridge (default). Binary under ios/build-old-arch/
  *   NEW_ARCH=1  → New Architecture. Binary under ios/build-new-arch/
  *
- * Pods are regenerated when the architecture marker disagrees with NEW_ARCH
- * (RCT_NEW_ARCH_ENABLED is baked in at `pod install` time). Set FORCE_PODS=1
+ * Pods are regenerated for forced rebuilds and when the architecture marker
+ * disagrees with NEW_ARCH (RCT_NEW_ARCH_ENABLED is baked in at `pod install` time). Set FORCE_PODS=1
  * to wipe Pods first. Set FORCE_REBUILD=1 to rebuild even if the .app exists.
  */
 import fs from 'node:fs';
