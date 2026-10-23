@@ -230,6 +230,9 @@ describe('migration', () => {
       migrateLegacyData: false,
       loggerProvider,
       instanceName: 'test-instance',
+      attribution: {
+        disabled: true,
+      },
     }).promise;
     expect(client.getDeviceId()).not.toEqual(deviceId);
     expect(client.getUserId()).not.toEqual(userId);
