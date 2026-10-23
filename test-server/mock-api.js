@@ -120,6 +120,81 @@ export function configureMockApiMiddleware(middlewares) {
     }
   });
 
+  // Per-API-key remote config, used by element-selector-multi-instance.html to put two SDK
+  // instances on one page with divergent element-selector configs.
+  //
+  //   GET /api/remote-config/<apiKey>?config_group=browser
+  //
+  // The element-selector toggle is derived from the API key so the page (or any page) can pick a
+  // config by key alone:
+  //   key ending in "-on"  → autocapture.elementSelector.enabled = true
+  //   key ending in "-off" → autocapture.elementSelector.enabled = false
+  //   anything else        → no elementSelector node at all (engine stays dormant)
+  middlewares.use('/api/remote-config', (req, res) => {
+    const apiKey = decodeURIComponent(req.url.split('?')[0].replace(/^\//, ''));
+
+    let elementSelector;
+    if (apiKey.endsWith('-on')) {
+      elementSelector = { enabled: true };
+    } else if (apiKey.endsWith('-off')) {
+      elementSelector = { enabled: false };
+    }
+
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
+    res.setHeader('Content-Type', 'application/json');
+    res.statusCode = 200;
+    res.end(
+      JSON.stringify({
+        configs: {
+          analyticsSDK: {
+            browserSDK: {
+              autocapture: {
+                // `{ enabled: ... }` nodes are the wire shape the dashboard sends, and the shape
+                // the browser SDK normalizes on delivery. Keep it so the page exercises that path.
+                elementInteractions: { enabled: true },
+                ...(elementSelector && { elementSelector }),
+              },
+            },
+          },
+        },
+      }),
+    );
+  });
+
+  // Event upload sink: accepts an httpapi payload and answers like api2.amplitude.com, so test
+  // pages can run the real upload path without reaching Amplitude or retrying on a bad response.
+  middlewares.use('/api/track-sink', (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Content-Encoding');
+
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
+
+    res.setHeader('Content-Type', 'application/json');
+    res.statusCode = 200;
+    res.end(
+      JSON.stringify({
+        code: 200,
+        events_ingested: 0,
+        payload_size_bytes: 0,
+        server_upload_time: Date.now(),
+      }),
+    );
+  });
+
   // Simple test endpoint
   middlewares.use('/api/test', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
