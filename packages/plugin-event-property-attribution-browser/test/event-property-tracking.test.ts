@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import {
   BASE_CAMPAIGN,
   BrowserConfig,
@@ -329,6 +330,8 @@ describe('eventPropertyTrackingPlugin', () => {
       event_properties: {
         existing: 'value',
         utm_source: 'google',
+        referrer: 'EMPTY',
+        referring_domain: 'EMPTY',
       },
     });
 
@@ -338,6 +341,8 @@ describe('eventPropertyTrackingPlugin', () => {
       event_properties: {
         existing: 'value',
         utm_source: 'google',
+        referrer: 'EMPTY',
+        referring_domain: 'EMPTY',
       },
     });
   });
@@ -478,5 +483,57 @@ describe('eventPropertyTrackingPlugin', () => {
         utm_source: 'bing',
       }),
     ]);
+  });
+
+  describe('campaign with no referrer', () => {
+    test('should set referrer and referring_domain to EMPTY if utm parameters are present', async () => {
+      jest.spyOn(Core.CampaignParser.prototype, 'parse').mockResolvedValue({
+        ...BASE_CAMPAIGN,
+        utm_source: 'google',
+        utm_medium: 'cpc',
+      });
+
+      await plugin.setup?.(createConfigurationMock(), createMockBrowserClient());
+
+      const event = await plugin.execute?.({
+        event_type: 'test-event',
+        event_properties: {
+          existing: 'value',
+        },
+      });
+
+      expect(event).toEqual({
+        event_type: 'test-event',
+        event_properties: {
+          existing: 'value',
+          utm_source: 'google',
+          utm_medium: 'cpc',
+          referrer: 'EMPTY',
+          referring_domain: 'EMPTY',
+        },
+      });
+    });
+
+    test('should not set referrer and referring_domain to EMPTY if utm parameters are not present', async () => {
+      jest.spyOn(Core.CampaignParser.prototype, 'parse').mockResolvedValue({
+        ...BASE_CAMPAIGN,
+      });
+
+      await plugin.setup?.(createConfigurationMock(), createMockBrowserClient());
+
+      const event = await plugin.execute?.({
+        event_type: 'test-event',
+        event_properties: {
+          existing: 'value',
+        },
+      });
+
+      expect(event).toEqual({
+        event_type: 'test-event',
+        event_properties: {
+          existing: 'value',
+        },
+      });
+    });
   });
 });
