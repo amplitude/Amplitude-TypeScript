@@ -3,7 +3,9 @@ import {
   NetworkRequestEvent,
   NetworkCaptureRule,
   NetworkTrackingOptions,
-  getGlobalScope,
+  createNetworkRequestEvent,
+  NetworkRequestEventProperties,
+  parseNetworkRequestUrl as parseUrl,
   isUrlMatchAllowlist,
   SAFE_HEADERS,
   ILogger,
@@ -78,48 +80,6 @@ function isCaptureRuleMatch(
   return true;
 }
 
-export function parseUrlFromString(href: string) {
-  const hashIndex = href.indexOf('#');
-  const fragment = hashIndex >= 0 ? href.slice(hashIndex + 1) : '';
-  const urlWithoutHash = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
-
-  const queryIndex = urlWithoutHash.indexOf('?');
-  const query = queryIndex >= 0 ? urlWithoutHash.slice(queryIndex + 1) : '';
-  const hrefWithoutQueryOrHash = queryIndex >= 0 ? urlWithoutHash.slice(0, queryIndex) : urlWithoutHash;
-
-  const authorityMatch = hrefWithoutQueryOrHash.match(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i);
-  const host = authorityMatch?.[1] ?? '';
-
-  return { query, fragment, href, hrefWithoutQueryOrHash, host };
-}
-
-export function parseUrl(url: string | undefined) {
-  if (!url) {
-    return;
-  }
-  try {
-    /* istanbul ignore next */
-    const currentHref = getGlobalScope()?.location.href;
-    const urlObj = new URL(url, currentHref);
-    const query = urlObj.searchParams.toString();
-    const fragment = urlObj.hash.replace('#', '');
-    const href = urlObj.href;
-    const host = urlObj.host;
-    urlObj.hash = '';
-    urlObj.search = '';
-    const hrefWithoutQueryOrHash = urlObj.href;
-    return { query, fragment, href, hrefWithoutQueryOrHash, host };
-  } catch {
-    try {
-      // if global URL is not available, parse the URL from the string
-      return parseUrlFromString(url);
-    } catch {
-      /* istanbul ignore next */
-      return;
-    }
-  }
-}
-
 function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWrapper): boolean {
   if (host.includes('amplitude.com')) {
     try {
@@ -174,14 +134,10 @@ function isBodyCaptureRuleEmpty(rule: BodyCaptureRule) {
 }
 
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
-  const urlObj = parseUrl(networkEvent.url);
-  /* istanbul ignore if */
-  if (!urlObj) {
-    // if the URL failed to parse, do not track the event
-    // this is a probably impossible case that would only happen if the URL is malformed
-    /* istanbul ignore next */
+  if (!networkEvent.url) {
     return false;
   }
+  const urlObj = parseUrl(networkEvent.url);
   const { host } = urlObj;
 
   // false if is amplitude request and not configured to track amplitude requests
@@ -262,35 +218,32 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
   return true;
 }
 
-export type NetworkAnalyticsEvent = {
-  ['[Amplitude] URL']: string;
-  ['[Amplitude] URL Query']?: string;
-  ['[Amplitude] URL Fragment']?: string;
-  ['[Amplitude] Request Method']: string;
-  ['[Amplitude] Status Code']?: number;
-  ['[Amplitude] Start Time']?: number; // unix timestamp
-  ['[Amplitude] Completion Time']?: number; // unix timestamp
-  ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
-  ['[Amplitude] Request Body Size']?: number;
-  ['[Amplitude] Request Headers']?: Record<string, string>;
-  ['[Amplitude] Request Body']?: string;
-  ['[Amplitude] Response Body Size']?: number;
-  ['[Amplitude] Response Headers']?: Record<string, string>;
-  ['[Amplitude] Response Body']?: string;
-  ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
-};
-
 export async function logNetworkAnalyticsEvent(
-  networkAnalyticsEvent: NetworkAnalyticsEvent,
   request: NetworkRequestEvent,
   amplitude: BrowserClient,
   loggerProvider?: ILogger,
 ) {
+  if (!request.url) {
+    return;
+  }
+  const properties: NetworkRequestEventProperties = {
+    url: request.url,
+    method: request.method,
+    statusCode: request.status,
+    startTime: request.startTime,
+    duration: request.duration ?? 0,
+    requestType: request.type,
+    error: request.error,
+    requestBodySize: request.requestWrapper?.bodySize,
+    responseBodySize: request.responseWrapper?.bodySize,
+    requestHeaders: request.requestHeaders,
+    responseHeaders: request.responseHeaders,
+  };
   if (request.requestBodyJson || request.responseBodyJson) {
     const [requestBody, responseBody] = await Promise.all([request.requestBodyJson, request.responseBodyJson]);
     if (requestBody) {
       try {
-        networkAnalyticsEvent['[Amplitude] Request Body'] = JSON.stringify(requestBody);
+        properties.requestBody = JSON.stringify(requestBody);
       } catch (e) {
         /* istanbul ignore next */
         loggerProvider?.debug('Failed to stringify request body', e);
@@ -298,7 +251,7 @@ export async function logNetworkAnalyticsEvent(
     }
     if (responseBody) {
       try {
-        networkAnalyticsEvent['[Amplitude] Response Body'] = JSON.stringify(responseBody);
+        properties.responseBody = JSON.stringify(responseBody);
       } catch (e) {
         /* istanbul ignore next */
         loggerProvider?.debug('Failed to stringify response body');
@@ -306,7 +259,7 @@ export async function logNetworkAnalyticsEvent(
     }
   }
   /* istanbul ignore next */
-  amplitude?.track(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
+  amplitude?.track(createNetworkRequestEvent(properties));
 }
 
 export function trackNetworkEvents({
@@ -330,38 +283,7 @@ export function trackNetworkEvents({
   return filteredNetworkObservable.subscribe((networkEvent) => {
     const request = networkEvent.event;
 
-    // convert to NetworkAnalyticsEvent
-    const urlObj = parseUrl(request.url);
-    /* istanbul ignore if */
-    if (!urlObj) {
-      // if the URL failed to parse, do not track the event
-      // this is a very unlikely case, because URL() shouldn't throw an exception
-      // when the URL is a valid URL
-      /* istanbul ignore next */
-      return;
-    }
-
-    const responseBodySize = request.responseWrapper?.bodySize;
-    /* istanbul ignore next */
-    const requestBodySize = request.requestWrapper?.bodySize;
-
-    const networkAnalyticsEvent: NetworkAnalyticsEvent = {
-      ['[Amplitude] URL']: urlObj.hrefWithoutQueryOrHash,
-      ['[Amplitude] URL Query']: urlObj.query,
-      ['[Amplitude] URL Fragment']: urlObj.fragment,
-      ['[Amplitude] Request Method']: request.method,
-      ['[Amplitude] Status Code']: request.status,
-      ['[Amplitude] Start Time']: request.startTime,
-      ['[Amplitude] Completion Time']: request.endTime,
-      ['[Amplitude] Duration']: request.duration,
-      ['[Amplitude] Request Body Size']: requestBodySize,
-      ['[Amplitude] Response Body Size']: responseBodySize,
-      ['[Amplitude] Request Type']: request.type,
-      ['[Amplitude] Request Headers']: request.requestHeaders,
-      ['[Amplitude] Response Headers']: request.responseHeaders,
-    };
-
     // fire-and-forget promise that tracks the event
-    void logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude, loggerProvider);
+    void logNetworkAnalyticsEvent(request, amplitude, loggerProvider);
   });
 }
