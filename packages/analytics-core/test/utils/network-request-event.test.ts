@@ -74,11 +74,11 @@ describe('createNetworkRequestEvent', () => {
     expect(event.event_properties?.['[Amplitude] Status Code']).toBe(statusCode);
   });
 
-  test('preserves original URL parsing and leaves the input unchanged', () => {
+  test('removes URL credentials and leaves the input unchanged', () => {
     const properties = Object.freeze({ ...request, url: 'https://user:secret@example.com/orders?q=one#two' });
     const event = createNetworkRequestEvent(properties);
-    expect(event.event_properties?.['[Amplitude] URL']).toBe('https://user:secret@example.com/orders');
-    expect(JSON.stringify(event)).toContain('secret');
+    expect(event.event_properties?.['[Amplitude] URL']).toBe('https://example.com/orders');
+    expect(JSON.stringify(event)).not.toContain('secret');
     expect(properties.url).toContain('user:secret@');
   });
 

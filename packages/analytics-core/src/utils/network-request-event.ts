@@ -6,7 +6,7 @@ import { parseNetworkRequestUrl } from './network-request-url';
  * Creates an [Amplitude] Network Request event for a completed request.
  * Pass the returned event to track() on the desired analytics instance.
  * This function does not send events or apply Autocapture filtering or sanitization rules.
- * Callers are responsible for sanitizing the supplied data.
+ * Except for URL credentials, callers are responsible for sanitizing the supplied data.
  *
  * @throws TypeError if the URL or HTTP method is empty.
  * @throws RangeError if timing values are negative or non-finite.
@@ -25,7 +25,7 @@ export function createNetworkRequestEvent(properties: NetworkRequestEventPropert
   ) {
     throw new RangeError('Network request timing must be finite, non-negative milliseconds');
   }
-  const url = parseNetworkRequestUrl(properties.url)!;
+  const url = parseNetworkRequestUrl(properties.url);
   const eventProperties = {
     '[Amplitude] URL': url.hrefWithoutQueryOrHash,
     '[Amplitude] URL Query': url.query,

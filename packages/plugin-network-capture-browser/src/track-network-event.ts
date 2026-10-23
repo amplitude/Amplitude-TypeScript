@@ -134,13 +134,10 @@ function isBodyCaptureRuleEmpty(rule: BodyCaptureRule) {
 }
 
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
-  const urlObj = parseUrl(networkEvent.url);
-  /* istanbul ignore if */
-  if (!urlObj) {
-    // Preserve the existing handling of missing URLs and parser failures.
-    /* istanbul ignore next */
+  if (!networkEvent.url) {
     return false;
   }
+  const urlObj = parseUrl(networkEvent.url);
   const { host } = urlObj;
 
   // false if is amplitude request and not configured to track amplitude requests
