@@ -5,6 +5,26 @@ import * as examples from './fixtures/semantic-events.json';
 const validate = new Ajv({ strict: true }).compile(schema);
 
 test.each(examples.map((event) => [event.data.tag, event] as const))(
+  '%s permits complete descriptive strings',
+  (_tag, event) => {
+    const longText = 'Public descriptive text '.repeat(100).trim();
+    const expanded = JSON.parse(
+      JSON.stringify(event, (key, value: unknown) =>
+        ['name', 'text', 'heading', 'option_label'].includes(key) ? longText : value,
+      ),
+    );
+    if (event.data.tag === 'amp-semantic/click') {
+      expanded.data.payload.key = longText;
+      expanded.data.payload.attrs = { name: longText, 'data-testid': longText, href: '/' + 'path/'.repeat(100) };
+    }
+    if (event.data.tag === 'amp-semantic/resource-error') {
+      expanded.data.payload.path = '/' + 'path/'.repeat(100);
+    }
+    expect(validate(expanded)).toBe(true);
+  },
+);
+
+test.each(examples.map((event) => [event.data.tag, event] as const))(
   '%s matches the shared wire schema',
   (_tag, event) => {
     expect(validate(event)).toBe(true);

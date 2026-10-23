@@ -173,7 +173,7 @@ describe('shared privacy helpers', () => {
     expect(helpers.name(element).name).toBeNull();
     expect(helpers.attributes(element)).toEqual({});
   });
-  test('bounds names and does not read live input values', () => {
+  test('preserves full names and does not read live input values', () => {
     document.body.innerHTML = '<input type="text"><button></button>';
     const input = document.querySelector('input')!;
     input.value = 'secret typed string';
@@ -181,7 +181,7 @@ describe('shared privacy helpers', () => {
     button.textContent = 'x'.repeat(100);
     const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
     expect(helpers.name(input).name).toBeNull();
-    expect(helpers.name(button).name).toBe('x'.repeat(79) + '…');
+    expect(helpers.name(button).name).toBe('x'.repeat(100));
   });
 });
 
@@ -196,4 +196,5 @@ test.each([
   ['/a/550e8400-e29b-41d4-a716-446655440000', '/a/:id'],
   ['/a/abc123456789012345', '/a/:id'],
   ['/a/%31%32%33', '/a/:id'],
+  ['/a/' + 'x'.repeat(201), '/a/' + 'x'.repeat(201)],
 ])('templates %s', (value, expected) => expect(urlTemplate(value)).toBe(expected));

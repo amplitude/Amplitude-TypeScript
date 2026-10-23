@@ -62,9 +62,8 @@ const CONTENT_NAMES = new Set([
 const INPUTS = new Set(['INPUT', 'SELECT', 'TEXTAREA']);
 const ATTRIBUTES = ['type', 'name', 'href', 'target', 'aria-controls', 'aria-haspopup', 'data-testid'];
 
-export function truncate(value: string, limit: number): string {
-  const normalized = value.replace(/\s+/g, ' ').trim();
-  return normalized.length > limit ? normalized.slice(0, limit - 1) + '…' : normalized;
+function normalizeText(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
 }
 
 /** Only path-shaped information leaves the browser, including hash router paths. */
@@ -191,9 +190,9 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
   const editable = (element: Element) => !!element.closest('[contenteditable]:not([contenteditable="false"])');
   // Fail closed for composite text: checking only the container leaks masked descendants.
   // Limit traversal work; an over-budget subtree yields null rather than partial private text.
-  const text = (element: Element, value?: string | null, limit = 80): string | null => {
+  const text = (element: Element, value?: string | null): string | null => {
     if (masked(element) || editable(element) || (value === undefined && INPUTS.has(element.tagName))) return null;
-    if (value !== undefined) return value === null ? null : truncate(value, limit);
+    if (value !== undefined) return value === null ? null : normalizeText(value);
     const walker = host.document.createTreeWalker(element, 1 | 4);
     let node: Node | null;
     let visited = 0;
@@ -206,9 +205,8 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       } else {
         output += node.nodeValue ?? '';
       }
-      if (output.length > limit * 2) break;
     }
-    return truncate(output, limit);
+    return normalizeText(output);
   };
   const name = (element: Element): { name: string | null; source: NameSource } => {
     const finish = (value: string | null, source: NameSource) => ({
@@ -218,15 +216,14 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
     if (blocked(element)) return finish(null, 'masked');
     const labelledby = element.getAttribute('aria-labelledby');
     if (labelledby) {
-      const parts = labelledby
-        .trim()
-        .split(/\s+/)
-        .slice(0, 20)
+      const references = labelledby.trim().split(/\s+/);
+      if (references.length > 20) return finish(null, 'masked');
+      const parts = references
         .map((id) => host.document.getElementById(id))
         .filter((el): el is HTMLElement => !!el)
         .map((el) => text(el));
       if (parts.some((part) => part === null)) return finish(null, 'masked');
-      const joined = truncate(parts.join(' '), 80);
+      const joined = normalizeText(parts.join(' '));
       if (joined) return finish(joined, 'aria-labelledby');
     }
     const aria = element.getAttribute('aria-label');
@@ -404,7 +401,7 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       for (const key of ATTRIBUTES) {
         const value = element.getAttribute(key);
         if (value === null || (host.getPrivacy().maskAttributes?.includes(key) && masked(element))) continue;
-        result[key] = truncate(key === 'href' ? urlTemplate(value, host.getUrl()) : value, 60);
+        result[key] = normalizeText(key === 'href' ? urlTemplate(value, host.getUrl()) : value);
       }
       return result;
     },

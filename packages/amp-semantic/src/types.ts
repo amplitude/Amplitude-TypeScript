@@ -191,7 +191,7 @@ export interface SemanticHelpers {
   id: (element: Element) => number | null;
   blocked: (element: Element) => boolean;
   masked: (element: Element) => boolean;
-  text: (element: Element, value?: string | null, limit?: number) => string | null;
+  text: (element: Element, value?: string | null) => string | null;
   name: (element: Element) => { name: string | null; source: NameSource };
   role: (element: Element) => string;
   states: (element: Element) => string[];

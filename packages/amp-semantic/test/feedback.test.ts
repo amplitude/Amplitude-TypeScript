@@ -120,7 +120,7 @@ describe('replay-driven feedback', () => {
     cleanup();
   });
 
-  test('retains masking, blocking, provenance and notice text limits', () => {
+  test('retains masking, blocking, provenance and full notice text', () => {
     const fixture = recorderContext();
     const replay = replaySource(fixture);
     fixture.context.host.getPrivacy = () => ({ defaultMaskLevel: 'light' });
@@ -134,7 +134,7 @@ describe('replay-driven feedback', () => {
     flush();
     expect(fixture.emit).toHaveBeenCalledTimes(4);
     expect(fixture.emit).toHaveBeenCalledWith('notice', expect.objectContaining({ text: null }));
-    expect(fixture.emit).toHaveBeenCalledWith('notice', expect.objectContaining({ text: 'x'.repeat(199) + '…' }));
+    expect(fixture.emit).toHaveBeenCalledWith('notice', expect.objectContaining({ text: 'x'.repeat(300) }));
     expect(fixture.emit).toHaveBeenCalledWith(
       'dialog',
       expect.objectContaining({ name: 'Confirm', name_source: 'aria-label' }),

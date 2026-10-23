@@ -79,7 +79,7 @@ function stableKey(context: RecorderContext, element: Element): string | null {
       (/^\d+$/.test(value) || /[a-f\d]{8,}/i.test(value) || /:r/.test(value) || /\d{3,}/.test(value))
     )
       continue;
-    return value.length > 80 ? `${value.slice(0, 79)}…` : value;
+    return value;
   }
   return null;
 }

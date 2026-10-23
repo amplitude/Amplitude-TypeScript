@@ -20,9 +20,9 @@ export function recorderContext(disabled: SemanticFamily[] = []) {
     },
     blocked: (element) => !!element.closest('.amp-block'),
     masked: (element) => !!element.closest('.amp-mask'),
-    text: (element, value, limit = 80) => {
+    text: (element, value) => {
       if (element.closest('.amp-mask') || element.querySelector('.amp-mask')) return null;
-      return (value ?? element.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, limit);
+      return (value ?? element.textContent ?? '').replace(/\s+/g, ' ').trim();
     },
     name: (element) => ({ name: helpers.text(element, element.getAttribute('aria-label')), source: 'text' }),
     role: (element) => element.getAttribute('role') ?? element.tagName.toLowerCase(),

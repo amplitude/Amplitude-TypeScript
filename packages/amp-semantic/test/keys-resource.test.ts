@@ -173,15 +173,17 @@ describe('resource errors', () => {
       expect.objectContaining({ rt: 'script', count: 1, path: '/app.js' }),
     ]);
   });
-  test('omits paths for non-http and overlength URLs', () => {
+  test('omits non-http paths but preserves long sanitized paths', () => {
     start(resourceErrorRecorder);
     fail(img('data:image/png;base64,PRIVATE'));
     fail(img('blob:https://example.com/PRIVATE'));
-    fail(img('/' + 'x'.repeat(201)));
+    const path = '/assets/' + 'folder/'.repeat(40) + 'image.png';
+    fail(img(path + '?private=hidden#secret'));
     jest.advanceTimersByTime(500);
-    expect(events).toHaveLength(1);
-    expect(events[0].payload).toMatchObject({ rt: 'img', count: 3 });
+    expect(events).toHaveLength(2);
+    expect(events[0].payload).toMatchObject({ rt: 'img', count: 2 });
     expect(events[0].payload).not.toHaveProperty('path');
+    expect(events[1].payload).toMatchObject({ rt: 'img', count: 1, path });
   });
   test('reports failed font count without guessing URL/container and removes its listener', () => {
     const fonts = new EventTarget();

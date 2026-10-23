@@ -33,6 +33,17 @@ this signal and resolver for these two families; there is no independent observa
 Full snapshots seed existing dialogs silently, while later changes produce the same wire payloads.
 The adapter queues startup input until capture starts and ignores custom events to prevent feedback.
 
+## Text preservation
+
+Privacy-approved names, headings, option labels, notices, attributes and stable keys have no
+character limit. Descriptive text still collapses whitespace; field values and stable keys retain
+their original whitespace. URL sanitization and masking remain unchanged. Shortening for display
+or model input belongs downstream, with the captured evidence retained.
+
+DOM text reads still stop at 256 visited nodes and accessible names at 20 `aria-labelledby`
+references. Exceeding these budgets returns `null` rather than partial text. Masked descendants
+also cause the composite text to be omitted. Event caps and feedback work budgets still apply.
+
 ## Semantic identity and visibility
 
 Click `states` includes `mixed` (native checkbox indeterminate or ARIA checked/pressed mixed),
@@ -232,7 +243,7 @@ observed load failures are captured, not runtime exceptions or fetch/XHR. Identi
 templated path, and container are aggregated over 500 ms; 100 pending groups force an early flush.
 Counts saturate at 65,535. Hidden/pagehide flushes immediately; stop/disable discards pending groups.
 The rrweb timestamp is batch emission time. Do not infer exact click attribution from that timestamp.
-Paths omit origins, queries and fragments; data/blob/invalid/over-200-character paths are omitted.
+Paths omit origins, queries and fragments; data/blob/invalid paths are omitted. Sanitized paths have no character limit.
 Detached/blocked elements are dropped and container masking is checked again at emission.
 
 FontFaceSet loadingerror supplies a failed-face count; font URLs and affected containers are not

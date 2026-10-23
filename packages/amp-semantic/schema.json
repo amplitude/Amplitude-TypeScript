@@ -165,8 +165,7 @@
                   "type": "string"
                 },
                 "name": {
-                  "type": ["string", "null"],
-                  "maxLength": 80
+                  "type": ["string", "null"]
                 },
                 "name_source": {
                   "enum": [
@@ -196,8 +195,7 @@
                           "type": "string"
                         },
                         "name": {
-                          "type": ["string", "null"],
-                          "maxLength": 80
+                          "type": ["string", "null"]
                         }
                       },
                       "required": ["id", "role", "name"],
@@ -241,32 +239,25 @@
                   "type": "object",
                   "properties": {
                     "type": {
-                      "type": "string",
-                      "maxLength": 60
+                      "type": "string"
                     },
                     "name": {
-                      "type": "string",
-                      "maxLength": 60
+                      "type": "string"
                     },
                     "href": {
-                      "type": "string",
-                      "maxLength": 60
+                      "type": "string"
                     },
                     "target": {
-                      "type": "string",
-                      "maxLength": 60
+                      "type": "string"
                     },
                     "aria-controls": {
-                      "type": "string",
-                      "maxLength": 60
+                      "type": "string"
                     },
                     "aria-haspopup": {
-                      "type": "string",
-                      "maxLength": 60
+                      "type": "string"
                     },
                     "data-testid": {
-                      "type": "string",
-                      "maxLength": 60
+                      "type": "string"
                     }
                   },
                   "required": [],
@@ -276,8 +267,7 @@
                   "type": "string"
                 },
                 "heading": {
-                  "type": ["string", "null"],
-                  "maxLength": 80
+                  "type": ["string", "null"]
                 },
                 "keyboard": {
                   "type": "boolean"
@@ -385,8 +375,7 @@
                   "type": "string"
                 },
                 "name": {
-                  "type": ["string", "null"],
-                  "maxLength": 80
+                  "type": ["string", "null"]
                 },
                 "kind": {
                   "type": "string"
@@ -423,8 +412,7 @@
                   "type": "boolean"
                 },
                 "option_label": {
-                  "type": ["string", "null"],
-                  "maxLength": 80
+                  "type": ["string", "null"]
                 },
                 "tab_id": { "type": "string", "minLength": 1 },
                 "document_id": { "type": "string", "minLength": 1 },
@@ -489,8 +477,7 @@
                       "type": "string"
                     },
                     "name": {
-                      "type": ["string", "null"],
-                      "maxLength": 80
+                      "type": ["string", "null"]
                     }
                   },
                   "required": ["id", "role", "name"],
@@ -509,8 +496,7 @@
                           "type": "string"
                         },
                         "name": {
-                          "type": ["string", "null"],
-                          "maxLength": 80
+                          "type": ["string", "null"]
                         }
                       },
                       "required": ["id", "role", "name"],
@@ -534,8 +520,7 @@
                         "minimum": 0
                       },
                       "name": {
-                        "type": ["string", "null"],
-                        "maxLength": 80
+                        "type": ["string", "null"]
                       },
                       "validity": {
                         "type": "array",
@@ -607,8 +592,7 @@
                   "enum": ["alert", "status", "log", "live"]
                 },
                 "text": {
-                  "type": ["string", "null"],
-                  "maxLength": 200
+                  "type": ["string", "null"]
                 },
                 "visible": {
                   "type": "boolean"
@@ -622,8 +606,7 @@
                           "type": "string"
                         },
                         "name": {
-                          "type": ["string", "null"],
-                          "maxLength": 80
+                          "type": ["string", "null"]
                         }
                       },
                       "required": ["role", "name"],
@@ -695,8 +678,7 @@
                   "enum": ["dialog", "alertdialog"]
                 },
                 "name": {
-                  "type": ["string", "null"],
-                  "maxLength": 80
+                  "type": ["string", "null"]
                 },
                 "state": {
                   "enum": ["open", "closed"]
@@ -898,8 +880,7 @@
                   "type": "object",
                   "properties": {
                     "[Amplitude] Element Text": {
-                      "type": ["string", "null"],
-                      "maxLength": 80
+                      "type": ["string", "null"]
                     },
                     "[Amplitude] Element Tag": {
                       "type": "string"
@@ -1005,8 +986,7 @@
                       "type": "string"
                     },
                     "name": {
-                      "type": ["string", "null"],
-                      "maxLength": 80
+                      "type": ["string", "null"]
                     }
                   },
                   "required": ["id", "role", "name"],
@@ -1071,8 +1051,7 @@
                       "type": "string"
                     },
                     "name": {
-                      "type": ["string", "null"],
-                      "maxLength": 80
+                      "type": ["string", "null"]
                     }
                   },
                   "required": ["id", "role", "name"],
@@ -1080,7 +1059,6 @@
                 },
                 "path": {
                   "type": "string",
-                  "maxLength": 200,
                   "pattern": "^/[^?#]*$"
                 },
                 "v": {

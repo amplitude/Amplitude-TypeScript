@@ -57,8 +57,7 @@ export const resourceErrorRecorder: SemanticRecorder = {
         const url = new URL(value, document.baseURI);
         if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
         // Resource fragments are not SPA routes. Never include queries or origins.
-        const path = helpers.url(url.origin + url.pathname);
-        return path.length <= 200 ? path : undefined;
+        return helpers.url(url.origin + url.pathname);
       } catch {
         return undefined;
       }

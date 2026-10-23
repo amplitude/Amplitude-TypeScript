@@ -111,7 +111,7 @@ test('ignores missing font failures, disabling, and late font callbacks', () => 
   }
 });
 
-test('handles non-element click targets, modifiers, stable key limits and blocked actionable ancestors', () => {
+test('handles non-element click targets, modifiers, full stable keys and blocked actionable ancestors', () => {
   const { context, emit } = setup(interactionsRecorder);
   const button = body('<button><span>Continue</span></button>');
   const child = button.firstElementChild!;
@@ -125,11 +125,7 @@ test('handles non-element click targets, modifiers, stable key limits and blocke
   );
   button.setAttribute('data-amp-key', 'x'.repeat(100));
   fire(button, 'click');
-  expect(emit).toHaveBeenLastCalledWith(
-    'click',
-    expect.objectContaining({ key: 'x'.repeat(79) + '…' }),
-    expect.any(Number),
-  );
+  expect(emit).toHaveBeenLastCalledWith('click', expect.objectContaining({ key: 'x'.repeat(100) }), expect.any(Number));
   const blocked = document.createElement('button');
   blocked.className = 'amp-block';
   context.helpers.actionable = () => blocked;

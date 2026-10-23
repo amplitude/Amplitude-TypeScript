@@ -119,7 +119,7 @@ export const feedbackRecorder: SemanticRecorder = {
     const sendNotice = (element: Element) => {
       if (!active || !element.isConnected || helpers.blocked(element)) return;
       if (!context.canEmit('notice')) return;
-      const text = helpers.text(element, undefined, 200);
+      const text = helpers.text(element);
       if (text !== null && !text.trim()) return;
       const role = element.getAttribute('role');
       const container = helpers.container(element);

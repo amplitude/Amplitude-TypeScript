@@ -61,17 +61,52 @@ test('fails closed when privacy configuration cannot be read', () => {
   ).toBe(true);
 });
 
-test('bounds text traversal and long content; preserves explicit null text', () => {
+test('bounds text traversal without shortening long content; preserves explicit null text', () => {
   const h = createHelpers(host());
   const button = element('<button>' + '<span></span>'.repeat(257) + '</button>');
   expect(h.text(button)).toBeNull();
   button.textContent = 'x'.repeat(200);
-  expect(h.text(button)).toBe('x'.repeat(79) + '…');
+  expect(h.text(button)).toBe('x'.repeat(200));
   expect(h.text(button, null)).toBeNull();
   const text = document.createTextNode('');
   button.replaceChildren(text);
   Object.defineProperty(text, 'nodeValue', { value: null });
   expect(h.text(button)).toBe('');
+});
+
+test('preserves long names and attributes while still sanitizing URLs', () => {
+  const h = createHelpers(host());
+  const label = 'Checkout details '.repeat(40).trim();
+  const button = element('<button></button>');
+  button.setAttribute('aria-label', label);
+  button.setAttribute('data-testid', label);
+  const path = '/catalog/' + 'section/'.repeat(40) + ':id';
+  button.setAttribute('href', 'https://example.com' + path.replace(':id', '8812') + '?private=hidden');
+  expect(h.name(button)).toEqual({ name: label, source: 'aria-label' });
+  expect(h.attributes(button)).toEqual({ 'data-testid': label, href: path });
+  button.setAttribute('aria-labelledby', 'first second');
+  document.body.insertAdjacentHTML('beforeend', '<span id="first"></span><span id="second"></span>');
+  document.getElementById('first')!.textContent = label;
+  document.getElementById('second')!.textContent = 'Final qualifier';
+  expect(h.name(button)).toEqual({ name: label + ' Final qualifier', source: 'aria-labelledby' });
+});
+
+test('checks masked descendants after long text and fails closed on excessive label references', () => {
+  const h = createHelpers(host());
+  const button = element('<button>' + 'Public '.repeat(100) + '<span class="amp-mask">Secret</span></button>');
+  expect(h.text(button)).toBeNull();
+  button.replaceChildren(
+    document.createTextNode(' First '),
+    document.createTextNode('part '.repeat(100)),
+    document.createTextNode(' Last '),
+  );
+  expect(h.text(button)).toBe('First ' + 'part '.repeat(100) + 'Last');
+  // Twenty references are allowed; a twenty-first must not silently return a partial name.
+  document.body.insertAdjacentHTML('beforeend', '<span id="label">Public</span>');
+  button.setAttribute('aria-labelledby', Array(20).fill('label').join(' '));
+  expect(h.name(button).name).toBe(Array(20).fill('Public').join(' '));
+  button.setAttribute('aria-labelledby', Array(21).fill('label').join(' '));
+  expect(h.name(button)).toEqual({ name: null, source: 'masked' });
 });
 
 test('resolves names from labels, image captions, static button values and fallback attributes', () => {
