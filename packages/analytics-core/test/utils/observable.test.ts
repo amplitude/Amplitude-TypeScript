@@ -185,18 +185,58 @@ describe('asyncMap', () => {
   });
 
   test('should handle source observable errors', async () => {
-    const source = new Observable<number>((observer) => {
-      setTimeout(() => observer.next(1), 10);
-      setTimeout(() => observer.error(new Error('Source error')), 20);
-    });
+    jest.useFakeTimers();
+    try {
+      const source = new Observable<number>((observer) => {
+        setTimeout(() => observer.next(1), 10);
+        setTimeout(() => observer.error(new Error('Source error')), 20);
+      });
 
-    const asyncFn = jest.fn((value: number) => Promise.resolve(value * 2));
-    const mappedObservable = asyncMap(source, asyncFn);
-    const result = await subscribeToObservableWithError(mappedObservable);
+      const asyncFn = jest.fn((value: number) => Promise.resolve(value * 2));
+      const mappedObservable = asyncMap(source, asyncFn);
+      const resultPromise = subscribeToObservableWithError(mappedObservable);
 
-    expect(result.errors[0].message).toBe('Source error');
-    expect(result.results).toEqual([2]); // First value should be processed
-    expect(asyncFn).toHaveBeenCalledTimes(1);
+      // Flush the mapping's promise before delivering the source error. Real timers
+      // do not guarantee this ordering when the event loop is busy in CI.
+      await jest.advanceTimersByTimeAsync(10);
+      await jest.advanceTimersByTimeAsync(10);
+      const result = await resultPromise;
+
+      expect(result.errors).toEqual([new Error('Source error')]);
+      expect(result.results).toEqual([2]);
+      expect(result.completed).toBe(false);
+      expect(asyncFn).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test('should discard a pending mapped value after a source error', async () => {
+    jest.useFakeTimers();
+    try {
+      const source = new Observable<number>((observer) => {
+        setTimeout(() => observer.next(1), 10);
+        setTimeout(() => observer.error(new Error('Source error')), 20);
+      });
+      const asyncFn = jest.fn(
+        (value: number) => new Promise<number>((resolve) => setTimeout(() => resolve(value * 2), 30)),
+      );
+      const resultPromise = subscribeToObservableWithError(asyncMap(source, asyncFn));
+
+      await jest.advanceTimersByTimeAsync(20);
+      const result = await resultPromise;
+      expect(result.errors).toEqual([new Error('Source error')]);
+      expect(result.results).toEqual([]);
+      expect(asyncFn).toHaveBeenCalledTimes(1);
+
+      // Finishing an in-flight mapping must not emit after the terminal error.
+      await jest.advanceTimersByTimeAsync(20);
+      expect(result.results).toEqual([]);
+      expect(result.errors).toHaveLength(1);
+      expect(result.completed).toBe(false);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   test('should handle empty source observable', async () => {
