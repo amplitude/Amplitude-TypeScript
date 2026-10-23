@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.31.0-codexsemantic-review-integration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.4...@amplitude/plugin-autocapture-browser@1.31.0-codexsemantic-review-integration.0) (2026-10-23)
+
+
+### Features
+
+* **amp-semantic:** share activity detection for click outcome fallback ([599ce3f](https://github.com/amplitude/Amplitude-TypeScript/commit/599ce3fe757cdd0b7889d929a4061e29e61fac17))
+* **analytics-browser:** add page context and SDK initialization offset ([#2067](https://github.com/amplitude/Amplitude-TypeScript/issues/2067)) ([cc7389f](https://github.com/amplitude/Amplitude-TypeScript/commit/cc7389fd5a3547f46d078ebd7971134f1c9f2411))
+
+
+### Performance Improvements
+
+* **amp-semantic:** bound DOM work and shorten mutation observation ([ed3ef8f](https://github.com/amplitude/Amplitude-TypeScript/commit/ed3ef8f1064ee5449d36084ed142633aee8f7ded))
+
+
+
+
+
 ## [1.30.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.3...@amplitude/plugin-autocapture-browser@1.30.4) (2026-10-20)
 
 

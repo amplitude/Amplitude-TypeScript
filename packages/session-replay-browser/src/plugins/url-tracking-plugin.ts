@@ -36,6 +36,8 @@ export interface URLTrackingPluginOptions {
 
 /** Options for subscribeToUrlChanges (polling vs history + hash) */
 export interface SubscribeToUrlChangesOptions {
+  /** Optional navigation metadata for semantic capture; existing callbacks remain unchanged. */
+  onNavigation?: (reason: URLChangeReason) => void;
   /** Use polling instead of history/popstate/hashchange (e.g. when history is unreliable) */
   enablePolling?: boolean;
   /** Polling interval in ms when enablePolling is true (default: 1000) */
@@ -45,12 +47,14 @@ export interface SubscribeToUrlChangesOptions {
 /** Patch detection marker to prevent double-patching */
 const PATCH_MARKER = '__amplitude_url_tracking_patched__';
 
+export type URLChangeReason = 'push' | 'replace' | 'pop' | 'hash';
+
 type PatchableHistoryMethod<T extends (...args: any[]) => any> = T & { [PATCH_MARKER]?: boolean };
 
 interface UrlChangeSubscriptionState {
-  callbacks: Set<(href: string) => void>;
-  onPopStateOrHashChange: () => void;
-  notify: () => void;
+  callbacks: Set<(href: string, reason: URLChangeReason) => void>;
+  onPopStateOrHashChange: (event: Event) => void;
+  notify: (reason: URLChangeReason) => void;
   listenersAttached: boolean;
 }
 
@@ -93,6 +97,7 @@ export function subscribeToUrlChanges(
       }
       lastHref = href;
       onUrlChange(href);
+      options.onNavigation?.('replace');
     }, pollingInterval);
     return (): void => {
       if (id != null) {
@@ -104,15 +109,15 @@ export function subscribeToUrlChanges(
   let subscriptionState = urlChangeSubscriptionsByScope.get(globalScope);
   if (!subscriptionState) {
     let lastHref: string | undefined = undefined;
-    const callbacks = new Set<(href: string) => void>();
+    const callbacks = new Set<(href: string, reason: URLChangeReason) => void>();
 
     const getHref = (): string => globalScope.location.href ?? '';
 
-    const notify = (): void => {
+    const notify = (reason: URLChangeReason): void => {
       const href = getHref();
       if (lastHref !== undefined && href === lastHref) return;
       lastHref = href;
-      callbacks.forEach((c) => c(href));
+      callbacks.forEach((c) => c(href, reason));
     };
 
     /**
@@ -121,11 +126,12 @@ export function subscribeToUrlChanges(
      */
     const createHistoryMethodPatch = <T extends typeof history.pushState | typeof history.replaceState>(
       originalMethod: T,
+      reason: URLChangeReason,
     ) => {
       const patchedMethod = function (this: History, ...args: Parameters<T>) {
         const result = originalMethod.apply(this, args);
         // Read from location.href after history call so we always notify with resolved absolute URL.
-        notify();
+        notify(reason);
         return result;
       } as PatchableHistoryMethod<T>;
 
@@ -137,20 +143,20 @@ export function subscribeToUrlChanges(
     if (history?.pushState) {
       const pushState = Reflect.get(history, 'pushState') as PatchableHistoryMethod<History['pushState']>;
       if (!pushState[PATCH_MARKER]) {
-        history.pushState = createHistoryMethodPatch(pushState);
+        history.pushState = createHistoryMethodPatch(pushState, 'push');
       }
     }
     if (history?.replaceState) {
       const replaceState = Reflect.get(history, 'replaceState') as PatchableHistoryMethod<History['replaceState']>;
       if (!replaceState[PATCH_MARKER]) {
-        history.replaceState = createHistoryMethodPatch(replaceState);
+        history.replaceState = createHistoryMethodPatch(replaceState, 'replace');
       }
     }
 
     subscriptionState = {
       callbacks,
       notify,
-      onPopStateOrHashChange: () => notify(),
+      onPopStateOrHashChange: (event) => notify(event?.type === 'hashchange' ? 'hash' : 'pop'),
       listenersAttached: false,
     };
     urlChangeSubscriptionsByScope.set(globalScope, subscriptionState);
@@ -163,9 +169,13 @@ export function subscribeToUrlChanges(
     state.listenersAttached = true;
   }
 
-  state.callbacks.add(onUrlChange);
+  const callback = (href: string, reason: URLChangeReason) => {
+    onUrlChange(href);
+    options.onNavigation?.(reason);
+  };
+  state.callbacks.add(callback);
   return (): void => {
-    state.callbacks.delete(onUrlChange);
+    state.callbacks.delete(callback);
     if (state.callbacks.size === 0) {
       // Do not restore history methods: we are not aware of patches applied by other scripts.
       if (state.listenersAttached) {

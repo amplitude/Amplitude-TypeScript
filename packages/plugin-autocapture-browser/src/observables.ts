@@ -46,12 +46,7 @@ export const createMutationObservable = (shadowGate?: ShadowGate): Observable<Mu
         observer.next(mutations);
       });
       if (document.body) {
-        mutationObserver.observe(document.body, {
-          childList: true,
-          attributes: true,
-          characterData: true,
-          subtree: true,
-        });
+        mutationObserver.observe(document.body, MUTATION_OBSERVER_INIT);
       }
       return () => mutationObserver.disconnect();
     });

@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.44-codexsemantic-review-integration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.43...@amplitude/unified@1.1.44-codexsemantic-review-integration.0) (2026-10-23)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 ## [1.1.43](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.42...@amplitude/unified@1.1.43) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/unified

@@ -24,7 +24,7 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
         return true;
       }
 
-      if ((element as HTMLInputElement).autocomplete.startsWith('cc-')) {
+      if ((element as HTMLInputElement).autocomplete?.startsWith('cc-')) {
         return true;
       }
 

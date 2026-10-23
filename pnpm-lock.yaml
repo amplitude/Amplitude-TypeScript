@@ -58,6 +58,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.7.0
         version: 4.7.0(supports-color@5.5.0)(vite@6.4.4(@types/node@18.19.130)(jiti@2.7.0)(terser@5.46.2)(yaml@2.9.0))
+      ajv:
+        specifier: ^8.17.1
+        version: 8.17.1
       axios:
         specifier: ^1.18.0
         version: 1.19.0(debug@4.4.3(supports-color@5.5.0))(supports-color@5.5.0)
@@ -297,6 +300,19 @@ importers:
       typescript:
         specifier: ^4.9.4
         version: 4.9.5
+
+  packages/amp-semantic:
+    dependencies:
+      '@amplitude/session-replay-dom-privacy':
+        specifier: workspace:*
+        version: link:../session-replay-dom-privacy
+      tslib:
+        specifier: ^2.4.1
+        version: 2.8.1
+    devDependencies:
+      ajv:
+        specifier: ^8.17.1
+        version: 8.17.1
 
   packages/analytics-browser:
     dependencies:
@@ -1072,6 +1088,9 @@ importers:
 
   packages/session-replay-browser:
     dependencies:
+      '@amplitude/amp-semantic':
+        specifier: workspace:*
+        version: link:../amp-semantic
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
