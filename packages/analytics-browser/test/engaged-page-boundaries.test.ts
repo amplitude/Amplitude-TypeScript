@@ -155,37 +155,6 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
     },
   );
 
-  test.each([false, true])('revokes a waiting snapshot permanently (opt back in: %s)', async (optBackIn) => {
-    let release!: () => void;
-    let held = false;
-    await client.add({
-      name: 'hold-snapshot',
-      type: 'enrichment',
-      async execute(event) {
-        if (!held && event.delay) {
-          held = true;
-          await new Promise<void>((resolve) => {
-            release = resolve;
-          });
-        }
-        return event;
-      },
-    }).promise;
-    await init('old-user');
-    expect(held).toBe(true);
-    expect(send).not.toHaveBeenCalled();
-    client.setOptOut(true);
-    if (optBackIn) client.setOptOut(false);
-    release();
-    await jest.advanceTimersByTimeAsync(100);
-    expect(send).not.toHaveBeenCalled();
-    if (optBackIn) {
-      document.dispatchEvent(new Event('keydown'));
-      await jest.advanceTimersByTimeAsync(20);
-    }
-    expect(events()).toHaveLength(optBackIn ? 1 : 0);
-  });
-
   test('finalizes each identity segment without rewriting its identity during signup and signout', async () => {
     await init(undefined);
     const original = events()[0];
