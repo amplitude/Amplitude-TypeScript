@@ -104,4 +104,15 @@ describe('semantic replay identity', () => {
     expect(store.getItem(SEMANTIC_TAB_STORAGE_KEY)).toBe(before);
     expect(childIdentity.document_id).not.toBe(parentIdentity.document_id);
   });
+  test('does not reclaim storage erased before pagehide', () => {
+    const store = storage();
+    const scope = page(store);
+    const identity = getSemanticIdentity(scope);
+    jest.spyOn(store, 'getItem').mockReturnValue(null);
+    const writes = jest.spyOn(store, 'setItem');
+    writes.mockClear();
+    scope.dispatchEvent(new Event('pagehide'));
+    expect(writes).not.toHaveBeenCalled();
+    expect(getSemanticIdentity(scope)).toBe(identity);
+  });
 });

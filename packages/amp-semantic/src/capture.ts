@@ -76,10 +76,7 @@ export function createCapture(
     dropped[family] = (dropped[family] ?? 0) + 1;
     return false;
   };
-  const context: RecorderContext = {
-    onCleanup: (cleanup) => {
-      cleanups.push(cleanup);
-    },
+  const context: Omit<RecorderContext, 'onCleanup'> = {
     host,
     helpers: createHelpers(host),
     now,
@@ -121,8 +118,9 @@ export function createCapture(
       }
       const listener = (value: never) => safely(() => callback(value));
       listeners.add(listener);
+      const registered = listeners;
       return () => {
-        listeners?.delete(listener);
+        registered.delete(listener);
       };
     },
     subscribe: (callback) => {

@@ -92,6 +92,20 @@ describe('URL Tracking Plugin', () => {
   });
 
   describe('subscribeToUrlChanges', () => {
+    test('polling tolerates an unavailable href and observes its later value', () => {
+      const scope = createMockGlobalScope({ location: {} });
+      const cb = jest.fn();
+      const onNavigation = jest.fn();
+      const cleanup = subscribeToUrlChanges(scope as unknown as Window, cb, { enablePolling: true, onNavigation });
+      const poll = scope.setInterval.mock.calls[0][0];
+      poll();
+      expect(cb).not.toHaveBeenCalled();
+      scope.location!.href = 'https://example.com/ready';
+      poll();
+      expect(cb).toHaveBeenCalledWith('https://example.com/ready');
+      expect(onNavigation).toHaveBeenCalledWith('replace');
+      cleanup();
+    });
     test('supplies navigation reasons without changing existing URL callbacks', () => {
       const cb = jest.fn();
       const onNavigation = jest.fn();

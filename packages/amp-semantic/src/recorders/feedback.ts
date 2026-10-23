@@ -108,10 +108,8 @@ export const feedbackRecorder: SemanticRecorder = {
     };
     const enqueueDialog = (element: Element) => {
       if (!dialogs || pendingDialogs.has(element)) return;
-      if (pendingDialogs.size >= MAX_PENDING) {
-        overflow('dialog queue');
-        if (!element.isConnected && openDialogs.has(element)) checkStructure = true;
-      } else pendingDialogs.add(element);
+      // Every queued dialog belongs to the bounded trackedDialogs registry.
+      pendingDialogs.add(element);
     };
     const unsubscribe = context.subscribe((event) => {
       if (event.name === 'click') lastClick = event.timestamp;
@@ -236,10 +234,6 @@ export const feedbackRecorder: SemanticRecorder = {
       const previous = dialogStates.get(element);
       const open = isOpen(element);
       if (previous?.open === open || (!previous && !open)) return;
-      if (open && !openDialogs.has(element) && openDialogs.size >= MAX_PENDING) {
-        overflow('open dialog tracking');
-        return;
-      }
       const current = readDialog(element);
       dialogStates.set(element, current);
       if (open) openDialogs.add(element);
@@ -268,7 +262,10 @@ export const feedbackRecorder: SemanticRecorder = {
           }
         }
         for (const element of trackedDialogs) {
-          if (!element.isConnected && !openDialogs.has(element)) trackedDialogs.delete(element);
+          if (!element.isConnected && !openDialogs.has(element)) {
+            trackedDialogs.delete(element);
+            pendingDialogs.delete(element);
+          }
         }
       }
       let processed = 0;
@@ -328,7 +325,7 @@ export const feedbackRecorder: SemanticRecorder = {
           ['alert', 'status', 'log'].includes(attrs.role as string) ||
           ['polite', 'assertive'].includes(attrs['aria-live'] as string);
         if (!(dialogs && dialog) && !(notices && live && !baseline)) return;
-        const element = host.getNode?.(node.id);
+        const element = host.getNode!(node.id);
         if (!element || element.nodeType !== 1 || helpers.blocked(element as Element)) return;
         const target = element as Element;
         if (dialogs && dialog && track(target)) {
@@ -360,7 +357,7 @@ export const feedbackRecorder: SemanticRecorder = {
         return;
       }
       if (!(notices && work.text) && !(dialogs && work.dialogs)) return;
-      const node = host.getNode?.(work.id);
+      const node = host.getNode!(work.id);
       const element = node?.nodeType === 1 ? (node as Element) : node?.parentElement;
       if (!element || !element.isConnected || helpers.blocked(element)) return;
       if (notices && work.text) {

@@ -356,6 +356,14 @@ describe('SessionReplay', () => {
   });
 
   describe('init', () => {
+    test('reinitialization stops and discards the previous semantic adapter', async () => {
+      const stop = jest.fn();
+      (sessionReplay as any).semanticAdapter = { stop };
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(stop).toHaveBeenCalledWith('customer_stop');
+      expect((sessionReplay as any).semanticAdapter).toBeUndefined();
+    });
+
     test('should pass current page to evaluateTargetingAndCapture during init', async () => {
       const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
       await sessionReplay.init(apiKey, mockOptions).promise;

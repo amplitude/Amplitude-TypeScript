@@ -39,6 +39,22 @@ describe('click', () => {
   describe('shared click hook', () => {
     afterEach(() => jest.clearAllMocks());
 
+    test('supports absent consumers and caches unsuccessful selectors for the current click only', () => {
+      const handler = new ClickHandler(mockLoggerProvider);
+      const data = { id: 1, type: MouseInteractions.Click };
+      handler.createSharedHook()(data, new MouseEvent('click'));
+      const element = document.createElement('button');
+      mockFinder.mockReturnValue(null);
+      mockFinder.mockClear();
+      const hook = handler.createSharedHook(() => {
+        expect(handler.getSelector(element)).toBeNull();
+        expect(handler.getSelector(element)).toBeNull();
+      });
+      hook(data, new MouseEvent('click'));
+      expect(mockFinder).toHaveBeenCalledTimes(1);
+      expect(handler.getSelector(element)).toBeNull();
+      expect(mockFinder).toHaveBeenCalledTimes(2);
+    });
     test('shares selectors per element for one click and preserves the native event', () => {
       const handler = new ClickHandler(mockLoggerProvider);
       const button = document.createElement('button');
@@ -111,6 +127,30 @@ describe('click', () => {
     const deviceId = UUID();
     const sessionId = Math.round(Math.random() * 1_000_000);
 
+    test.each([undefined, {} as ScrollWatcher])(
+      'uses viewport coordinates when scroll offsets are unavailable (%s)',
+      (scrollWatcher) => {
+        mockGlobalScope({ location: { href: 'https://example.com/' } as Location, innerHeight: 600, innerWidth: 800 });
+        const handler = new ClickHandler(mockLoggerProvider, scrollWatcher);
+        mockFinder.mockReturnValue(null);
+        const hook = handler.createHook({
+          deviceIdFn: () => deviceId,
+          sessionId,
+          eventsManager: mockEventsManager,
+          mirror: { getNode: () => document.body } as unknown as typeof record.mirror,
+          ugcFilterRules: [],
+        });
+        hook({ id: 1, type: MouseInteractions.Click, x: 12, y: 34 });
+        expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledWith(
+          expect.objectContaining({
+            event: { type: 'interaction', data: expect.any(String) },
+          }),
+        );
+        const payload = JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data);
+        expect(payload).toMatchObject({ x: 12, y: 34 });
+        expect(payload).not.toHaveProperty('selector');
+      },
+    );
     test('do nothing on non click event', () => {
       const scrollWatcher = createMockScrollWatcher();
       const factory = new ClickHandler(mockLoggerProvider, scrollWatcher);
