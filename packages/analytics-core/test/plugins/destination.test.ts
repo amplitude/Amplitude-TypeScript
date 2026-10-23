@@ -91,6 +91,30 @@ describe('destination', () => {
   });
 
   describe('execute', () => {
+    test.each([180_000, undefined])('strips delayed user properties before delivery (timeout=%s)', (timeout) => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      jest.spyOn(destination, 'saveEvents').mockImplementation(jest.fn);
+      const event = {
+        event_type: 'page',
+        user_properties: { $set: { plan: 'old' }, $unset: { obsolete: '-' } },
+        delay: { id: 'group', timeout },
+      };
+      void destination.execute(event);
+      expect(destination.queue[0].event).not.toHaveProperty('user_properties');
+    });
+
+    test('preserves user properties on ordinary identify events', () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      jest.spyOn(destination, 'saveEvents').mockImplementation(jest.fn);
+      const userProperties = { $set: { plan: 'new' } };
+      void destination.execute({ event_type: '$identify', user_properties: userProperties });
+      expect(destination.queue[0].event.user_properties).toEqual(userProperties);
+    });
+
     test('should execute plugin', async () => {
       const uuid: string = expect.stringMatching(uuidPattern) as string;
       const destination = new Destination();

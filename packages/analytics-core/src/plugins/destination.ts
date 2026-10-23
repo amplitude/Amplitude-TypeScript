@@ -123,6 +123,9 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
+    // Repeated delayed events must not replay stale user-property updates.
+    // This also strips properties added by enrichment plugins.
+    if (event.delay) delete event.user_properties;
     // Assign insert_id for dropping invalid event later
     if (!event.insert_id) {
       event.insert_id = UUID();

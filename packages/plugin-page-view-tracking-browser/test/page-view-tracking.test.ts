@@ -122,6 +122,14 @@ describe('pageViewTrackingPlugin', () => {
   });
 
   describe('setup', () => {
+    test('engaged-time opt-in falls back to ordinary page views without a browser scope', async () => {
+      jest.mocked(getGlobalScope).mockReturnValueOnce(undefined);
+      const plugin = pageViewTrackingPlugin({ trackEngagedTime: true });
+      const amplitude = createMockBrowserClient();
+      await plugin.setup?.(mockConfig, amplitude);
+      expect(amplitude.track.mock.calls).toHaveLength(1);
+      await plugin.teardown?.();
+    });
     test.each([
       { trackHistoryChanges: undefined },
       { trackHistoryChanges: 'pathOnly' as const },
