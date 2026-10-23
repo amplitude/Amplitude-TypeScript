@@ -10,11 +10,14 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.LifecycleEventListener
+import java.util.concurrent.atomic.AtomicLong
 
 // `@ReactMethod` is required on the legacy architecture and ignored on the new
 // one, so it stays on the overrides below.
 class SessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
-  SessionReplayReactNativeSpec(reactContext) {
+  SessionReplayReactNativeSpec(reactContext), LifecycleEventListener {
   private data class NativeConfig(
     val apiKey: String,
     val deviceId: String?,
@@ -29,6 +32,32 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   private var sessionReplay: SessionReplay? = null
   private var nativeConfig: NativeConfig? = null
   private var shouldStart = false
+  private val signalGeneration = AtomicLong(0)
+  private val lastUiChangeTime = AtomicLong(0)
+
+  init {
+    reactContext.addLifecycleEventListener(this)
+  }
+
+  override fun onHostResume() { signalGeneration.incrementAndGet() }
+  override fun onHostPause() { signalGeneration.incrementAndGet() }
+  override fun onHostDestroy() { signalGeneration.incrementAndGet() }
+
+  @ReactMethod
+  override fun getInterfaceSignalState(promise: Promise) {
+    try {
+      val state = Arguments.createMap().apply {
+        putBoolean("isProviding", sessionReplay?.shouldRecord() == true)
+        putDouble("lastChangeTime", lastUiChangeTime.get().toDouble())
+        putDouble("generation", signalGeneration.get().toDouble())
+        putString("sessionId", nativeConfig?.customSessionId ?: "-1")
+        putString("deviceId", nativeConfig?.deviceId)
+      }
+      promise.resolve(state)
+    } catch (e: Exception) {
+      promise.reject("INTERFACE_SIGNAL_ERROR", e.message, e)
+    }
+  }
 
   override fun getName(): String {
     return NAME
@@ -97,6 +126,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun setCustomSessionId(customSessionId: String, promise: Promise) {
     try {
+      if (nativeConfig?.customSessionId != customSessionId) signalGeneration.incrementAndGet()
       nativeConfig = requireNotNull(nativeConfig).copy(customSessionId = customSessionId)
       sessionReplay?.setCustomSessionId(customSessionId)
       promise.resolve(null)
@@ -117,6 +147,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun setDeviceId(deviceId: String?, promise: Promise) {
     try {
+      if (nativeConfig?.deviceId != deviceId) signalGeneration.incrementAndGet()
       nativeConfig = requireNotNull(nativeConfig).copy(deviceId = deviceId)
       sessionReplay?.setDeviceId(deviceId ?: "")
       promise.resolve(null)
@@ -153,6 +184,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun start(promise: Promise) {
     try {
+      signalGeneration.incrementAndGet()
       shouldStart = true
       sessionReplay?.start()
       promise.resolve(null)
@@ -164,6 +196,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun stop(promise: Promise) {
     try {
+      signalGeneration.incrementAndGet()
       shouldStart = false
       sessionReplay?.stop()
       promise.resolve(null)
@@ -185,6 +218,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun teardown(promise: Promise) {
     try {
+      signalGeneration.incrementAndGet()
       sessionReplay?.shutdown()
       sessionReplay = null
       nativeConfig = null
@@ -196,6 +230,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   override fun invalidate() {
+    signalGeneration.incrementAndGet()
+    reactContext.removeLifecycleEventListener(this)
     sessionReplay?.shutdown()
     sessionReplay = null
     nativeConfig = null
@@ -203,6 +239,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   private fun rebootSessionReplay(config: NativeConfig) {
+    signalGeneration.incrementAndGet()
     val nextSessionReplay = if (config.optOut) {
       LogcatLogger.logger.debug("skipping SessionReplay init because optOut=true")
       null
@@ -229,6 +266,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       },
       autoStart = false,
       privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
+      uiChangeCallback = { lastUiChangeTime.set(System.currentTimeMillis()) },
     )
     sessionReplay.setCustomSessionId(config.customSessionId)
     return sessionReplay
