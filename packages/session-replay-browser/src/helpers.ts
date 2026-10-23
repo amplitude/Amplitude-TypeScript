@@ -16,6 +16,36 @@ export const getCurrentUrl = () => {
   return globalScope?.location ? globalScope.location.href : '';
 };
 
+/**
+ * Browser-reported user agent, when the runtime exposes one.
+ * Empty strings are treated as missing so callers can omit the field.
+ */
+export const getUserAgent = (): string | undefined => {
+  const userAgent = getGlobalScope()?.navigator?.userAgent;
+  return typeof userAgent === 'string' && userAgent.length > 0 ? userAgent : undefined;
+};
+
+/**
+ * Associates the browser user agent with an rrweb meta event.
+ * Meta events are emitted alongside each full snapshot, so the string is stored
+ * once per snapshot instead of on every incremental event. A user agent already
+ * present on the event is left unchanged.
+ */
+export const associateUserAgent = (data: {
+  href?: string;
+  width?: number;
+  height?: number;
+  userAgent?: string;
+}): void => {
+  if (typeof data.userAgent === 'string' && data.userAgent.length > 0) {
+    return;
+  }
+  const userAgent = getUserAgent();
+  if (userAgent) {
+    data.userAgent = userAgent;
+  }
+};
+
 export const generateSessionReplayId = (sessionId: string | number, deviceId: string): string => {
   return `${deviceId}/${sessionId}`;
 };

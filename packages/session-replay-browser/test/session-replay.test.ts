@@ -3281,6 +3281,95 @@ describe('SessionReplay', () => {
       });
     });
 
+    describe('emit callback - meta event user agent', () => {
+      const navigatorWithAgent = mockGlobalScope.navigator as { userAgent?: string };
+
+      afterEach(() => {
+        delete navigatorWithAgent.userAgent;
+      });
+
+      test('should attach the browser user agent to meta events', async () => {
+        navigatorWithAgent.userAgent = 'Mozilla/5.0 TestAgent';
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = mockRecordFunction.mock.calls[0][0];
+        const metaEvent = {
+          type: 4,
+          data: { href: 'https://example.com/', width: 800, height: 600 } as {
+            href: string;
+            width: number;
+            height: number;
+            userAgent?: string;
+          },
+          timestamp: Date.now(),
+        };
+
+        recordArg?.emit && recordArg?.emit(metaEvent);
+
+        expect(metaEvent.data.userAgent).toBe('Mozilla/5.0 TestAgent');
+      });
+
+      test('should not attach a user agent to non-meta events', async () => {
+        navigatorWithAgent.userAgent = 'Mozilla/5.0 TestAgent';
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = mockRecordFunction.mock.calls[0][0];
+        const incrementalEvent = {
+          type: 3,
+          data: { source: 1 } as { source: number; userAgent?: string },
+          timestamp: Date.now(),
+        };
+
+        recordArg?.emit && recordArg?.emit(incrementalEvent);
+
+        expect(incrementalEvent.data.userAgent).toBeUndefined();
+      });
+
+      test('should keep a user agent already set on the meta event', async () => {
+        navigatorWithAgent.userAgent = 'Mozilla/5.0 TestAgent';
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = mockRecordFunction.mock.calls[0][0];
+        const metaEvent = {
+          type: 4,
+          data: { href: 'https://example.com/', width: 800, height: 600, userAgent: 'AlreadySet/1.0' },
+          timestamp: Date.now(),
+        };
+
+        recordArg?.emit && recordArg?.emit(metaEvent);
+
+        expect(metaEvent.data.userAgent).toBe('AlreadySet/1.0');
+      });
+
+      test('should omit user agent when the browser does not report one', async () => {
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = mockRecordFunction.mock.calls[0][0];
+        const metaEvent = {
+          type: 4,
+          data: { href: 'https://example.com/', width: 800, height: 600 } as {
+            href: string;
+            width: number;
+            height: number;
+            userAgent?: string;
+          },
+          timestamp: Date.now(),
+        };
+
+        recordArg?.emit && recordArg?.emit(metaEvent);
+
+        expect(metaEvent.data.userAgent).toBeUndefined();
+      });
+    });
+
     describe('recordEventsInFlight guard', () => {
       test('concurrent call sets pending and _recordEvents runs twice total', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
