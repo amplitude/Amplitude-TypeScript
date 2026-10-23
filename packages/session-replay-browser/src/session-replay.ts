@@ -942,7 +942,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!shouldRecord || !sessionId || !config) {
       if (config?.semanticCapture?.enabled && this.semanticAdapter && this.recordCancelCallback) {
         this.stopRecordingEvents(
-          this.shouldOptOut() ? 'opt_out' : config?.targetingConfig ? 'targeting' : 'sampled_out',
+          this.shouldOptOut() ? 'opt_out' : config.targetingConfig ? 'targeting' : 'sampled_out',
         );
       }
       return;
@@ -983,10 +983,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
           })
         : undefined;
     const sharedSemanticClicks = config.semanticCapture?.enabled && recordFunction.supportsNativeMouseInteraction;
-    if (sharedSemanticClicks && !this.clickHandler) this.clickHandler = new ClickHandler(this.loggerProvider);
-    const mouseInteraction = sharedSemanticClicks
-      ? this.clickHandler?.createSharedHook(heatmapHook, (event) => this.semanticAdapter?.click(event))
-      : heatmapHook;
+    let mouseInteraction = heatmapHook;
+    if (sharedSemanticClicks) {
+      const clickHandler = this.clickHandler ?? (this.clickHandler = new ClickHandler(this.loggerProvider));
+      mouseInteraction = clickHandler.createSharedHook(heatmapHook, (event) => this.semanticAdapter?.click(event));
+    }
     const hooks = {
       ...(mouseInteraction ? { mouseInteraction } : {}),
       ...(interactionConfig?.enabled ? { scroll: this.scrollHook } : {}),

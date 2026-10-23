@@ -17,6 +17,8 @@ describe('semantic analytics context', () => {
   });
 
   test.each([
+    [true, true],
+    [false, false],
     [{}, true],
     [{ deadClicks: true }, true],
     [{ deadClicks: false }, false],
