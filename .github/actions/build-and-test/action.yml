@@ -4,6 +4,10 @@ inputs:
   node-version:
     description: 'Node.js version to use'
     required: true
+  package-scope:
+    description: 'Optional package name to build, test, and lint along with its workspace dependencies'
+    required: false
+    default: ''
   run-tests:
     description: 'Whether to run unit tests'
     required: false
@@ -39,21 +43,39 @@ runs:
         pnpm install --frozen-lockfile
       shell: bash
 
-    - name: Build all packages
+    - name: Build packages
+      env:
+        PACKAGE_SCOPE: ${{ inputs.package-scope }}
       run: |
-        pnpm build
+        args=()
+        if [ -n "$PACKAGE_SCOPE" ]; then
+          args+=(--scope "$PACKAGE_SCOPE" --include-dependencies)
+        fi
+        pnpm build "${args[@]}"
       shell: bash
 
-    - name: Test all packages
+    - name: Test packages
       if: inputs.run-tests == 'true'
+      env:
+        PACKAGE_SCOPE: ${{ inputs.package-scope }}
       run: |
-        pnpm test
+        args=()
+        if [ -n "$PACKAGE_SCOPE" ]; then
+          args+=(--scope "$PACKAGE_SCOPE" --include-dependencies)
+        fi
+        pnpm test "${args[@]}"
       shell: bash
 
-    - name: Lint all packages
+    - name: Lint packages
       if: inputs.run-lint == 'true'
+      env:
+        PACKAGE_SCOPE: ${{ inputs.package-scope }}
       run: |
-        pnpm lint
+        args=()
+        if [ -n "$PACKAGE_SCOPE" ]; then
+          args+=(--scope "$PACKAGE_SCOPE" --include-dependencies)
+        fi
+        pnpm lint "${args[@]}"
       shell: bash
 
     - name: Configure Git User
