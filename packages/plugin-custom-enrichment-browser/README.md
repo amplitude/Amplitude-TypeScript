@@ -9,13 +9,15 @@
 
 Official Browser SDK plugin for custom enrichment
 
+Maintainers: see the [custom enrichment release workflow](../../CONTRIBUTING.md#publishing-the-custom-enrichment-browser-plugin) for staging, npm approval, and the required Browser adoption PR.
+
 ## Installation
 
 Version 1.0.0 introduces a breaking dependency change: `@amplitude/analytics-core` is now a required peer dependency (`^2.61.0`), rather than a regular dependency installed by the plugin.
 
 If you only use this plugin through `@amplitude/analytics-browser`, install the Browser SDK as usual. A Browser SDK release that bundles this plugin version supplies the compatible core; your application does not need an additional core declaration.
 
-If you install or import this plugin directly, declare a compatible core in your application's dependencies, even if you also install the Browser SDK. For example, after plugin 1.0.0 is published:
+If you install or import this plugin directly, declare a compatible core in your application's dependencies, even if you also install the Browser SDK. For example, with plugin 1.0.0:
 
 ```sh
 # npm

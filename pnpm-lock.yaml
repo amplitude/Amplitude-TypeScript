@@ -307,8 +307,8 @@ importers:
         specifier: workspace:*
         version: link:../plugin-autocapture-browser
       '@amplitude/plugin-custom-enrichment-browser':
-        specifier: 0.1.28
-        version: 0.1.28
+        specifier: 1.0.0
+        version: 1.0.0(@amplitude/analytics-core@packages+analytics-core)
       '@amplitude/plugin-event-property-attribution-browser':
         specifier: workspace:*
         version: link:../plugin-event-property-attribution-browser
@@ -1326,8 +1326,10 @@ packages:
   '@amplitude/plugin-custom-enrichment-browser@0.1.11':
     resolution: {integrity: sha512-T4jyad4BBfpU/x21Vf2U6JeHA9n14bil4+46CI1tK4OijZX4ZpKfPaw+T2gzG0BreX87o7kUVs1O5kM6Z6K3ZA==}
 
-  '@amplitude/plugin-custom-enrichment-browser@0.1.28':
-    resolution: {integrity: sha512-pTc9gTuV1ALfYvYtloS1xHe/hGI0skencMe8mvmyrTqw/6M8hRQAVM6KnWLW8KpVOh/pF1s8GJUu28h8ElwznQ==}
+  '@amplitude/plugin-custom-enrichment-browser@1.0.0':
+    resolution: {integrity: sha512-OqPBrWayaZ9jZqFYgqlmiBFHwL+rzwgHomSnN3Q+51X5CRUkf/2zjdPnaUCrDKvZc3OrOJhI67L+YyAYbjRvzw==}
+    peerDependencies:
+      '@amplitude/analytics-core': ^2.61.0
 
   '@amplitude/plugin-engagement-react-native@3.12.1':
     resolution: {integrity: sha512-RYDMDMNQfIv7zWwkFp8uDCaUp65SH782EJA8B0na9JldUISYrM4s2bZfNTN+8cllutB1aHjwl/gqjrJNnHzaYw==}
@@ -10784,9 +10786,9 @@ snapshots:
       '@amplitude/analytics-core': 2.50.0
       tslib: 2.8.1
 
-  '@amplitude/plugin-custom-enrichment-browser@0.1.28':
+  '@amplitude/plugin-custom-enrichment-browser@1.0.0(@amplitude/analytics-core@packages+analytics-core)':
     dependencies:
-      '@amplitude/analytics-core': 2.61.0
+      '@amplitude/analytics-core': link:packages/analytics-core
       tslib: 2.8.1
 
   '@amplitude/plugin-engagement-react-native@3.12.1(@react-native-async-storage/async-storage@2.2.0(react-native@0.76.9(@babel/core@7.28.5(supports-color@8.1.1))(@babel/preset-env@7.28.5(@babel/core@7.28.5(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@13.6.6(encoding@0.1.13)(supports-color@8.1.1))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)(supports-color@8.1.1)))(react-native@0.76.9(@babel/core@7.28.5(supports-color@8.1.1))(@babel/preset-env@7.28.5(@babel/core@7.28.5(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@13.6.6(encoding@0.1.13)(supports-color@8.1.1))(@types/react@18.3.26)(encoding@0.1.13)(react@18.3.1)(supports-color@8.1.1))(react@18.3.1)':
