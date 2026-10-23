@@ -3,7 +3,14 @@
 import { UGCFilterRule } from '../src/config/types';
 import { SESSION_REPLAY_EU_URL, SESSION_REPLAY_SERVER_URL, SESSION_REPLAY_STAGING_URL } from '../src/constants';
 import { ServerZone } from '@amplitude/analytics-core';
-import { getServerUrl, getStorageSize, getPageUrl, validateUGCFilterRules } from '../src/helpers';
+import {
+  associateUserAgent,
+  getServerUrl,
+  getStorageSize,
+  getPageUrl,
+  getUserAgent,
+  validateUGCFilterRules,
+} from '../src/helpers';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 
 describe('SessionReplayPlugin helpers', () => {
@@ -68,6 +75,77 @@ describe('SessionReplayPlugin helpers', () => {
       } as unknown as typeof globalThis);
       const storageSize = await getStorageSize();
       expect(storageSize).toEqual({ totalStorageSize: 0, percentOfQuota: 0, usageDetails: '{"indexedDB":10}' });
+    });
+  });
+
+  describe('getUserAgent', () => {
+    test('should return the browser user agent', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { userAgent: 'Mozilla/5.0 TestAgent' },
+      } as unknown as typeof globalThis);
+      expect(getUserAgent()).toBe('Mozilla/5.0 TestAgent');
+    });
+
+    test('should return undefined when the global scope has no user agent', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+      expect(getUserAgent()).toBeUndefined();
+    });
+
+    test('should return undefined when navigator is missing', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as unknown as typeof globalThis);
+      expect(getUserAgent()).toBeUndefined();
+    });
+
+    test('should return undefined when the user agent is empty', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { userAgent: '' },
+      } as unknown as typeof globalThis);
+      expect(getUserAgent()).toBeUndefined();
+    });
+  });
+
+  describe('associateUserAgent', () => {
+    test('should copy the browser user agent onto meta event data', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { userAgent: 'Mozilla/5.0 TestAgent' },
+      } as unknown as typeof globalThis);
+      const data: { href: string; userAgent?: string } = { href: 'https://example.com/' };
+      associateUserAgent(data);
+      expect(data.userAgent).toBe('Mozilla/5.0 TestAgent');
+    });
+
+    test('should keep a user agent already present on the meta event', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { userAgent: 'Mozilla/5.0 OtherAgent' },
+      } as unknown as typeof globalThis);
+      const data = { href: 'https://example.com/', userAgent: 'AlreadySet/1.0' };
+      associateUserAgent(data);
+      expect(data.userAgent).toBe('AlreadySet/1.0');
+    });
+
+    test('should replace an empty user agent with the browser user agent', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: { userAgent: 'Mozilla/5.0 TestAgent' },
+      } as unknown as typeof globalThis);
+      const data = { href: 'https://example.com/', userAgent: '' };
+      associateUserAgent(data);
+      expect(data.userAgent).toBe('Mozilla/5.0 TestAgent');
+    });
+
+    test('should leave meta event data unchanged when no user agent is available', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+        navigator: {},
+      } as unknown as typeof globalThis);
+      const data: { href: string; userAgent?: string } = { href: 'https://example.com/' };
+      associateUserAgent(data);
+      expect(data.userAgent).toBeUndefined();
+    });
+
+    test('should leave an empty user agent unchanged when the browser user agent is missing', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+      const data = { href: 'https://example.com/', userAgent: '' };
+      associateUserAgent(data);
+      expect(data.userAgent).toBe('');
     });
   });
 
