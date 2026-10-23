@@ -192,6 +192,101 @@ describe('SessionReplayLocalConfig', () => {
     });
   });
 
+  describe('deferFullSnapshot', () => {
+    let warnSpy: jest.SpyInstance;
+    let logger: ILogger;
+
+    beforeEach(() => {
+      logger = new Logger();
+      warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {
+        /* swallow */
+      });
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    test('is undefined (deferral off) when option is omitted', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
+      expect(config.deferFullSnapshot).toBeUndefined();
+    });
+
+    test('resolves defaults for every field when only enabled is provided', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        deferFullSnapshot: { enabled: true },
+      });
+      expect(config.deferFullSnapshot).toEqual({ enabled: true, until: 'idle', delayMs: 0, maxWaitMs: 5000 });
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('passes through a fully specified valid config', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        deferFullSnapshot: { enabled: true, until: 'load', delayMs: 500, maxWaitMs: 12_000 },
+      });
+      expect(config.deferFullSnapshot).toEqual({ enabled: true, until: 'load', delayMs: 500, maxWaitMs: 12_000 });
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('preserves enabled: false so consumers can toggle without deleting the block', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        deferFullSnapshot: { enabled: false, until: 'load' },
+      });
+      expect(config.deferFullSnapshot?.enabled).toBe(false);
+    });
+
+    test('falls back to idle and warns on an unknown until value', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        deferFullSnapshot: { enabled: true, until: 'paint' as unknown as 'load' },
+      });
+      expect(config.deferFullSnapshot?.until).toBe('idle');
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('deferFullSnapshot.until'));
+    });
+
+    test('treats negative / non-finite delayMs as 0 and warns', () => {
+      const negative = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        deferFullSnapshot: { enabled: true, delayMs: -10 },
+      });
+      expect(negative.deferFullSnapshot?.delayMs).toBe(0);
+      const nan = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        deferFullSnapshot: { enabled: true, delayMs: NaN },
+      });
+      expect(nan.deferFullSnapshot?.delayMs).toBe(0);
+      expect(warnSpy).toHaveBeenCalledTimes(2);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('deferFullSnapshot.delayMs'));
+    });
+
+    test('falls back to the default maxWaitMs for non-positive / non-finite values and warns', () => {
+      const zero = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        deferFullSnapshot: { enabled: true, maxWaitMs: 0 },
+      });
+      expect(zero.deferFullSnapshot?.maxWaitMs).toBe(5000);
+      const infinite = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        deferFullSnapshot: { enabled: true, maxWaitMs: Infinity },
+      });
+      expect(infinite.deferFullSnapshot?.maxWaitMs).toBe(5000);
+      expect(warnSpy).toHaveBeenCalledTimes(2);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('deferFullSnapshot.maxWaitMs'));
+    });
+
+    test('clamps maxWaitMs above the 30s ceiling and warns', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        deferFullSnapshot: { enabled: true, maxWaitMs: 120_000 },
+      });
+      expect(config.deferFullSnapshot?.maxWaitMs).toBe(30_000);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('exceeds ceiling'));
+    });
+  });
+
   describe('maxPersistedEventsSizeBytes', () => {
     let warnSpy: jest.SpyInstance;
     let logger: ILogger;
