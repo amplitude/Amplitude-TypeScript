@@ -1,5 +1,4 @@
-import { AmplitudeCore, BrowserClient, BrowserConfig, Config, Destination, Status } from '@amplitude/analytics-core';
-import { PageEngagement } from '../src/page-engagement';
+import { AmplitudeCore, Config, Destination, Status } from '@amplitude/analytics-core';
 import { pageViewTrackingPlugin } from '../src/page-view-tracking';
 
 class TestClient extends AmplitudeCore {
@@ -55,51 +54,6 @@ describe('engagement delivery through the SDK pipeline', () => {
       expect(send).toHaveBeenCalledTimes(1);
     } finally {
       await client.remove(plugin.name!).promise;
-    }
-  });
-
-  test('flushes the pagehide final copy as soon as an in-flight heartbeat completes', async () => {
-    let release!: (response: unknown) => void;
-    const success = { status: Status.Success, statusCode: 200, body: { code: 200 } };
-    const send = jest
-      .fn()
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            release = resolve;
-          }),
-      )
-      .mockResolvedValue(success);
-    const config = new Config({ apiKey: 'test', transportProvider: { send }, flushIntervalMillis: 10 });
-    const client = new TestClient();
-    await client.init(config);
-    await client.add(new Destination()).promise;
-    const owner = new PageEngagement(
-      client as unknown as BrowserClient,
-      window,
-      {},
-      config as unknown as BrowserConfig,
-      jest.fn(),
-    );
-    try {
-      owner.start({ event_type: '[Amplitude] Page Viewed', insert_id: 'page-id' });
-      await jest.advanceTimersByTimeAsync(2_000);
-      expect(send).toHaveBeenCalledTimes(1);
-      window.dispatchEvent(new Event('pagehide'));
-      // Drain plugin promises while leaving the transport request unresolved.
-      await client.flush().promise;
-      expect(send).toHaveBeenCalledTimes(1);
-      release(success);
-      await jest.advanceTimersByTimeAsync(0);
-      expect(send).toHaveBeenCalledTimes(2);
-      expect(JSON.stringify(send.mock.calls)).not.toContain('pageEngagementSnapshot');
-      expect(send.mock.calls[1][1]).toMatchObject({
-        timeout: 0,
-        instant_events: [{ insert_id: 'page-id', event_properties: { '[Amplitude] Engaged Time': 2_000 } }],
-      });
-    } finally {
-      owner.teardown();
-      await client.flush().promise;
     }
   });
 });

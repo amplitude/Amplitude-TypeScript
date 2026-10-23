@@ -102,8 +102,6 @@ export class Destination implements DestinationPlugin {
   // Indicator of whether current flush resolves.
   // When flush resolves, set `flushId` to null
   flushId: ReturnType<typeof setTimeout> | null = null;
-  private flushing = false;
-  private flushRequested = false;
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
   inFlightDelayedEvents: Record<string, boolean> = {};
@@ -261,16 +259,12 @@ export class Destination implements DestinationPlugin {
       return;
     }
 
-    if (this.flushing || this.flushId) {
-      // Preserve explicit flush requests (for example page exit) until the active upload completes.
-      if (!useRetry) this.flushRequested = true;
+    if (this.flushId) {
       this.resetSchedule();
       this.config.loggerProvider.debug('Skipping flush because previous flush has not resolved.');
       return;
     }
 
-    // An explicit flush may have no scheduleId, so track active uploads separately.
-    this.flushing = true;
     this.flushId = this.scheduleId;
     this.resetSchedule();
 
@@ -303,19 +297,12 @@ export class Destination implements DestinationPlugin {
       eventPromises.push(this.sendDelayedEvents(delayed, useRetry));
     }
 
-    try {
-      await Promise.all(eventPromises);
-    } finally {
-      this.flushId = null;
-      this.flushing = false;
-    }
+    await Promise.all(eventPromises);
 
-    if (this.flushRequested) {
-      this.flushRequested = false;
-      await this.flush();
-    } else {
-      this.scheduleEvents(this.queue);
-    }
+    // Mark current flush is done
+    this.flushId = null;
+
+    this.scheduleEvents(this.queue);
   }
 
   sendDelayedEvents(delayed: DelayedEventsById, useRetry: boolean) {

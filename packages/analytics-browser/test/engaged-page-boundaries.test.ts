@@ -5,6 +5,7 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
   let client: AmplitudeBrowser;
   let send: jest.Mock<ReturnType<Transport['send']>, Parameters<Transport['send']>>;
   const originalPushState = history.pushState.bind(history);
+  const properties = (event: AnalyticsEvent) => event.event_properties as Record<string, unknown>;
   const events = () =>
     send.mock.calls.flatMap(([, payload]) => {
       const delayed = payload as Payload & { instant_events?: Payload['events'] };
@@ -97,6 +98,60 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
         session_id: client.getSessionId(),
       });
       expect((events()[0].event_properties as Record<string, unknown>)['[Amplitude] Page Counter']).toBe(1);
+    },
+  );
+
+  test.each([false, true])(
+    'keeps a pending page A as an ordinary view after navigating to B (B starts first: %s)',
+    async (startBFirst) => {
+      history.replaceState({}, '', '/pending-a');
+      let release!: () => void;
+      let original!: AnalyticsEvent;
+      await client.add({
+        name: 'hold-page-a',
+        type: 'enrichment',
+        async execute(event) {
+          if (!original && event.event_type === '[Amplitude] Page Viewed' && !event.delay) {
+            original = event;
+            await new Promise<void>((resolve) => {
+              release = resolve;
+            });
+          }
+          return event;
+        },
+      }).promise;
+      await init('old-user');
+      const pageViewId = properties(original)['[Amplitude] Page View ID'];
+      const time = original.time;
+      history.pushState({}, '', '/pending-b');
+      await jest.advanceTimersByTimeAsync(20);
+      if (startBFirst) {
+        await client.flush().promise;
+        await jest.advanceTimersByTimeAsync(20);
+      }
+      release();
+      await jest.advanceTimersByTimeAsync(100);
+      const pageA = events().filter((event) => properties(event)['[Amplitude] Page Path'] === '/pending-a');
+      expect(pageA).toHaveLength(1);
+      expect(pageA[0]).toMatchObject({
+        time,
+        event_properties: { '[Amplitude] Page View ID': pageViewId },
+      });
+      expect(pageA[0].event_properties).not.toHaveProperty('[Amplitude] Engaged Time');
+      expect(pageA[0].event_properties).not.toHaveProperty('[Amplitude] Total Time');
+      const ordinarySend = send.mock.calls.find(([, payload]) => payload.events.includes(pageA[0]));
+      expect(ordinarySend).toBeDefined();
+      expect(ordinarySend![0]).not.toContain('/delayed');
+      const pageB = events().find((event) => properties(event)['[Amplitude] Page Path'] === '/pending-b');
+      expect(pageB).toBeDefined();
+      await jest.advanceTimersByTimeAsync(15_000);
+      const latest = events()[events().length - 1];
+      expect(latest.event_properties).toMatchObject({
+        '[Amplitude] Page Path': '/pending-b',
+        '[Amplitude] Page View ID': properties(pageB!)['[Amplitude] Page View ID'],
+      });
+      expect(properties(latest)['[Amplitude] Engaged Time']).toBeGreaterThan(0);
+      expect(events().filter((event) => properties(event)['[Amplitude] Page Path'] === '/pending-a')).toHaveLength(1);
     },
   );
 

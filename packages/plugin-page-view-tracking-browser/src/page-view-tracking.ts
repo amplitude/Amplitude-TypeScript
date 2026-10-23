@@ -34,7 +34,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let sessionStorage: BrowserStorage<PageViewSessionStorage> | undefined;
   let engagement: PageEngagement | undefined;
   let pendingPageRevision: number | undefined;
-  const pendingPageViews = new Map<string, number>();
+  let cancellationRevision = 0;
   let pageRevision = 0;
   let pageHasExited = false;
   let removePrerenderListener: (() => void) | undefined;
@@ -56,19 +56,20 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   const createPageViewEvent = async (pageViewId: string | undefined): Promise<Event> => {
     /* istanbul ignore next */
     const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
+    // Capture the page before campaign lookup yields to a later navigation.
+    const pageProperties = {
+      '[Amplitude] Page Domain':
+        /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
+      '[Amplitude] Page Location': locationHREF,
+      '[Amplitude] Page Path':
+        /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
+      '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
+      '[Amplitude] Page URL': locationHREF.split('?')[0],
+      '[Amplitude] Page View ID': pageViewId,
+    };
     return {
       event_type: eventType,
-      event_properties: {
-        ...(await getCampaignParams()),
-        '[Amplitude] Page Domain':
-          /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-        '[Amplitude] Page Location': locationHREF,
-        '[Amplitude] Page Path':
-          /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
-        '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
-        '[Amplitude] Page URL': locationHREF.split('?')[0],
-        '[Amplitude] Page View ID': pageViewId,
-      },
+      event_properties: { ...(await getCampaignParams()), ...pageProperties },
     };
   };
 
@@ -76,27 +77,29 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
   const trackNewPageView = async (client: BrowserClient) => {
     const revision = pageRevision;
+    const cancellation = cancellationRevision;
     if (pageHasExited || pendingPageRevision === revision) return;
     pendingPageRevision = revision;
     const pageViewId = UUID();
-    pendingPageViews.set(pageViewId, revision);
     try {
       const event = await createPageViewEvent(pageViewId);
-      if (isTracking && !localConfig.optOut && revision === pageRevision) {
-        void sessionStorage?.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+      if (isTracking && !localConfig.optOut && cancellation === cancellationRevision) {
+        // A late page A must not replace page B's current ID in storage.
+        if (revision === pageRevision) void sessionStorage?.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+        event.extra = { ...event.extra, pageViewContext: { revision, cancellation } };
         // Keep the guard until the event reaches execute(), not just until it is queued.
         await client.track(event).promise;
       }
     } finally {
-      pendingPageViews.delete(pageViewId);
       if (pendingPageRevision === revision) pendingPageRevision = undefined;
     }
   };
 
-  // Every page/identity/session boundary invalidates pending creations before
-  // finalizing the active view. Final snapshots retain their original identity.
+  // Navigation preserves pending views as ordinary events. Identity/session
+  // boundaries still cancel them so they cannot be attributed to a later context.
   const finishPageView = (reason: string) => {
     pageRevision += 1;
+    if (reason !== 'navigation') cancellationRevision += 1;
     engagement?.finish(reason);
   };
 
@@ -114,7 +117,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     previousURL = newURL;
 
     if (engagement && isNewPage) {
-      // Navigation ends the previous page and invalidates pending page creation.
+      // Navigation ends engagement; pending views retain their original page.
       finishPageView('navigation');
     }
     if (shouldTrackPageView) {
@@ -157,6 +160,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         const onPageHide = () => {
           pageHasExited = true;
           pageRevision += 1;
+          cancellationRevision += 1;
         };
         const onPageShow = () => {
           pageHasExited = false;
@@ -250,15 +254,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
       // Update the pageCounter for the page view event
       if (localConfig && event.event_type === eventType) {
-        if (engagement) {
-          const pageViewId = (event.event_properties as { '[Amplitude] Page View ID'?: string } | undefined)?.[
-            '[Amplitude] Page View ID'
-          ];
-          const revision = pendingPageViews.get(pageViewId ?? '');
-          // An event may have been queued before pagehide/navigation, then delayed
-          // by the timeline or an async plugin until after the page has changed.
-          if (pageHasExited || (revision !== undefined && revision !== pageRevision)) return null;
-        }
+        const context = event.extra?.pageViewContext as { revision: number; cancellation: number } | undefined;
+        if (engagement && (pageHasExited || (context && context.cancellation !== cancellationRevision))) return null;
         localConfig.pageCounter = !localConfig.pageCounter ? 1 : localConfig.pageCounter + 1;
         event.event_properties = {
           ...event.event_properties,
@@ -266,6 +263,9 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         };
         if (engagement) {
           if (localConfig.optOut) return null;
+          // The page view still happened, but its page has already ended.
+          // Send it normally without starting or replacing the current engagement.
+          if (context && context.revision !== pageRevision) return event;
           // Delayed page views must never replay user-property updates. Use identify separately.
           delete event.user_properties;
           // Suppress the original only after the heartbeat accepts its snapshot.
@@ -277,6 +277,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
     teardown: async () => {
       pageRevision += 1;
+      cancellationRevision += 1;
       engagement?.teardown();
       removePrerenderListener?.();
       removePageLifecycleListeners?.();
@@ -286,7 +287,10 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       }
     },
     onOptOutChanged: async (optOut) => {
-      if (optOut) pageRevision += 1;
+      if (optOut) {
+        pageRevision += 1;
+        cancellationRevision += 1;
+      }
       engagement?.setOptOut(optOut);
     },
     onReset: async () => finishPageView('reset'),

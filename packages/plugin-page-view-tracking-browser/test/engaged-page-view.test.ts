@@ -314,13 +314,17 @@ describe('engaged page-view plugin', () => {
     expect(captured[captured.length - 1].event_properties!['[Amplitude] Page View ID']).toBeTruthy();
   });
 
-  test('navigation cancels an in-flight inactivity renewal instead of creating a duplicate view', async () => {
+  test('navigation preserves an in-flight renewal as an ordinary view without engagement', async () => {
     await setup({ trackEngagedTime: { inactivityTimeoutMillis: 10, heartbeatIntervalMillis: 2 } });
     await jest.advanceTimersByTimeAsync(10);
     document.dispatchEvent(new Event('pointerdown'));
     history.pushState({}, '', '/after-expiry');
     await jest.advanceTimersByTimeAsync(2);
-    expect(config.pageCounter).toBe(2);
+    expect(config.pageCounter).toBe(3);
+    const ordinary = captured.filter((event) => !event.delay);
+    expect(ordinary).toHaveLength(1);
+    expect(ordinary[0].event_properties!['[Amplitude] Page Path']).not.toBe('/after-expiry');
+    expect(ordinary[0].event_properties).not.toHaveProperty('[Amplitude] Engaged Time');
     expect(captured[captured.length - 1].event_properties!['[Amplitude] Page Path']).toBe('/after-expiry');
   });
 
