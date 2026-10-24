@@ -12,10 +12,35 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
+import com.facebook.react.bridge.LifecycleEventListener
+import java.util.concurrent.atomic.AtomicLong
 
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
-  ReactContextBaseJavaModule(reactContext) {
+  ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
   private lateinit var sessionReplay: SessionReplay
+  private var deviceId: String? = null
+  private var signalSessionId = "-1"
+  private var signalActive = false
+  private val signalGeneration = AtomicLong(0)
+  private val lastUiChangeTime = AtomicLong(0)
+
+  init { reactContext.addLifecycleEventListener(this) }
+
+  override fun onHostResume() { signalGeneration.incrementAndGet() }
+  override fun onHostPause() { signalGeneration.incrementAndGet() }
+  override fun onHostDestroy() { signalGeneration.incrementAndGet() }
+
+  @ReactMethod
+  fun getInterfaceSignalState(promise: Promise) {
+    val state = WritableNativeMap().apply {
+      putBoolean("isProviding", signalActive && ::sessionReplay.isInitialized && sessionReplay.shouldRecord())
+      putDouble("lastChangeTime", lastUiChangeTime.get().toDouble())
+      putDouble("generation", signalGeneration.get().toDouble())
+      putString("sessionId", signalSessionId)
+      putString("deviceId", deviceId)
+    }
+    promise.resolve(state)
+  }
 
   override fun getName(): String {
     return "PluginSessionReplayReactNative"
@@ -23,6 +48,10 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String?, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean, maskLevel: String) {
+    signalGeneration.incrementAndGet()
+    this.deviceId = deviceId
+    signalSessionId = sessionId.toLong().toString()
+    signalActive = true
     LogcatLogger.logger.logMode = when (logLevel) {
         0 -> Logger.LogMode.OFF
         1 -> Logger.LogMode.ERROR
@@ -65,12 +94,15 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         else -> ServerZone.US
       },
       autoStart = autoStart,
-      privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel)
+      privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
+      uiChangeCallback = { lastUiChangeTime.set(System.currentTimeMillis()) }
     )
   }
 
   @ReactMethod
   fun setSessionId(sessionId: Double) {
+    if (signalSessionId != sessionId.toLong().toString()) signalGeneration.incrementAndGet()
+    signalSessionId = sessionId.toLong().toString()
     sessionReplay.setSessionId(sessionId.toLong())
   }
 
@@ -101,11 +133,14 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun start() {
+    signalGeneration.incrementAndGet()
+    signalActive = true
     sessionReplay.start()
   }
 
   @ReactMethod
   fun stop() {
+    signalGeneration.incrementAndGet()
     sessionReplay.stop()
   }
 
@@ -116,10 +151,15 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun teardown() {
+    signalGeneration.incrementAndGet()
+    signalActive = false
     sessionReplay.shutdown()
   }
 
   override fun invalidate() {
+    signalGeneration.incrementAndGet()
+    signalActive = false
+    reactContext.removeLifecycleEventListener(this)
     if (::sessionReplay.isInitialized) {
       sessionReplay.shutdown()
     }

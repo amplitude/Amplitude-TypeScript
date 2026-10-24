@@ -16,6 +16,7 @@ export interface Spec extends TurboModule {
   // session id is mapped onto this (as a string) in the JS layer.
   setCustomSessionId(customSessionId: string): Promise<void>;
   getCustomSessionId(): Promise<string>;
+  getInterfaceSignalState(): Promise<UnsafeObject>;
   setDeviceId(deviceId: string | null): Promise<void>;
   setOptOut(optOut: boolean): Promise<void>;
   start(): Promise<void>;
