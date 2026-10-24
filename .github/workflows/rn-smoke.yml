@@ -57,7 +57,7 @@ jobs:
     name: iOS Simulator Smoke (Maestro, newArch=${{ matrix.new-arch }})
     needs: check-affected
     if: needs.check-affected.outputs.unaffected == 'false' || github.event_name != 'pull_request'
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
 
     strategy:
@@ -68,14 +68,15 @@ jobs:
     env:
       APP_DIR: examples/react-native/app
       BUNDLE_ID: org.reactjs.native.example.app
-      SIM_NAME: iPhone 15
+      SIM_NAME: iPhone 16
+      SIM_OS: '18.5'
       # Baked into the generated Pods project by `pod install` (codegen + the
       # RCT_NEW_ARCH_ENABLED compile flag), so it must be set for that step;
       # xcodebuild only compiles what pod install produced.
       RCT_NEW_ARCH_ENABLED: ${{ matrix.new-arch && '1' || '0' }}
       # CocoaPods 1.14.3 hits `ArgumentError - pathname contains null byte` in
       # Pathname#realdirpath on pnpm monorepos when the locale is not UTF-8
-      # (see https://github.com/CocoaPods/CocoaPods/issues/12866). macos-14
+      # (see https://github.com/CocoaPods/CocoaPods/issues/12866). macOS
       # runners default to an unset/C locale; pin it here.
       LANG: en_US.UTF-8
       LC_ALL: en_US.UTF-8
@@ -92,6 +93,13 @@ jobs:
         with:
           node-version: 24
           cache: 'pnpm'
+
+      # Session Replay's XCFramework requires Swift 6.1; Xcode 15.4 cannot import it.
+      - name: Select Xcode 16.4
+        run: |
+          sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+          xcrun swift --version
 
       - name: Setup Ruby for CocoaPods
         uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
@@ -136,7 +144,7 @@ jobs:
       - name: Build iOS app (Release, simulator)
         working-directory: ${{ env.APP_DIR }}
         # Raw xcodebuild output is noisy; xcpretty would be nicer but isn't
-        # installed by default on macos-14 runners, and adding it as a Gemfile
+        # installed by default on the runners, and adding it as a Gemfile
         # dependency for cosmetics isn't worth the install time.
         #
         # AMPLITUDE_API_KEY is read by babel-plugin-transform-inline-environment-variables
@@ -175,7 +183,7 @@ jobs:
             -scheme app \
             -configuration Release \
             -sdk iphonesimulator \
-            -destination "platform=iOS Simulator,name=$SIM_NAME" \
+            -destination "platform=iOS Simulator,name=$SIM_NAME,OS=$SIM_OS" \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -185,9 +193,9 @@ jobs:
         run: |
           UDID=$(xcrun simctl list devices "$SIM_NAME" available -j | node -e "
             const data = JSON.parse(require('fs').readFileSync(0, 'utf8'));
-            const all = Object.values(data.devices).flat();
-            const match = all.find(d => d.name === process.env.SIM_NAME && d.isAvailable);
-            if (!match) { console.error('No available', process.env.SIM_NAME); process.exit(1); }
+            const runtime = 'com.apple.CoreSimulator.SimRuntime.iOS-' + process.env.SIM_OS.replaceAll('.', '-');
+            const match = (data.devices[runtime] ?? []).find(d => d.name === process.env.SIM_NAME && d.isAvailable);
+            if (!match) { console.error('No available', process.env.SIM_NAME, 'on iOS', process.env.SIM_OS); process.exit(1); }
             console.log(match.udid);
           ")
           echo "SIM_UDID=$UDID" >> $GITHUB_ENV
