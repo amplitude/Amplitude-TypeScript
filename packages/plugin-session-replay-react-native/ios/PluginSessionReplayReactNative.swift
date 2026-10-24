@@ -7,7 +7,6 @@ class PluginSessionReplayReactNative: NSObject {
     
     var sessionReplay: SessionReplay!
     @objc var methodQueue: DispatchQueue { DispatchQueue.main }
-    private let signalProvider = SessionReplayPlugin()
     private var signalReceiver = ReplayInterfaceSignalReceiver()
     
     @objc(setup:deviceId:sessionId:serverZone:sampleRate:enableRemoteConfig:logLevel:autoStart:maskLevel:resolve:reject:)
@@ -22,7 +21,7 @@ class PluginSessionReplayReactNative: NSObject {
                maskLevel: String,
                resolve: RCTPromiseResolveBlock,
                reject: RCTPromiseRejectBlock) -> Void {
-        signalProvider.removeInterfaceSignalReceiver(signalReceiver)
+        sessionReplay?.removeInterfaceSignalReceiver(signalReceiver)
         signalReceiver = ReplayInterfaceSignalReceiver(generation: signalReceiver.nextGeneration())
         sessionReplay?.stop()
         print(
@@ -47,8 +46,7 @@ class PluginSessionReplayReactNative: NSObject {
                                       serverZone: serverZone == "EU" ? .EU : .US,
                                       maskLevel: .fromString(maskLevel),
                                       enableRemoteConfig: enableRemoteConfig)
-        signalProvider.sessionReplay = sessionReplay
-        signalProvider.addInterfaceSignalReceiver(signalReceiver)
+        sessionReplay.addInterfaceSignalReceiver(signalReceiver)
         if (autoStart) {
             sessionReplay.start()
         }
@@ -101,8 +99,7 @@ class PluginSessionReplayReactNative: NSObject {
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       signalReceiver.invalidate()
-      signalProvider.removeInterfaceSignalReceiver(signalReceiver)
-      signalProvider.sessionReplay = nil
+      sessionReplay?.removeInterfaceSignalReceiver(signalReceiver)
       print("teardown")
       sessionReplay.stop()
       resolve(nil)
@@ -116,7 +113,7 @@ class PluginSessionReplayReactNative: NSObject {
                 return
             }
             var state = self.signalReceiver.snapshot()
-            state["isProviding"] = self.signalProvider.isProviding
+            state["isProviding"] = self.sessionReplay?.isProviding ?? false
             state["sessionId"] = self.sessionReplay.map { String($0.sessionId) } ?? "-1"
             state["deviceId"] = self.sessionReplay?.deviceId as Any? ?? NSNull()
             resolve(state)

@@ -1,6 +1,32 @@
 PODS:
-  - amplitude-react-native (1.6.5):
+  - amplitude-plugin-session-replay-react-native (0.5.11):
+    - AmplitudeCore (>= 1.5.2)
+    - AmplitudeSessionReplay (>= 0.16.0)
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
     - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
+  - amplitude-react-native (1.12.4):
+    - React-Core
+  - AmplitudeCore (1.5.4)
+  - AmplitudeSessionReplay (0.16.0):
+    - AmplitudeCore (< 2.0.0, >= 1.4.2)
   - boost (1.83.0)
   - DoubleConversion (1.1.6)
   - FBLazyVector (0.74.1)
@@ -1191,6 +1217,7 @@ PODS:
   - Yoga (0.0.0)
 
 DEPENDENCIES:
+  - "amplitude-plugin-session-replay-react-native (from `../node_modules/@amplitude/plugin-session-replay-react-native`)"
   - "amplitude-react-native (from `../node_modules/@amplitude/analytics-react-native`)"
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
@@ -1252,9 +1279,13 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - AmplitudeCore
+    - AmplitudeSessionReplay
     - SocketRocket
 
 EXTERNAL SOURCES:
+  amplitude-plugin-session-replay-react-native:
+    :path: "../node_modules/@amplitude/plugin-session-replay-react-native"
   amplitude-react-native:
     :path: "../node_modules/@amplitude/analytics-react-native"
   boost:
@@ -1370,7 +1401,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  amplitude-react-native: 73dc6472085b344e7b5e95f362987b26d05edb3e
+  amplitude-plugin-session-replay-react-native: 0a3b694350a0d4ca7023eb5ef25081d21868f1c8
+  amplitude-react-native: 087432f3bb434d3748dbfef873de0799fb2b52d9
+  AmplitudeCore: 4a2e0e9104665a3ecf90f0c7ee1af6e06ff294a4
+  AmplitudeSessionReplay: c857e8193a9715fc485ead3477b9544dd98c8f57
   boost: d3f49c53809116a5d38da093a8aa78bf551aed09
   DoubleConversion: 76ab83afb40bddeeee456813d9c04f67f78771b5
   FBLazyVector: 898d14d17bf19e2435cafd9ea2a1033efe445709
