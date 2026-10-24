@@ -2,7 +2,7 @@
  * Jest config for on-device React Native Harness tests.
  * Used automatically by `react-native-harness` when present in cwd.
  *
- * Element-interaction tests need `@react-native-harness/ui` (TurboModule-only),
+ * Element-interaction and dead-click tests need `@react-native-harness/ui` (TurboModule-only),
  * so they are skipped when NEW_ARCH is not enabled.
  */
 const isNewArch = ['1', 'true', 'on', 'yes'].includes(
@@ -14,6 +14,6 @@ export default {
   testMatch: ['<rootDir>/test/**/*.harness.[jt]s?(x)'],
   testPathIgnorePatterns: [
     '/node_modules/',
-    ...(isNewArch ? [] : ['element-interactions\\.harness\\.[jt]sx?$']),
+    ...(isNewArch ? [] : ['(?:element-interactions|dead-click)\\.harness\\.[jt]sx?$']),
   ],
 };

@@ -12,9 +12,6 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     
     var sessionReplay: SessionReplay?
     var logger: CoreLogger?
-    // The plugin exposes the standalone client's interface signals publicly.
-    // It wraps the same client; no second replay recorder is created.
-    private let signalProvider = SessionReplayPlugin()
     private var signalReceiver = ReplayInterfaceSignalReceiver()
     
     override init() {
@@ -68,8 +65,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         )
 
         sessionReplay?.customSessionId = customSessionId
-        signalProvider.sessionReplay = sessionReplay
-        signalProvider.addInterfaceSignalReceiver(signalReceiver)
+        sessionReplay?.addInterfaceSignalReceiver(signalReceiver)
 
         resolve(nil)
     }
@@ -149,8 +145,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
 
     private func tearDownSessionReplay() {
         signalReceiver.invalidate()
-        signalProvider.removeInterfaceSignalReceiver(signalReceiver)
-        signalProvider.sessionReplay = nil
+        sessionReplay?.removeInterfaceSignalReceiver(signalReceiver)
         // Queued callbacks from the old recorder must not change the new state.
         signalReceiver = ReplayInterfaceSignalReceiver(generation: signalReceiver.nextGeneration())
         sessionReplay?.stop()
@@ -167,7 +162,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
                 return
             }
             var state = self.signalReceiver.snapshot()
-            state["isProviding"] = self.signalProvider.isProviding
+            state["isProviding"] = self.sessionReplay?.isProviding ?? false
             state["sessionId"] = self.sessionReplay?.customSessionId ?? "-1"
             state["deviceId"] = self.sessionReplay?.deviceId as Any? ?? NSNull()
             resolve(state)
