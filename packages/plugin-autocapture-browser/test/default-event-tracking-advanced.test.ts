@@ -94,6 +94,25 @@ describe('autoTrackingPlugin', () => {
     });
   });
 
+  test('removes the capture-phase change listener so teardown stops DOM extraction', async () => {
+    const loggerProvider = { log: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() };
+    await plugin?.setup?.(
+      { defaultTracking: false, loggerProvider } as unknown as BrowserConfig,
+      createMockBrowserClient(),
+    );
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    const target = jest.fn(() => input);
+    const event = new Event('change', { bubbles: true });
+    Object.defineProperty(event, 'target', { get: target });
+    input.dispatchEvent(event);
+    expect(target).toHaveBeenCalled();
+    await plugin?.teardown?.();
+    target.mockClear();
+    input.dispatchEvent(event);
+    expect(target).not.toHaveBeenCalled();
+  });
+
   describe('setup', () => {
     test('should setup successfully', async () => {
       const loggerProvider: Partial<ILogger> = {

@@ -6,15 +6,17 @@ const limits = [
     brotli: false,
   },
   {
-    // session-replay standalone bundle
+    // Session replay including amp-semantic capture (~155kb gzipped).
+    // The semantic runtime adds roughly 11kb; retain ~5kb of regression headroom.
     path: './packages/session-replay-browser/lib/scripts/session-replay-browser-min.js.gz',
-    limit: '150kb',
+    limit: '160kb',
     brotli: false,
   },
   {
-    // unified SDK bundle
+    // Unified SDK including the same semantic runtime through session replay
+    // (~242kb gzipped). Keep a separate, tighter budget for this aggregate bundle.
     path: './packages/unified/lib/scripts/amplitude-min.umd.js.gz',
-    limit: '235kb',
+    limit: '245kb',
     brotli: false,
   },
   {

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Semantic capture · Session Replay</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f4f6fa;
+        color: #192638;
+        font: 15px/1.5 system-ui, sans-serif;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(320px, 1fr) minmax(420px, 1.2fr);
+        gap: 24px;
+        padding: 28px;
+        max-width: 1500px;
+        margin: auto;
+      }
+      main {
+        padding: 26px;
+        background: white;
+        border: 1px solid #dce2eb;
+        border-radius: 12px;
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 27px;
+      }
+      h2 {
+        margin-top: 28px;
+        font-size: 18px;
+      }
+      p {
+        color: #526174;
+      }
+      label {
+        display: grid;
+        gap: 5px;
+        margin: 12px 0;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        padding: 9px 12px;
+        border: 1px solid #bdc9d8;
+        border-radius: 6px;
+      }
+      button {
+        background: #eef3fc;
+        color: #16376e;
+        cursor: pointer;
+        margin: 4px 4px 4px 0;
+      }
+      button:hover {
+        background: #e0eaff;
+      }
+      form {
+        max-width: 380px;
+      }
+      .examples {
+        padding-top: 12px;
+        border-top: 1px solid #dce2eb;
+        margin-top: 20px;
+      }
+      #notice:empty {
+        display: none;
+      }
+      #notice {
+        padding: 12px;
+        background: #e8f4eb;
+        margin: 12px 0;
+      }
+      dialog {
+        border: 1px solid #bdc9d8;
+        border-radius: 10px;
+        padding: 24px;
+      }
+      dialog::backdrop {
+        background: #19263866;
+      }
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+          padding: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <main aria-label="Demo checkout">
+        <h1>Semantic capture playground</h1>
+        <p>
+          Interact with this checkout. The inspector shows semantic events decoded from actual Session Replay upload
+          batches. All recording data stays in this tab.
+        </p>
+        <form id="checkout" aria-label="Checkout">
+          <label>Display name <input id="display-name" name="display-name" autocomplete="off" required /></label>
+          <label>Email <input id="email" name="email" type="email" autocomplete="off" required /></label>
+          <label>Password <input id="password" type="password" autocomplete="new-password" /></label>
+          <label
+            >Plan
+            <select id="plan">
+              <option>Starter</option>
+              <option>Team</option>
+            </select></label
+          >
+          <label><input id="updates" type="checkbox" /> Receive updates</label>
+          <label><input id="delivery-email" type="radio" name="delivery" /> Email delivery</label>
+          <label><input id="delivery-browser" type="radio" name="delivery" /> Browser delivery</label>
+          <button id="save" data-amp-key="save-checkout" type="submit">Save checkout</button>
+        </form>
+        <div id="notice" role="status" aria-live="polite"></div>
+        <div class="examples">
+          <h2>Page feedback</h2>
+          <button id="open-dialog" data-amp-key="open-dialog" type="button">Open confirmation</button>
+          <button id="show-notice" data-amp-key="show-notice" type="button">Show notice</button>
+          <button id="navigate" data-amp-key="navigate" type="button">Navigate to account 8812</button>
+          <button id="no-change" data-amp-key="no-change" type="button">Click with no change</button>
+          <p>“Click with no change” emits a semantic click without changing the page.</p>
+        </div>
+        <section class="examples" aria-label="Keyboard and resource fixtures">
+          <h2>Keyboard and resource capture</h2>
+          <button id="open-palette" type="button">Open command palette</button>
+          <button id="fail-resources" type="button">Trigger resource failures</button>
+          <p>
+            Press Ctrl/Cmd+K to open the palette, Tab to move focus, and Escape to close it. Resource failures
+            intentionally request missing local images, CSS, script, and font files.
+          </p>
+          <div id="resource-fixtures"></div>
+        </section>
+        <dialog id="command-palette" aria-label="Command palette">
+          <label>Search commands <input id="command-search" autocomplete="off" /></label>
+          <button id="close-palette" type="button">Close palette</button>
+        </dialog>
+        <div class="examples">
+          <h2>Privacy examples</h2>
+          <button id="masked-button" data-amp-key="masked-target" class="amp-mask" type="button">
+            MASKED_FIXTURE_SECRET
+          </button>
+          <button id="blocked-button" class="amp-block" type="button">BLOCKED_FIXTURE_SECRET</button>
+          <button id="public-button" data-amp-key="public-target" class="amp-unmask" type="button">
+            Public action
+          </button>
+          <p>
+            Masked names should be null. Blocked targets should produce no semantic click. Public action is explicitly
+            unmasked.
+          </p>
+        </div>
+        <dialog id="confirmation" aria-labelledby="dialog-title">
+          <h2 id="dialog-title">Confirm checkout</h2>
+          <p>Your checkout is ready.</p>
+          <button id="close-dialog" data-amp-key="close-dialog" type="button">Close confirmation</button>
+        </dialog>
+      </main>
+      <aside id="inspector" class="amp-block" aria-label="Local event inspector"></aside>
+    </div>
+    <script type="module" src="./sr-semantic-test.js"></script>
+  </body>
+</html>

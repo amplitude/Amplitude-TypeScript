@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.52.0-codexsemantic-review-integration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.5...@amplitude/session-replay-browser@1.52.0-codexsemantic-review-integration.0) (2026-10-23)
+
+
+### Bug Fixes
+
+* **amp-semantic:** omit focus snapshots from visibility events ([0d0fc8a](https://github.com/amplitude/Amplitude-TypeScript/commit/0d0fc8a7983716ed47696b0fc719f2af55d19548))
+* **amp-semantic:** preserve disabled behavior and sampling boundaries ([8657f94](https://github.com/amplitude/Amplitude-TypeScript/commit/8657f94b53199623c4ec464829ec93a79ccf5ab9))
+* **session-replay:** preserve disabled click hook configuration ([219489f](https://github.com/amplitude/Amplitude-TypeScript/commit/219489f4f706b38e0b53ded07111a1483ecc2390))
+* **session-replay:** upgrade rrweb to 2.1.5 ([#2084](https://github.com/amplitude/Amplitude-TypeScript/issues/2084)) ([491914d](https://github.com/amplitude/Amplitude-TypeScript/commit/491914d6922be10b8a3f7117b8271314265a6c8e))
+
+
+### Features
+
+* **amp-semantic:** add lifecycle recorders and session replay adapter ([d7fec31](https://github.com/amplitude/Amplitude-TypeScript/commit/d7fec31d1ee3e715b93302623eb88c13a0aa1658))
+* **amp-semantic:** add tab identity and focus observations ([3b23949](https://github.com/amplitude/Amplitude-TypeScript/commit/3b23949fafb4ab425b6997ebf8a0360576647cd4))
+* **amp-semantic:** reuse replay URL events for navigation ([0dc1e03](https://github.com/amplitude/Amplitude-TypeScript/commit/0dc1e03f02e54ffceb564103519a6b74c4d8774b))
+* **session-replay:** log semantic capture diagnostics ([4fae9cd](https://github.com/amplitude/Amplitude-TypeScript/commit/4fae9cdc6f165608bdac4806ffcdfd22cc178f2d))
+
+
+### Performance Improvements
+
+* **amp-semantic:** derive feedback from recorded rrweb changes ([64b072e](https://github.com/amplitude/Amplitude-TypeScript/commit/64b072e8458021e682eb09a4cbe02c50de800fdd))
+* **session-replay:** share rrweb clicks with semantic capture ([0acda6d](https://github.com/amplitude/Amplitude-TypeScript/commit/0acda6d2c67f21318f037bd76aff7774f60716fb))
+
+
+### Reverts
+
+* **session-replay:** remove temporary semantic diagnostics ([05fc62e](https://github.com/amplitude/Amplitude-TypeScript/commit/05fc62e9728befe8a7f9dd45c739824a0c7ce35e))
+
+
+
+
+
 ## [1.51.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.5...@amplitude/session-replay-browser@1.51.6) (2026-10-22)
 
 

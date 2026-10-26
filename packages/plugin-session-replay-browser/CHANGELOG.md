@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.37.0-codexsemantic-review-integration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.36.4...@amplitude/plugin-session-replay-browser@1.37.0-codexsemantic-review-integration.0) (2026-10-23)
+
+
+### Bug Fixes
+
+* **amp-semantic:** preserve disabled behavior and sampling boundaries ([8657f94](https://github.com/amplitude/Amplitude-TypeScript/commit/8657f94b53199623c4ec464829ec93a79ccf5ab9))
+* **session-replay:** upgrade rrweb to 2.1.5 ([#2084](https://github.com/amplitude/Amplitude-TypeScript/issues/2084)) ([491914d](https://github.com/amplitude/Amplitude-TypeScript/commit/491914d6922be10b8a3f7117b8271314265a6c8e))
+
+
+### Features
+
+* **amp-semantic:** add lifecycle recorders and session replay adapter ([d7fec31](https://github.com/amplitude/Amplitude-TypeScript/commit/d7fec31d1ee3e715b93302623eb88c13a0aa1658))
+* **amp-semantic:** integrate extensible capture runtime and privacy-safe helpers ([1701d99](https://github.com/amplitude/Amplitude-TypeScript/commit/1701d996d304af0b09e7c45ee57a32628b48c087))
+
+
+
+
+
 ## [1.36.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.36.4...@amplitude/plugin-session-replay-browser@1.36.5) (2026-10-22)
 
 

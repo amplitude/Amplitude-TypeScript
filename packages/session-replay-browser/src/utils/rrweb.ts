@@ -14,6 +14,7 @@ export function getViewportWidth(): number {
 }
 
 export type Mirror = {
+  getId?: (node: Node) => number;
   getNode: (id: number) => Node | null;
 };
 
@@ -62,4 +63,6 @@ export type RecordFunction = {
   addCustomEvent: (eventName: string, eventData: any) => void;
   takeFullSnapshot: (isCheckout?: boolean) => void;
   mirror: Mirror;
+  /** Recorder extension passes the original event as the second mouseInteraction hook argument. */
+  supportsNativeMouseInteraction?: boolean;
 };

@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.12.5-codexsemantic-review-integration.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.12.4...@amplitude/analytics-react-native@1.12.5-codexsemantic-review-integration.0) (2026-10-23)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+
+
+
+
 ## [1.12.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.12.3...@amplitude/analytics-react-native@1.12.4) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

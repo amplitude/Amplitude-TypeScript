@@ -81,6 +81,12 @@ describe('DOM privacy policy', () => {
     describe('light mask level', () => {
       const privacyConfig: PrivacyConfig = { defaultMaskLevel: 'light' };
 
+      test('handles select controls without an autocomplete property', () => {
+        const element = document.createElement('select');
+        Object.defineProperty(element, 'autocomplete', { value: undefined });
+        expect(isMasked('input', privacyConfig, element)).toBe(false);
+      });
+
       test.each([
         {
           el: (element: HTMLInputElement): HTMLInputElement => {

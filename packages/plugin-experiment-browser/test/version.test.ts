@@ -1,3 +1,5 @@
+import { valid } from 'semver';
+import { version } from '../package.json';
 import { VERSION } from '../src/version';
 
 describe('version', () => {
@@ -6,7 +8,11 @@ describe('version', () => {
   });
 
   test('should be a valid semver string', () => {
-    // Matches versions like 1.0.0, 1.0.0-beta.2, etc.
-    expect(VERSION).toMatch(/^\d+\.\d+\.\d+(-[\w.]+)?$/);
+    // Release workflows derive prerelease identifiers from hyphenated branch names.
+    expect(valid(VERSION)).toBe(VERSION);
+  });
+
+  test('should match the package version', () => {
+    expect(VERSION).toBe(version);
   });
 });

@@ -1,0 +1,266 @@
+[
+  {
+    "type": 5,
+    "timestamp": 1791113560000,
+    "data": {
+      "tag": "amp-semantic/navigation",
+      "payload": {
+        "v": 1,
+        "url": "/accounts/:id/billing",
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791112910900,
+    "data": {
+      "tag": "amp-semantic/context",
+      "payload": {
+        "v": 1,
+        "sdk": "@amplitude/session-replay-browser@1.29.0",
+        "mask": "medium",
+        "css": {
+          "total": 3,
+          "inlined": 3,
+          "unreadable": 0
+        },
+        "viewport": {
+          "w": 1440,
+          "h": 900
+        },
+        "device": "desktop",
+        "language": "en-US",
+        "visibility_state": "visible",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+        "analytics_sdk": {
+          "present": true,
+          "autocapture": ["elementInteractions", "frustrationInteractions"]
+        },
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d",
+        "focused": true
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791112926515,
+    "data": {
+      "tag": "amp-semantic/click",
+      "payload": {
+        "v": 1,
+        "id": 1411,
+        "role": "button",
+        "name": "Create budget",
+        "name_source": "text",
+        "container": {
+          "id": 1350,
+          "role": "dialog",
+          "name": "Create budget"
+        },
+        "states": [],
+        "visible": true,
+        "key": "budget-save",
+        "selector": "#budget-dialog button[type=submit]",
+        "attrs": {
+          "type": "submit",
+          "data-testid": "budget-save"
+        },
+        "url": "/#/budgets",
+        "heading": "Budgets",
+        "keyboard": false,
+        "modifiers": [],
+        "trusted": true,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791112925702,
+    "data": {
+      "tag": "amp-semantic/field",
+      "payload": {
+        "v": 1,
+        "id": 1392,
+        "role": "textbox",
+        "name": "Monthly limit",
+        "kind": "number",
+        "value_state": "filled",
+        "valid": true,
+        "validity": [],
+        "masked": true,
+        "option_label": null,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791112926518,
+    "data": {
+      "tag": "amp-semantic/submit",
+      "payload": {
+        "v": 1,
+        "form": {
+          "id": 1354,
+          "role": "form",
+          "name": "Create budget"
+        },
+        "submitter": {
+          "id": 1411,
+          "role": "button",
+          "name": "Create budget"
+        },
+        "valid": false,
+        "invalid_fields": [
+          {
+            "id": 1392,
+            "name": "Monthly limit",
+            "validity": ["valueMissing"]
+          }
+        ],
+        "prevented": true,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791113564300,
+    "data": {
+      "tag": "amp-semantic/notice",
+      "payload": {
+        "v": 1,
+        "id": 1502,
+        "role": "alert",
+        "text": "Couldn't load cards. Try again.",
+        "visible": true,
+        "region": {
+          "role": "main",
+          "name": null
+        },
+        "cause_click_ts": 1791113563890,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791112920620,
+    "data": {
+      "tag": "amp-semantic/dialog",
+      "payload": {
+        "v": 1,
+        "id": 1350,
+        "role": "dialog",
+        "name": "Create budget",
+        "state": "open",
+        "modal": true,
+        "visible": true,
+        "cause_click_ts": 1791112920480,
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791113702450,
+    "data": {
+      "tag": "amp-semantic/recording",
+      "payload": {
+        "v": 1,
+        "state": "stop",
+        "reason": "customer_stop",
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791113570000,
+    "data": {
+      "tag": "amp-semantic/visibility",
+      "payload": {
+        "v": 1,
+        "state": "hidden",
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791113810030,
+    "data": {
+      "tag": "amp-semantic/lifecycle",
+      "payload": {
+        "v": 1,
+        "type": "pageshow_bfcache",
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1791112930410,
+    "data": {
+      "tag": "amp-semantic/amp-event",
+      "payload": {
+        "v": 1,
+        "event_type": "[Amplitude] Rage Click",
+        "insert_id": "c7a1e0f2-5b3d-4e8a-9f61-0d2b7c4e9a10",
+        "id": 1411,
+        "props": {
+          "[Amplitude] Element Text": "Create budget",
+          "[Amplitude] Element Tag": "button",
+          "[Amplitude] Clicks": 6
+        },
+        "tab_id": "2dbe15a7-3c89-4d6c-a807-03d6288e2141",
+        "document_id": "a5780dfe-6491-4fbf-91d9-c13092ebdc1d"
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1700000000000,
+    "data": {
+      "tag": "amp-semantic/keys",
+      "payload": {
+        "v": 1,
+        "tab_id": "tab-example",
+        "document_id": "document-example",
+        "key": "Escape",
+        "target": {
+          "id": 42,
+          "role": "button",
+          "name": "Close"
+        }
+      }
+    }
+  },
+  {
+    "type": 5,
+    "timestamp": 1700000000500,
+    "data": {
+      "tag": "amp-semantic/resource-error",
+      "payload": {
+        "v": 1,
+        "tab_id": "tab-example",
+        "document_id": "document-example",
+        "rt": "img",
+        "count": 2,
+        "path": "/products/:id/image.webp"
+      }
+    }
+  }
+]
