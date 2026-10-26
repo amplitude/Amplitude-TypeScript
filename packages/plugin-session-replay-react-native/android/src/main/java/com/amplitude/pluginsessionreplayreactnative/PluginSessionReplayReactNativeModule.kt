@@ -107,6 +107,25 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
+  fun setDeviceId(deviceId: String?, promise: Promise) {
+    try {
+      if (::sessionReplay.isInitialized) {
+        sessionReplay.setDeviceId(deviceId ?: "")
+      }
+      if (this.deviceId != deviceId) signalGeneration.incrementAndGet()
+      this.deviceId = deviceId
+      promise.resolve(null)
+    } catch (e: Exception) {
+      promise.reject("SET_DEVICE_ID_ERROR", e.message, e)
+    }
+  }
+
+  @ReactMethod
+  fun getDeviceId(promise: Promise) {
+    promise.resolve(deviceId)
+  }
+
+  @ReactMethod
   fun getSessionId(promise: Promise) {
     promise.resolve(sessionReplay.getSessionId().toDouble())
   }

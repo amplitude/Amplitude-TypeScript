@@ -60,6 +60,20 @@ class PluginSessionReplayReactNative: NSObject {
       sessionReplay.sessionId = sessionId.int64Value
       resolve(nil)
     }
+
+    @objc(setDeviceId:resolve:reject:)
+    func setDeviceId(_ deviceId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+      let nextDeviceId = deviceId as String
+      if sessionReplay.deviceId != nextDeviceId { signalReceiver.invalidate() }
+      print("setDeviceId: \(nextDeviceId)")
+      sessionReplay.deviceId = nextDeviceId
+      resolve(nil)
+    }
+
+    @objc(getDeviceId:reject:)
+    func getDeviceId(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+      resolve(sessionReplay?.deviceId)
+    }
     
     @objc(getSessionId:reject:)
     func getSessionId(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {

@@ -29,6 +29,9 @@ function normalizeConfig(config: SessionReplayConfig): SessionReplayConfigIntern
 
 let isInitialized = false;
 let logger = createSessionReplayLogger();
+// Last device id passed to native. The analytics plugin reads this so execute()
+// can follow reset() and setDeviceId() without a bridge read on every event.
+let currentDeviceId: string | null = null;
 
 // Only canonical integers (no sign prefix, leading zeros, whitespace or hex)
 // become numbers, so `String(getSessionId())` always equals the native value.
@@ -107,6 +110,7 @@ export async function init(config: SessionReplayConfig): Promise<void> {
 
   try {
     await NativeSessionReplay.setup(nativeConfig(resolvedConfig));
+    currentDeviceId = resolvedConfig.deviceId ?? null;
     logger.log('SessionReplay initialized');
     isInitialized = true;
   } catch (error) {
@@ -161,6 +165,15 @@ export async function setDeviceId(deviceId: string | null): Promise<void> {
     return;
   }
   await NativeSessionReplay.setDeviceId(deviceId);
+  currentDeviceId = deviceId;
+}
+
+/**
+ * Device id last sent to the native SDK. Internal: used by the analytics plugin
+ * to keep Replay aligned with Analytics after `reset()` or `setDeviceId()`.
+ */
+export function getDeviceId(): string | null {
+  return currentDeviceId;
 }
 
 /**
@@ -278,6 +291,7 @@ export async function teardown(): Promise<void> {
   }
   await NativeSessionReplay.teardown();
   isInitialized = false;
+  currentDeviceId = null;
   logger = createSessionReplayLogger();
 }
 
