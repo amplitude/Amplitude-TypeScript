@@ -40,11 +40,10 @@ import { FetchTransport } from './transports/fetch';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
-import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
 import { getDomain, KNOWN_2LDS } from './attribution/helpers';
+import { AmplitudeBrowserCore } from './browser-client-core';
 
-// Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
   public readonly version = VERSION;
   protected _cookieStorage: Storage<UserSession>;
@@ -294,7 +293,7 @@ export interface EarlyConfig {
 export const useBrowserConfig = async (
   apiKey: string,
   options: BrowserOptions = {},
-  amplitudeInstance: AmplitudeBrowser,
+  amplitudeInstance: AmplitudeBrowserCore,
   diagnosticsClient?: IDiagnosticsClient,
   earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
