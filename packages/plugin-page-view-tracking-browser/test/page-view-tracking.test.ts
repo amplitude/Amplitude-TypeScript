@@ -132,6 +132,14 @@ describe('pageViewTrackingPlugin', () => {
   });
 
   describe('setup', () => {
+    test('engaged-time opt-in falls back to ordinary page views without a browser scope', async () => {
+      jest.mocked(getGlobalScope).mockReturnValueOnce(undefined);
+      const plugin = pageViewTrackingPlugin({ trackEngagedTime: true });
+      const amplitude = createMockBrowserClient();
+      await plugin.setup?.(mockConfig, amplitude);
+      expect(amplitude.track.mock.calls).toHaveLength(1);
+      await plugin.teardown?.();
+    });
     test.each([
       { trackHistoryChanges: undefined },
       { trackHistoryChanges: 'pathOnly' as const },
@@ -585,89 +593,97 @@ describe('pageViewTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(2);
     });
 
-    test('should share one page view id across sdk instances for the same project', async () => {
-      const href = 'https://www.example.com/shared';
-      mockWindowLocationFromURL(new URL(href));
-      const amplitudeA = createMockBrowserClient();
-      const amplitudeB = createMockBrowserClient();
-      const trackA = jest.spyOn(amplitudeA, 'track').mockReturnValue({
-        promise: Promise.resolve({
-          code: 200,
-          message: '',
-          event: { event_type: '[Amplitude] Page Viewed' },
-        }),
-      });
-      const trackB = jest.spyOn(amplitudeB, 'track').mockReturnValue({
-        promise: Promise.resolve({
-          code: 200,
-          message: '',
-          event: { event_type: '[Amplitude] Page Viewed' },
-        }),
-      });
-      const pluginA = pageViewTrackingPlugin();
-      const pluginB = pageViewTrackingPlugin();
+    test.each([false, true])(
+      'should share one page view id across sdk instances with engagement=%s',
+      async (trackEngagedTime) => {
+        const href = 'https://www.example.com/shared';
+        mockWindowLocationFromURL(new URL(href));
+        const amplitudeA = createMockBrowserClient();
+        const amplitudeB = createMockBrowserClient();
+        const trackA = jest.spyOn(amplitudeA, 'track').mockReturnValue({
+          promise: Promise.resolve({
+            code: 200,
+            message: '',
+            event: { event_type: '[Amplitude] Page Viewed' },
+          }),
+        });
+        const trackB = jest.spyOn(amplitudeB, 'track').mockReturnValue({
+          promise: Promise.resolve({
+            code: 200,
+            message: '',
+            event: { event_type: '[Amplitude] Page Viewed' },
+          }),
+        });
+        const pluginA = pageViewTrackingPlugin({ trackEngagedTime });
+        const pluginB = pageViewTrackingPlugin({ trackEngagedTime });
 
-      await pluginA.setup?.(mockConfig, amplitudeA);
-      await pluginB.setup?.(mockConfig, amplitudeB);
+        await pluginA.setup?.(mockConfig, amplitudeA);
+        await pluginB.setup?.(mockConfig, amplitudeB);
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
-      const pageViewIdA = pageViewIdFrom(trackA, 0);
-      const pageViewIdB = pageViewIdFrom(trackB, 0);
-      expect(pageViewIdA).toEqual(expect.any(String));
-      expect(pageViewIdB).toBe(pageViewIdA);
-      expect(getCurrentPageViewId(mockConfig.apiKey)).toBe(pageViewIdA);
+        const pageViewIdA = pageViewIdFrom(trackA, 0);
+        const pageViewIdB = pageViewIdFrom(trackB, 0);
+        expect(pageViewIdA).toEqual(expect.any(String));
+        expect(pageViewIdB).toBe(pageViewIdA);
+        expect(getCurrentPageViewId(mockConfig.apiKey)).toBe(pageViewIdA);
 
-      const nextURL = new URL('https://www.example.com/shared/next');
-      mockWindowLocationFromURL(nextURL);
-      window.history.pushState(undefined, nextURL.href);
-      await new Promise((resolve) => setTimeout(resolve, 50));
+        const nextURL = new URL('https://www.example.com/shared/next');
+        mockWindowLocationFromURL(nextURL);
+        window.history.pushState(undefined, nextURL.href);
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
-      const nextPageViewIdA = pageViewIdFrom(trackA, 1);
-      const nextPageViewIdB = pageViewIdFrom(trackB, 1);
-      expect(nextPageViewIdA).toEqual(expect.any(String));
-      expect(nextPageViewIdA).not.toBe(pageViewIdA);
-      expect(nextPageViewIdB).toBe(nextPageViewIdA);
-      expect(getCurrentPageViewId(mockConfig.apiKey)).toBe(nextPageViewIdA);
+        const nextPageViewIdA = pageViewIdFrom(trackA, 1);
+        const nextPageViewIdB = pageViewIdFrom(trackB, 1);
+        expect(nextPageViewIdA).toEqual(expect.any(String));
+        expect(nextPageViewIdA).not.toBe(pageViewIdA);
+        expect(nextPageViewIdB).toBe(nextPageViewIdA);
+        expect(getCurrentPageViewId(mockConfig.apiKey)).toBe(nextPageViewIdA);
 
-      await pluginA.teardown?.();
-      await pluginB.teardown?.();
-    });
+        await pluginA.teardown?.();
+        await pluginB.teardown?.();
+      },
+    );
 
-    test('should keep separate page view ids for different projects', async () => {
-      mockWindowLocationFromURL(new URL('https://www.example.com/projects'));
-      const amplitudeA = createMockBrowserClient();
-      const amplitudeB = createMockBrowserClient();
-      const trackA = jest.spyOn(amplitudeA, 'track').mockReturnValue({
-        promise: Promise.resolve({
-          code: 200,
-          message: '',
-          event: { event_type: '[Amplitude] Page Viewed' },
-        }),
-      });
-      const trackB = jest.spyOn(amplitudeB, 'track').mockReturnValue({
-        promise: Promise.resolve({
-          code: 200,
-          message: '',
-          event: { event_type: '[Amplitude] Page Viewed' },
-        }),
-      });
-      const otherConfig = { ...mockConfig, apiKey: 'other-api-key' };
-      const pluginA = pageViewTrackingPlugin();
-      const pluginB = pageViewTrackingPlugin();
+    test.each([false, true])(
+      'should keep separate page view ids for different projects with engagement=%s',
+      async (trackEngagedTime) => {
+        mockWindowLocationFromURL(new URL('https://www.example.com/projects'));
+        const amplitudeA = createMockBrowserClient();
+        const amplitudeB = createMockBrowserClient();
+        const trackA = jest.spyOn(amplitudeA, 'track').mockReturnValue({
+          promise: Promise.resolve({
+            code: 200,
+            message: '',
+            event: { event_type: '[Amplitude] Page Viewed' },
+          }),
+        });
+        const trackB = jest.spyOn(amplitudeB, 'track').mockReturnValue({
+          promise: Promise.resolve({
+            code: 200,
+            message: '',
+            event: { event_type: '[Amplitude] Page Viewed' },
+          }),
+        });
+        const otherConfig = { ...mockConfig, apiKey: 'other-api-key' };
+        const pluginA = pageViewTrackingPlugin({ trackEngagedTime });
+        const pluginB = pageViewTrackingPlugin({ trackEngagedTime });
 
-      await pluginA.setup?.(mockConfig, amplitudeA);
-      await pluginB.setup?.(otherConfig, amplitudeB);
+        await pluginA.setup?.(mockConfig, amplitudeA);
+        await pluginB.setup?.(otherConfig, amplitudeB);
+        await new Promise((resolve) => setTimeout(resolve, 0));
 
-      const pageViewIdA = pageViewIdFrom(trackA, 0);
-      const pageViewIdB = pageViewIdFrom(trackB, 0);
-      expect(pageViewIdA).toEqual(expect.any(String));
-      expect(pageViewIdB).toEqual(expect.any(String));
-      expect(pageViewIdB).not.toBe(pageViewIdA);
-      expect(getCurrentPageViewId(mockConfig.apiKey)).toBe(pageViewIdA);
-      expect(getCurrentPageViewId(otherConfig.apiKey)).toBe(pageViewIdB);
+        const pageViewIdA = pageViewIdFrom(trackA, 0);
+        const pageViewIdB = pageViewIdFrom(trackB, 0);
+        expect(pageViewIdA).toEqual(expect.any(String));
+        expect(pageViewIdB).toEqual(expect.any(String));
+        expect(pageViewIdB).not.toBe(pageViewIdA);
+        expect(getCurrentPageViewId(mockConfig.apiKey)).toBe(pageViewIdA);
+        expect(getCurrentPageViewId(otherConfig.apiKey)).toBe(pageViewIdB);
 
-      await pluginA.teardown?.();
-      await pluginB.teardown?.();
-    });
+        await pluginA.teardown?.();
+        await pluginB.teardown?.();
+      },
+    );
   });
 
   describe('execute', () => {

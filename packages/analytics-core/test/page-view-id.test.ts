@@ -79,6 +79,19 @@ describe('page view id', () => {
     expect(getCurrentPageViewId('missing')).toBeUndefined();
   });
 
+  test('renews an engagement view once across SDK instances without replacing other projects', () => {
+    const href = 'https://example.com/a';
+    const previous = getOrCreatePageViewId('api-a', href);
+    const otherProject = getOrCreatePageViewId('api-b', href);
+    const renewed = getOrCreatePageViewId('api-a', href, previous);
+
+    expect(renewed).toEqual(expect.any(String));
+    expect(renewed).not.toBe(previous);
+    expect(getOrCreatePageViewId('api-a', href, previous)).toBe(renewed);
+    expect(getCurrentPageViewId('api-b')).toBe(otherProject);
+    expect(readStored()?.byApiKey).toEqual({ 'api-a': renewed, 'api-b': otherProject });
+  });
+
   test('keeps an id in memory when session storage is unavailable', () => {
     const scope = { crypto: globalThis.crypto } as typeof globalThis;
     jest.spyOn(globalScope, 'getGlobalScope').mockReturnValue(scope);

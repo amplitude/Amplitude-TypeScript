@@ -6,11 +6,12 @@ import type {
   MuxElement,
   Vendor,
   TimeUpdateEvent,
+  VideoStopCause,
 } from '../video-analytics/types';
 
 export type { Vendor };
 
-type PlaybackState = 'playing' | 'paused' | 'ended' | 'error' | 'seeking';
+type PlaybackState = 'playing' | 'paused' | 'ended' | 'error' | 'seeking' | 'waiting';
 
 export type State = {
   playbackState: PlaybackState;
@@ -19,10 +20,11 @@ export type State = {
   watchTime?: number;
   position?: number | null;
   isSeeking?: boolean;
+  cause?: VideoStopCause; // the reason for the playback state change
 };
 
 export type VideoObserverParams = {
-  videoEl: HTMLVideoElement | EmbeddedVideoPlayer | MuxElement;
+  videoEl: HTMLMediaElement | EmbeddedVideoPlayer | MuxElement;
   onStateChange: (previousState: State, nextState: State) => void;
   vendor?: Vendor;
   isEmbedded?: boolean;
@@ -33,6 +35,7 @@ export class VideoObserver {
     playbackState: 'paused',
   };
 
+  private waitingInterval: ReturnType<typeof setTimeout> | null = null;
   private untrack: () => void;
   private onStateChange: (previousState: State, nextState: State) => void;
   private handler: VideoHandler = {
@@ -42,8 +45,8 @@ export class VideoObserver {
     onPause: (evt: VideoEvent) => {
       this.updatePlaybackState('paused', evt);
     },
-    onEnded: (evt: VideoEvent) => {
-      this.updatePlaybackState('ended', evt);
+    onEnded: (evt: VideoEvent, cause?: VideoStopCause) => {
+      this.updatePlaybackState('ended', evt, cause);
     },
     onSeeking: () => {
       const nextState: State = {
@@ -56,7 +59,7 @@ export class VideoObserver {
       const nextState: State = {
         ...this.state,
         isSeeking: false,
-        position: event.last_position,
+        position: event.position,
       };
       this.updateState(nextState);
     },
@@ -73,7 +76,7 @@ export class VideoObserver {
     if (isEmbedded) {
       this.untrack = trackEmbeddedVideo(videoEl as EmbeddedVideoPlayer, this.handler, vendor);
     } else {
-      this.untrack = trackHtmlVideo(videoEl as HTMLVideoElement, this.handler, vendor);
+      this.untrack = trackHtmlVideo(videoEl as HTMLMediaElement, this.handler, vendor);
     }
   }
 
@@ -86,28 +89,65 @@ export class VideoObserver {
   }
 
   private updateStateWithError(error: string) {
+    this.clearWaitingInterval();
     const previousState = this.state;
     const nextState: State = {
       ...previousState,
       playbackState: 'error',
       errorMessage: error,
+      cause: undefined,
     };
     this.updateState(nextState);
   }
 
-  private updatePlaybackState(playbackState: PlaybackState, event: VideoEvent) {
+  private updatePlaybackState(playbackState: PlaybackState, event: VideoEvent, cause?: VideoStopCause) {
+    const previousPlayback = this.state.playbackState;
+    // Aborting a load does not emit `seeked`. A seek still open when this media
+    // ends, or when the replacement starts, must not stick to the next stream.
+    const clearSeeking =
+      !!this.state.isSeeking &&
+      (playbackState === 'ended' || (playbackState === 'playing' && previousPlayback === 'ended'));
     const nextState: State = {
       ...this.state,
       playbackState,
+      errorMessage: undefined,
       lastEvent: event,
-      position: event.last_position,
+      position: event.position,
+      cause,
+      ...(clearSeeking ? { isSeeking: false } : {}),
     };
     this.updateState(nextState);
+
+    this.clearWaitingInterval();
+    if (playbackState !== 'playing') {
+      return;
+    }
+    // if it's in a playing state, but the playhead is not moving,
+    // then transition playback from 'playing' to 'waiting'
+    // (the "waiting" listener isn't reliable, so this is a fallback)
+    let prevPosition: number | null | undefined = this.state.position;
+    this.waitingInterval = setInterval(() => {
+      const position = this.state.position;
+      if (this.state.playbackState === 'playing' && typeof prevPosition === 'number' && prevPosition === position) {
+        // no new player event backs this transition, so carry the current position and metadata over
+        this.updateState({ ...this.state, playbackState: 'waiting' });
+      }
+      prevPosition = position;
+    }, 1_000);
+  }
+
+  private clearWaitingInterval() {
+    if (this.waitingInterval) {
+      clearInterval(this.waitingInterval);
+      this.waitingInterval = null;
+    }
   }
 
   private updateTime(event: TimeUpdateEvent) {
     const lastVideoEvent = this.state.lastEvent;
-    if (!lastVideoEvent || this.state.playbackState !== 'playing') {
+    const isWaiting = this.state.playbackState === 'waiting';
+    const isPlaying = this.state.playbackState === 'playing';
+    if (!lastVideoEvent || (!isPlaying && !isWaiting)) {
       return;
     }
     const isSeeking = event.isSeeking || this.state.isSeeking;
@@ -123,6 +163,7 @@ export class VideoObserver {
     const timeDelta = nextPosition - lastPosition;
     const nextState: State = {
       ...this.state,
+      playbackState: 'playing',
       position: nextPosition,
       watchTime: (this.state.watchTime ?? 0) + timeDelta,
     };
@@ -136,6 +177,7 @@ export class VideoObserver {
   }
 
   destroy() {
+    this.clearWaitingInterval();
     this.untrack();
   }
 }

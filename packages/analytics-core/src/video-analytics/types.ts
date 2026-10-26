@@ -2,10 +2,12 @@ export type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
 
 export type VideoStopReason = 'paused' | 'ended' | 'seeking';
 
+export type VideoStopCause = 'timeout' | 'paused' | 'ended' | 'error' | 'untracked' | 'content_changed';
+
 export type VideoHandler = {
   onPlay: (startEvent: VideoEvent) => void;
   onPause: (pauseEvent: VideoEvent) => void;
-  onEnded: (endedEvent: VideoEvent) => void;
+  onEnded: (endedEvent: VideoEvent, cause?: VideoStopCause) => void;
   onSeeking: (seekingEvent: VideoEvent) => void;
   onSeeked: (seekedEvent: VideoEvent) => void;
   onError: (error: string) => void;
@@ -13,19 +15,18 @@ export type VideoHandler = {
 };
 
 export type VideoEvent = {
-  duration: number;
-  start_time?: number;
+  duration: number | undefined;
   playback_id?: string | undefined;
   video_id?: string | undefined;
   video_title?: string | undefined;
   content_id?: string | undefined;
-  content_type?: string | undefined;
+  media_type?: string | undefined;
   session_id?: string | undefined;
   mux_playback_id?: string | undefined | null;
   mux_video_id?: string | undefined | null;
   mux_video_title?: string | undefined | null;
   mux_session_id?: string | undefined | null;
-  last_position: number | undefined | null;
+  position: number | undefined | null;
   percent_completed?: number;
   stop_reason?: VideoStopReason;
 };
@@ -38,6 +39,7 @@ export type TimeUpdateEvent = {
 type EmbeddedVideoPlayer = {
   getCurrentTime: (cb: (time: number) => void) => void;
   getDuration: (cb: (duration: number) => void) => void;
+  getPaused?: (cb: (paused: boolean) => void) => void;
   on: (event: string, callback: () => void) => void;
   off: (event: string, callback: () => void) => void;
   elem: HTMLIFrameElement;

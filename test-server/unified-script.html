@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>Unified Script Test</title>
-  <script type="module">
-    const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
-    const script = document.createElement('script');
-    script.src = `https://cdn.amplitude.com/script/${apiKey}.js`;
-    document.head.appendChild(script);
+  <script type="text/javascript" src="https://cdn.amplitude.com/script/17fcb31e58fc138462fd64bfe7add49e.js"></script>
+  <script type="text/javascript">
+    window.amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
+    window.amplitude.init('17fcb31e58fc138462fd64bfe7add49e', 'hello:213pm', {
+      fetchRemoteConfig: true,
+      autocapture: true,
+    });
   </script>
 </head>
 <body>

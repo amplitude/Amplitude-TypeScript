@@ -88,8 +88,14 @@ const persistPageViewId = (scope: PageViewScope, apiKey: string | undefined, pag
  * Returns the page view id for this project and document URL.
  * Another SDK initialized with the same API key reuses the id for the current
  * page instead of overwriting the value autocapture later reads.
+ * Pass the previous id to renew an engagement view. If another SDK has already
+ * renewed it, reuse that new id so the instances stay in sync.
  */
-export const getOrCreatePageViewId = (apiKey: string | undefined, href: string): string | undefined => {
+export const getOrCreatePageViewId = (
+  apiKey: string | undefined,
+  href: string,
+  previousPageViewId?: string,
+): string | undefined => {
   const scope = getScope();
   if (!scope) {
     return undefined;
@@ -97,7 +103,7 @@ export const getOrCreatePageViewId = (apiKey: string | undefined, href: string):
   const key = storageKeyFor(apiKey);
   const state = scope[PAGE_VIEW_STATE] ?? { byApiKey: {} };
   const existing = state.byApiKey[key];
-  if (existing && existing.href === href) {
+  if (existing && existing.href === href && existing.pageViewId !== previousPageViewId) {
     persistPageViewId(scope, apiKey, existing.pageViewId);
     return existing.pageViewId;
   }

@@ -12,3 +12,9 @@ export interface Payload {
   client_upload_time?: string;
   request_metadata?: RequestMetadata;
 }
+
+export interface DelayedPayload extends Payload {
+  id: string;
+  timeout: number;
+  instant_events?: readonly Event[];
+}

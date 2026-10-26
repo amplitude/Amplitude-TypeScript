@@ -2,6 +2,7 @@ import { ILogger } from './logger';
 import { CoreClient } from './types/client/core-client';
 import { BaseEvent, Delay } from './types/event/base-event';
 import { Result } from './types/result';
+import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
 
 type DelayedEvent = BaseEvent & {
@@ -10,23 +11,37 @@ type DelayedEvent = BaseEvent & {
 
 const EVENTS_SIZE_LIMIT = 4 * 10_000; // 4KB
 
+interface HeartbeatOptions {
+  /** Refresh queued snapshots immediately before each send. */
+  beforeHeartbeat?: () => void;
+  /**
+   * Send queued events when the page becomes hidden or exits. Defaults to true.
+   * Disable when the caller owns page lifecycle handling and sends snapshots itself.
+   */
+  sendOnPageLifecycle?: boolean;
+}
+
 export class Heartbeat {
   private events: Map<string, DelayedEvent>;
   private delayId: string;
-  private interval: NodeJS.Timeout | null = null;
+  private interval: ReturnType<typeof setInterval> | null = null;
   private resetPromise: Promise<Result[]> | null = null;
+  private unsubscribeFunctions: (() => void)[] = [];
+  private pageHidePreparers: (() => void)[] = [];
 
   constructor(
     private client: CoreClient,
     private pulse: number,
     private delayTimeout: number,
     private logger?: ILogger,
+    private options: HeartbeatOptions = {},
   ) {
     this.events = new Map<string, DelayedEvent>();
     this.delayId = UUID();
   }
 
-  private async heartbeat(): Promise<Result[]> {
+  async heartbeat(flushClient = false): Promise<Result[]> {
+    this.options.beforeHeartbeat?.();
     // stop sending heartbeats if no events are queued
     if (this.events.size === 0) {
       this.stop();
@@ -47,26 +62,73 @@ export class Heartbeat {
       }
       trackedEvents.push(eventPromise);
     }
-    return await Promise.all(trackedEvents);
+    const res = await Promise.all(trackedEvents);
+    if (flushClient) {
+      this.client.flush();
+    }
+    return res;
   }
 
-  private async resetHeartbeat() {
-    // if a reset is already in progress, return the existing promise
+  async resetHeartbeat() {
+    // if a reset is scheduled but hasn't fired yet, the pending heartbeat will
+    // include any newly tracked events, so share its result
     if (this.resetPromise) return await this.resetPromise;
+
+    if (this.options.sendOnPageLifecycle !== false) this.setupPageLifecycleListeners();
 
     // reset the heartbeat interval
     if (this.interval) clearInterval(this.interval);
     this.interval = setInterval(() => void this.heartbeat(), this.pulse);
 
-    // invoke heartbeat on the next macrotask tick
-    this.resetPromise = new Promise((resolve) => {
+    // invoke heartbeat on the next macrotask tick. Clear resetPromise as soon as the
+    // heartbeat starts so that events tracked while it's in flight trigger a new heartbeat
+    const resetPromise = new Promise<Result[]>((resolve) => {
       setTimeout(() => {
+        this.resetPromise = null;
         resolve(this.heartbeat());
       }, 0);
     });
-    this.resetPromise.finally(() => (this.resetPromise = null));
+    this.resetPromise = resetPromise;
 
-    return await this.resetPromise;
+    return await resetPromise;
+  }
+
+  private setupPageLifecycleListeners() {
+    if (this.unsubscribeFunctions.length > 0) {
+      return;
+    }
+
+    // only browser-like environments expose page lifecycle events
+    const win = getGlobalScope();
+    if (!win || typeof win.addEventListener !== 'function' || !win.document) {
+      return;
+    }
+    const doc = win.document;
+
+    // When the user leaves the page, send the latest events and flush them immediately.
+    // Preparers update queued events (for example stop_reason) before this snapshot.
+    const onPageHide = (evt: PageTransitionEvent) => {
+      if (!evt.persisted) {
+        for (const prepare of [...this.pageHidePreparers]) {
+          prepare();
+        }
+        void this.heartbeat(true);
+      }
+    };
+
+    // when the tab becomes hidden, reset the heartbeat so the latest events are sent
+    const onVisibilityChange = () => {
+      if (doc.visibilityState === 'hidden') {
+        void this.resetHeartbeat();
+      }
+    };
+
+    win.addEventListener('pagehide', onPageHide);
+    doc.addEventListener('visibilitychange', onVisibilityChange);
+    this.unsubscribeFunctions.push(() => {
+      win.removeEventListener('pagehide', onPageHide);
+      doc.removeEventListener('visibilitychange', onVisibilityChange);
+    });
   }
 
   /**
@@ -90,15 +152,21 @@ export class Heartbeat {
     return true;
   }
 
-  async track(event: BaseEvent): Promise<Result | Error | undefined> {
-    if (!event.insert_id) {
-      return new Error('insert_id is required on events tracked with heartbeat');
-    }
+  /** Admit an event synchronously without starting timers or waiting for delivery. */
+  enqueue(event: BaseEvent): boolean {
+    if (!event.insert_id) return false;
     this.events.set(event.insert_id, {
       ...event,
       delay: event.delay || { id: this.delayId, timeout: this.delayTimeout },
     });
-    if (!this.checkEventSizeLimit(event)) {
+    return this.checkEventSizeLimit(event);
+  }
+
+  async track(event: BaseEvent): Promise<Result | Error | undefined> {
+    if (!event.insert_id) {
+      return new Error('insert_id is required on events tracked with heartbeat');
+    }
+    if (!this.enqueue(event)) {
       return;
     }
 
@@ -129,7 +197,8 @@ export class Heartbeat {
       const backupEvent = this.events.get(event.insert_id);
       this.events.set(event.insert_id, {
         ...event,
-        delay: { id: this.delayId, timeout: this.delayTimeout },
+        // Page engagement supplies its delay group and removes timeout to finalize it.
+        delay: event.delay || { id: this.delayId, timeout: this.delayTimeout },
       });
       if (!this.checkEventSizeLimit(event) && backupEvent) {
         this.events.set(event.insert_id, backupEvent);
@@ -138,10 +207,31 @@ export class Heartbeat {
     }
   }
 
-  stop() {
+  // run handlers before 'pagehide' event
+  beforePageHide(prepare: () => void): () => void {
+    this.pageHidePreparers.push(prepare);
+    return () => {
+      const index = this.pageHidePreparers.indexOf(prepare);
+      if (index !== -1) {
+        this.pageHidePreparers.splice(index, 1);
+      }
+    };
+  }
+
+  /** Stop the pulse without discarding the latest snapshot. */
+  pause() {
     this.interval && clearInterval(this.interval);
     this.interval = null;
+  }
+
+  stop(flush = false) {
+    this.pause();
     this.events.clear();
+    this.unsubscribeFunctions.forEach((removeListener) => removeListener());
+    this.unsubscribeFunctions = [];
+    if (flush) {
+      this.client.flush();
+    }
   }
 }
 
