@@ -940,6 +940,34 @@ describe('browser-client', () => {
       expect(autocapturePlugin).toHaveBeenCalledTimes(0);
     });
 
+    test('should add autocapture plugin without a diagnostics context when the diagnostics client is unset', async () => {
+      class AmplitudeBrowserWithClearedDiagnostics extends AmplitudeBrowser {
+        protected autocaptureAdapter() {
+          const adapter = super.autocaptureAdapter();
+          if (!adapter) {
+            return null;
+          }
+          const getDiagnosticsClient = adapter.getDiagnosticsClient;
+          adapter.getDiagnosticsClient = async (...args) => {
+            const diagnosticsClient = await getDiagnosticsClient(...args);
+            // Field is assigned inside getDiagnosticsClient. Clear it so plugin setup takes the unset path.
+            (this as unknown as { diagnosticsClient?: DiagnosticsClient }).diagnosticsClient = undefined;
+            return diagnosticsClient;
+          };
+          return adapter;
+        }
+      }
+
+      const autocapturePluginSpy = jest.spyOn(autocapture, 'autocapturePlugin');
+      const clientWithClearedDiagnostics = new AmplitudeBrowserWithClearedDiagnostics();
+      await clientWithClearedDiagnostics.init(apiKey, userId, {
+        autocapture: { elementInteractions: true },
+      }).promise;
+
+      expect(autocapturePluginSpy).toHaveBeenCalledTimes(1);
+      expect(autocapturePluginSpy.mock.calls[0][1]).toBeUndefined();
+    });
+
     test('should use network tracking plugin when autocapture.networkTracking is on', async () => {
       const networkTrackingPlugin = jest.spyOn(networkCapturePlugin, 'plugin');
       await client.init(apiKey, userId, {
@@ -2756,6 +2784,45 @@ describe('browser-client', () => {
       client._setDiagnosticsSampleRate(sampleRate);
 
       expect(client._diagnosticsSampleRate).toBe(0);
+    });
+  });
+
+  describe('when adapters are unavailable', () => {
+    class AmplitudeBrowserWithoutAdapters extends AmplitudeBrowser {
+      protected autocaptureAdapter() {
+        return null;
+      }
+    }
+
+    test('should skip remote config, diagnostics, attribution and plugins on init', async () => {
+      const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+      const clientWithoutAdapters = new AmplitudeBrowserWithoutAdapters();
+
+      await clientWithoutAdapters.init(apiKey, userId, {
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: true,
+        },
+        autocapture: { elementInteractions: true },
+      }).promise;
+
+      expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+      expect(clientWithoutAdapters.webAttribution).toBeUndefined();
+      expect(autocapturePlugin).not.toHaveBeenCalled();
+    });
+
+    test('should process events without tracking attribution', async () => {
+      const clientWithoutAdapters = new AmplitudeBrowserWithoutAdapters();
+      await clientWithoutAdapters.init(apiKey, userId, {
+        optOut: true,
+        defaultTracking: false,
+      }).promise;
+
+      const result = await clientWithoutAdapters.process({
+        event_type: 'event',
+      });
+
+      expect(result.code).toBe(0);
     });
   });
 
