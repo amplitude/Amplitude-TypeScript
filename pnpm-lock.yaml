@@ -702,9 +702,15 @@ importers:
         specifier: ^1.24.0
         version: 1.24.0
     devDependencies:
+      '@types/semver':
+        specifier: ^7.7.1
+        version: 7.7.1
       rollup:
         specifier: ^2.80.0
         version: 2.80.0
+      semver:
+        specifier: ^7.7.3
+        version: 7.7.3
 
   packages/plugin-experiment-react-native:
     dependencies:
