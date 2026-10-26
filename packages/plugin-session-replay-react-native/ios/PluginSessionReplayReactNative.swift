@@ -6,7 +6,6 @@ import AmplitudeCore
 class PluginSessionReplayReactNative: NSObject {
     
     var sessionReplay: SessionReplay!
-    @objc var methodQueue: DispatchQueue { DispatchQueue.main }
     private var signalReceiver = ReplayInterfaceSignalReceiver()
     
     @objc(setup:deviceId:sessionId:serverZone:sampleRate:enableRemoteConfig:logLevel:autoStart:maskLevel:resolve:reject:)

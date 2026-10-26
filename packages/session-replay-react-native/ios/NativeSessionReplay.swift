@@ -7,8 +7,6 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     static func moduleName() -> String! {
         "AMPNativeSessionReplay"
     }
-
-    @objc var methodQueue: DispatchQueue { DispatchQueue.main }
     
     var sessionReplay: SessionReplay?
     var logger: CoreLogger?
