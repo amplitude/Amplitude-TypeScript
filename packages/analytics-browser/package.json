@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.48.1",
+  "version": "2.49.0-video-analytics-7.0",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",

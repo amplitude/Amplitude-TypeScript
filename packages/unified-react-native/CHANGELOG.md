@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-video-analytics-7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified-react-native@1.0.0-beta.10...@amplitude/unified-react-native@1.0.0-video-analytics-7.0) (2026-10-26)
+
+**Note:** Version bump only for package @amplitude/unified-react-native
+
+
+
+
+
 # [1.0.0-beta.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified-react-native@1.0.0-beta.9...@amplitude/unified-react-native@1.0.0-beta.10) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/unified-react-native

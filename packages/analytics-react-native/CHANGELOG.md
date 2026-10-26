@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.13.0-video-analytics-7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.12.4...@amplitude/analytics-react-native@1.13.0-video-analytics-7.0) (2026-10-26)
+
+
+### Features
+
+* **analytics-browser:** add heartbeat service to video tracker ([#1839](https://github.com/amplitude/Amplitude-TypeScript/issues/1839)) ([cecda1b](https://github.com/amplitude/Amplitude-TypeScript/commit/cecda1ba78e17ddb615e7a88d2b2e0fbc18ac03b))
+
+
+
+
+
 ## [1.12.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.12.3...@amplitude/analytics-react-native@1.12.4) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

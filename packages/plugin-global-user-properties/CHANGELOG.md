@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.139-video-analytics-7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.138...@amplitude/plugin-global-user-properties@1.2.139-video-analytics-7.0) (2026-10-26)
+
+**Note:** Version bump only for package @amplitude/plugin-global-user-properties
+
+
+
+
+
 ## [1.2.138](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.137...@amplitude/plugin-global-user-properties@1.2.138) (2026-10-09)
 
 **Note:** Version bump only for package @amplitude/plugin-global-user-properties
