@@ -114,6 +114,7 @@ describe('joined-config', () => {
         appLifecycles: true,
         elementInteractions: true,
         networkTracking: true,
+        frustrationInteractions: true,
       };
 
       updateReactNativeConfigWithRemoteConfig(remoteConfig, localConfig);

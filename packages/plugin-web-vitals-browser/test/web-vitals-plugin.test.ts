@@ -123,6 +123,15 @@ describe('webVitalsPlugin', () => {
     expect(mockDocument.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
   });
 
+  it('should not opt in to soft navigation reporting by default', async () => {
+    const plugin = webVitalsPlugin();
+    await plugin?.setup?.(config, amplitude);
+
+    for (const onMetric of [onLCP, onFCP, onINP, onCLS, onTTFB]) {
+      expect((onMetric as jest.Mock).mock.calls[0][1]).toBeUndefined();
+    }
+  });
+
   it('should track web vitals when visibility changes to hidden', async () => {
     const plugin = webVitalsPlugin();
     await plugin?.setup?.(config, amplitude);
@@ -137,6 +146,7 @@ describe('webVitalsPlugin', () => {
       delta: 0,
       navigationType: 'navigate',
       id: 'test-id',
+      navigationId: 1,
       entries: [{ startTime: 0 }],
     };
 
@@ -176,6 +186,43 @@ describe('webVitalsPlugin', () => {
     expect(eventObject['[Amplitude] INP']).toMatchObject(expectedMetric);
     expect(eventObject['[Amplitude] CLS']).toMatchObject(expectedMetric);
     expect(eventObject['[Amplitude] TTFB']).toMatchObject(expectedMetric);
+    expect(eventObject['[Amplitude] LCP']).not.toHaveProperty('navigationId');
+  });
+
+  it('should stop listening for visibility changes after tracking', async () => {
+    const plugin = webVitalsPlugin();
+    await plugin?.setup?.(config, amplitude);
+
+    const visibilityListener = (mockDocument.addEventListener as jest.Mock).mock.calls[0][1];
+    const mockMetric = {
+      value: 100,
+      rating: 'good',
+      delta: 0,
+      navigationType: 'navigate',
+      id: 'test-id',
+      entries: [{ startTime: 0 }],
+    };
+
+    const lcpCallback = (onLCP as jest.Mock).mock.calls[0][0];
+    const fcpCallback = (onFCP as jest.Mock).mock.calls[0][0];
+    const inpCallback = (onINP as jest.Mock).mock.calls[0][0];
+    const clsCallback = (onCLS as jest.Mock).mock.calls[0][0];
+    const ttfbCallback = (onTTFB as jest.Mock).mock.calls[0][0];
+
+    if (lcpCallback && fcpCallback && inpCallback && clsCallback && ttfbCallback) {
+      lcpCallback(mockMetric);
+      fcpCallback(mockMetric);
+      inpCallback(mockMetric);
+      clsCallback(mockMetric);
+      ttfbCallback(mockMetric);
+    }
+
+    Object.defineProperty(mockDocument, 'visibilityState', { value: 'hidden' });
+    visibilityListener();
+    visibilityListener();
+
+    expect((amplitude.track as jest.Mock).mock.calls).toHaveLength(1);
+    expect(mockDocument.removeEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
   });
 
   it('should cleanup event listeners on teardown', async () => {

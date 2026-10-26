@@ -94,6 +94,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         sampleRate: this.options.sampleRate,
         privacyConfig: {
           blockSelector: this.options.privacyConfig?.blockSelector,
+          maskAttributes: this.options.privacyConfig?.maskAttributes,
           maskSelector: this.options.privacyConfig?.maskSelector,
           unmaskSelector: this.options.privacyConfig?.unmaskSelector,
           defaultMaskLevel: this.options.privacyConfig?.defaultMaskLevel,

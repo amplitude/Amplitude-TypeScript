@@ -1,0 +1,17 @@
+name: Publishing script tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test-publishing:
+    name: Test publishing scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.x
+      - run: node --test scripts/publish/*.test.js

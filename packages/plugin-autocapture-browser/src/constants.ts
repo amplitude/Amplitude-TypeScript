@@ -30,6 +30,8 @@ export const AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT = '[Amplitude] Viewport Height
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH = '[Amplitude] Viewport Width';
 export const AMPLITUDE_EVENT_PROP_MAX_PAGE_X = '[Amplitude] Max Page X';
 export const AMPLITUDE_EVENT_PROP_MAX_PAGE_Y = '[Amplitude] Max Page Y';
+export const AMPLITUDE_EVENT_PROP_MIN_PAGE_Y = '[Amplitude] Min Page Y';
+export { AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET } from '@amplitude/analytics-core';
 
 export const AMPLITUDE_EVENT_PROP_PAGE_VIEW_ID = '[Amplitude] Page View ID';
 
@@ -58,7 +60,7 @@ export const MAX_MASK_TEXT_PATTERNS = 25;
 export const MAX_ATTRIBUTE_LENGTH = 128;
 
 // The key for the page view object in sessionStorage
-export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
+export { PAGE_VIEW_SESSION_STORAGE_KEY } from '@amplitude/analytics-core';
 
 export const MAX_ELEMENT_EXPOSED_STR_LENGTH = 18_000;
 

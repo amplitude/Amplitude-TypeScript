@@ -49,6 +49,7 @@ import {
   isPageViewTrackingEnabled,
   isNetworkTrackingEnabled,
   isWebVitalsEnabled,
+  getWebVitalsConfig,
   isFrustrationInteractionsEnabled,
   getFrustrationInteractionsConfig,
   isPerformanceTrackingEnabled,
@@ -276,8 +277,15 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     // Step 7: Add the event receiver after running remaining queued functions.
     connector.eventBridge.setEventReceiver((event) => {
       const { time, ...cleanEventProperties } = event.eventProperties || {};
-      const eventOptions = typeof time === 'number' ? { time } : undefined;
-      void this.track(event.eventType, cleanEventProperties, eventOptions);
+      const eventOptions: EventOptions = {
+        ...(typeof time === 'number' && { time }),
+        ...(event.groups && { groups: event.groups }),
+      };
+      void this.track(
+        event.eventType,
+        cleanEventProperties,
+        Object.keys(eventOptions).length ? eventOptions : undefined,
+      );
     });
   }
 
@@ -616,7 +624,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
         if (isWebVitalsEnabled(this.config.autocapture)) {
           this.config.loggerProvider.debug('Adding web vitals plugin');
-          await this.add(webVitalsPlugin()).promise;
+          await this.add(webVitalsPlugin(getWebVitalsConfig(this.config))).promise;
         }
 
         if (isPerformanceTrackingEnabled(this.config.autocapture)) {

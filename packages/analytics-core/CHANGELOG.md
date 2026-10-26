@@ -3,6 +3,113 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.61.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.3...@amplitude/analytics-core@2.61.0) (2026-10-20)
+
+
+### Bug Fixes
+
+* **browser:** share page view ids across sdk instances ([#2052](https://github.com/amplitude/Amplitude-TypeScript/issues/2052)) ([4de670b](https://github.com/amplitude/Amplitude-TypeScript/commit/4de670bec16521fbdf93e3541f6c4d57132ecd96))
+
+
+### Features
+
+* **analytics-react-native:** make React Native autocapture generally available ([#2064](https://github.com/amplitude/Amplitude-TypeScript/issues/2064)) ([9243572](https://github.com/amplitude/Amplitude-TypeScript/commit/92435722b698af23cc6542687d82ac0ef72de488))
+
+
+
+
+
+## [2.60.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.2...@amplitude/analytics-core@2.60.3) (2026-10-15)
+
+
+### Bug Fixes
+
+* **unified:** bump connector and experiment deps for exposure groups ([#2060](https://github.com/amplitude/Amplitude-TypeScript/issues/2060)) ([8a5d342](https://github.com/amplitude/Amplitude-TypeScript/commit/8a5d3420da90edca33507f8aed848a8943594420))
+
+
+
+
+
+## [2.60.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.1...@amplitude/analytics-core@2.60.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** support errorClick singular format Remote Config ([#2041](https://github.com/amplitude/Amplitude-TypeScript/issues/2041)) ([3e25191](https://github.com/amplitude/Amplitude-TypeScript/commit/3e25191a9417f81dbe56ac5109b41ddc0b13f90a))
+
+
+
+
+
+## [2.60.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.60.0...@amplitude/analytics-core@2.60.1) (2026-10-08)
+
+
+### Bug Fixes
+
+* **analytics-core:** clarify README package description ([#2045](https://github.com/amplitude/Amplitude-TypeScript/issues/2045)) ([ce14843](https://github.com/amplitude/Amplitude-TypeScript/commit/ce1484327ab2d6676dfd085d723cf13fa759a6e1))
+
+
+
+
+
+# [2.60.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.59.0...@amplitude/analytics-core@2.60.0) (2026-10-07)
+
+
+### Bug Fixes
+
+* **analytics-core:** resolve hung promises for duplicate insert_id during upload ([#2029](https://github.com/amplitude/Amplitude-TypeScript/issues/2029)) ([ee67ead](https://github.com/amplitude/Amplitude-TypeScript/commit/ee67ead46f1624c1bfa697f70e71ef064a0bf641))
+
+
+### Features
+
+* **analytics-react-native:** experimental -- error clicks ([#2017](https://github.com/amplitude/Amplitude-TypeScript/issues/2017)) ([17e9da4](https://github.com/amplitude/Amplitude-TypeScript/commit/17e9da421df456c50c88273c1d4cc3fb9db36040))
+* **plugin-autocapture-browser:** support shadow dom in elementInteractions ([#2035](https://github.com/amplitude/Amplitude-TypeScript/issues/2035)) ([02ec439](https://github.com/amplitude/Amplitude-TypeScript/commit/02ec439d5768fe2c4f707d217299ece19bdbe348))
+
+
+
+
+
+# [2.59.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.58.1...@amplitude/analytics-core@2.59.0) (2026-09-29)
+
+
+### Features
+
+* **analytics-react-native:** support Rage Clicks ([#2014](https://github.com/amplitude/Amplitude-TypeScript/issues/2014)) ([a7ca1dd](https://github.com/amplitude/Amplitude-TypeScript/commit/a7ca1ddf1711ee0160ce6f314a1535d9a6a9fd0e))
+
+
+
+
+
+## [2.58.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.58.0...@amplitude/analytics-core@2.58.1) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/analytics-core
+
+
+
+
+
+# [2.58.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.57.0...@amplitude/analytics-core@2.58.0) (2026-09-23)
+
+
+### Features
+
+* **plugin-web-vitals-browser:** [@experimental](https://github.com/experimental) add reportSoftNav option for soft navigation reporting ([#1965](https://github.com/amplitude/Amplitude-TypeScript/issues/1965)) ([0e341de](https://github.com/amplitude/Amplitude-TypeScript/commit/0e341dec23e1d5a643c87c80507bbdb9c753c6ab))
+
+
+
+
+
+# [2.57.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.56.0...@amplitude/analytics-core@2.57.0) (2026-09-21)
+
+
+### Features
+
+* **analytics-react-native:** support Remote Config autocapture ([#1988](https://github.com/amplitude/Amplitude-TypeScript/issues/1988)) ([eef3342](https://github.com/amplitude/Amplitude-TypeScript/commit/eef33427cdf3294c285f94ae6dbe1bd45738a60d))
+
+
+
+
+
 # [2.56.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.55.0...@amplitude/analytics-core@2.56.0) (2026-09-16)
 
 

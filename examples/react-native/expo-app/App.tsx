@@ -1,7 +1,8 @@
-import {Button, StyleSheet, Text, View} from 'react-native';
-import {useEffect} from 'react';
+import {Button, Platform, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
+import {useEffect, useState} from 'react';
 import {
   add,
+  ampCapture,
   flush,
   identify,
   Identify,
@@ -15,6 +16,7 @@ import { NavigationContainer, useNavigationContainerRef } from "@react-navigatio
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FetchNetworkTestScreen from './FetchNetworkTestScreen';
 import AutocaptureConfigScreen, {autocaptureConfigDebugPlugin} from './AutocaptureConfigScreen';
+import DeadClickTestScreen, {deadClickReplay, deadClickDebugPlugin} from './DeadClickTestScreen';
 
 const experiment = experimentPlugin({
   // deploymentKey: 'DEPLOYMENT_KEY', // Optional when Experiment and Analytics use the same project key.
@@ -43,6 +45,109 @@ const startExperiment = async () => {
   }
 };
 
+function FrustrationInteractionsTestView() {
+  const [errorDelayMs, setErrorDelayMs] = useState('100');
+  const errorDelay = Math.max(0, Number(errorDelayMs) || 0);
+
+  const throwException = () => {
+    setTimeout(() => {
+      throw new Error('Error click test exception');
+    }, errorDelay);
+  };
+  const rejectPromise = () => {
+    setTimeout(() => {
+      void Promise.reject(new Error('Error click test rejection'));
+    }, errorDelay);
+  };
+  const writeConsoleError = () => {
+    setTimeout(() => {
+      console.error('Error click test console error');
+    }, errorDelay);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text>Frustration interactions</Text>
+      <View style={styles.delayControl}>
+        <Text>Error delay</Text>
+        <TextInput
+          accessibilityLabel="Error delay milliseconds"
+          keyboardType="number-pad"
+          onChangeText={setErrorDelayMs}
+          style={styles.delayInput}
+          testID="error-delay-ms"
+          value={errorDelayMs}
+        />
+        <Text>ms</Text>
+      </View>
+      <View style={styles.delayPresets}>
+        <View style={styles.delayPresetButton}>
+          <Button accessibilityLabel="Use short error delay" title="100 ms" onPress={() => setErrorDelayMs('100')} />
+        </View>
+        <View style={styles.delayPresetButton}>
+          <Button accessibilityLabel="Use long error delay" title="2500 ms" onPress={() => setErrorDelayMs('2500')} />
+        </View>
+      </View>
+      <Pressable
+        accessibilityLabel="Error click exception"
+        testID="error-click-exception"
+        style={styles.testButton}
+        onPress={ampCapture(throwException, {
+          action: 'Press',
+          accessibilityLabel: 'Error click exception',
+          component: 'Pressable',
+          element: 'Exception after press',
+          testID: 'error-click-exception',
+        })}
+      >
+        <Text>Exception after press</Text>
+      </Pressable>
+      <Pressable
+        accessibilityLabel="Error click rejection"
+        testID="error-click-rejection"
+        style={styles.testButton}
+        onPress={ampCapture(rejectPromise, {
+          action: 'Press',
+          accessibilityLabel: 'Error click rejection',
+          component: 'Pressable',
+          element: 'Rejection after press',
+          testID: 'error-click-rejection',
+        })}
+      >
+        <Text>Rejection after press</Text>
+      </Pressable>
+      <Pressable
+        accessibilityLabel="Error click long press"
+        testID="error-click-long-press"
+        style={styles.testButton}
+        onLongPress={ampCapture(throwException, {
+          action: 'LongPress',
+          accessibilityLabel: 'Error click long press',
+          component: 'Pressable',
+          element: 'Exception after long press',
+          testID: 'error-click-long-press',
+        })}
+      >
+        <Text>Exception after long press</Text>
+      </Pressable>
+      <Pressable
+        accessibilityLabel="Console error only"
+        testID="error-click-console"
+        style={styles.testButton}
+        onPress={ampCapture(writeConsoleError, {
+          action: 'Press',
+          accessibilityLabel: 'Console error only',
+          component: 'Pressable',
+          element: 'Console error after press',
+          testID: 'error-click-console',
+        })}
+      >
+        <Text>Console error only</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
@@ -65,6 +170,16 @@ function HomeScreen({ navigation }) {
         accessibilityLabel="Autocapture Config"
         title="Autocapture Config"
         onPress={() => navigation.navigate('AutocaptureConfig')}
+      />
+      <Button
+        accessibilityLabel="Frustration Interactions"
+        title="Frustration Interactions"
+        onPress={() => navigation.navigate('FrustrationInteractions')}
+      />
+      <Button
+        accessibilityLabel="Dead Click Test"
+        title="Dead Click Test"
+        onPress={() => navigation.navigate('DeadClickTest')}
       />
       <Button accessibilityLabel="Make Network Request" title="Make Network Request" onPress={() => {
         track('Making Network Request');
@@ -92,6 +207,8 @@ function SettingsScreen({navigation}: {navigation: any}) {
 }
 
 export default function App() {
+  const [replayReady, setReplayReady] = useState(false);
+  const [replayError, setReplayError] = useState<string>();
   // onStateChange does not fire for the initial route; onReady covers cold-start screen views.
   const navigationRef = useNavigationContainerRef();
 
@@ -99,6 +216,7 @@ export default function App() {
     (async () => {
         await add(experiment).promise;
         await add(autocaptureConfigDebugPlugin).promise;
+        await add(deadClickDebugPlugin).promise;
         // AMPLITUDE_API_KEY is inlined at bundle time (see babel.config.js).
         await init(process.env.AMPLITUDE_API_KEY || 'YOUR_API_KEY', 'React Native Test User', {
           logLevel: Types.LogLevel.Debug,
@@ -110,11 +228,21 @@ export default function App() {
             },
             appLifecycles: true,
             sessions: true,
+            frustrationInteractions: true,
           },
           remoteConfig: {
-            fetchRemoteConfig: true,
+            fetchRemoteConfig: false,
           },
         }).promise;
+        if (Platform.OS !== 'web') {
+          try {
+            await add(deadClickReplay).promise;
+            setReplayReady(true);
+          } catch (error) {
+            setReplayError(String(error));
+            console.error('Session Replay setup failed:', error);
+          }
+        }
         track('expo-app/react-native/test-event');
         await identify(new Identify().set('react-native-test', 'yes')).promise;
     })();
@@ -132,6 +260,14 @@ export default function App() {
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="FetchNetworkTest" component={FetchNetworkTestScreen} options={{title: 'Fetch Network Test'}} />
         <Stack.Screen name="AutocaptureConfig" component={AutocaptureConfigScreen} options={{title: 'Autocapture Config'}} />
+        <Stack.Screen
+          name="FrustrationInteractions"
+          component={FrustrationInteractionsTestView}
+          options={{title: 'Frustration Interactions'}}
+        />
+        <Stack.Screen name="DeadClickTest" options={{title: 'Dead Click Test'}}>
+          {() => <DeadClickTestScreen ready={replayReady} initializationError={replayError} />}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -143,5 +279,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  testButton: {
+    backgroundColor: '#e8f0fe',
+    borderRadius: 4,
+    marginVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  delayControl: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginVertical: 12,
+  },
+  delayInput: {
+    borderColor: '#c7d2fe',
+    borderRadius: 4,
+    borderWidth: 1,
+    marginHorizontal: 8,
+    minWidth: 88,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    textAlign: 'right',
+  },
+  delayPresetButton: {
+    marginHorizontal: 4,
+  },
+  delayPresets: {
+    flexDirection: 'row',
+    marginBottom: 8,
   },
 });

@@ -24,7 +24,7 @@ on:
 
 jobs:
   authorize:
-    name: Authorize
+    name: Authorize and Verify Packages on NPM
     runs-on: ubuntu-latest
     steps:
       - name: Check branch protection
@@ -49,11 +49,35 @@ jobs:
           esac
 
       - name: ${{ github.actor }} permission check to do a release
-        uses: 'lannonbr/repo-permission-check-action@2bb8c89ba8bf115c4bfab344d6a6f442b24c9a1f'
-        with:
-          permission: 'write'
+        run: |
+          permission=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$GITHUB_ACTOR/permission" --jq '.permission')
+          case "$permission" in
+            write|admin) echo "Release permission check passed: $permission" ;;
+            *) echo "Release requires write access; $GITHUB_ACTOR has $permission access"; exit 1 ;;
+          esac
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The package check reads packages/*/package.json from the ref being published
+      # and calls `pnpm view`, so it needs the repo on disk plus Node and pnpm.
+      # No dependency install is required.
+      - name: Check out git repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref_name }}
+
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-node-pnpm
+        with:
+          install: 'false'
+
+      - name: Verify packages exist on npm
+        run: pnpm deploy:publish:check-packages
+
+      - name: Verify pinned custom enrichment version is already published
+        run: |
+          version=$(node -p "require('./packages/analytics-browser/package.json').dependencies['@amplitude/plugin-custom-enrichment-browser']")
+          bash scripts/publish/verify-custom-enrichment.sh "$version"
 
   e2e:
     name: E2E Tests
@@ -71,7 +95,7 @@ jobs:
 
       - name: Check out git repository
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch || github.ref_name }}
@@ -101,7 +125,7 @@ jobs:
 
       - name: Check out git repository
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch || github.ref_name }}
@@ -110,7 +134,7 @@ jobs:
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
         uses: ./.github/actions/build-and-test
         with:
-          node-version: 20.x
+          node-version: 24.x
           configure-git: 'false'
           configure-aws: 'false'
 
@@ -146,7 +170,7 @@ jobs:
 
       - name: Check out git repository
         if: ${{ github.event.inputs.skipLernaVersion != 'true' }}
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch || github.ref_name }}
@@ -159,7 +183,7 @@ jobs:
           new-arch: ${{ matrix.new-arch }}
 
   deploy:
-    name: Deploy
+    name: Publish SDK packages
     runs-on: ubuntu-latest
     environment: npm-release
     needs: [authorize, build-and-test, e2e, e2e-react-native]
@@ -169,7 +193,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        node-version: [24.x] # Ensure npm 11.5.1 or later is installed for OIDC, node 24.6 is minimal 
+        node-version: [24.x] # Node 24.6+ bundles npm 11.5.1+ for OIDC; pnpm 11 needs Node 22+.
 
     steps:
       - name: Validate protected branch
@@ -201,7 +225,7 @@ jobs:
           private-key: ${{ secrets.AMPLITUDE_DEV_EXP_PRIVATE_KEY }}
 
       - name: Check out git repository
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
@@ -251,31 +275,23 @@ jobs:
 
           echo "✅ Successfully created release version"
 
-      # Publish to NPM (also uploads minified JS and source maps to S3)
-      - name: Publish Release to NPM
+      # Custom enrichment is released independently; all SDK packages can go live together.
+      - name: Publish SDK packages to NPM
         run: |
           GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:publish
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
 
-      # Record the published release in Linear (continuous pipeline). Runs only after a
-      # successful npm publish, so each Linear release maps 1:1 to a real release, named
-      # after the analytics-browser version. Because lerna versions packages independently,
-      # only sync when this release actually bumped analytics-browser (its package.json
-      # changed in the lerna release commit) — otherwise its unchanged version would collide
-      # with the label of a previous Linear release. Tracking is best-effort: a Linear
-      # failure must not fail an already-published release.
       - name: Determine analytics-browser release
+        if: ${{ github.event.inputs.releaseType == 'release' }}
         id: linear-version
         run: |
           version=$(node -p "require('./packages/analytics-browser/package.json').version")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           if git diff --name-only HEAD~1 HEAD -- packages/analytics-browser/package.json | grep -q .; then
             echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "analytics-browser bumped to $version in this release; will sync to Linear"
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
-            echo "analytics-browser not part of this release; skipping Linear sync"
           fi
 
       - name: Sync release to Linear
@@ -288,7 +304,7 @@ jobs:
           version: ${{ steps.linear-version.outputs.version }}
 
   prerelease:
-    name: Prerelease feature branch
+    name: Publish SDK prerelease
     runs-on: ubuntu-latest
     environment: npm-release
     needs: [authorize, build-and-test, e2e, e2e-react-native]
@@ -298,7 +314,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        node-version: [24.x] # Ensure npm 11.5.1 or later is installed for OIDC, node 24.6 is minimal
+        node-version: [24.x] # Node 24.6+ bundles npm 11.5.1+ for OIDC; pnpm 11 needs Node 22+.
 
     steps:
       - name: Determine branch to use
@@ -325,7 +341,7 @@ jobs:
           private-key: ${{ secrets.AMPLITUDE_DEV_EXP_PRIVATE_KEY }}
 
       - name: Check out git repository
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ steps.determine-branch.outputs.branch }}
           fetch-depth: 0
@@ -347,10 +363,13 @@ jobs:
       #   - fix_bug_123 -> fixbug123
       #   - user@company.com -> usercompanycom
       - name: Transform feature branch name
+        id: prerelease-id
         env:
           BRANCH: ${{ steps.determine-branch.outputs.branch }}
         run: |
-          echo "PREID=$(echo "$BRANCH" | tr -cd '[:alnum:]-')" >> "$GITHUB_ENV"
+          preid=$(echo "$BRANCH" | tr -cd '[:alnum:]-')
+          echo "PREID=$preid" >> "$GITHUB_ENV"
+          echo "preid=$preid" >> "$GITHUB_OUTPUT"
 
       # Use --no-push to prevent pushing to remote
       # Version example: 1.0.0 -> 1.1.0-{preid}.0
@@ -371,15 +390,14 @@ jobs:
         run: |
           pnpm deploy:version -y --no-private --conventional-prerelease --preid "$PREID" --allow-branch "$BRANCH" --create-release github
 
-      # Publish to NPM (also uploads minified JS and source maps to S3)
-      - name: Publish Pre-release to NPM
+      - name: Publish SDK prerelease packages to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PREID: ${{ env.PREID }}
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
         run: |
-          pnpm deploy:publish --no-git-checks --ignore-scripts --tag "$PREID"
+          pnpm deploy:publish --ignore-scripts --tag "$PREID"
 
       - name: Dry run publish release to NPM
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}

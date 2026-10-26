@@ -16,12 +16,9 @@ test('iframe-sandbox parent page has no uncaught exceptions', async ({ page }) =
     `Failed to read the 'cookie' property from 'Document'`,
     `SecurityError: The operation is insecure`,
   ];
-  const unexpectedErrors = [
-    `Access to the Locks API is denied in this context`,
-  ];
+  const unexpectedErrors = [`Access to the Locks API is denied in this context`];
   for (const error of errors) {
-    expect(
-      expectedErrors.find((err) => error.message.includes(err))).toBeDefined();
+    expect(expectedErrors.find((err) => error.message.includes(err))).toBeDefined();
     expect(unexpectedErrors.find((err) => error.message.includes(err))).toBeUndefined();
   }
   expect(errors.length <= 3).toBe(true);

@@ -21,6 +21,17 @@ export { getQueryParams } from './query-params';
 export { returnWrapper, AmplitudeReturn } from './utils/return-wrapper';
 export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug';
 export { UUID } from './utils/uuid';
+export {
+  PAGE_VIEW_SESSION_STORAGE_KEY,
+  getOrCreatePageViewId,
+  getCurrentPageViewId,
+  clearPageViewState,
+} from './page-view-id';
+export {
+  AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET,
+  getSdkInitializationOffset,
+  clearSdkInitializationOffset,
+} from './sdk-initialization-offset';
 export { createIdentifyEvent } from './utils/event-builder';
 export { isUrlMatchAllowlist, getDecodeURI } from './utils/url-utils';
 export { generateHashCode, isTimestampInSample } from './utils/sampling';
@@ -128,6 +139,7 @@ export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
 export { CustomEnrichmentOptions } from './types/custom-enrichment';
 export { PerformanceTrackingOptions, MainThreadBlockOptions } from './types/performance-tracking';
+export { WebVitalsOptions } from './types/web-vitals';
 
 // Campaign
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
@@ -165,6 +177,7 @@ export { NodeConfig, NodeOptions } from './types/config/node-config';
 export {
   ReactNativeConfig,
   ReactNativeAutocaptureOptions,
+  ReactNativeFrustrationInteractionsOptions,
   ReactNativeTrackingOptions,
   ReactNativeOptions,
   ReactNativeAttributionOptions,
@@ -182,6 +195,11 @@ export { pruneJson } from './utils/json-query';
 export type { BaseWindowMessenger, ActionHandler } from './messenger/base-window-messenger';
 export { getOrCreateWindowMessenger } from './messenger/base-window-messenger';
 export { enableBackgroundCapture } from './messenger/background-capture';
+export type {
+  BackgroundCaptureDeviceMode,
+  InitializeBackgroundCaptureData,
+} from './messenger/background-capture-types';
+export { parseBackgroundCaptureDeviceMode } from './messenger/background-capture-types';
 export {
   AMPLITUDE_ORIGIN,
   AMPLITUDE_ORIGIN_EU,

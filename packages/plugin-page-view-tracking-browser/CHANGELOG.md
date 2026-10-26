@@ -3,6 +3,81 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.11.24](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.23...@amplitude/plugin-page-view-tracking-browser@2.11.24) (2026-10-20)
+
+
+### Bug Fixes
+
+* **browser:** share page view ids across sdk instances ([#2052](https://github.com/amplitude/Amplitude-TypeScript/issues/2052)) ([4de670b](https://github.com/amplitude/Amplitude-TypeScript/commit/4de670bec16521fbdf93e3541f6c4d57132ecd96))
+
+
+
+
+
+## [2.11.23](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.22...@amplitude/plugin-page-view-tracking-browser@2.11.23) (2026-10-15)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.11.22](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.21...@amplitude/plugin-page-view-tracking-browser@2.11.22) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.11.21](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.20...@amplitude/plugin-page-view-tracking-browser@2.11.21) (2026-10-08)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.11.20](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.19...@amplitude/plugin-page-view-tracking-browser@2.11.20) (2026-10-07)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.11.19](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.18...@amplitude/plugin-page-view-tracking-browser@2.11.19) (2026-09-29)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.11.18](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.17...@amplitude/plugin-page-view-tracking-browser@2.11.18) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.11.17](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.16...@amplitude/plugin-page-view-tracking-browser@2.11.17) (2026-09-23)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.11.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.15...@amplitude/plugin-page-view-tracking-browser@2.11.16) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
 ## [2.11.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.14...@amplitude/plugin-page-view-tracking-browser@2.11.15) (2026-09-16)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser

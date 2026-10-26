@@ -1,3 +1,38 @@
 packages:
   - '.'
   - '../../../packages/*'
+
+overrides:
+  metro-babel-transformer: 0.81.5
+  metro-source-map: 0.81.5
+
+allowBuilds:
+  esbuild: true
+  msw: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - '@amplitude/rrdom@2.1.5'
+  - '@amplitude/rrweb-plugin-console-record@2.1.5'
+  - '@amplitude/rrweb-record@2.1.5'
+  - '@amplitude/rrweb-snapshot@2.1.5'
+  - '@amplitude/rrweb-types@2.1.5'
+  - '@amplitude/rrweb@2.1.5'
+
+# Metro cannot resolve packages from pnpm's symlinked .pnpm store, so use a
+# flat node_modules layout. The workspace example at examples/react-native/app
+# uses the same approach through the repo-root pnpm-workspace.yaml.
+nodeLinker: hoisted
+
+# Hoist packages Metro, Expo CLI, and Gradle scripts resolve from the project root.
+publicHoistPattern:
+  - '*react-native*'
+  - '@react-native-async-storage/*'
+  - '@amplitude/*'
+  - '@babel/*'
+  - '@react-native/*'
+  - '@react-native-community/*'
+  - '@react-navigation/*'
+  - '@expo/*'
+  - metro
+  - 'metro-*'

@@ -1,8 +1,16 @@
 # Shadow DOM support
 
-Autocapture can pierce **open** shadow roots when remote config enables it. Clicks inside a shadow tree produce element paths that cross boundaries (` >>> ` between per-tree segments). The selector engine resolves those paths with `resolveSelector` — plain `document.querySelector` cannot pierce shadow boundaries.
+Autocapture can pierce **open** shadow roots when enabled, either locally or via remote config. Clicks inside a shadow tree produce element paths that cross boundaries (` >>> ` between per-tree segments). The selector engine resolves those paths with `resolveSelector` — plain `document.querySelector` cannot pierce shadow boundaries.
 
 **Default:** shadow piercing is off (`shadowDomEnabled: false`). It is independent from the selector engine kill switch (`enabled`).
+
+**Local config** (`elementInteractions` options, applied at plugin setup):
+
+```ts
+autocapture: {
+  elementInteractions: { shadowDomEnabled: true, maxShadowDomDepth: 1 },
+}
+```
 
 | Package | Responsibility |
 |---------|----------------|
@@ -33,7 +41,7 @@ Config field details and selector syntax: [`packages/element-selector/README.md`
 
 `ShadowGate` (`src/shadow-mode.ts`) holds the effective shadow mode for the page:
 
-1. Starts off until remote config arms it.
+1. Starts off until the local `autocapture.elementInteractions.shadowDomEnabled` option or remote config arms it.
 2. **Latches on the first delivery that enables shadow support** — later deliveries that disable it have no effect until the next full page load.
 3. **Fixes `maxShadowDomDepth` on that first arming delivery** for the rest of the page.
 

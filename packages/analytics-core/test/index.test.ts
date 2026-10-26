@@ -70,6 +70,7 @@ import {
   registerSdkLoaderMetadata,
   getOrCreateWindowMessenger,
   enableBackgroundCapture,
+  parseBackgroundCaptureDeviceMode,
   AMPLITUDE_ORIGIN,
   AMPLITUDE_ORIGIN_EU,
   AMPLITUDE_ORIGIN_STAGING,
@@ -78,6 +79,13 @@ import {
   EXCLUDE_INTERNAL_REFERRERS_CONDITIONS,
   omitUndefined,
   pruneJson,
+  PAGE_VIEW_SESSION_STORAGE_KEY,
+  getOrCreatePageViewId,
+  getCurrentPageViewId,
+  clearPageViewState,
+  AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET,
+  getSdkInitializationOffset,
+  clearSdkInitializationOffset,
 } from '../src/index';
 
 describe('index', () => {
@@ -167,6 +175,9 @@ describe('index', () => {
     expect(typeof registerSdkLoaderMetadata).toBe('function');
     expect(typeof getOrCreateWindowMessenger).toBe('function');
     expect(typeof enableBackgroundCapture).toBe('function');
+    expect(typeof parseBackgroundCaptureDeviceMode).toBe('function');
+    expect(parseBackgroundCaptureDeviceMode('tablet')).toBe('tablet');
+    expect(parseBackgroundCaptureDeviceMode('invalid')).toBeUndefined();
     expect(typeof AMPLITUDE_ORIGIN).toBe('string');
     expect(typeof AMPLITUDE_ORIGIN_EU).toBe('string');
     expect(typeof AMPLITUDE_ORIGIN_STAGING).toBe('string');
@@ -175,6 +186,13 @@ describe('index', () => {
     expect(typeof EXCLUDE_INTERNAL_REFERRERS_CONDITIONS).toBe('object');
     expect(typeof omitUndefined).toBe('function');
     expect(typeof pruneJson).toBe('function');
+    expect(PAGE_VIEW_SESSION_STORAGE_KEY).toBe('AMP_PAGE_VIEW');
+    expect(typeof getOrCreatePageViewId).toBe('function');
+    expect(typeof getCurrentPageViewId).toBe('function');
+    expect(typeof clearPageViewState).toBe('function');
+    expect(AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET).toBe('[Amplitude] SDK Initialization Offset');
+    expect(typeof getSdkInitializationOffset).toBe('function');
+    expect(typeof clearSdkInitializationOffset).toBe('function');
   });
 
   describe('EXCLUDE_INTERNAL_REFERRERS_CONDITIONS export', () => {

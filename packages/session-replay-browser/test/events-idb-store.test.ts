@@ -644,4 +644,37 @@ describe('SessionReplayEventsIDBStore', () => {
       expect(onPersistentFailure).not.toHaveBeenCalled();
     });
   });
+
+  describe('UTF-8 size cache across IDB reloads', () => {
+    // 'é' is 2 bytes. 30 of them = 60 bytes. With JSON array overhead, a 200-byte
+    // cap splits on the 4th add (buffer of 3) and again every 3 buffered events.
+    // A stale or crossed session cache would split earlier or not at all.
+    const event = 'é'.repeat(30);
+
+    test('splits on the recounted byte boundary for each session', async () => {
+      const eventsStorage = await SessionReplayEventsIDBStore.new('replay', {
+        apiKey: 'sizecache1',
+        loggerProvider: mockLoggerProvider,
+        maxPersistedEventsSize: 200,
+        minInterval: 60_000_000,
+      });
+
+      const sessionA: Array<Awaited<ReturnType<SessionReplayEventsIDBStore['addEventToCurrentSequence']>>> = [];
+      const sessionB: Array<Awaited<ReturnType<SessionReplayEventsIDBStore['addEventToCurrentSequence']>>> = [];
+      for (let i = 0; i < 8; i++) {
+        sessionA.push(await eventsStorage!.addEventToCurrentSequence(11, event));
+        sessionB.push(await eventsStorage!.addEventToCurrentSequence(22, 'x'));
+      }
+
+      expect(sessionA.map((result) => result?.events.length ?? 0)).toEqual([0, 0, 0, 3, 0, 0, 3, 0]);
+      expect(sessionB.every((result) => result === undefined)).toBe(true);
+
+      // Index 7 left two events in the new buffer. Clearing that slot and appending
+      // again must not reuse the pre-split total.
+      const drained = await eventsStorage!.storeCurrentSequence(11);
+      expect(drained?.events).toEqual([event, event]);
+      expect(await eventsStorage!.addEventToCurrentSequence(11, event)).toBeUndefined();
+      expect(await eventsStorage!.addEventToCurrentSequence(11, event)).toBeUndefined();
+    });
+  });
 });

@@ -53,10 +53,10 @@
 
         /* Clears the fixed HUD so the first zone does not start underneath it, and
            the payload panel so zones are never hidden behind it. */
-        main { padding-top: 372px; padding-right: 440px; }
+        main { padding-top: 420px; padding-right: 440px; }
 
         #payload-panel {
-            position: fixed; top: 380px; right: 8px; width: 400px; max-height: 60vh; overflow: auto;
+            position: fixed; top: 420px; right: 8px; width: 400px; max-height: 55vh; overflow: auto;
             z-index: 2147483647; padding: 8px 10px; background: #111; color: #eee; border-radius: 6px;
             font: 11px/1.45 monospace; box-shadow: 0 4px 16px rgba(0, 0, 0, .4);
         }
@@ -143,6 +143,12 @@
             expose. The top bar is a sticky site header: it stays in the viewport, so it should appear in
             an exposed event on load and remain counted as you scroll. The panel on the right shows the
             actual event payloads the SDK sends.
+            <br><br>
+            <strong>Min Page Y</strong> is the lowest <code>scrollY</code> seen on this page view.
+            Open with <code>?deferInit=1</code> to start below the top: scroll first, then
+            <em>Start SDK</em>, then <em>Flush now</em> — Min Page Y should match the live scrollY.
+            Or load normally, jump to 800, <em>Client navigate at current scroll</em> (changes the hash),
+            then flush — the new page's Min Page Y should be ~800, not 0.
         </div>
         <div class="controls">
             <label>
@@ -163,7 +169,17 @@
             <button id="scroll-100" type="button">100%</button>
             <button id="scroll-oversized" type="button">#oversized-target 50%</button>
         </div>
+        <div class="controls" id="min-page-y-controls">
+            Min Page Y checks:
+            <button id="jump-scroll-800" type="button">Jump to scrollY 800</button>
+            <button id="jump-scroll-top" type="button">Jump to top</button>
+            <button id="start-sdk" type="button" hidden>Start SDK</button>
+            <button id="spa-navigate" type="button">Client navigate at current scroll</button>
+            <span class="hint" id="min-page-y-hint"></span>
+        </div>
         <div id="summary">exposed 0 of 0 zones</div>
+        <div class="hint" id="live-scroll">live scrollY: 0</div>
+        <div class="hint" id="scroll-range">scroll range: waiting for the first Viewport Content Updated event</div>
         <div class="hint" id="duration-note"></div>
         <div id="zone-table"></div>
         <div id="status">ready</div>
@@ -254,8 +270,11 @@
         // Playwright spec size their waits off the same number. `?exposureDuration=`
         // stretches the dwell, which makes it observable by hand and lets timing
         // assertions keep a wide margin on a loaded CI runner.
-        const EXPOSURE_DURATION =
-            Number(new URLSearchParams(location.search).get('exposureDuration')) || 150;
+        const searchParams = new URLSearchParams(location.search);
+        const EXPOSURE_DURATION = Number(searchParams.get('exposureDuration')) || 150;
+        // `?deferInit=1` leaves the SDK unloaded so a test can scroll first and then
+        // call `__exposureHarness.start()`. That is how a late load is reproduced.
+        const DEFER_INIT = searchParams.get('deferInit') === '1';
         const AUTO_FLUSH_MS = 500;
 
         const zones = Array.from(document.querySelectorAll('.zone'));
@@ -403,6 +422,8 @@
             exposedPaths,
             payloads,
             EXPOSURE_DURATION,
+            // Assigned below, once the logger it depends on exists.
+            start: () => Promise.reject(new Error('harness start is not ready')),
         };
 
         const renderPayloads = () => {
@@ -523,6 +544,14 @@
                     });
                     // eslint-disable-next-line no-console
                     console.log('%c[Amplitude] Viewport Content Updated', 'color:#0a0', event.event_properties);
+                    const minPageY = event.event_properties?.['[Amplitude] Min Page Y'];
+                    const maxPageY = event.event_properties?.['[Amplitude] Max Page Y'];
+                    const scrollRange = document.getElementById('scroll-range');
+                    if (scrollRange && typeof minPageY === 'number' && typeof maxPageY === 'number') {
+                        scrollRange.textContent =
+                            `scroll range: Min Page Y ${minPageY} → Max Page Y ${maxPageY}` +
+                            (minPageY > 0 ? ' (tracking started below the top of the page)' : '');
+                    }
                     zones.forEach((zone) => {
                         if (paths.includes(`button#${zone.id}`)) {
                             zoneState.get(zone).exposed = true;
@@ -535,8 +564,72 @@
             },
         };
 
+        const renderLiveScroll = () => {
+            const live = document.getElementById('live-scroll');
+            if (!live) return;
+            const y = Math.floor(window.scrollY);
+            live.textContent =
+                `live scrollY: ${y} · viewport height: ${viewportHeight()}` +
+                (y > 0 ? ` · if tracking starts here, Min Page Y should be ${y}` : '');
+        };
+
+        const updateMinPageYHint = () => {
+            const hint = document.getElementById('min-page-y-hint');
+            const startButton = document.getElementById('start-sdk');
+            if (!hint || !startButton) return;
+            if (DEFER_INIT && document.getElementById('status')?.textContent === 'deferred') {
+                startButton.hidden = false;
+                hint.textContent =
+                    'Deferred: scroll away from the top, Start SDK, then Flush — Min Page Y should equal live scrollY.';
+                return;
+            }
+            startButton.hidden = true;
+            hint.textContent =
+                'Jump to 800 → Client navigate → Flush. Leaving-page Min is often 0; the next event after navigate should show Min ≈ 800.';
+        };
+
+        // Self-contained: fall back to a dummy key so the page works without a
+        // configured environment. The Playwright spec intercepts track requests,
+        // so the key value is irrelevant to the assertions.
+        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'viewport-exposure-e2e-key';
+
+        let starting;
+        const start = () => {
+            if (starting) return starting;
+            starting = amplitude.init(apiKey, 'test-user', {
+                fetchRemoteConfig: false,
+                // Flush eagerly so exposure events reach the network quickly.
+                flushIntervalMillis: 300,
+                flushQueueSize: 1,
+                autocapture: {
+                    pageViews: false,
+                    sessions: false,
+                    formInteractions: false,
+                    fileDownloads: false,
+                    elementInteractions: {
+                        viewportContentUpdated: { enabled: true, exposureDuration: EXPOSURE_DURATION },
+                    },
+                },
+                logLevel: 0,
+            }).promise.then(() => {
+                amplitude.add(exposureLogger);
+                // A deferred start is driven by the test, which flushes by hand.
+                setAutoFlush(!DEFER_INIT);
+                document.getElementById('duration-note').textContent =
+                    `dwell required: ${EXPOSURE_DURATION}ms (override with ?exposureDuration=)`;
+                render();
+                renderPayloads();
+                document.getElementById('status').textContent = 'initialized';
+                updateMinPageYHint();
+                renderLiveScroll();
+            });
+            return starting;
+        };
+        window.__exposureHarness.start = start;
+
         let renderQueued = false;
         window.addEventListener('scroll', () => {
+            renderLiveScroll();
             if (renderQueued) return;
             renderQueued = true;
             requestAnimationFrame(() => {
@@ -544,6 +637,8 @@
                 render();
             });
         });
+        renderLiveScroll();
+        updateMinPageYHint();
 
         document.getElementById('auto-flush').addEventListener('change', (event) =>
             setAutoFlush(event.target.checked),
@@ -557,36 +652,36 @@
         document.getElementById('scroll-oversized').addEventListener('click', () =>
             void scrollElementTo(0.5, document.getElementById('oversized-target')),
         );
-
-        // Self-contained: fall back to a dummy key so the page works without a
-        // configured environment. The Playwright spec intercepts track requests,
-        // so the key value is irrelevant to the assertions.
-        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY || 'viewport-exposure-e2e-key';
-
-        amplitude.init(apiKey, 'test-user', {
-            fetchRemoteConfig: false,
-            // Flush eagerly so exposure events reach the network quickly.
-            flushIntervalMillis: 300,
-            flushQueueSize: 1,
-            autocapture: {
-                pageViews: false,
-                sessions: false,
-                formInteractions: false,
-                fileDownloads: false,
-                elementInteractions: {
-                    viewportContentUpdated: { enabled: true, exposureDuration: EXPOSURE_DURATION },
-                },
-            },
-            logLevel: 0,
-        }).promise.then(() => {
-            amplitude.add(exposureLogger);
-            setAutoFlush(true);
-            document.getElementById('duration-note').textContent =
-                `dwell required: ${EXPOSURE_DURATION}ms (override with ?exposureDuration=)`;
+        document.getElementById('jump-scroll-800').addEventListener('click', () => {
+            window.scrollTo(0, 800);
+            renderLiveScroll();
             render();
-            renderPayloads();
-            document.getElementById('status').textContent = 'initialized';
         });
+        document.getElementById('jump-scroll-top').addEventListener('click', () => {
+            window.scrollTo(0, 0);
+            renderLiveScroll();
+            render();
+        });
+        document.getElementById('start-sdk').addEventListener('click', () => {
+            void start().then(() => {
+                updateMinPageYHint();
+                renderLiveScroll();
+            });
+        });
+        document.getElementById('spa-navigate').addEventListener('click', () => {
+            const url = new URL(location.href);
+            url.hash = `manual-nav-${Date.now()}`;
+            history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
+            renderLiveScroll();
+            updateMinPageYHint();
+        });
+
+        if (!DEFER_INIT) {
+            void start();
+        } else {
+            document.getElementById('status').textContent = 'deferred';
+            updateMinPageYHint();
+        }
     </script>
 </body>
 </html>

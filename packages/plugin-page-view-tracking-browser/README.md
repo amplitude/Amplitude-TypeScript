@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://amplitude.com" target="_blank" align="center">
-    <img src="https://static.amplitude.com/lightning/46c85bfd91905de8047f1ee65c7c93d6fa9ee6ea/static/media/amplitude-logo-with-text.4fb9e463.svg" width="280">
+    <img src="https://static.amplitude.com/brand/amplitude-logo-with-text.svg" width="280">
   </a>
   <br />
 </p>
@@ -79,3 +79,6 @@ This plugin tracks page views based on your configuration. A page view event is 
 |`'[Amplitude] Page Path'`|The website's pathname or `location.pathname`|
 |`'[Amplitude] Page Title'`|The website's title or `document.title`|
 |`'[Amplitude] Page URL'`|The website's url excluding query parameters|
+|`'[Amplitude] Min Page Y'`|The vertical scroll offset (`window.scrollY`) when the page view event is created. This is the top of the viewport, not the offset plus viewport height. A non-zero value means the page view started below the top of the page.|
+|`'[Amplitude] Viewport Width'`|The viewport width (`window.innerWidth`) when the page view event is created.|
+|`'[Amplitude] SDK Initialization Offset'`|Milliseconds from the document navigation start until this SDK first initialized. The same value is kept for later page views in the document, including single-page navigations.|

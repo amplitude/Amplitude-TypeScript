@@ -4,6 +4,10 @@ inputs:
   node-version:
     description: 'Node.js version to use'
     required: true
+  package-scope:
+    description: 'Optional package name to build, test, and lint along with its workspace dependencies'
+    required: false
+    default: ''
   run-tests:
     description: 'Whether to run unit tests'
     required: false
@@ -25,10 +29,10 @@ runs:
   using: "composite"
   steps:
     - name: Setup pnpm
-      uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      uses: pnpm/action-setup@ff378ebe6b225b0680b81c1ad4498ae0d1d3a5e3 # v6.0.10
 
     - name: Setup Node.js ${{ inputs.node-version }}
-      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
       with:
         node-version: ${{ inputs.node-version }}
         registry-url: 'https://registry.npmjs.org'
@@ -39,21 +43,39 @@ runs:
         pnpm install --frozen-lockfile
       shell: bash
 
-    - name: Build all packages
+    - name: Build packages
+      env:
+        PACKAGE_SCOPE: ${{ inputs.package-scope }}
       run: |
-        pnpm build
+        args=()
+        if [ -n "$PACKAGE_SCOPE" ]; then
+          args+=(--scope "$PACKAGE_SCOPE" --include-dependencies)
+        fi
+        pnpm build "${args[@]}"
       shell: bash
 
-    - name: Test all packages
+    - name: Test packages
       if: inputs.run-tests == 'true'
+      env:
+        PACKAGE_SCOPE: ${{ inputs.package-scope }}
       run: |
-        pnpm test
+        args=()
+        if [ -n "$PACKAGE_SCOPE" ]; then
+          args+=(--scope "$PACKAGE_SCOPE" --include-dependencies)
+        fi
+        pnpm test "${args[@]}"
       shell: bash
 
-    - name: Lint all packages
+    - name: Lint packages
       if: inputs.run-lint == 'true'
+      env:
+        PACKAGE_SCOPE: ${{ inputs.package-scope }}
       run: |
-        pnpm lint
+        args=()
+        if [ -n "$PACKAGE_SCOPE" ]; then
+          args+=(--scope "$PACKAGE_SCOPE" --include-dependencies)
+        fi
+        pnpm lint "${args[@]}"
       shell: bash
 
     - name: Configure Git User
@@ -64,7 +86,7 @@ runs:
       shell: bash
 
     - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@5fd3084fc36e372ff1fff382a39b10d03659f355 # v2
+      uses: aws-actions/configure-aws-credentials@99214aa6889fcddfa57764031d71add364327e59 # v6.1.3
       if: inputs.configure-aws == 'true' && github.event.inputs.releaseType != 'dry-run'
       with:
         role-to-assume: arn:aws:iam::358203115967:role/github-actions-role

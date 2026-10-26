@@ -7,6 +7,7 @@ import {
   getNetworkTrackingConfig,
   getPageViewTrackingConfig,
   getPerformanceTrackingConfig,
+  getWebVitalsConfig,
   isAttributionTrackingEnabled,
   isCustomEnrichmentEnabled,
   isElementInteractionsEnabled,
@@ -60,6 +61,11 @@ describe('isWebVitalsEnabled', () => {
     test('autocapture.webVitals=true', () => {
       expect(isWebVitalsEnabled({ webVitals: true })).toBe(true);
     });
+
+    test('autocapture.webVitals is an options object', () => {
+      expect(isWebVitalsEnabled({ webVitals: { reportSoftNav: true } })).toBe(true);
+      expect(isWebVitalsEnabled({ webVitals: {} })).toBe(true);
+    });
   });
 
   describe('is false when', () => {
@@ -74,6 +80,32 @@ describe('isWebVitalsEnabled', () => {
     test('autocapture.webVitals is undefined', () => {
       expect(isWebVitalsEnabled({ networkTracking: true })).toBe(false);
     });
+
+    test('autocapture.webVitals is null', () => {
+      expect(isWebVitalsEnabled({ webVitals: null as unknown as undefined })).toBe(false);
+    });
+  });
+});
+
+describe('getWebVitalsConfig', () => {
+  test('should return the options when autocapture.webVitals is an options object', () => {
+    expect(getWebVitalsConfig({ autocapture: { webVitals: { reportSoftNav: true } } })).toEqual({
+      reportSoftNav: true,
+    });
+  });
+
+  test('should return undefined when autocapture.webVitals is a boolean', () => {
+    expect(getWebVitalsConfig({ autocapture: { webVitals: true } })).toBeUndefined();
+    expect(getWebVitalsConfig({ autocapture: { webVitals: false } })).toBeUndefined();
+  });
+
+  test('should return undefined when autocapture.webVitals is null', () => {
+    expect(getWebVitalsConfig({ autocapture: { webVitals: null as unknown as undefined } })).toBeUndefined();
+  });
+
+  test('should return undefined when autocapture is not an object', () => {
+    expect(getWebVitalsConfig({ autocapture: true })).toBeUndefined();
+    expect(getWebVitalsConfig({})).toBeUndefined();
   });
 });
 

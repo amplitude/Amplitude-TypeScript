@@ -3,6 +3,48 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.0.0 (2026-10-21)
+
+### Breaking changes
+
+- Move `@amplitude/analytics-core` from a regular dependency to the required peer range `^2.61.0`. Direct plugin consumers must provide a compatible core dependency; the Browser SDK provides it for its bundled plugin. The core dependency is type-only, but remains necessary for published TypeScript declarations.
+- Release the plugin independently from routine SDK releases. Browser adoption follows npm staging, maintainer approval, and verification of this exact version.
+
+## [0.1.28](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-custom-enrichment-browser@0.1.27...@amplitude/plugin-custom-enrichment-browser@0.1.28) (2026-10-20)
+
+**Note:** Version bump only for package @amplitude/plugin-custom-enrichment-browser
+
+
+
+
+
+## [0.1.27](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-custom-enrichment-browser@0.1.26...@amplitude/plugin-custom-enrichment-browser@0.1.27) (2026-10-15)
+
+**Note:** Version bump only for package @amplitude/plugin-custom-enrichment-browser
+
+
+
+
+
+## [0.1.26](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-custom-enrichment-browser@0.1.25...@amplitude/plugin-custom-enrichment-browser@0.1.26) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/plugin-custom-enrichment-browser
+
+
+
+
+
+## [0.1.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-custom-enrichment-browser@0.1.23...@amplitude/plugin-custom-enrichment-browser@0.1.25) (2026-10-08)
+
+
+### Bug Fixes
+
+* **plugin-custom-enrichment-browser:** stage dual-use releases ([#2043](https://github.com/amplitude/Amplitude-TypeScript/issues/2043)) ([3bb47d4](https://github.com/amplitude/Amplitude-TypeScript/commit/3bb47d48dd169c864f3be12a6661bc24f799c1c9))
+
+
+
+
+
 ## [0.1.23](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-custom-enrichment-browser@0.1.22...@amplitude/plugin-custom-enrichment-browser@0.1.23) (2026-09-16)
 
 **Note:** Version bump only for package @amplitude/plugin-custom-enrichment-browser

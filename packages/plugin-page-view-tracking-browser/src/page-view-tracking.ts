@@ -12,13 +12,16 @@ import {
   getGlobalScope,
   BASE_CAMPAIGN,
   BrowserStorage,
-  UUID,
   omitUndefined,
+  getCurrentPageViewId,
+  getOrCreatePageViewId,
+  AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET,
+  getSdkInitializationOffset,
 } from '@amplitude/analytics-core';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 
 export const defaultPageViewEvent = '[Amplitude] Page Viewed';
-export const PAGE_VIEW_SESSION_STORAGE_KEY = 'AMP_PAGE_VIEW';
+export { PAGE_VIEW_SESSION_STORAGE_KEY } from '@amplitude/analytics-core';
 
 type PageViewSessionStorage = {
   pageViewId: string;
@@ -46,6 +49,11 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   };
 
   const createPageViewEvent = async (pageViewId: string | undefined): Promise<Event> => {
+    // Scroll and viewport are read before the campaign await so a later change stays off this event.
+    // The init offset was sampled when the plugin was installed, so this read does not move it.
+    const minPageY = readMinPageY();
+    const viewportWidth = readViewportWidth();
+    const sdkInitializationOffset = getSdkInitializationOffset(localConfig.apiKey);
     /* istanbul ignore next */
     const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
     return {
@@ -59,6 +67,9 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
         '[Amplitude] Page Title': /* istanbul ignore next */ getPageTitle(replaceSensitiveString),
         '[Amplitude] Page URL': locationHREF.split('?')[0],
+        '[Amplitude] Min Page Y': minPageY,
+        '[Amplitude] Viewport Width': viewportWidth,
+        [AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET]: sdkInitializationOffset,
         '[Amplitude] Page View ID': pageViewId,
       },
     };
@@ -80,11 +91,11 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     previousURL = newURL;
 
     if (shouldTrackPageView) {
-      // Generate new page view id and set it in session storage
+      // Reuse the id already minted for this project and URL, if another SDK instance
+      // initialized first. Otherwise mint one and publish it for autocapture.
       let pageViewId: string | undefined;
       if (sessionStorage) {
-        pageViewId = UUID();
-        void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+        pageViewId = getOrCreatePageViewId(localConfig.apiKey, currentHref());
       }
 
       /* istanbul ignore next */
@@ -110,6 +121,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
 
       isTracking = true;
+      // Freeze the navigation-to-init offset now, including when the first page view is deferred.
+      getSdkInitializationOffset(localConfig.apiKey);
       if (globalScope) {
         // init session storage
         try {
@@ -138,12 +151,12 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
       if (shouldTrackOnPageLoad()) {
         loggerProvider.log('Tracking page view event');
-        // Generate new page view id and set it in session storage
+        // Reuse the id already minted for this project and URL, if another SDK instance
+        // initialized first. Otherwise mint one and publish it for autocapture.
         let pageViewId: string | undefined;
 
         if (sessionStorage) {
-          pageViewId = UUID();
-          void sessionStorage.set(PAGE_VIEW_SESSION_STORAGE_KEY, { pageViewId });
+          pageViewId = getOrCreatePageViewId(localConfig.apiKey, currentHref());
         }
 
         amplitude.track(await createPageViewEvent(pageViewId));
@@ -154,11 +167,10 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       if (trackOn === 'attribution' && isCampaignEvent(event)) {
         /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
         loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');
-        // Retrieve current page view id from session storage
+        // Retrieve the current page view id. Do not mint a new one for attribution.
         let pageViewId: string | undefined;
         if (sessionStorage) {
-          const pageViewSession = await sessionStorage.get(PAGE_VIEW_SESSION_STORAGE_KEY);
-          pageViewId = pageViewSession?.pageViewId;
+          pageViewId = getCurrentPageViewId(localConfig.apiKey);
         }
 
         const pageViewEvent = await createPageViewEvent(pageViewId);
@@ -188,6 +200,28 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     },
   };
   return plugin;
+};
+
+/* istanbul ignore next */
+const currentHref = (): string => (typeof location !== 'undefined' && location.href) || '';
+
+/** Top of the viewport (`scrollY`) when the page view event is created. */
+const readMinPageY = (): number => {
+  const scope = getGlobalScope();
+  if (!scope) {
+    return 0;
+  }
+  const offset = scope.scrollY ?? scope.pageYOffset ?? 0;
+  return Math.floor(offset);
+};
+
+/** `window.innerWidth` when the page view event is created. Same property as other autocapture events. */
+const readViewportWidth = (): number => {
+  const scope = getGlobalScope();
+  if (!scope) {
+    return 0;
+  }
+  return scope.innerWidth ?? 0;
 };
 
 const getCampaignParams = async () => omitUndefined(await new CampaignParser().parse());

@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://amplitude.com" target="_blank" align="center">
-    <img src="https://static.amplitude.com/lightning/46c85bfd91905de8047f1ee65c7c93d6fa9ee6ea/static/media/amplitude-logo-with-text.4fb9e463.svg" width="280">
+    <img src="https://static.amplitude.com/brand/amplitude-logo-with-text.svg" width="280">
   </a>
   <br />
 </p>
@@ -525,3 +525,18 @@ sessionReplay.init(AMPLITUDE_API_KEY, {
 })
 ```
 
+
+#### 5. Use data attributes
+
+Use `data-amp-block`, `data-amp-mask`, and `data-amp-unmask` as alternatives to
+`amp-block`, `amp-mask`, and `amp-unmask` classes. No configuration is required.
+
+```html
+<section data-amp-block>Excluded from replay</section>
+<p data-amp-mask>Masked text</p>
+<input data-amp-unmask />
+```
+
+Attribute presence enables the annotation, regardless of its value. Explicit
+masking on an element or ancestor takes precedence over unmasking, and blocked
+subtrees remain excluded.

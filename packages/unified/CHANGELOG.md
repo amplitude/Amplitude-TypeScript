@@ -3,6 +3,78 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.43](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.42...@amplitude/unified@1.1.43) (2026-10-20)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.42](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.41...@amplitude/unified@1.1.42) (2026-10-15)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.41](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.40...@amplitude/unified@1.1.41) (2026-10-09)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.40](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.39...@amplitude/unified@1.1.40) (2026-10-08)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.39](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.38...@amplitude/unified@1.1.39) (2026-10-07)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.38](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.37...@amplitude/unified@1.1.38) (2026-09-29)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.37](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.36...@amplitude/unified@1.1.37) (2026-09-25)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.36](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.35...@amplitude/unified@1.1.36) (2026-09-23)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
+## [1.1.35](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.34...@amplitude/unified@1.1.35) (2026-09-21)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 ## [1.1.34](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.33...@amplitude/unified@1.1.34) (2026-09-16)
 
 **Note:** Version bump only for package @amplitude/unified
