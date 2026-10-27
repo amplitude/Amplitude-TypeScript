@@ -1,8 +1,8 @@
 const limits = [
   {
-    // analytics-browser bundle
+    // analytics-browser bundle, including background snapshot throttling (~75.04 kB gzip).
     path: './packages/analytics-browser/lib/scripts/amplitude-min.js.gz',
-    limit: '75kb',
+    limit: '75.5kb',
     brotli: false,
   },
   {
