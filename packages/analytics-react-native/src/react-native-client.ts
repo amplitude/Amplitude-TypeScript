@@ -331,7 +331,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (this.config.offline !== OfflineDisabled) {
       await this.add(networkConnectivityCheckerPlugin()).promise;
     }
-    await this.add(new Destination({ diagnosticsClient })).promise;
+    await this.add(new Destination({ diagnosticsClient, retryPolicy: 'client' })).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
 
@@ -407,7 +407,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     if (isNative()) {
       return;
     }
-    const track = (...args: Parameters<typeof this.track>) => this.track(...args).promise;
+    const track = async (...args: Parameters<typeof this.track>) => {
+      // Retried uploads can stay pending throughout an outage. Enqueue the
+      // campaign identify without making SDK initialization depend on delivery.
+      void this.track(...args);
+    };
     const onNewCampaign = this.setSessionId.bind(this, this.currentTimeMillis());
 
     const storage = await createCookieStorage<Campaign>(this.config);
