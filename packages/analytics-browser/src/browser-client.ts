@@ -262,7 +262,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     if (this.config.offline !== OfflineDisabled) {
       await this.add(networkConnectivityCheckerPlugin()).promise;
     }
-    await this.add(new Destination({ diagnosticsClient })).promise;
+    await this.add(new Destination({ diagnosticsClient, retryPolicy: 'client' })).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
 

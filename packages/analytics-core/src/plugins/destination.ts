@@ -40,6 +40,9 @@ export interface Context {
   timeout: number;
 }
 
+// Android #446: retry indefinitely while online; jitter prevents synchronized recovery traffic.
+const CLIENT_RETRY_DELAYS = [1000, 8000, 32000, 128000, 300000];
+
 const DEFAULT_AMPLITUDE_SERVER_URLS = new Set([
   AMPLITUDE_SERVER_URL,
   EU_AMPLITUDE_SERVER_URL,
@@ -96,12 +99,23 @@ export class Destination implements DestinationPlugin {
   queue: Context[] = [];
   diagnosticsClient: IDiagnosticsClient | undefined;
 
-  constructor(context?: { diagnosticsClient: IDiagnosticsClient | undefined }) {
+  private readonly clientRetryPolicy: boolean;
+  private clientRetryAttempt = 0;
+  private clientRetryUntil = 0;
+  private clientThrottleUntil = 0;
+  private clientFlushing = false;
+  private clientStopped = false;
+
+  constructor(context?: { diagnosticsClient?: IDiagnosticsClient; retryPolicy?: 'client' }) {
     this.diagnosticsClient = context?.diagnosticsClient;
+    // SDKs select their policy explicitly, including browser workers and RN web.
+    // Node keeps its bounded retry/drop contract, regardless of runtime globals.
+    this.clientRetryPolicy = context?.retryPolicy === 'client';
   }
 
   async setup(config: IConfig): Promise<undefined> {
     this.config = config;
+    this.clientStopped = false;
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider?.get(this.storageKey);
@@ -110,6 +124,13 @@ export class Destination implements DestinationPlugin {
     }
 
     return Promise.resolve(undefined);
+  }
+
+  async teardown(): Promise<void> {
+    if (this.clientRetryPolicy) {
+      this.clientStopped = true;
+      this.resetSchedule();
+    }
   }
 
   execute(event: Event): Promise<Result> {
@@ -153,8 +174,15 @@ export class Destination implements DestinationPlugin {
   // 2. Timeout greater than existing timeout.
   // This makes sure that when throttled, no flush when throttle timeout expires.
   schedule(timeout: number) {
+    if (this.clientRetryPolicy && this.clientStopped) return;
     if (this.config.offline) {
       return;
+    }
+
+    if (this.clientRetryPolicy) {
+      // New events must not bypass or keep postponing the outage/throttle deadline.
+      const remaining = Math.max(this.clientRetryUntil, this.clientThrottleUntil) - Date.now();
+      if (remaining > 0) timeout = remaining;
     }
 
     if (this.scheduleId === null || (this.scheduleId && timeout > this.scheduledTimeout)) {
@@ -163,6 +191,9 @@ export class Destination implements DestinationPlugin {
       }
       this.scheduledTimeout = timeout;
       this.scheduleId = setTimeout(() => {
+        // A timer can fire just before the wall-clock deadline. Release the
+        // expired timer so flush can schedule the remaining wait in that case.
+        if (this.clientRetryPolicy) this.resetSchedule();
         this.queue = this.queue.map((context) => {
           context.timeout = 0;
           return context;
@@ -175,17 +206,31 @@ export class Destination implements DestinationPlugin {
 
   // Mark current schedule is flushed.
   resetSchedule() {
+    if (this.clientRetryPolicy && this.scheduleId !== null) clearTimeout(this.scheduleId);
     this.scheduleId = null;
     this.scheduledTimeout = 0;
   }
 
   // Flush all events regardless of their timeout
   async flush(useRetry = false) {
+    if (this.clientRetryPolicy && this.clientStopped) return;
     // Skip flush if offline
     if (this.config.offline) {
       this.resetSchedule();
       this.config.loggerProvider.debug('Skipping flush while offline.');
       return;
+    }
+
+    if (this.clientRetryPolicy) {
+      if (this.clientFlushing) return;
+      // Explicit flush (also used on reconnect) can retry immediately, but must
+      // still honor the server's 429 throttle. Timer-driven flushes keep backoff.
+      if (!useRetry) this.clientRetryUntil = 0;
+      if (Math.max(this.clientRetryUntil, this.clientThrottleUntil) > Date.now()) {
+        this.schedule(this.config.flushIntervalMillis);
+        return;
+      }
+      this.clientFlushing = true;
     }
 
     if (this.flushId) {
@@ -205,10 +250,19 @@ export class Destination implements DestinationPlugin {
 
     // Promise.all() doesn't guarantee resolve order.
     // Sequentially resolve to make sure backend receives events in order
-    await batches.reduce(async (promise, batch) => {
-      await promise;
-      return await this.send(batch, useRetry);
-    }, Promise.resolve());
+    try {
+      await batches.reduce(async (promise, batch) => {
+        await promise;
+        if (
+          this.clientRetryPolicy &&
+          (this.config.offline || Math.max(this.clientRetryUntil, this.clientThrottleUntil) > Date.now())
+        )
+          return;
+        return await this.send(batch, useRetry);
+      }, Promise.resolve());
+    } finally {
+      this.clientFlushing = false;
+    }
 
     // Mark current flush is done
     this.flushId = null;
@@ -244,10 +298,14 @@ export class Destination implements DestinationPlugin {
       );
       const res = await this.config.transportProvider.send(serverUrl, payload, shouldCompressUploadBody);
       if (res === null) {
+        if (this.clientRetryPolicy) {
+          this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
+          return;
+        }
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
-      if (!useRetry) {
+      if (!useRetry && !this.clientRetryPolicy) {
         if ('body' in res) {
           this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
         } else {
@@ -310,6 +368,11 @@ export class Destination implements DestinationPlugin {
   }
 
   handleSuccessResponse(res: SuccessResponse, list: Context[]) {
+    if (this.clientRetryPolicy) {
+      this.clientRetryAttempt = 0;
+      this.clientRetryUntil = 0;
+      this.clientThrottleUntil = 0;
+    }
     this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
   }
 
@@ -328,7 +391,12 @@ export class Destination implements DestinationPlugin {
     const dropIndexSet = new Set(dropIndex);
 
     const retry = list.filter((context, index) => {
-      if (dropIndexSet.has(index)) {
+      if (
+        dropIndexSet.has(index) ||
+        (this.clientRetryPolicy &&
+          !!context.event.device_id &&
+          res.body.silencedDevices.includes(context.event.device_id))
+      ) {
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
@@ -340,6 +408,13 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
+    if (this.clientRetryPolicy) {
+      // A proxy may return a 400 without identifying bad events. Back off rather
+      // than discard an unacknowledged batch or loop immediately forever.
+      if (retry.length === list.length) this.handleOtherResponse(retry);
+      else this.scheduleEvents(retry);
+      return;
+    }
     const tryable = this.removeEventsExceedFlushMaxRetries(retry);
     this.scheduleEvents(tryable);
   }
@@ -353,7 +428,13 @@ export class Destination implements DestinationPlugin {
     // log intermediate event status before retry
     this.config.loggerProvider.warn(getResponseBodyString(res));
 
-    this.config.flushQueueSize /= 2;
+    this.config.flushQueueSize = this.clientRetryPolicy
+      ? Math.max(1, Math.floor(this.config.flushQueueSize / 2))
+      : this.config.flushQueueSize / 2;
+    if (this.clientRetryPolicy) {
+      this.scheduleEvents(list);
+      return;
+    }
 
     const tryable = this.removeEventsExceedFlushMaxRetries(list);
     this.scheduleEvents(tryable);
@@ -386,11 +467,32 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
+    if (this.clientRetryPolicy) {
+      // Every retryable 429 waits 30s, even when throttledEvents is absent.
+      // It neither advances nor resets the normal backoff sequence.
+      retry.forEach((context) => {
+        context.timeout = 0;
+      });
+      if (retry.length > 0) {
+        this.clientThrottleUntil = Date.now() + this.throttleTimeout;
+        this.clientRetryUntil = 0;
+        this.schedule(this.throttleTimeout);
+      }
+      return;
+    }
     const tryable = this.removeEventsExceedFlushMaxRetries(retry);
     this.scheduleEvents(tryable);
   }
 
   handleOtherResponse(list: Context[]) {
+    if (this.clientRetryPolicy) {
+      if (list.length === 0) return;
+      const delay = CLIENT_RETRY_DELAYS[this.clientRetryAttempt];
+      this.clientRetryAttempt = Math.min(this.clientRetryAttempt + 1, CLIENT_RETRY_DELAYS.length - 1);
+      this.clientRetryUntil = Date.now() + Math.floor(delay / 2 + Math.random() * (delay + 1));
+      this.schedule(this.clientRetryUntil - Date.now());
+      return;
+    }
     const later = list.map((context) => {
       context.timeout = context.attempts * this.retryTimeout;
       return context;

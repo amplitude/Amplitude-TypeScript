@@ -733,7 +733,7 @@ describe('integration', () => {
       expect(response[1].message).toBe('Too many requests for some devices and users');
       first.done();
       second.done();
-    });
+    }, 35000);
 
     test('should handle 500 error', async () => {
       const first = nock(url).post(path).reply(500, {
@@ -803,14 +803,16 @@ describe('integration', () => {
       second.done();
     });
 
-    test('should exhaust max retries', async () => {
-      const scope = nock(url).post(path).times(3).reply(500, {
+    test('should retain past max retries and deliver when the service recovers', async () => {
+      const scope = nock(url).post(path).times(1).reply(500, {
         code: 500,
       });
 
+      const recovered = nock(url).post(path).reply(200, success);
+
       await client.init(apiKey, {
         logLevel: 0,
-        flushMaxRetries: 3,
+        flushMaxRetries: 1,
         defaultTracking,
         fetchRemoteConfig: false,
       }).promise;
@@ -839,9 +841,10 @@ describe('integration', () => {
         library: library,
         user_agent: userAgent,
       });
-      expect(response.code).toBe(500);
-      expect(response.message).toBe('Event rejected due to exceeded retry count');
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
       scope.done();
+      recovered.done();
     }, 10000);
 
     test('should handle missing api key', async () => {

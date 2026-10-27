@@ -19,7 +19,8 @@ export interface IConfig {
    */
   flushIntervalMillis: number;
   /**
-   * The maximum number of retries for failed upload attempts. This is only applicable to retryable errors.
+   * The maximum number of retries for failed upload attempts in the Node SDK.
+   * Browser and React Native retain retryable events and retry indefinitely with capped, jittered backoff.
    */
   flushMaxRetries: number;
   /**
