@@ -50,7 +50,9 @@ describe('integration', () => {
     };
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await client.remove('amplitude').promise;
+    nock.cleanAll();
     // clean up cookies
     document.cookie = `amp_${apiKey.substring(0, 6)}=null; expires=1 Jan 1970 00:00:00 GMT`;
     document.cookie = `AMP_${apiKey.substring(0, 10)}=null; expires=1 Jan 1970 00:00:00 GMT`;

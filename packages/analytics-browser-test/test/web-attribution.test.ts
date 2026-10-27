@@ -40,6 +40,13 @@ describe('Web attribution', () => {
     apiKey = UUID();
   });
 
+  afterEach(async () => {
+    // Retried events intentionally survive failed uploads. Dispose each test's
+    // destination so an earlier client cannot consume a later test's HTTP mock.
+    await client.remove('amplitude').promise;
+    nock.cleanAll();
+  });
+
   describe('Page load', () => {
     describe('in a new session', () => {
       let eventId = -1;
