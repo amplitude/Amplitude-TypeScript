@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.51.7-video-analytics-8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.5...@amplitude/session-replay-browser@1.51.7-video-analytics-8.0) (2026-10-27)
+
+
+### Bug Fixes
+
+* **session-replay:** upgrade rrweb to 2.1.5 ([#2084](https://github.com/amplitude/Amplitude-TypeScript/issues/2084)) ([491914d](https://github.com/amplitude/Amplitude-TypeScript/commit/491914d6922be10b8a3f7117b8271314265a6c8e))
+
+
+
+
+
 ## [1.51.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.5...@amplitude/session-replay-browser@1.51.6) (2026-10-22)
 
 

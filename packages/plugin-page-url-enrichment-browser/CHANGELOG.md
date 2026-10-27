@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.8.0-video-analytics-8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.34...@amplitude/plugin-page-url-enrichment-browser@0.8.0-video-analytics-8.0) (2026-10-27)
+
+
+### Features
+
+* **browser-analytics:** add engaged-time tracking ([#2062](https://github.com/amplitude/Amplitude-TypeScript/issues/2062)) ([25e7804](https://github.com/amplitude/Amplitude-TypeScript/commit/25e7804721d65be5c564c7341fab1d3199f37fe3))
+
+
+
+
+
 ## [0.7.34](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.33...@amplitude/plugin-page-url-enrichment-browser@0.7.34) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

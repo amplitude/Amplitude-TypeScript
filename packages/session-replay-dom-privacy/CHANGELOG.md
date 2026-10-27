@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.1-video-analytics-8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-dom-privacy@0.2.0...@amplitude/session-replay-dom-privacy@0.2.1-video-analytics-8.0) (2026-10-27)
+
+**Note:** Version bump only for package @amplitude/session-replay-dom-privacy
+
+
+
+
+
 # 0.2.0 (2026-09-29)
 
 

@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.49.0-video-analytics-8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.48.1...@amplitude/analytics-browser@2.49.0-video-analytics-8.0) (2026-10-27)
+
+
+### Bug Fixes
+
+* add error handling to video element ([#1981](https://github.com/amplitude/Amplitude-TypeScript/issues/1981)) ([f880e75](https://github.com/amplitude/Amplitude-TypeScript/commit/f880e7555eac43545ff12f71138e847c2cc3cde1))
+* **analytics-browser:** rename Video events to align with new standards ([#1971](https://github.com/amplitude/Amplitude-TypeScript/issues/1971)) ([5728a20](https://github.com/amplitude/Amplitude-TypeScript/commit/5728a2024068b3aaab486475a50cf996e046dc8a))
+* fix infinite calculation ([#1978](https://github.com/amplitude/Amplitude-TypeScript/issues/1978)) ([ff5bcd9](https://github.com/amplitude/Amplitude-TypeScript/commit/ff5bcd9728481bb31fec6f6c24f9135fc5542529))
+* move delayedEventsServerUrl to end of function params ([#1982](https://github.com/amplitude/Amplitude-TypeScript/issues/1982)) ([731e572](https://github.com/amplitude/Amplitude-TypeScript/commit/731e5721a5233d56ba7d4454a52bb36891d97ec7))
+* re-order delayedEventsServerUrl parsing ([#1976](https://github.com/amplitude/Amplitude-TypeScript/issues/1976)) ([ef8f403](https://github.com/amplitude/Amplitude-TypeScript/commit/ef8f403d3a686e1f58b84aa09ed1eb12632c94b0))
+* remove extra event_properties ([#1984](https://github.com/amplitude/Amplitude-TypeScript/issues/1984)) ([6f6458d](https://github.com/amplitude/Amplitude-TypeScript/commit/6f6458d35183e8563730494828e24d58c7edb3b8))
+* show content_changed as cause of stop on src change ([#2061](https://github.com/amplitude/Amplitude-TypeScript/issues/2061)) ([b51386c](https://github.com/amplitude/Amplitude-TypeScript/commit/b51386c86e1bde324fd2d714be20e8ab7255097a))
+* start_time ([#1980](https://github.com/amplitude/Amplitude-TypeScript/issues/1980)) ([dfba53f](https://github.com/amplitude/Amplitude-TypeScript/commit/dfba53f33a79fc5a55761999ae1b701a4acd0d84))
+* **video-analytics:** capture play_time_total and play_time ([#2054](https://github.com/amplitude/Amplitude-TypeScript/issues/2054)) ([23c08a7](https://github.com/amplitude/Amplitude-TypeScript/commit/23c08a7930ab7b83ad5ba15412c8814c28dcda37))
+* **video-analytics:** capture video ended when video changes ([#2053](https://github.com/amplitude/Amplitude-TypeScript/issues/2053)) ([23c6e15](https://github.com/amplitude/Amplitude-TypeScript/commit/23c6e1581d6e5aa49ba549bbfb4e7db581e86d74))
+* **video-analytics:** refine taxonomy to align with definition better ([#2012](https://github.com/amplitude/Amplitude-TypeScript/issues/2012)) ([b4bbc54](https://github.com/amplitude/Amplitude-TypeScript/commit/b4bbc54202007f7b3ca6b0361a34c7616d8ecdf3))
+* **video-analytics:** tweak taxonomy to match mobile ([#2006](https://github.com/amplitude/Amplitude-TypeScript/issues/2006)) ([75a61cc](https://github.com/amplitude/Amplitude-TypeScript/commit/75a61ccb24748d0605ce7e0a7df7d8211ed95683))
+* **video-analytics:** update taxonomy + remove start_time ([#2058](https://github.com/amplitude/Amplitude-TypeScript/issues/2058)) ([648e0e3](https://github.com/amplitude/Amplitude-TypeScript/commit/648e0e30b45a599944e5510d527382d8db45ddec))
+* **video:** make video flush on pageHide ([#2025](https://github.com/amplitude/Amplitude-TypeScript/issues/2025)) ([b6cdc48](https://github.com/amplitude/Amplitude-TypeScript/commit/b6cdc483e0c2552bf5cc9453a2f584a3c7480703))
+
+
+### Features
+
+* **analytics-browser:** add heartbeat service to video tracker ([#1839](https://github.com/amplitude/Amplitude-TypeScript/issues/1839)) ([cecda1b](https://github.com/amplitude/Amplitude-TypeScript/commit/cecda1ba78e17ddb615e7a88d2b2e0fbc18ac03b))
+* **browser-analytics:** add engaged-time tracking ([#2062](https://github.com/amplitude/Amplitude-TypeScript/issues/2062)) ([25e7804](https://github.com/amplitude/Amplitude-TypeScript/commit/25e7804721d65be5c564c7341fab1d3199f37fe3))
+
+
+
+
+
 ## [2.48.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.48.0...@amplitude/analytics-browser@2.48.1) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
