@@ -95,6 +95,68 @@ describe('page engagement', () => {
     expect(latest().delay!.timeout).toBeUndefined();
   });
 
+  test('sends the first background snapshot immediately and trails repeated notifications at the fixed deadline', async () => {
+    await start();
+    await jest.advanceTimersByTimeAsync(2_000);
+    window.dispatchEvent(new Event('blur'));
+    expect(sent).toHaveLength(2);
+    expect(engaged()).toBe(2_000);
+    await jest.advanceTimersByTimeAsync(50);
+    visibility('hidden');
+    await jest.advanceTimersByTimeAsync(949);
+    visibility('hidden');
+    expect(sent).toHaveLength(2);
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(3);
+    expect(engaged()).toBe(2_000);
+    expect(latest().event_properties!['[Amplitude] Total Time']).toBe(3_000);
+    expect(client.flush.mock.calls).toHaveLength(2);
+  });
+
+  test('the trailing snapshot includes participation accumulated after a quick return to the foreground', async () => {
+    await start();
+    await jest.advanceTimersByTimeAsync(2_000);
+    window.dispatchEvent(new Event('blur'));
+    await jest.advanceTimersByTimeAsync(100);
+    window.dispatchEvent(new Event('focus'));
+    await jest.advanceTimersByTimeAsync(200);
+    window.dispatchEvent(new Event('blur'));
+    await jest.advanceTimersByTimeAsync(700);
+    expect(sent).toHaveLength(3);
+    expect(engaged()).toBe(2_200);
+  });
+
+  test.each(['pagehide', 'navigation', 'opt-out', 'teardown'])(
+    'cancels trailing background work on %s',
+    async (action) => {
+      await start();
+      await jest.advanceTimersByTimeAsync(2_000);
+      window.dispatchEvent(new Event('blur'));
+      visibility('hidden');
+      if (action === 'pagehide') window.dispatchEvent(new PageTransitionEvent('pagehide'));
+      if (action === 'navigation') owner.start({ ...original, insert_id: 'new-page' });
+      if (action === 'opt-out') owner.setOptOut(true);
+      if (action === 'teardown') owner.teardown();
+      await jest.advanceTimersByTimeAsync(1);
+      const count = sent.length;
+      await jest.advanceTimersByTimeAsync(1_000);
+      expect(sent).toHaveLength(count);
+    },
+  );
+
+  test('allows a new leading background snapshot after the interval without resetting the scheduled pulse', async () => {
+    await start();
+    await jest.advanceTimersByTimeAsync(2_000);
+    window.dispatchEvent(new Event('blur'));
+    await jest.advanceTimersByTimeAsync(1_000);
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('blur'));
+    expect(sent).toHaveLength(3);
+    await jest.advanceTimersByTimeAsync(12_000);
+    expect(sent).toHaveLength(4);
+    expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('heartbeat');
+  });
+
   test('pauses on blur and hidden, then resumes the same page before timeout', async () => {
     await start();
     const id = latest().delay!.id;
