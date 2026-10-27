@@ -12,6 +12,7 @@ import {
 export const DEFAULT_ACTIVITY_WINDOW = 5_000;
 export const DEFAULT_ENGAGEMENT_HEARTBEAT = 15_000;
 export const DEFAULT_INACTIVITY_TIMEOUT = 180_000;
+const BACKGROUND_SEND_INTERVAL = 1_000;
 
 interface PageState {
   event: Event;
@@ -22,6 +23,8 @@ interface PageState {
   engaged: number;
   version: number;
   nextSnapshotReason: 'initial' | 'heartbeat' | 'background';
+  lastBackgroundSent?: number;
+  backgroundTimer?: ReturnType<typeof setTimeout>;
 }
 
 // Browser timers use a signed 32-bit millisecond delay. Larger values can overflow.
@@ -216,13 +219,36 @@ export class PageEngagement {
     if (this.pageState) this.settle(this.pageState);
     this.foreground = false;
     if (this.pageState) {
-      this.pageState.nextSnapshotReason = 'background';
-      void this.pageState.heartbeat.heartbeat();
-      this.client.flush();
+      this.sendBackground(this.pageState);
     }
   };
 
+  private sendBackground(pageState: PageState) {
+    const remaining =
+      pageState.lastBackgroundSent === undefined
+        ? 0
+        : pageState.lastBackgroundSent + BACKGROUND_SEND_INTERVAL - Date.now();
+    if (remaining > 0) {
+      // blur and hidden can describe the same transition. Keep a single trailing
+      // send at the original deadline, using the latest state when it fires.
+      if (pageState.backgroundTimer === undefined) {
+        pageState.backgroundTimer = setTimeout(() => {
+          pageState.backgroundTimer = undefined;
+          this.sendBackground(pageState);
+        }, remaining);
+      }
+      return;
+    }
+    clearTimeout(pageState.backgroundTimer);
+    pageState.backgroundTimer = undefined;
+    pageState.lastBackgroundSent = Date.now();
+    pageState.nextSnapshotReason = 'background';
+    void pageState.heartbeat.heartbeat();
+    this.client.flush();
+  }
+
   private retire(pageState: PageState, reason: string) {
+    clearTimeout(pageState.backgroundTimer);
     clearTimeout(this.inactivityTimer);
     const event = this.snapshot(pageState, reason);
     event.delay = { ...event.delay!, timeout: undefined };
@@ -249,6 +275,7 @@ export class PageEngagement {
     if (optOut) {
       this.skippedPage = false;
       clearTimeout(this.inactivityTimer);
+      clearTimeout(this.pageState?.backgroundTimer);
       this.pageState?.heartbeat.stop();
       this.pageState = undefined;
     }
