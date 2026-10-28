@@ -61,11 +61,20 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
       return Promise.resolve(event);
     }
 
-    // On event, synchronize the session id to the what's on the browserConfig (source of truth)
-    // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
-    // in SR.
-    if (this.config.sessionId && this.config.sessionId !== (await PluginSessionReplayReactNative.getSessionId())) {
-      await PluginSessionReplayReactNative.setSessionId(this.config.sessionId);
+    // On event, synchronize session and device ids to the analytics config (source of truth).
+    // Choosing not to read from the event object here, concerned about offline/delayed events messing up the state stored
+    // in SR. Device id has to follow reset() and setDeviceId(); dead-click detection treats a mismatch as not recording.
+    const nativeReplay = PluginSessionReplayReactNative;
+    if (this.config.sessionId && this.config.sessionId !== (await nativeReplay.getSessionId())) {
+      await nativeReplay.setSessionId(this.config.sessionId);
+    }
+    if (
+      this.config.deviceId &&
+      typeof nativeReplay.getDeviceId === 'function' &&
+      typeof nativeReplay.setDeviceId === 'function' &&
+      this.config.deviceId !== (await nativeReplay.getDeviceId())
+    ) {
+      await nativeReplay.setDeviceId(this.config.deviceId);
     }
     // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
     // event is not of the current session (offline/late events). In that case, don't tag the events
