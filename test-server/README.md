@@ -8,6 +8,18 @@ If you have any use-cases of the SDK that you'd like to test, please add a new H
 
 To run this in 'dev' mode, from the root of this project, run `pnpm dev`. This will both watch for changes to the packages and update them as they change; and it will run a Vite dev server. This means that as you make changes to any of the JS files (or downstream files) that are referenced by the HTML page, the changes will be reflected immediately and the page will do a hot reload.
 
+## SELF-CHECKING PAGES
+
+Most pages here are for poking at the SDK by hand, but a few run their own checks and print a
+verdict, so `pnpm dev` is enough to validate a behavior end to end:
+
+* `element-selector-multi-instance.html` — two SDK instances with different API keys and divergent
+  element-selector remote config. Reports `pass` / `fail` in `#status` with a per-check table.
+
+Each of these is also driven by a Playwright spec (under `packages/*/e2e/`) so the same checks run
+in CI. Run them against the dev server with
+`npx playwright test packages/plugin-autocapture-browser/e2e/element-selector-multi-instance.spec.ts`.
+
 ## PROD
 
 To run this in 'prod' mode, run `pnpm build` and then run `pnpm start`. This will build the assets and serve the statically. This mode currently has no use-case, but could be used in the future to run end-to-end tests. This will likely never be served in production as a web page because it's only for testing.

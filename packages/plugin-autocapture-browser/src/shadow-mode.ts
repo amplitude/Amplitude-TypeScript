@@ -123,26 +123,3 @@ export const createShadowGate = (): ShadowGate => {
     },
   };
 };
-
-/**
- * One gate per page rather than per `DataExtractor`. autocapture-plugin and
- * frustration-plugin build separate extractors and subscribe to remote config
- * independently, and both must resolve the same mode. Mirrors the shared
- * selector-engine singleton in `data-extractor.ts`.
- */
-let sharedShadowGate: ShadowGate | undefined;
-
-export const getSharedShadowGate = (): ShadowGate => {
-  if (!sharedShadowGate) {
-    sharedShadowGate = createShadowGate();
-  }
-  return sharedShadowGate;
-};
-
-/**
- * Test-only. `arm` cannot move the gate back to off, so tests that exercise the
- * enabled path replace the singleton to return to the off mode.
- */
-export const resetSharedShadowGateForTesting = (): void => {
-  sharedShadowGate = undefined;
-};
