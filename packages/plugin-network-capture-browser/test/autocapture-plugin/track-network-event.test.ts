@@ -1,8 +1,11 @@
+/** @jest-environment-options {"url":"https://app.example.com/initial/page"} */
 // make a test class that implements NetworkRequestEvent
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
+  AmplitudeCore,
+  BaseEvent,
   BrowserClient,
   BrowserConfig,
   CookieStorage,
@@ -14,17 +17,21 @@ import {
   networkObserver,
   NetworkRequestEvent,
   NetworkTrackingOptions,
+  Observable,
   SAFE_HEADERS,
+  Unsubscribable,
 } from '@amplitude/analytics-core';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import {
   logNetworkAnalyticsEvent,
   NetworkAnalyticsEvent,
   parseHeaderCaptureRule,
+  parseUrl,
   parseUrlFromString,
   shouldTrackNetworkEvent,
+  trackNetworkEvents,
 } from '../../src/track-network-event';
-import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
+import { BrowserEnrichmentPlugin, networkCapturePlugin, TimestampedEvent } from '../../src/network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../../src/constants';
 import { VERSION } from '../../src/version';
 import { createMockBrowserClient } from '../mock-browser-client';
@@ -156,6 +163,8 @@ describe('track-network-event', () => {
     });
   });
 
+  // Shared event-formatting assertions are also covered in analytics-core.
+  // These existing Browser/RN capture cases remain here to guard against regressions.
   describe('trackNetworkEvent()', () => {
     let client: BrowserClient;
     let trackSpy: jest.SpyInstance;
@@ -374,6 +383,7 @@ describe('track-network-event', () => {
   describe('parseUrlFromString()', () => {
     test('parses plain URL', () => {
       const url = parseUrlFromString('http://10.0.2.2:5173/api/test');
+      expect(parseUrl('http://10.0.2.2:5173/api/test')).toEqual(url);
       expect(url).toEqual({
         href: 'http://10.0.2.2:5173/api/test',
         hrefWithoutQueryOrHash: 'http://10.0.2.2:5173/api/test',
@@ -931,6 +941,110 @@ describe('track-network-event', () => {
       /* eslint-disable-next-line @typescript-eslint/unbound-method */
       expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
     });
+  });
+});
+
+describe('network capture compatibility', () => {
+  const START = 1700000000000;
+  const subscriptions: Unsubscribable[] = [];
+  let previousHref: string;
+
+  function request(
+    url: string,
+    status = 503,
+    options: {
+      method?: string;
+      requestWrapper?: ConstructorParameters<typeof NetworkRequestEvent>[5];
+      responseWrapper?: ConstructorParameters<typeof NetworkRequestEvent>[8];
+      error?: ConstructorParameters<typeof NetworkRequestEvent>[9];
+    } = {},
+  ) {
+    return new NetworkRequestEvent(
+      'fetch',
+      options.method ?? 'GET',
+      START,
+      START,
+      url,
+      options.requestWrapper,
+      status,
+      12,
+      options.responseWrapper,
+      options.error,
+      START + 12,
+    );
+  }
+
+  function capture(options: NetworkTrackingOptions = {}) {
+    const events: BaseEvent[] = [];
+    const client = new AmplitudeCore();
+    jest.spyOn(client, 'dispatch').mockImplementation(async (event) => {
+      events.push(event);
+      return { event, code: 200, message: 'captured' };
+    });
+    let emit!: (event: NetworkRequestEvent) => void;
+    const source = new Observable<TimestampedEvent<NetworkRequestEvent>>((observer) => {
+      emit = (event) => observer.next({ event, timestamp: START + 12, type: 'network' });
+    });
+    subscriptions.push(
+      trackNetworkEvents({
+        allObservables: { networkObservable: source },
+        amplitude: client as unknown as BrowserClient,
+        networkTrackingOptions: options,
+      }),
+    );
+    return {
+      emit,
+      events: () => JSON.parse(JSON.stringify(events)) as BaseEvent[],
+    };
+  }
+
+  async function settle() {
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+
+  beforeEach(() => {
+    previousHref = window.location.href;
+    window.history.replaceState(null, '', '/initial/page');
+  });
+
+  afterEach(() => {
+    subscriptions.splice(0).forEach((subscription) => subscription.unsubscribe());
+    jest.restoreAllMocks();
+    window.history.replaceState(null, '', previousHref);
+  });
+
+  test('continues to track a browser-valid whitespace URL', async () => {
+    const sink = capture();
+    sink.emit(request(' '));
+    await settle();
+    expect(sink.events()).toHaveLength(1);
+    expect(sink.events()[0].event_properties?.['[Amplitude] URL']).toBe('https://app.example.com/initial/page');
+  });
+
+  test('resolves relative URLs before waiting for response-body capture', async () => {
+    let finish!: (body: JsonObject) => void;
+    const body = new Promise<JsonObject>((resolve) => {
+      finish = resolve;
+    });
+    const sink = capture({
+      captureRules: [
+        {
+          hosts: ['*'],
+          statusCodeRange: '500-599',
+          responseBody: { allowlist: ['**'] },
+        },
+      ],
+    });
+    sink.emit(
+      request('orders', 503, {
+        responseWrapper: { status: 503, headers: () => undefined, json: () => body },
+      }),
+    );
+    window.history.pushState(null, '', '/other/page');
+    finish({ visible: 'ok' });
+    await settle();
+    expect(sink.events()).toHaveLength(1);
+    expect(sink.events()[0].event_properties?.['[Amplitude] URL']).toBe('https://app.example.com/initial/orders');
   });
 });
 

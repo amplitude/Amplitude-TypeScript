@@ -3,7 +3,8 @@ import {
   NetworkRequestEvent,
   NetworkCaptureRule,
   NetworkTrackingOptions,
-  getGlobalScope,
+  formatNetworkRequestEvent,
+  parseNetworkRequestUrl as parseUrl,
   isUrlMatchAllowlist,
   SAFE_HEADERS,
   ILogger,
@@ -13,6 +14,11 @@ import {
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from './constants';
 import type { BodyCaptureRule } from '@amplitude/analytics-core';
+
+export {
+  parseNetworkRequestUrl as parseUrl,
+  parseNetworkRequestUrlFromString as parseUrlFromString,
+} from '@amplitude/analytics-core';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
@@ -76,48 +82,6 @@ function isCaptureRuleMatch(
   }
 
   return true;
-}
-
-export function parseUrlFromString(href: string) {
-  const hashIndex = href.indexOf('#');
-  const fragment = hashIndex >= 0 ? href.slice(hashIndex + 1) : '';
-  const urlWithoutHash = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
-
-  const queryIndex = urlWithoutHash.indexOf('?');
-  const query = queryIndex >= 0 ? urlWithoutHash.slice(queryIndex + 1) : '';
-  const hrefWithoutQueryOrHash = queryIndex >= 0 ? urlWithoutHash.slice(0, queryIndex) : urlWithoutHash;
-
-  const authorityMatch = hrefWithoutQueryOrHash.match(/^[a-z][a-z0-9+.-]*:\/\/([^/?#]+)/i);
-  const host = authorityMatch?.[1] ?? '';
-
-  return { query, fragment, href, hrefWithoutQueryOrHash, host };
-}
-
-export function parseUrl(url: string | undefined) {
-  if (!url) {
-    return;
-  }
-  try {
-    /* istanbul ignore next */
-    const currentHref = getGlobalScope()?.location.href;
-    const urlObj = new URL(url, currentHref);
-    const query = urlObj.searchParams.toString();
-    const fragment = urlObj.hash.replace('#', '');
-    const href = urlObj.href;
-    const host = urlObj.host;
-    urlObj.hash = '';
-    urlObj.search = '';
-    const hrefWithoutQueryOrHash = urlObj.href;
-    return { query, fragment, href, hrefWithoutQueryOrHash, host };
-  } catch {
-    try {
-      // if global URL is not available, parse the URL from the string
-      return parseUrlFromString(url);
-    } catch {
-      /* istanbul ignore next */
-      return;
-    }
-  }
 }
 
 function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWrapper): boolean {
@@ -345,21 +309,19 @@ export function trackNetworkEvents({
     /* istanbul ignore next */
     const requestBodySize = request.requestWrapper?.bodySize;
 
-    const networkAnalyticsEvent: NetworkAnalyticsEvent = {
-      ['[Amplitude] URL']: urlObj.hrefWithoutQueryOrHash,
-      ['[Amplitude] URL Query']: urlObj.query,
-      ['[Amplitude] URL Fragment']: urlObj.fragment,
-      ['[Amplitude] Request Method']: request.method,
-      ['[Amplitude] Status Code']: request.status,
-      ['[Amplitude] Start Time']: request.startTime,
-      ['[Amplitude] Completion Time']: request.endTime,
-      ['[Amplitude] Duration']: request.duration,
-      ['[Amplitude] Request Body Size']: requestBodySize,
-      ['[Amplitude] Response Body Size']: responseBodySize,
-      ['[Amplitude] Request Type']: request.type,
-      ['[Amplitude] Request Headers']: request.requestHeaders,
-      ['[Amplitude] Response Headers']: request.responseHeaders,
-    };
+    const networkAnalyticsEvent = formatNetworkRequestEvent({
+      url: urlObj,
+      method: request.method,
+      statusCode: request.status,
+      startTime: request.startTime,
+      completionTime: request.endTime,
+      duration: request.duration,
+      requestBodySize,
+      responseBodySize,
+      requestType: request.type,
+      requestHeaders: request.requestHeaders,
+      responseHeaders: request.responseHeaders,
+    }).event_properties as NetworkAnalyticsEvent;
 
     // fire-and-forget promise that tracks the event
     void logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude, loggerProvider);
