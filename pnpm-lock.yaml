@@ -160,6 +160,9 @@ importers:
       '@amplitude/analytics-react-native':
         specifier: workspace:*
         version: link:../../../packages/analytics-react-native
+      '@amplitude/plugin-session-replay-react-native':
+        specifier: workspace:*
+        version: link:../../../packages/plugin-session-replay-react-native
       react:
         specifier: 18.2.0
         version: 18.2.0
