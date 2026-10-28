@@ -204,6 +204,13 @@ export interface SessionReplayLocalConfig extends IConfig {
    * Passed through to rrweb's `inlineImages` record option; when unset, rrweb defaults to false.
    */
   inlineImages?: boolean;
+  /**
+   * Canvas recording settings passed through to rrweb.
+   *
+   * Canvas pixels are drawn by script and are not part of the DOM, so they stay out of the
+   * replay unless `enabled` is true. When this is omitted, canvas recording stays off.
+   */
+  canvas?: CanvasRecordConfig;
   version?: SessionReplayVersion;
   /**
    * Performance configuration config. If enabled, we will defer compression
@@ -403,6 +410,49 @@ export interface SessionReplayLocalConfig extends IConfig {
    * but for the config GET. The URL passed to the callback already respects `configServerUrl`.
    */
   handleFetchConfig?: SessionReplayFetchConfigHandler;
+}
+
+/**
+ * Image encoding for canvas snapshots. Passed through to rrweb's `dataURLOptions`.
+ */
+export interface CanvasDataURLOptions {
+  /**
+   * MIME type such as `image/webp` or `image/jpeg`. rrweb uses PNG when this is unset.
+   */
+  type?: string;
+  /**
+   * Encoder quality from 0 to 1. Used by lossy types such as `image/webp` and `image/jpeg`.
+   */
+  quality?: number;
+}
+
+/**
+ * Canvas recording settings. Each field is passed through to the matching rrweb record option.
+ *
+ * Recording canvas increases payload size. Leave this unset, or set `enabled` to false, to keep
+ * the previous behavior where canvas contents are not captured.
+ */
+export interface CanvasRecordConfig {
+  /**
+   * Passed through to rrweb's `recordCanvas`.
+   * When true, canvas contents are recorded. When false or omitted, canvas recording stays off.
+   *
+   * @defaultValue false
+   */
+  enabled?: boolean;
+  /**
+   * Passed through to rrweb's `sampling.canvas` when `enabled` is true.
+   *
+   * `'all'` records every canvas drawing call. A number from 1 to 60 records image snapshots
+   * at most that many times per second (requires `OffscreenCanvas`). Values outside that range
+   * are clamped. When omitted and `enabled` is true, rrweb records every drawing call.
+   */
+  sampling?: 'all' | number;
+  /**
+   * Passed through to rrweb's `dataURLOptions` when `enabled` is true. Applies to image
+   * snapshots and to the canvas image stored on the full snapshot.
+   */
+  dataURLOptions?: CanvasDataURLOptions;
 }
 
 export interface FlushIntervalConfig {

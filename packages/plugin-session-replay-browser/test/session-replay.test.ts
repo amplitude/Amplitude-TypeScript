@@ -169,6 +169,27 @@ describe('SessionReplayPlugin', () => {
       expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ flushIntervalConfig: undefined }));
     });
 
+    test('should pass canvas config through to session replay when provided', async () => {
+      const canvas = {
+        enabled: true,
+        sampling: 15 as const,
+        dataURLOptions: { type: 'image/webp', quality: 0.6 },
+      };
+      const sessionReplay = new SessionReplayPlugin({ canvas });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ canvas }));
+    });
+
+    test('should pass canvas through to session replay as undefined when not set', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ canvas: undefined }));
+    });
+
     test('should pass flushIntervalConfig through to session replay when provided', async () => {
       const flushIntervalConfig = { minIntervalMs: 1000, maxIntervalMs: 5000 };
       const sessionReplay = new SessionReplayPlugin({ flushIntervalConfig });

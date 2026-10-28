@@ -21,6 +21,7 @@ import {
 import { eventWithTime, EventType as RRWebEventType, scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import {
+  CanvasRecordConfig,
   LoggingConfig,
   SessionReplayJoinedConfig,
   SessionReplayJoinedConfigGenerator,
@@ -1089,7 +1090,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       ...createPrivacyRecorderOptions(privacyConfig, () => this.currentPageUrl),
       applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
       ...(config.fullSnapshotIntervalMs !== undefined && { checkoutEveryNms: config.fullSnapshotIntervalMs }),
-      recordCanvas: false,
+      ...canvasRecordOptions(config.canvas),
       captureAdoptedStyleSheets: config.captureAdoptedStyleSheets,
       // Strip nodes that are never rendered by the rrweb replay player.
       // None of these affect visual fidelity; omitting them reduces snapshot size.
@@ -1307,4 +1308,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
     }
   }
+}
+
+/**
+ * Maps the local `canvas` config onto rrweb record options.
+ * Canvas stays off unless `enabled` is true, matching the previous hardcoded `recordCanvas: false`.
+ */
+function canvasRecordOptions(
+  canvas: CanvasRecordConfig | undefined,
+): Pick<Parameters<RecordFunction>[0], 'recordCanvas' | 'sampling' | 'dataURLOptions'> {
+  if (!canvas?.enabled) {
+    return { recordCanvas: false };
+  }
+  return {
+    recordCanvas: true,
+    ...(canvas.sampling !== undefined ? { sampling: { canvas: canvas.sampling } } : {}),
+    ...(canvas.dataURLOptions ? { dataURLOptions: canvas.dataURLOptions } : {}),
+  };
 }
