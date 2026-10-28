@@ -169,6 +169,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
         globalScope.removeEventListener('beforeunload', this.pageLeaveListener);
         !teardown && globalScope.addEventListener('beforeunload', this.pageLeaveListener);
       }
+      // Tab switches fire visibilitychange on the document. Focus does not: a background
+      // tab can stay blurred without ever hiding, and hidden tabs often never regain focus
+      // until this event. Guarded because unit-test scopes sometimes stub document.
+      const documentRef = globalScope.document;
+      if (documentRef?.addEventListener && documentRef.removeEventListener) {
+        documentRef.removeEventListener('visibilitychange', this.visibilityListener);
+        !teardown && documentRef.addEventListener('visibilitychange', this.visibilityListener);
+      }
     }
   };
 
@@ -555,7 +563,33 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   blurListener = () => {
-    this.sendEvents();
+    // Blur covers window switches that do not hide the document (a second window
+    // beside this one). Drain the idle queue first: sendEvents only ships what is
+    // already in the store, and the mutations for the screen the user just left
+    // are often still waiting on requestIdleCallback.
+    this.flushPendingReplayEvents();
+  };
+
+  /**
+   * Tab show/hide. `focus` is the wrong signal for this: it also fires for iframes
+   * and editors, which is why `captureFullSnapshotOnFocus` defaults off. A document
+   * visibility change happens once per real tab switch.
+   *
+   * Hidden: flush queued mutations so playback is not left on the last snapshot that
+   * happened to be in the store.
+   * Visible: take one checkout snapshot of this document and send it. Incremental
+   * events from another tab use that tab's node ids and are dropped, so without a
+   * fresh checkout the player stays on whichever snapshot it last applied.
+   */
+  visibilityListener = () => {
+    const visibilityState = getGlobalScope()?.document?.visibilityState;
+    if (visibilityState === 'hidden') {
+      this.flushPendingReplayEvents();
+      return;
+    }
+    if (visibilityState === 'visible') {
+      this.captureVisibleTab();
+    }
   };
 
   focusListener = () => {
@@ -566,6 +600,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // Recording is already active. The on-focus full snapshot is tunable: when
       // `captureFullSnapshotOnFocus` is false we skip it entirely so high focus-churn pages
       // don't generate a full snapshot (and, with eager send, a network request) per focus.
+      // Returning to a backgrounded tab is handled by visibilityListener instead.
       if (this.config?.captureFullSnapshotOnFocus === false) {
         return;
       }
@@ -579,6 +614,37 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   };
 
+  /** Move idle-queued rrweb events into the store, then ship the current sequence. */
+  private flushPendingReplayEvents() {
+    this.eventCompressor?.flushQueue();
+    this.sendEvents();
+  }
+
+  /**
+   * Checkout the DOM the user can actually see, then send it. Queued mutations are
+   * flushed first so they stay ordered ahead of the new snapshot.
+   */
+  private captureVisibleTab() {
+    if (!this.recordingEnabled) {
+      return;
+    }
+    this.eventCompressor?.flushQueue();
+    if (this.recordCancelCallback && this.recordFunction) {
+      try {
+        // `true` is an rrweb checkout: the player drops the previous mirror and
+        // paints this snapshot instead of applying it onto an older document.
+        this.recordFunction.takeFullSnapshot(true);
+      } catch (error) {
+        this.loggerProvider.warn('Failed to take full snapshot when the tab became visible:', error);
+      }
+      this.sendEvents();
+      return;
+    }
+    if (!this.recordEventsInFlight) {
+      void this.recordEvents(false);
+    }
+  }
+
   /**
    * This is an instance member so that if init is called multiple times
    * it doesn't add another listener to the page leave event. This is to
@@ -587,8 +653,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private pageLeaveListener = (e: PageTransitionEvent | Event) => {
     // Synchronously drain any events still queued in the requestIdleCallback
     // pipeline so they are available to send before the page unloads.
-    this.eventCompressor?.flushQueue();
-    this.sendEvents();
+    this.flushPendingReplayEvents();
     this.pageLeaveFns.forEach((fn) => {
       fn(e);
     });

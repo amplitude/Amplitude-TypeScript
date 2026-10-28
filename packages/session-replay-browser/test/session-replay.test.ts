@@ -123,12 +123,18 @@ describe('SessionReplay', () => {
   };
   const addEventListenerMock = jest.fn() as jest.Mock<typeof window.addEventListener>;
   const removeEventListenerMock = jest.fn() as jest.Mock<typeof window.removeEventListener>;
+  const documentAddEventListenerMock = jest.fn() as jest.Mock<typeof document.addEventListener>;
+  const documentRemoveEventListenerMock = jest.fn() as jest.Mock<typeof document.removeEventListener>;
+  const mockDocument = {
+    hasFocus: () => true,
+    visibilityState: 'visible' as DocumentVisibilityState,
+    addEventListener: documentAddEventListenerMock,
+    removeEventListener: documentRemoveEventListenerMock,
+  };
   const mockGlobalScope = {
     addEventListener: addEventListenerMock,
     removeEventListener: removeEventListenerMock,
-    document: {
-      hasFocus: () => true,
-    },
+    document: mockDocument,
     location: {
       href: 'http://localhost',
     },
@@ -202,6 +208,7 @@ describe('SessionReplay', () => {
 
     // Reset all other mocks and setup
     jest.clearAllMocks();
+    mockDocument.visibilityState = 'visible';
 
     // Set default remote config
     mockRemoteConfig = {
@@ -1157,6 +1164,21 @@ describe('SessionReplay', () => {
         expect(recordEventsSpy).not.toHaveBeenCalled();
       });
 
+      test('blur flushes the idle queue before sending', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const order: string[] = [];
+        sessionReplay.eventCompressor!.flushQueue = jest.fn(() => {
+          order.push('flush');
+        });
+        sessionReplay.sendEvents = jest.fn(() => {
+          order.push('send');
+        });
+
+        sessionReplay.blurListener();
+
+        expect(order).toEqual(['flush', 'send']);
+      });
+
       test('still takes the on-focus full snapshot when config is not yet set', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         const takeFullSnapshotMock = jest.fn();
@@ -1171,6 +1193,158 @@ describe('SessionReplay', () => {
         sessionReplay.focusListener();
 
         expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+    });
+
+    describe('visibilityListener', () => {
+      test('registers a document visibilitychange listener', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        expect(documentAddEventListenerMock).toHaveBeenCalledWith('visibilitychange', sessionReplay.visibilityListener);
+      });
+
+      test('hiding the tab flushes queued mutations and does not take a snapshot', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const order: string[] = [];
+        const takeFullSnapshotMock = jest.fn(() => {
+          order.push('snapshot');
+        });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        sessionReplay.eventCompressor!.flushQueue = jest.fn(() => {
+          order.push('flush');
+        });
+        sessionReplay.sendEvents = jest.fn(() => {
+          order.push('send');
+        });
+        mockDocument.visibilityState = 'hidden';
+
+        sessionReplay.visibilityListener();
+
+        expect(order).toEqual(['flush', 'send']);
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('showing the tab takes a checkout snapshot and sends it when focus snapshots are off', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const order: string[] = [];
+        const takeFullSnapshotMock = jest.fn(() => {
+          order.push('snapshot');
+        });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        sessionReplay.eventCompressor!.flushQueue = jest.fn(() => {
+          order.push('flush');
+        });
+        sessionReplay.sendEvents = jest.fn(() => {
+          order.push('send');
+        });
+        mockDocument.visibilityState = 'visible';
+
+        sessionReplay.visibilityListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+        expect(order).toEqual(['flush', 'snapshot', 'send']);
+      });
+
+      test('does not snapshot when recording is stopped', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordingEnabled = false;
+        mockDocument.visibilityState = 'visible';
+
+        sessionReplay.visibilityListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('warns and still sends when the visible-tab snapshot throws', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+        const testError = new Error('rrweb snapshot failed');
+        const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => undefined);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = {
+          takeFullSnapshot: jest.fn().mockImplementation(() => {
+            throw testError;
+          }),
+        };
+        mockDocument.visibilityState = 'visible';
+
+        sessionReplay.visibilityListener();
+
+        expect(warnSpy).toHaveBeenCalledWith('Failed to take full snapshot when the tab became visible:', testError);
+        expect(sendEventsSpy).toHaveBeenCalled();
+      });
+
+      test('starts recording when the tab becomes visible and capture has not started', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = null;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordEventsInFlight = false;
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+        mockDocument.visibilityState = 'visible';
+
+        sessionReplay.visibilityListener();
+
+        expect(recordEventsSpy).toHaveBeenCalledWith(false);
+      });
+
+      test('ignores the event when the global scope or document is missing', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+        expect(() => sessionReplay.visibilityListener()).not.toThrow();
+
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
+        expect(() => sessionReplay.visibilityListener()).not.toThrow();
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('showing the tab still snapshots when the compressor is not ready', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        sessionReplay.eventCompressor = undefined;
+        const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => undefined);
+        mockDocument.visibilityState = 'visible';
+
+        sessionReplay.visibilityListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+        expect(sendEventsSpy).toHaveBeenCalled();
+      });
+
+      test('shutdown removes the visibility listener', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        documentRemoveEventListenerMock.mockClear();
+
+        sessionReplay.shutdown();
+
+        expect(documentRemoveEventListenerMock).toHaveBeenCalledWith(
+          'visibilitychange',
+          sessionReplay.visibilityListener,
+        );
       });
     });
 
@@ -3643,6 +3817,10 @@ describe('SessionReplay', () => {
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
       expect(removeEventListenerMock.mock.calls[2][0]).toEqual('beforeunload');
+      expect(documentRemoveEventListenerMock).toHaveBeenCalledWith(
+        'visibilitychange',
+        sessionReplay.visibilityListener,
+      );
     });
 
     test('should remove event listeners with pagehide', async () => {
