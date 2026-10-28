@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analytics Browser Core</title>
+  </head>
+  <body>
+    <h1>Analytics Browser Core</h1>
+    <p>
+      This page loads <code>packages/analytics-browser/lib/esm/index-core.js</code> (the build of <code>index-core.ts</code>) and initializes it on load.
+    </p>
+    <button id="testButton" type="button">Send event</button>
+    <p id="status">SDK loading…</p>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser/lib/esm/index-core.js';
+
+      window.amplitude = amplitude;
+
+      const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
+      const userId = import.meta.env.VITE_AMPLITUDE_USER_ID || 'core-manual-test-user';
+
+      amplitude.init(apiKey, userId, {
+        logLevel: amplitude.Types.LogLevel.Debug,
+        autocapture: true,
+      });
+
+      document.getElementById('status').textContent = 'SDK initialized.';
+
+      document.getElementById('testButton').addEventListener('click', () => {
+        amplitude.track('core_test_button_clicked');
+        document.getElementById('status').textContent =
+          'Tracked "core_test_button_clicked". Check the Network tab for the request.';
+      });
+    </script>
+  </body>
+</html>

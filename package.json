@@ -60,6 +60,7 @@
     "@commitlint/cli": "^17.3.0",
     "@commitlint/config-conventional": "^17.3.0",
     "@playwright/test": "1.55.1",
+    "@size-limit/esbuild": "12.1.0",
     "@size-limit/file": "^12.1.0",
     "@types/jest": "^29.2.4",
     "@types/node": "^18.11.14",
