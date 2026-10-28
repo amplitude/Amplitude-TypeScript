@@ -376,35 +376,37 @@
 
       window.runScriptedChecks = runScriptedChecks;
 
-      try {
-        await sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', {
-          deviceId: 'tab-switch-manual',
-          sessionId,
-          sampleRate: 1,
-          logLevel: 1,
-          // Keep the idle queue that hid the bug, and keep focus snapshots off.
-          performanceConfig: { enabled: true },
-          captureFullSnapshotOnFocus: false,
-          eagerFullSnapshotSend: false,
-          enableTransportCompression: false,
-          useWebWorker: false,
-          storeType: 'memory',
-          handleSendEvents,
-          handleFetchConfig,
-        }).promise;
-        window.srReady = true;
-        enableControls();
-        setStatus(
-          (isPeer ? 'Other tab ready' : 'Ready') +
-            '. Session ' +
-            sessionId +
-            '. Focus snapshots are off. Switch tabs or run the scripted checks.',
-        );
-      } catch (error) {
-        window.srError = error.message;
-        setStatus('Failed to start: ' + error.message);
-        log(error.stack || error.message);
-      }
+      void (async () => {
+        try {
+          await sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', {
+            deviceId: 'tab-switch-manual',
+            sessionId,
+            sampleRate: 1,
+            logLevel: 1,
+            // Keep the idle queue that hid the bug, and keep focus snapshots off.
+            performanceConfig: { enabled: true },
+            captureFullSnapshotOnFocus: false,
+            eagerFullSnapshotSend: false,
+            enableTransportCompression: false,
+            useWebWorker: false,
+            storeType: 'memory',
+            handleSendEvents,
+            handleFetchConfig,
+          }).promise;
+          window.srReady = true;
+          enableControls();
+          setStatus(
+            (isPeer ? 'Other tab ready' : 'Ready') +
+              '. Session ' +
+              sessionId +
+              '. Focus snapshots are off. Switch tabs or run the scripted checks.',
+          );
+        } catch (error) {
+          window.srError = error.message;
+          setStatus('Failed to start: ' + error.message);
+          log(error.stack || error.message);
+        }
+      })();
     </script>
   </body>
 </html>
