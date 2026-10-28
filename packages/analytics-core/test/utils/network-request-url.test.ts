@@ -53,7 +53,7 @@ describe('network request URL normalization', () => {
     expect(parseNetworkRequestUrl(input)).toEqual(expected);
     expect(parseNetworkRequestUrlFromString(input)).toEqual(expected);
     const event = createNetworkRequestEvent({ url: input, method: 'GET', startTime: 1000, duration: 10 });
-    expect(event.event_properties?.['[Amplitude] URL']).toBe(url);
+    expect(event?.event_properties?.['[Amplitude] URL']).toBe(url);
   });
 
   test('falls back when the React Native URL polyfill is incomplete', () => {

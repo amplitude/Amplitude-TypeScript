@@ -40,16 +40,22 @@ export function formatNetworkRequestEvent(properties: NetworkRequestEventData) {
 
 /**
  * Creates an [Amplitude] Network Request event for a completed request.
- * Pass the returned event to track() on the desired analytics instance.
+ * Pass the returned event to track() on the desired analytics instance when defined.
  * This function does not send events or apply Autocapture filtering or sanitization rules.
  * Callers are responsible for sanitizing the supplied data.
  *
- * @throws TypeError if the URL or HTTP method is empty.
- * @throws RangeError if timing values are negative or non-finite.
+ * Invalid input is logged to the console and produces no event.
+ * @returns The event, or undefined for invalid URL, method, or timing values.
  */
-export function createNetworkRequestEvent(properties: NetworkRequestEventProperties): BaseEvent {
-  if (!properties.url.trim() || !properties.method.trim()) {
-    throw new TypeError('Network request URL and method must not be empty');
+export function createNetworkRequestEvent(properties: NetworkRequestEventProperties): BaseEvent | undefined {
+  if (
+    typeof properties?.url !== 'string' ||
+    !properties.url.trim() ||
+    typeof properties.method !== 'string' ||
+    !properties.method.trim()
+  ) {
+    console.error('Amplitude Logger [Error]: Network request URL and method must not be empty');
+    return;
   }
   const completionTime = properties.startTime + properties.duration;
   if (
@@ -59,7 +65,8 @@ export function createNetworkRequestEvent(properties: NetworkRequestEventPropert
     properties.duration < 0 ||
     !Number.isFinite(completionTime)
   ) {
-    throw new RangeError('Network request timing must be finite, non-negative milliseconds');
+    console.error('Amplitude Logger [Error]: Network request timing must be finite, non-negative milliseconds');
+    return;
   }
   const event = formatNetworkRequestEvent({
     ...properties,

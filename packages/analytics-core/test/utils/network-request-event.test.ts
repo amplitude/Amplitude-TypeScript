@@ -15,9 +15,15 @@ const request: NetworkRequestEventProperties = {
 };
 
 describe('createNetworkRequestEvent', () => {
+  let consoleError: jest.SpyInstance;
+
+  beforeEach(() => {
+    consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+
   test('constructs a completed request compatible with the existing track API', () => {
     const event = createNetworkRequestEvent(request);
-    expect(createTrackEvent(event, undefined, { user_id: 'user' })).toEqual({
+    expect(event && createTrackEvent(event, undefined, { user_id: 'user' })).toEqual({
       event_type: '[Amplitude] Network Request',
       user_id: 'user',
       event_properties: {
@@ -49,7 +55,7 @@ describe('createNetworkRequestEvent', () => {
       requestBody: '',
       responseBody: '{}',
     });
-    expect(event.event_properties).toMatchObject({
+    expect(event?.event_properties).toMatchObject({
       '[Amplitude] Status Code': 0,
       '[Amplitude] Start Time': 0,
       '[Amplitude] Completion Time': 0,
@@ -68,27 +74,46 @@ describe('createNetworkRequestEvent', () => {
 
   test('defaults absent status to zero and omits unavailable optional properties', () => {
     const event = createNetworkRequestEvent({ ...request, statusCode: undefined });
-    expect(event.event_properties?.['[Amplitude] Status Code']).toBe(0);
-    expect(Object.values(event.event_properties ?? {})).not.toContain(undefined);
-    expect(event.event_properties).not.toHaveProperty('[Amplitude] Error Message');
-    expect(event.event_properties).not.toHaveProperty('[Amplitude] Request Body');
+    expect(event?.event_properties?.['[Amplitude] Status Code']).toBe(0);
+    expect(Object.values(event?.event_properties ?? {})).not.toContain(undefined);
+    expect(event?.event_properties).not.toHaveProperty('[Amplitude] Error Message');
+    expect(event?.event_properties).not.toHaveProperty('[Amplitude] Request Body');
   });
 
   test.each([200, 404, 500])('does not apply Autocapture status filters to %i', (statusCode) => {
     const event = createNetworkRequestEvent({ ...request, statusCode });
-    expect(event.event_properties?.['[Amplitude] Status Code']).toBe(statusCode);
+    expect(event?.event_properties?.['[Amplitude] Status Code']).toBe(statusCode);
   });
 
   test('preserves original URL parsing and leaves the input unchanged', () => {
     const properties = Object.freeze({ ...request, url: 'https://user:secret@example.com/orders?q=one#two' });
     const event = createNetworkRequestEvent(properties);
-    expect(event.event_properties?.['[Amplitude] URL']).toBe('https://user:secret@example.com/orders');
+    expect(event?.event_properties?.['[Amplitude] URL']).toBe('https://user:secret@example.com/orders');
     expect(JSON.stringify(event)).toContain('secret');
     expect(properties.url).toContain('user:secret@');
   });
 
-  test.each(['url', 'method'] as const)('rejects an empty %s', (key) => {
-    expect(() => createNetworkRequestEvent({ ...request, [key]: '  ' })).toThrow(TypeError);
+  test.each(['url', 'method'] as const)('logs and skips an empty %s without interrupting the caller', (key) => {
+    const event = createNetworkRequestEvent({ ...request, [key]: '  ' });
+    expect(event).toBeUndefined();
+    expect(consoleError).toHaveBeenCalledWith(
+      'Amplitude Logger [Error]: Network request URL and method must not be empty',
+    );
+  });
+
+  test.each([undefined, null, {}, { ...request, url: 42 }, { ...request, method: null }])(
+    'skips malformed JavaScript input %j',
+    (properties) => {
+      expect(createNetworkRequestEvent(properties as NetworkRequestEventProperties)).toBeUndefined();
+      expect(consoleError).toHaveBeenCalledWith(
+        'Amplitude Logger [Error]: Network request URL and method must not be empty',
+      );
+    },
+  );
+
+  test('does not log for a valid request', () => {
+    expect(createNetworkRequestEvent(request)?.event_type).toBe('[Amplitude] Network Request');
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -99,8 +124,11 @@ describe('createNetworkRequestEvent', () => {
     { duration: Infinity },
     { duration: -1 },
     { startTime: Number.MAX_VALUE, duration: Number.MAX_VALUE },
-  ])('rejects invalid timing %j', (timing) => {
-    expect(() => createNetworkRequestEvent({ ...request, ...timing })).toThrow(RangeError);
+  ])('logs and skips invalid timing %j without interrupting the caller', (timing) => {
+    expect(createNetworkRequestEvent({ ...request, ...timing })).toBeUndefined();
+    expect(consoleError).toHaveBeenCalledWith(
+      'Amplitude Logger [Error]: Network request timing must be finite, non-negative milliseconds',
+    );
   });
 });
 
