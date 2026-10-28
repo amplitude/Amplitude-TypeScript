@@ -20,6 +20,7 @@ import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import * as networkCapturePlugin from '@amplitude/plugin-network-capture-browser';
 import * as webVitals from '@amplitude/plugin-web-vitals-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
+import { AmplitudeBrowserCore } from '../src/browser-client-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
@@ -2788,15 +2789,9 @@ describe('browser-client', () => {
   });
 
   describe('when adapters are unavailable', () => {
-    class AmplitudeBrowserWithoutAdapters extends AmplitudeBrowser {
-      protected autocaptureAdapter() {
-        return null;
-      }
-    }
-
     test('should skip remote config, diagnostics, attribution and plugins on init', async () => {
       const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
-      const clientWithoutAdapters = new AmplitudeBrowserWithoutAdapters();
+      const clientWithoutAdapters = new AmplitudeBrowserCore();
 
       await clientWithoutAdapters.init(apiKey, userId, {
         defaultTracking: {
@@ -2812,7 +2807,7 @@ describe('browser-client', () => {
     });
 
     test('should process events without tracking attribution', async () => {
-      const clientWithoutAdapters = new AmplitudeBrowserWithoutAdapters();
+      const clientWithoutAdapters = new AmplitudeBrowserCore();
       await clientWithoutAdapters.init(apiKey, userId, {
         optOut: true,
         defaultTracking: false,
