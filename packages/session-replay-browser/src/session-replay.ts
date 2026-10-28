@@ -130,6 +130,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
    */
   private startChildRecordingOnSetup = false;
   private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
+  /**
+   * Tab hide/blur uploads are deferred by one macrotask. `visibilitychange` (hidden)
+   * fires before `pagehide`, and the default memory store clears the beacon buffer
+   * as soon as `sendEvents` resolves. If that happens first, the page-leave beacon
+   * is empty and the fetch it raced is cancelled on unload.
+   */
+  private hiddenFlushTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
   private currentPageUrl = '';
@@ -567,7 +574,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // beside this one). Drain the idle queue first: sendEvents only ships what is
     // already in the store, and the mutations for the screen the user just left
     // are often still waiting on requestIdleCallback.
-    this.flushPendingReplayEvents();
+    this.scheduleHiddenSend();
   };
 
   /**
@@ -584,10 +591,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
   visibilityListener = () => {
     const visibilityState = getGlobalScope()?.document?.visibilityState;
     if (visibilityState === 'hidden') {
-      this.flushPendingReplayEvents();
+      this.scheduleHiddenSend();
       return;
     }
     if (visibilityState === 'visible') {
+      // The deferred hide upload has not run. This send includes those events
+      // plus the checkout snapshot.
+      this.cancelHiddenSend();
       this.captureVisibleTab();
     }
   };
@@ -621,6 +631,48 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   /**
+   * Flush now, upload on the next macrotask. The flush is synchronous so a
+   * following `pagehide` still sees the events in the beacon buffer. The upload
+   * waits so a memory-store `sendEvents` cannot clear that buffer before the
+   * beacon copies it. A tab switch never reaches `pagehide`, so the timer uploads.
+   */
+  private scheduleHiddenSend() {
+    this.eventCompressor?.flushQueue();
+    if (this.hiddenFlushTimer !== undefined) {
+      return;
+    }
+    const schedule = this.hostSetTimeout();
+    this.hiddenFlushTimer = schedule(() => {
+      this.hiddenFlushTimer = undefined;
+      this.sendEvents();
+    }, 0);
+  }
+
+  private cancelHiddenSend() {
+    if (this.hiddenFlushTimer === undefined) {
+      return;
+    }
+    this.hostClearTimeout()(this.hiddenFlushTimer);
+    this.hiddenFlushTimer = undefined;
+  }
+
+  private hostSetTimeout(): typeof setTimeout {
+    const globalScope = getGlobalScope();
+    if (typeof globalScope?.setTimeout === 'function') {
+      return globalScope.setTimeout.bind(globalScope);
+    }
+    return setTimeout;
+  }
+
+  private hostClearTimeout(): typeof clearTimeout {
+    const globalScope = getGlobalScope();
+    if (typeof globalScope?.clearTimeout === 'function') {
+      return globalScope.clearTimeout.bind(globalScope);
+    }
+    return clearTimeout;
+  }
+
+  /**
    * Checkout the DOM the user can actually see, then send it. Queued mutations are
    * flushed first so they stay ordered ahead of the new snapshot.
    */
@@ -651,6 +703,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * prevent duplicate listener actions from firing.
    */
   private pageLeaveListener = (e: PageTransitionEvent | Event) => {
+    // Drop the deferred hide upload. It must not resolve before the beacon below
+    // copies the buffer. Unload order is visibilitychange(hidden), then pagehide.
+    this.cancelHiddenSend();
     // Synchronously drain any events still queued in the requestIdleCallback
     // pipeline so they are available to send before the page unloads.
     this.flushPendingReplayEvents();
@@ -1300,6 +1355,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordingEnabled = false;
     this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
+    this.cancelHiddenSend();
     this.stopRecordingEvents();
     this.sendEvents();
   }
@@ -1317,6 +1373,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordingEnabled = false;
     this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
+    this.cancelHiddenSend();
     this.urlChangeCleanup?.();
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;
