@@ -7,8 +7,8 @@
  *   NEW_ARCH=0  → legacy bridge (default). Binary under ios/build-old-arch/
  *   NEW_ARCH=1  → New Architecture. Binary under ios/build-new-arch/
  *
- * Pods are regenerated when the architecture marker disagrees with NEW_ARCH
- * (RCT_NEW_ARCH_ENABLED is baked in at `pod install` time). Set FORCE_PODS=1
+ * Pods are regenerated for forced rebuilds and when the architecture marker
+ * disagrees with NEW_ARCH (RCT_NEW_ARCH_ENABLED is baked in at `pod install` time). Set FORCE_PODS=1
  * to wipe Pods first. Set FORCE_REBUILD=1 to rebuild even if the .app exists.
  */
 import fs from 'node:fs';
@@ -50,7 +50,9 @@ const podEnv = {
 const ensurePods = () => {
   const current = readMarker(podsArchMarker);
   const podsPresent = fs.existsSync(podsXcconfig);
-  const needsInstall = !podsPresent || current !== arch.label || forcePods;
+  // A forced build must also pick up newly linked native dependencies even if
+  // the architecture is unchanged (for example, the Session Replay plugin).
+  const needsInstall = !podsPresent || current !== arch.label || forcePods || forceRebuild;
 
   if (!needsInstall) {
     return;
@@ -114,6 +116,9 @@ const buildApp = () => {
       cwd: iosRoot,
       env: {
         ...process.env,
+        // RN's codegen script uses BSD cp -X. Homebrew GNU coreutils earlier
+        // in PATH reject that flag, so prefer macOS utilities for Xcode phases.
+        PATH: `/usr/bin:/bin:/usr/sbin:/sbin:${process.env.PATH ?? ''}`,
         RCT_NO_LAUNCH_PACKAGER: '1',
         RCT_NEW_ARCH_ENABLED: arch.rctFlag,
       },
