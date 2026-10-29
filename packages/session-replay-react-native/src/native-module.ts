@@ -108,6 +108,8 @@ export interface NativeSessionReplaySpec {
 
   addListener(eventName: string): void;
   removeListeners(count: number): void;
+  /** Reads the current device identifier from the native recorder. */
+  getDeviceId(): Promise<string | null>;
 
   /**
    * Updates whether session replay collection is disabled for the current user.
