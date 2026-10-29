@@ -388,8 +388,8 @@ export class AmplitudeBrowserLite extends AmplitudeCore implements BrowserClient
           }).promise,
         );
       }
-      this.config.lastEventTime = this.config.sessionId;
     }
+    this.config.lastEventTime = this.config.sessionId;
 
     // Fire web attribution event when enable webAttribution tracking
     // 1. has new campaign (call setSessionId from init function)

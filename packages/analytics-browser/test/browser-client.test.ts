@@ -2261,7 +2261,7 @@ describe('browser-client', () => {
       }).promise;
       // assert sessionId is set
       expect(client.config.sessionId).toBe(firstSessionId);
-      expect(client.config.lastEventTime).toBeUndefined();
+      expect(client.config.lastEventTime).toBe(firstSessionId);
 
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
