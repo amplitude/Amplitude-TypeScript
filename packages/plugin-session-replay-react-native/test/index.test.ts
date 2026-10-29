@@ -1,16 +1,12 @@
 import { LogLevel } from '@amplitude/analytics-core';
 
 const nativeSetupMock = jest.fn((..._args: unknown[]) => Promise.resolve());
-const nativeSetDeviceIdMock = jest.fn((..._args: unknown[]) => Promise.resolve());
-const nativeGetDeviceIdMock = jest.fn(() => Promise.resolve('test-device'));
 
 jest.mock('../src/native-module', () => ({
   PluginSessionReplayReactNative: {
     setup: nativeSetupMock,
     setSessionId: jest.fn(() => Promise.resolve()),
     getSessionId: jest.fn(() => Promise.resolve(0)),
-    setDeviceId: nativeSetDeviceIdMock,
-    getDeviceId: nativeGetDeviceIdMock,
     getSessionReplayProperties: jest.fn(() => Promise.resolve({})),
     start: jest.fn(() => Promise.resolve()),
     stop: jest.fn(() => Promise.resolve()),
@@ -19,7 +15,6 @@ jest.mock('../src/native-module', () => ({
 }));
 
 import { getDefaultConfig } from '../src/session-replay-config';
-import { PluginSessionReplayReactNative } from '../src/native-module';
 import { SessionReplayPlugin } from '../src/session-replay';
 
 describe('Session Replay default config', () => {
@@ -101,66 +96,5 @@ describe('SessionReplayPlugin.setup forwards maskLevel to native', () => {
     expect(args[6]).toBe(LogLevel.Debug);
     expect(args[7]).toBe(false);
     expect(args[8]).toBe('conservative');
-  });
-});
-
-describe('SessionReplayPlugin.execute identity sync', () => {
-  const baseConfig = {
-    apiKey: 'test-api-key',
-    deviceId: 'test-device',
-    sessionId: 12345,
-    serverZone: 'US' as const,
-  };
-  const event = { event_type: 'click', session_id: 12345, event_properties: {} };
-
-  beforeEach(() => {
-    nativeSetDeviceIdMock.mockClear();
-    nativeGetDeviceIdMock.mockReset();
-    nativeGetDeviceIdMock.mockResolvedValue('test-device');
-  });
-
-  it('pushes a changed analytics device id into Session Replay once', async () => {
-    let replayDeviceId = 'test-device';
-    nativeGetDeviceIdMock.mockImplementation(() => Promise.resolve(replayDeviceId));
-    nativeSetDeviceIdMock.mockImplementation((...args: unknown[]) => {
-      replayDeviceId = String(args[0]);
-      return Promise.resolve();
-    });
-
-    const plugin = new SessionReplayPlugin();
-    const config = { ...baseConfig };
-    await plugin.setup(config as never, {} as never);
-
-    await plugin.execute(event as never);
-    expect(nativeSetDeviceIdMock).not.toHaveBeenCalled();
-
-    config.deviceId = 'device-after-reset';
-    await plugin.execute(event as never);
-    expect(nativeSetDeviceIdMock).toHaveBeenCalledTimes(1);
-    expect(nativeSetDeviceIdMock).toHaveBeenCalledWith('device-after-reset');
-
-    await plugin.execute(event as never);
-    expect(nativeSetDeviceIdMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('still enriches the event when the native build cannot sync device id', async () => {
-    const native = PluginSessionReplayReactNative as {
-      getDeviceId?: unknown;
-      setDeviceId?: unknown;
-    };
-    const originalGet = native.getDeviceId;
-    const originalSet = native.setDeviceId;
-    native.getDeviceId = undefined;
-    native.setDeviceId = undefined;
-    try {
-      const plugin = new SessionReplayPlugin();
-      const config = { ...baseConfig, deviceId: 'stale-device' };
-      await plugin.setup(config as never, {} as never);
-      config.deviceId = 'device-after-reset';
-      await expect(plugin.execute(event as never)).resolves.toMatchObject({ event_type: 'click' });
-    } finally {
-      native.getDeviceId = originalGet;
-      native.setDeviceId = originalSet;
-    }
   });
 });
