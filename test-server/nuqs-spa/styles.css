@@ -37,7 +37,6 @@ form label {
   margin: 0;
 }
 button,
-input,
 select {
   font: inherit;
   padding: 8px;
@@ -49,8 +48,7 @@ select {
 button {
   cursor: pointer;
 }
-button:hover,
-button.selected {
+button:hover {
   background: #e3eee7;
 }
 button:disabled,
@@ -59,21 +57,9 @@ fieldset:disabled {
   cursor: default;
 }
 button:focus-visible,
-input:focus-visible,
 select:focus-visible {
   outline: 2px solid #318a69;
   outline-offset: 2px;
-}
-
-pre {
-  padding: 12px;
-  background: #eaf0ec;
-  border-radius: 4px;
-}
-.checkbox {
-  display: flex;
-  align-items: center;
-  margin: 0;
 }
 
 .action {
@@ -90,22 +76,8 @@ pre {
 }
 .action small,
 .control-help {
-  color: #53685b;
-}
-.control-help {
   font-size: 12px;
   margin-bottom: 0;
-}
-details {
-  margin: 12px 0;
-}
-summary {
-  cursor: pointer;
-  font-size: 12px;
-}
-details pre {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 .table-scroll {

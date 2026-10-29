@@ -24,22 +24,21 @@ Remote config is disabled so it cannot override the selected mode; diagnostics a
 
 ## Try it
 
-The SPA controls table puts buttons and their underlying code in rows, with expected additional page views in the `all` and `pathOnly` columns. Query-button annotations follow the selected nuqs history mode. The `trackOn` checkbox allows page views when checked and pauses them when unchecked; URL changes continue in either state.
+The SPA controls table puts buttons and their underlying code in rows, with expected additional page views in the `all` and `pathOnly` columns. Query-button annotations follow the selected nuqs history mode.
 
 Initialization tracks one initial page view. The selected mode determines how later URL changes are tracked:
 
 | Action | `all` | `pathOnly` |
 | --- | --- | --- |
-| Next page / search / category via nuqs | +1 per actual URL write | +0 |
-| Clear nonempty query via nuqs | +1 | +0 |
+| Next page via nuqs | +1 per actual URL write | +0 |
+| Clear page query via nuqs | +1 | +0 |
 | Write same value / state-only replacement | +0 | +0 |
 | Replace route to a different path | +1 | +1 |
 | Replace hash | +1 | +0 |
 | Catalog / Settings navigation to a different path | +1 | +1 |
-| Uncheck trackOn, then change URL | +0 | +0 |
 
 nuqs defaults to `history: 'replace'`. Switch its history mode to `push`, change the page number, and use Back/Forward to visit earlier query states. Query-only Back/Forward increments `all`; path changes are tracked in either mode.
 
-nuqs batches/throttles URL writes, so rapid keystrokes may produce fewer page views than characters typed.
+nuqs may batch rapid query updates into one URL write.
 
 References: [nuqs React Router adapter](https://nuqs.dev/docs/adapters#react-router-v6), [history options](https://nuqs.dev/docs/options#history), [batching](https://nuqs.dev/docs/batching).

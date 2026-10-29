@@ -1,20 +1,14 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v6';
-import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
+import { parseAsInteger, useQueryState } from 'nuqs';
 import { createInstance, Types } from '@amplitude/analytics-browser';
 import './styles.css';
 
 const client = createInstance();
 const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
 window.amplitude = client;
-
-const parsers = {
-  q: parseAsString.withDefault(''),
-  tab: parseAsString.withDefault('all'),
-  page: parseAsInteger.withDefault(1),
-};
 
 function Action({ children, code, operation, expectedAll, expectedPathOnly, ...buttonProps }) {
   return (
@@ -37,13 +31,9 @@ function App() {
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState('');
   const [historyMode, setHistoryMode] = useState('replace');
-  const trackingEnabled = useRef(true);
-  const [filters, setFilters] = useQueryStates(parsers);
+  const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1));
   const queryOperation = `nuqs → history.${historyMode === 'push' ? 'pushState' : 'replaceState'}(...)`;
-  const route = useLocation();
   const navigate = useNavigate();
-  // Leave options unset for replace mode to exercise nuqs' actual default.
-  const update = (patch) => setFilters(patch, historyMode === 'push' ? { history: 'push' } : undefined);
 
   function replaceRoute() {
     const nextRoute = `${location.pathname === '/settings' ? '/' : '/settings'}${location.search}`;
@@ -75,7 +65,7 @@ function App() {
           fileDownloads: false,
           formInteractions: false,
           sessions: false,
-          pageViews: { trackHistoryChanges: mode, trackOn: () => trackingEnabled.current },
+          pageViews: { trackHistoryChanges: mode },
         },
       }).promise;
       setStatus('ready');
@@ -116,36 +106,11 @@ function App() {
             <option value="push">push</option>
           </select>
         </label>
-        <label>
-          Search
-          <input
-            value={filters.q}
-            onChange={(event) => update({ q: event.target.value })}
-            placeholder="Type a search…"
-          />
-        </label>
-        <label>
-          Category
-          <select value={filters.tab} onChange={(event) => update({ tab: event.target.value, page: 1 })}>
-            <option value="all">All products</option>
-            <option value="favorites">Favorites</option>
-            <option value="archived">Archived</option>
-          </select>
-        </label>
-        <details>
-          <summary>Code used by the nuqs query controls</summary>
-          <pre>
-            {
-              "const update = (patch) => setFilters(\n  patch,\n  historyMode === 'push' ? { history: 'push' } : undefined\n);"
-            }
-          </pre>
-        </details>
-        <pre>{JSON.stringify(filters, null, 2)}</pre>
         <div className="table-scroll">
           <table>
             <caption>
-              Expected additional page views with trackOn checked. Back/Forward require an existing SPA history entry.
-              nuqs may batch query updates.
+              Expected additional page views. Back/Forward require an existing SPA history entry. nuqs may batch query
+              updates.
             </caption>
             <thead>
               <tr>
@@ -164,7 +129,6 @@ function App() {
                 expectedPathOnly="1 if path changes; otherwise 0"
                 code={"navigate('/' + location.search)"}
                 operation="history.pushState(...)"
-                className={route.pathname === '/' ? 'selected' : ''}
                 onClick={() => navigate(`/${location.search}`)}
               >
                 Catalog
@@ -174,7 +138,6 @@ function App() {
                 expectedPathOnly="1 if path changes; otherwise 0"
                 code={"navigate('/settings' + location.search)"}
                 operation="history.pushState(...)"
-                className={route.pathname === '/settings' ? 'selected' : ''}
                 onClick={() => navigate(`/settings${location.search}`)}
               >
                 Settings
@@ -200,29 +163,29 @@ function App() {
               <Action
                 expectedAll="1 per query URL update"
                 expectedPathOnly="0"
-                code="update({ page: filters.page + 1 })"
+                code="setPage(page + 1, { history: historyMode })"
                 operation={queryOperation}
-                onClick={() => update({ page: filters.page + 1 })}
+                onClick={() => setPage(page + 1, { history: historyMode })}
               >
-                Next page ({filters.page})
+                Next page ({page})
               </Action>
               <Action
                 expectedAll="0 if URL is unchanged"
                 expectedPathOnly="0"
-                code="update({ page: filters.page })"
+                code="setPage(page, { history: historyMode })"
                 operation={queryOperation}
-                onClick={() => update({ page: filters.page })}
+                onClick={() => setPage(page, { history: historyMode })}
               >
                 Write same value
               </Action>
               <Action
                 expectedAll="1 if query changes; otherwise 0"
                 expectedPathOnly="0"
-                code="update(null)"
+                code="setPage(null, { history: historyMode })"
                 operation={queryOperation}
-                onClick={() => update(null)}
+                onClick={() => setPage(null, { history: historyMode })}
               >
-                Clear query
+                Clear page query
               </Action>
               <Action
                 expectedAll="1"
@@ -254,21 +217,6 @@ function App() {
             </tbody>
           </table>
         </div>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            defaultChecked
-            onChange={(event) => {
-              trackingEnabled.current = event.target.checked;
-            }}
-          />
-          Allow page views (trackOn)
-        </label>
-        <p className="control-help">
-          Checked allows page views; unchecked pauses them while URL changes still work.
-          <br />
-          <code>trackOn: () =&gt; trackingEnabled.current</code>
-        </p>
       </fieldset>
     </main>
   );
