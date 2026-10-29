@@ -14,17 +14,17 @@ Open http://127.0.0.1:5174/. This dedicated Vite server supports deep links and 
 
 ## Initialize the SDK
 
-1. The API-key field is prefilled from `VITE_AMPLITUDE_API_KEY` in the repository-root `.env` file. You can enter a different test project's key if needed.
-2. Choose **all (default)** or **pathOnly**, and the project's US/EU server zone.
-3. Click **Initialize SDK**. The page confirms the active mode and enables the SPA controls.
+1. Set `VITE_AMPLITUDE_API_KEY` in the repository-root `.env` file.
+2. Choose **all (default)** or **pathOnly**.
+3. Click **Initialize SDK**. Refresh to change the tracking mode.
 
-The app calls the workspace Browser SDK's `init()` with the supplied API key. Events use the standard SDK transport and are sent to the selected Amplitude project. An enrichment observer displays generated page views without replacing the transport, destination, or delivery responses. The visible list is an observation of generated events, not an acknowledgement of successful ingestion; inspect the browser Network panel or your Amplitude project to verify delivery.
+The app uses the real workspace Browser SDK with the `.env` key, US server zone, and `Types.LogLevel.Debug`. Inspect SDK debug logs in the browser console, requests in the Network panel, or events in the Amplitude project. There are no event observers or history instrumentation in the app. `window.amplitude` exposes the SDK instance for console inspection.
 
-The form masks the API key; edits are not saved. The `.env` file and its values are not committed. Remote config is disabled so it cannot override the selected tracking mode; diagnostics and unrelated autocapture features are disabled. Refresh to change initialization options or reset the observed count. The current SPA URL is preserved by a refresh.
+Remote config is disabled so it cannot override the selected mode; diagnostics and unrelated autocapture features are disabled. Neither `.env` nor its values are committed.
 
 ## Try it
 
-The counter starts at 1 for the initial page view after initialization. The selected mode determines how later URL changes are tracked:
+Initialization tracks one initial page view. The selected mode determines how later URL changes are tracked:
 
 | Action | `all` | `pathOnly` |
 | --- | --- | --- |
@@ -38,8 +38,6 @@ The counter starts at 1 for the initial page view after initialization. The sele
 
 nuqs defaults to `history: 'replace'`. Switch its history mode to `push`, change the page number, and use Back/Forward to visit earlier query states. Query-only Back/Forward increments `all`; path changes are tracked in either mode.
 
-nuqs batches/throttles URL writes, so rapid keystrokes may produce fewer history calls and page views than characters typed. The history trace shows the actual calls; it does not dispatch synthetic navigation or analytics events. Expand any page-view entry to inspect the observed event. Only the latest ten observed events and latest 100 history calls are shown; the counter retains the full session count.
-
-For console inspection, `window.amplitude` (also `window.nuqsDemo.client`) exposes the initialized SDK instance and `window.nuqsDemo.getSnapshot()` returns the event/trace state.
+nuqs batches/throttles URL writes, so rapid keystrokes may produce fewer page views than characters typed.
 
 References: [nuqs React Router adapter](https://nuqs.dev/docs/adapters#react-router-v6), [history options](https://nuqs.dev/docs/options#history), [batching](https://nuqs.dev/docs/batching).
