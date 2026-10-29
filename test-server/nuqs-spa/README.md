@@ -24,6 +24,8 @@ Remote config is disabled so it cannot override the selected mode; diagnostics a
 
 ## Try it
 
+Each SPA button shows its handler and underlying History API operation. Query-button annotations follow the selected nuqs history mode. The `trackOn` checkbox allows page views when checked and pauses them when unchecked; URL changes continue in either state.
+
 Initialization tracks one initial page view. The selected mode determines how later URL changes are tracked:
 
 | Action | `all` | `pathOnly` |

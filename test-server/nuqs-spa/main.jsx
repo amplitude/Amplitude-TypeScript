@@ -16,6 +16,16 @@ const parsers = {
   page: parseAsInteger.withDefault(1),
 };
 
+function Action({ children, code, operation, ...buttonProps }) {
+  return (
+    <div className="action">
+      <button {...buttonProps}>{children}</button>
+      <code>{code}</code>
+      <small>{operation}</small>
+    </div>
+  );
+}
+
 function App() {
   const [mode, setMode] = useState('all');
   const [status, setStatus] = useState('idle');
@@ -23,10 +33,23 @@ function App() {
   const [historyMode, setHistoryMode] = useState('replace');
   const trackingEnabled = useRef(true);
   const [filters, setFilters] = useQueryStates(parsers);
+  const queryOperation = `nuqs → history.${historyMode === 'push' ? 'pushState' : 'replaceState'}(...)`;
   const route = useLocation();
   const navigate = useNavigate();
   // Leave options unset for replace mode to exercise nuqs' actual default.
   const update = (patch) => setFilters(patch, historyMode === 'push' ? { history: 'push' } : undefined);
+
+  function replaceRoute() {
+    const nextRoute = `${location.pathname === '/settings' ? '/' : '/settings'}${location.search}`;
+    navigate(nextRoute, { replace: true });
+  }
+
+  function replaceHash() {
+    const nextHashUrl = `${location.pathname}${location.search}${
+      location.hash === '#details' ? '#summary' : '#details'
+    }`;
+    navigate(nextHashUrl, { replace: true });
+  }
 
   async function initialize(event) {
     event.preventDefault();
@@ -81,17 +104,28 @@ function App() {
       <fieldset disabled={status !== 'ready'}>
         <legend>SPA controls</legend>
         <nav aria-label="Routes">
-          <button className={route.pathname === '/' ? 'selected' : ''} onClick={() => navigate(`/${location.search}`)}>
+          <Action
+            code={"navigate('/' + location.search)"}
+            operation="history.pushState(...)"
+            className={route.pathname === '/' ? 'selected' : ''}
+            onClick={() => navigate(`/${location.search}`)}
+          >
             Catalog
-          </button>
-          <button
+          </Action>
+          <Action
+            code={"navigate('/settings' + location.search)"}
+            operation="history.pushState(...)"
             className={route.pathname === '/settings' ? 'selected' : ''}
             onClick={() => navigate(`/settings${location.search}`)}
           >
             Settings
-          </button>
-          <button onClick={() => navigate(-1)}>← Back</button>
-          <button onClick={() => navigate(1)}>Forward →</button>
+          </Action>
+          <Action code="navigate(-1)" operation="history.go(-1) → popstate" onClick={() => navigate(-1)}>
+            ← Back
+          </Action>
+          <Action code="navigate(1)" operation="history.go(1) → popstate" onClick={() => navigate(1)}>
+            Forward →
+          </Action>
         </nav>
         <label>
           nuqs history mode
@@ -117,32 +151,55 @@ function App() {
           </select>
         </label>
         <div className="buttons">
-          <button onClick={() => update({ page: filters.page + 1 })}>Next page ({filters.page})</button>
-          <button onClick={() => update({ page: filters.page })}>Write same value</button>
-          <button onClick={() => update(null)}>Clear query</button>
+          <Action
+            code="update({ page: filters.page + 1 })"
+            operation={queryOperation}
+            onClick={() => update({ page: filters.page + 1 })}
+          >
+            Next page ({filters.page})
+          </Action>
+          <Action
+            code="update({ page: filters.page })"
+            operation={queryOperation}
+            onClick={() => update({ page: filters.page })}
+          >
+            Write same value
+          </Action>
+          <Action code="update(null)" operation={queryOperation} onClick={() => update(null)}>
+            Clear query
+          </Action>
         </div>
+        <details>
+          <summary>Code used by the nuqs query controls</summary>
+          <pre>
+            {
+              "const update = (patch) => setFilters(\n  patch,\n  historyMode === 'push' ? { history: 'push' } : undefined\n);"
+            }
+          </pre>
+        </details>
         <pre>{JSON.stringify(filters, null, 2)}</pre>
         <div className="buttons">
-          <button
-            onClick={() =>
-              navigate(`${location.pathname === '/settings' ? '/' : '/settings'}${location.search}`, { replace: true })
-            }
+          <Action
+            code="navigate(nextRoute, { replace: true })"
+            operation="history.replaceState(...) · toggles / and /settings"
+            onClick={replaceRoute}
           >
             Replace route
-          </button>
-          <button
-            onClick={() =>
-              navigate(
-                `${location.pathname}${location.search}${location.hash === '#details' ? '#summary' : '#details'}`,
-                { replace: true },
-              )
-            }
+          </Action>
+          <Action
+            code="navigate(nextHashUrl, { replace: true })"
+            operation="history.replaceState(...) · toggles #details and #summary"
+            onClick={replaceHash}
           >
             Replace hash
-          </button>
-          <button onClick={() => history.replaceState({ ...history.state, demoState: Date.now() }, '')}>
+          </Action>
+          <Action
+            code={"history.replaceState({ ...history.state, demoState: Date.now() }, '')"}
+            operation="Replaces state without changing the URL"
+            onClick={() => history.replaceState({ ...history.state, demoState: Date.now() }, '')}
+          >
             State only
-          </button>
+          </Action>
         </div>
         <label className="checkbox">
           <input
@@ -154,6 +211,11 @@ function App() {
           />
           Allow page views (trackOn)
         </label>
+        <p className="control-help">
+          Checked allows page views; unchecked pauses them while URL changes still work.
+          <br />
+          <code>trackOn: () =&gt; trackingEnabled.current</code>
+        </p>
       </fieldset>
     </main>
   );

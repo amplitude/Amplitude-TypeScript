@@ -66,9 +66,9 @@ select:focus-visible {
 }
 nav,
 .buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 16px;
   margin-bottom: 16px;
 }
 pre {
@@ -80,4 +80,36 @@ pre {
   display: flex;
   align-items: center;
   margin: 0;
+}
+
+.action {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+.action code,
+.action small {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.action small,
+.control-help {
+  color: #53685b;
+}
+.control-help {
+  font-size: 12px;
+  margin-bottom: 0;
+}
+details {
+  margin: 12px 0;
+}
+summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+details pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
