@@ -1,8 +1,8 @@
 import { debugWrapper, getClientLogConfig, getClientStates, BrowserClient } from '@amplitude/analytics-core';
-import { AmplitudeBrowserCore } from './browser-client-core';
+import { AmplitudeBrowserLite } from './browser-client-lite';
 
 export const createInstance = (): BrowserClient => {
-  const client = new AmplitudeBrowserCore();
+  const client = new AmplitudeBrowserLite();
   return {
     init: debugWrapper(
       client.init.bind(client),

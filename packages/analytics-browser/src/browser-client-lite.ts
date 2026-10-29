@@ -44,7 +44,7 @@ import { WebAttribution } from './attribution/web-attribution';
 
 const UNSPECIFIED_SESSION_ID = -1;
 
-type AutocaptureAdapter = {
+export type AutocaptureAdapter = {
   trackCampaignEventIfNeeded: (lastEventId?: number, promises?: Promise<Result>[]) => boolean;
   addAttributionTrackingPlugin: () => Promise<void>;
   addPlugins: () => Promise<void>;
@@ -67,7 +67,7 @@ type AutocaptureAdapter = {
  * Exported for `@amplitude/unified` or integration with blade plugins.
  * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
  */
-export class AmplitudeBrowserCore extends AmplitudeCore implements BrowserClient, AnalyticsClient {
+export class AmplitudeBrowserLite extends AmplitudeCore implements BrowserClient, AnalyticsClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
@@ -228,7 +228,9 @@ export class AmplitudeBrowserCore extends AmplitudeCore implements BrowserClient
     await this.add(new IdentityEventSender()).promise;
 
     // Notify if DET is enabled
-    detNotify(this.config);
+    if (autocaptureAdapter) {
+      detNotify(this.config);
+    }
     await autocaptureAdapter?.addPlugins();
     this.initializing = false;
 
@@ -375,7 +377,10 @@ export class AmplitudeBrowserCore extends AmplitudeCore implements BrowserClient
     this.config.lastEventTime = undefined;
     this.config.pageCounter = 0;
 
-    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+    const autocaptureAdapter = this.autocaptureAdapter();
+    const isLiteBuild = !autocaptureAdapter;
+    const shouldTrackSessionEvents = !isLiteBuild && isSessionTrackingEnabled(this.config.defaultTracking);
+    if (shouldTrackSessionEvents) {
       if (previousSessionId && lastEventTime) {
         promises.push(
           this.track(DEFAULT_SESSION_END_EVENT, undefined, {
@@ -387,21 +392,22 @@ export class AmplitudeBrowserCore extends AmplitudeCore implements BrowserClient
           }).promise,
         );
       }
+    }
+    if (isLiteBuild || shouldTrackSessionEvents) {
       this.config.lastEventTime = this.config.sessionId;
     }
 
     // Fire web attribution event when enable webAttribution tracking
     // 1. has new campaign (call setSessionId from init function)
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
-    const isCampaignEventTracked =
-      this.autocaptureAdapter()?.trackCampaignEventIfNeeded(++lastEventId, promises) ?? false;
+    const isCampaignEventTracked = autocaptureAdapter?.trackCampaignEventIfNeeded(++lastEventId, promises) ?? false;
 
     // track the identify event if an Identify object is provided in the config
     if (this.config.identify) {
       promises.push(this.track(createIdentifyEvent(this.config.identify)).promise);
     }
 
-    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+    if (shouldTrackSessionEvents) {
       promises.push(
         this.track(DEFAULT_SESSION_START_EVENT, undefined, {
           event_id: isCampaignEventTracked ? ++lastEventId : lastEventId,
