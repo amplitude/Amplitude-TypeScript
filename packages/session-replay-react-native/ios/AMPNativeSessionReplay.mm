@@ -1,6 +1,7 @@
 #import <React/RCTBridgeModule.h>
+#import <React/RCTEventEmitter.h>
 
-@interface RCT_EXTERN_MODULE(AMPNativeSessionReplay, NSObject)
+@interface RCT_EXTERN_MODULE(AMPNativeSessionReplay, RCTEventEmitter)
 
 RCT_EXTERN_METHOD(flush:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 

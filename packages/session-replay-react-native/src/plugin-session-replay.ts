@@ -6,17 +6,7 @@ import {
 } from '@amplitude/analytics-types';
 
 import { SessionReplayPluginConfig, getDefaultSessionReplayPluginConfig } from './plugin-session-replay-config';
-import {
-  getDeviceId,
-  getSessionId,
-  privateInit,
-  setDeviceId,
-  setOptOut,
-  setSessionId,
-  start,
-  stop,
-  teardown,
-} from './session-replay';
+import { getSessionId, privateInit, setOptOut, setSessionId, start, stop, teardown } from './session-replay';
 import { createSessionReplayLogger } from './logger';
 
 /**
@@ -97,15 +87,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
       return Promise.resolve(event);
     }
 
-    // On event, synchronize session and device ids to the analytics config (source of truth).
-    // Choosing not to read from the event object here, concerned about offline/delayed events messing up the state stored
-    // in SR. Device id has to follow reset() and setDeviceId(); dead-click detection treats a mismatch as not recording.
+    // On event, synchronize the session id to the what's on the browserConfig (source of truth)
+    // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
+    // in SR.
     if (this.config?.sessionId && this.config.sessionId !== (await getSessionId())) {
       await setSessionId(this.config.sessionId);
-    }
-    const deviceId = this.config?.deviceId;
-    if (deviceId && deviceId !== getDeviceId()) {
-      await setDeviceId(deviceId);
     }
     return Promise.resolve(event);
   }

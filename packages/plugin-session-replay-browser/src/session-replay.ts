@@ -135,16 +135,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
     this.config?.loggerProvider.debug(
       `Analytics session id is changed to ${sessionId}, SR session id is ${String(this.sessionReplay.getSessionId())}.`,
     );
-    await this.syncSessionIdentifiers(sessionId);
-  }
-
-  private async syncSessionIdentifiers(sessionId: string | number): Promise<void> {
-    const deviceId = this.options.deviceId ?? this.config?.deviceId;
-    // Keep the last successfully synced device id so reset() is detected even within the same session.
-    if (sessionId !== this.sessionReplay.getSessionId() || deviceId !== this.srInitOptions.deviceId) {
-      await this.sessionReplay.setSessionId(sessionId, deviceId).promise;
-      this.srInitOptions.deviceId = deviceId;
-    }
+    await this.sessionReplay.setSessionId(sessionId).promise;
   }
 
   async onOptOutChanged(optOut: boolean): Promise<void> {
@@ -158,7 +149,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
     if (optOut) {
       this.sessionReplay.shutdown();
     } else {
-      this.srInitOptions.deviceId = this.options.deviceId ?? this.config?.deviceId;
       this.config != null && (await this.sessionReplay.init(this.config.apiKey, this.srInitOptions).promise);
     }
   }
@@ -170,7 +160,9 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         if (sessionId) {
           // On event, synchronize the session id to the custom session id from the event. This may
           // suffer from offline/delayed events messing up the state stored
-          await this.syncSessionIdentifiers(sessionId);
+          if (sessionId !== this.sessionReplay.getSessionId()) {
+            await this.sessionReplay.setSessionId(sessionId).promise;
+          }
 
           const sessionRecordingProperties = this.sessionReplay.getSessionReplayProperties();
           event.event_properties = {
@@ -183,8 +175,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
         // in SR.
         const sessionId: string | number | undefined = this.config?.sessionId;
-        if (sessionId) {
-          await this.syncSessionIdentifiers(sessionId);
+        if (sessionId && sessionId !== this.sessionReplay.getSessionId()) {
+          await this.sessionReplay.setSessionId(sessionId).promise;
         }
 
         // Treating config.sessionId as source of truth, if the event's session id doesn't match, the

@@ -1,18 +1,16 @@
 import Foundation
+import React
 import AmplitudeSessionReplay
 import AmplitudeCore
 
 @objc(AMPNativeSessionReplay)
-class NativeSessionReplay: NSObject, RCTBridgeModule {
-    static func moduleName() -> String! {
-        "AMPNativeSessionReplay"
-    }
-    
+class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked Sendable {
     var sessionReplay: SessionReplay?
     var logger: CoreLogger?
-    private var signalReceiver = ReplayInterfaceSignalReceiver()
+    private var hasListeners = false
     
     override init() {
+        super.init()
         print("NativeSessionReplay init")
     }
     
@@ -63,16 +61,14 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         )
 
         sessionReplay?.customSessionId = customSessionId
-        sessionReplay?.addInterfaceSignalReceiver(signalReceiver)
+        sessionReplay?.addInterfaceSignalReceiver(self)
 
         resolve(nil)
     }
     
     @objc(setCustomSessionId:resolve:reject:)
     func setCustomSessionId(_ customSessionId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        if sessionReplay?.customSessionId != customSessionId as String {
-            signalReceiver.invalidate()
-        }
+        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "setCustomSessionId: \(customSessionId)")
         sessionReplay?.customSessionId = customSessionId as String
         resolve(nil)
@@ -89,9 +85,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     
     @objc(setDeviceId:resolve:reject:)
     func setDeviceId(_ deviceId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        if sessionReplay?.deviceId != deviceId as String? {
-            signalReceiver.invalidate()
-        }
+        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "setDeviceId: \(deviceId)")
         sessionReplay?.deviceId = deviceId as String?
         resolve(nil)
@@ -99,7 +93,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
 
     @objc(setOptOut:resolve:reject:)
     func setOptOut(_ optOut: Bool, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        signalReceiver.invalidate()
+        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "setOptOut: \(optOut)")
         sessionReplay?.optOut = optOut
         resolve(nil)
@@ -107,7 +101,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        signalReceiver.invalidate()
+        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "start")
         sessionReplay?.start()
         resolve(nil)
@@ -115,7 +109,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     
     @objc(stop:reject:)
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        signalReceiver.invalidate()
+        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "stop")
         sessionReplay?.stop()
         resolve(nil)
@@ -136,74 +130,61 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     }
     
     @objc(invalidate)
-    func invalidate() {
+    override func invalidate() {
         print("invalidate")
         tearDownSessionReplay()
+        super.invalidate()
     }
 
     private func tearDownSessionReplay() {
-        signalReceiver.invalidate()
-        sessionReplay?.removeInterfaceSignalReceiver(signalReceiver)
-        // Queued callbacks from the old recorder must not change the new state.
-        signalReceiver = ReplayInterfaceSignalReceiver(generation: signalReceiver.nextGeneration())
+        emitInterfaceSignal("stateChanged")
+        sessionReplay?.removeInterfaceSignalReceiver(self)
         sessionReplay?.stop()
         sessionReplay = nil
         logger = nil
     }
 
     @objc(getInterfaceSignalState:reject:)
-    func getInterfaceSignalState(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+    func getInterfaceSignalState(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
         // Replay updates capture availability on the main queue.
         DispatchQueue.main.async { [weak self] in
             guard let self else {
                 resolve(["isProviding": false])
                 return
             }
-            var state = self.signalReceiver.snapshot()
+            var state: [String: Any] = [:]
             state["isProviding"] = self.sessionReplay?.isProviding ?? false
             state["sessionId"] = self.sessionReplay?.customSessionId ?? "-1"
             state["deviceId"] = self.sessionReplay?.deviceId as Any? ?? NSNull()
             resolve(state)
         }
     }
-}
-
-private final class ReplayInterfaceSignalReceiver: NSObject, InterfaceSignalReceiver, @unchecked Sendable {
-    private let lock = NSLock()
-    private var generation = 0
-    private var lastChangeTime: Double = 0
-
-    init(generation: Int = 0) {
-        self.generation = generation
-        super.init()
+    override func supportedEvents() -> [String]! {
+        ["AMPNativeSessionReplayInterfaceSignal"]
     }
 
-    func nextGeneration() -> Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return generation + 1
+    override func startObserving() {
+        DispatchQueue.main.async { [weak self] in self?.hasListeners = true }
+    }
+
+    override func stopObserving() {
+        DispatchQueue.main.async { [weak self] in self?.hasListeners = false }
     }
 
     func onInterfaceChanged(signal: InterfaceChangeSignal) {
-        lock.lock()
-        lastChangeTime = max(lastChangeTime, signal.time.timeIntervalSince1970 * 1000)
-        lock.unlock()
+        emitInterfaceSignal("interfaceChanged", timestamp: signal.time.timeIntervalSince1970 * 1000)
     }
 
-    func onStartProviding() { invalidate() }
-    func onStopProviding() { invalidate() }
+    func onStartProviding() { emitInterfaceSignal("stateChanged") }
+    func onStopProviding() { emitInterfaceSignal("stateChanged") }
 
-    func invalidate() {
-        lock.lock()
-        generation += 1
-        lock.unlock()
+    private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.hasListeners else { return }
+            self.sendEvent(withName: "AMPNativeSessionReplayInterfaceSignal", body: ["type": type, "timestamp": timestamp])
+        }
     }
 
-    func snapshot() -> [String: Any] {
-        lock.lock()
-        defer { lock.unlock() }
-        return ["generation": generation, "lastChangeTime": lastChangeTime]
-    }
 }
 
 extension MaskLevel {
