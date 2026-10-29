@@ -14,13 +14,13 @@ Open http://127.0.0.1:5174/. This dedicated Vite server supports deep links and 
 
 ## Initialize the SDK
 
-1. Enter your test project's API key.
+1. The API-key field is prefilled from `VITE_AMPLITUDE_API_KEY` in the repository-root `.env` file. You can enter a different test project's key if needed.
 2. Choose **all (default)** or **pathOnly**, and the project's US/EU server zone.
 3. Click **Initialize SDK**. The page confirms the active mode and enables the SPA controls.
 
 The app calls the workspace Browser SDK's `init()` with the supplied API key. Events use the standard SDK transport and are sent to the selected Amplitude project. An enrichment observer displays generated page views without replacing the transport, destination, or delivery responses. The visible list is an observation of generated events, not an acknowledgement of successful ingestion; inspect the browser Network panel or your Amplitude project to verify delivery.
 
-The API key is not saved. Remote config is disabled so it cannot override the selected tracking mode; diagnostics and unrelated autocapture features are disabled. Refresh to change initialization options or reset the observed count. The current SPA URL is preserved by a refresh.
+The form masks the API key; edits are not saved. The `.env` file and its values are not committed. Remote config is disabled so it cannot override the selected tracking mode; diagnostics and unrelated autocapture features are disabled. Refresh to change initialization options or reset the observed count. The current SPA URL is preserved by a refresh.
 
 ## Try it
 

@@ -90,7 +90,7 @@ const parsers = {
 
 function App() {
   const state = useSyncExternalStore(subscribe, getSnapshot);
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(import.meta.env.VITE_AMPLITUDE_API_KEY || '');
   const [serverZone, setServerZone] = useState('US');
   const [historyMode, setHistoryMode] = useState('replace');
   const [filters, setFilters] = useQueryStates(parsers);
@@ -116,7 +116,8 @@ function App() {
       <section className="panel sdk-setup">
         <h2>Initialize Amplitude SDK</h2>
         <p className="muted">
-          Enter a test project's API key. The real Browser SDK sends events to that Amplitude project.
+          Use the project API key from .env or enter another test project's key. The real SDK sends events to that
+          project.
         </p>
         <form
           onSubmit={(event) => {
@@ -130,6 +131,7 @@ function App() {
                 Project API key
                 <input
                   required
+                  type="password"
                   value={apiKey}
                   onChange={(event) => setApiKey(event.target.value)}
                   autoComplete="off"
@@ -163,7 +165,8 @@ function App() {
         )}
         {state.error && <p role="alert">{state.error} Refresh to retry initialization.</p>}
         <p className="hint">
-          The API key is not saved. Remote config is disabled so the selected tracking mode stays in effect.
+          Prefilled from VITE_AMPLITUDE_API_KEY in the repository .env when available. Edits are not saved. Remote
+          config is disabled so your selected mode stays in effect.
         </p>
       </section>
       <section className="url-bar" aria-label="Current URL">

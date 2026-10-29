@@ -12,6 +12,7 @@ const alias = Object.fromEntries(
 
 export default defineConfig({
   root,
+  envDir: repoRoot,
   appType: 'spa',
   // Full-page reloads keep the SDK instances and history observers from stacking during edits.
   esbuild: { jsx: 'automatic' },
