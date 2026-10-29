@@ -1,5 +1,5 @@
 import { setImmediate } from 'timers';
-import { AppState, NativeModules, Platform } from 'react-native';
+import { AppState, DeviceEventEmitter, NativeModules, Platform } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import type { ReactNativeClient } from '@amplitude/analytics-core';
 import { createDeadClickTracker } from '../../src/autocapture/dead-click';
@@ -15,8 +15,6 @@ const properties = { '[Amplitude] Target Test ID': 'dead-button' };
 
 type SignalState = {
   isProviding: boolean;
-  lastChangeTime: number;
-  generation: number;
   sessionId: string;
   deviceId: string;
 };
@@ -24,6 +22,13 @@ type SignalState = {
 // RN's Promise polyfill schedules continuations on setImmediate. Keep it real
 // while controlling the detector's clock and timeout with fake timers.
 const settlePromises = () => new Promise<void>((resolve) => setImmediate(resolve));
+const emitSignal = (
+  type: 'interfaceChanged' | 'stateChanged',
+  timestamp = Date.now(),
+  module = 'PluginSessionReplayReactNative',
+) => DeviceEventEmitter.emit(`${module}InterfaceSignal`, { type, timestamp });
+
+const nativeSignalMethods = () => ({ addListener: jest.fn(), removeListeners: jest.fn() });
 
 describe('dead click detection', () => {
   let originalPlatform: typeof Platform.OS;
@@ -60,9 +65,9 @@ describe('dead click detection', () => {
     jest.useFakeTimers({ doNotFake: ['setImmediate', 'nextTick'] });
     jest.setSystemTime(START);
     config = useDefaultConfig({ sessionId: 123, deviceId: 'device' });
-    state = { isProviding: true, lastChangeTime: START - 1, generation: 1, sessionId: '123', deviceId: 'device' };
+    state = { isProviding: true, sessionId: '123', deviceId: 'device' };
     readState = jest.fn(() => Promise.resolve({ ...state }));
-    NativeModules.PluginSessionReplayReactNative = { getInterfaceSignalState: readState };
+    NativeModules.PluginSessionReplayReactNative = { getInterfaceSignalState: readState, ...nativeSignalMethods() };
     delete NativeModules.AMPNativeSessionReplay;
     onDeadClick = jest.fn();
     trackers = [];
@@ -111,10 +116,10 @@ describe('dead click detection', () => {
     'suppresses a press when UI activity arrives %s',
     async (timing) => {
       const tracker = createTracker();
-      if (timing === 'before the initial native response') state.lastChangeTime = START;
       tracker.registerClickEvent(coordinates, properties);
+      if (timing === 'before the initial native response') emitSignal('interfaceChanged');
       await settlePromises();
-      state.lastChangeTime = START + 1_000;
+      if (timing === 'during the timeout') emitSignal('interfaceChanged', START + 1_000);
       await advance();
       expect(onDeadClick).not.toHaveBeenCalled();
     },
@@ -150,7 +155,6 @@ describe('dead click detection', () => {
 
   it.each([
     ['recording stopped', { isProviding: false }],
-    ['recording restarted', { generation: 2 }],
     ['session changed', { sessionId: 'other-session' }],
   ])('rechecks Replay at the deadline: %s', async (_, override) => {
     createTracker().registerClickEvent(coordinates, properties);
@@ -160,6 +164,33 @@ describe('dead click detection', () => {
     expect(readState).toHaveBeenCalledTimes(2);
     expect(onDeadClick).not.toHaveBeenCalled();
   });
+
+  it.each(['before the initial response', 'during the timeout', 'during the final query'])(
+    'invalidates in JavaScript when Replay stops and restarts %s',
+    async (timing) => {
+      let resolveState: (value: SignalState) => void = () => undefined;
+      if (timing === 'during the final query') {
+        readState.mockResolvedValueOnce({ ...state }).mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveState = resolve;
+            }),
+        );
+      }
+      createTracker().registerClickEvent(coordinates, properties);
+      if (timing !== 'before the initial response') await settlePromises();
+      if (timing === 'during the final query') await advance();
+
+      // Final recording identity and availability are unchanged. Only the JS
+      // observer saw that capture was interrupted between the two reads.
+      emitSignal('stateChanged');
+      emitSignal('stateChanged');
+      if (timing === 'during the final query') resolveState({ ...state });
+      await settlePromises();
+      await advance();
+      expect(onDeadClick).not.toHaveBeenCalled();
+    },
+  );
 
   it.each(['opt out', 'session change', 'device change'])('cancels when Analytics changes: %s', async (change) => {
     createTracker().registerClickEvent(coordinates, properties);
@@ -210,16 +241,22 @@ describe('dead click detection', () => {
     expect(onDeadClick).not.toHaveBeenCalled();
   });
 
-  it.each(['web', 'missing Replay', 'old native binary'])('safely skips detection with %s', async (scenario) => {
-    if (scenario === 'web') Platform.OS = 'web';
-    if (scenario === 'missing Replay') delete NativeModules.PluginSessionReplayReactNative;
-    if (scenario === 'old native binary') NativeModules.PluginSessionReplayReactNative = {};
-    createTracker().registerClickEvent(coordinates, properties);
-    await settlePromises();
-    await advance();
-    expect(readState).not.toHaveBeenCalled();
-    expect(onDeadClick).not.toHaveBeenCalled();
-  });
+  it.each(['web', 'missing Replay', 'old native binary', 'binary without event support'])(
+    'safely skips detection with %s',
+    async (scenario) => {
+      if (scenario === 'web') Platform.OS = 'web';
+      if (scenario === 'missing Replay') delete NativeModules.PluginSessionReplayReactNative;
+      if (scenario === 'old native binary') NativeModules.PluginSessionReplayReactNative = {};
+      if (scenario === 'binary without event support') {
+        NativeModules.PluginSessionReplayReactNative = { getInterfaceSignalState: readState };
+      }
+      createTracker().registerClickEvent(coordinates, properties);
+      await settlePromises();
+      await advance();
+      expect(readState).not.toHaveBeenCalled();
+      expect(onDeadClick).not.toHaveBeenCalled();
+    },
+  );
 
   it.each(['opted out', 'background', 'disposed'])('ignores new presses while %s', async (scenario) => {
     const tracker = createTracker();
@@ -244,12 +281,45 @@ describe('dead click detection', () => {
   );
 
   it('uses standalone Replay when the linked plugin is not recording', async () => {
-    NativeModules.AMPNativeSessionReplay = { getInterfaceSignalState: jest.fn(() => Promise.resolve({ ...state })) };
+    NativeModules.AMPNativeSessionReplay = {
+      getInterfaceSignalState: jest.fn(() => Promise.resolve({ ...state })),
+      ...nativeSignalMethods(),
+    };
     readState.mockResolvedValue({ ...state, isProviding: false });
     createTracker().registerClickEvent(coordinates, properties);
     await settlePromises();
     await advance();
     expect(onDeadClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('routes native signals to the selected Replay provider', async () => {
+    NativeModules.AMPNativeSessionReplay = {
+      getInterfaceSignalState: jest.fn(() => Promise.resolve({ ...state })),
+      ...nativeSignalMethods(),
+    };
+    readState.mockResolvedValue({ ...state, isProviding: false });
+    const tracker = createTracker();
+    tracker.registerClickEvent(coordinates, properties);
+    await settlePromises();
+    emitSignal('stateChanged');
+    emitSignal('interfaceChanged');
+    await advance();
+    expect(onDeadClick).toHaveBeenCalledTimes(1);
+
+    tracker.registerClickEvent(coordinates, properties);
+    await settlePromises();
+    emitSignal('interfaceChanged', Date.now(), 'AMPNativeSessionReplay');
+    await advance();
+    expect(onDeadClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('removes native event subscriptions during teardown', () => {
+    const event = 'PluginSessionReplayReactNativeInterfaceSignal';
+    const before = DeviceEventEmitter.listenerCount(event);
+    const tracker = createTracker();
+    expect(DeviceEventEmitter.listenerCount(event)).toBe(before + 1);
+    tracker.teardown();
+    expect(DeviceEventEmitter.listenerCount(event)).toBe(before);
   });
 
   it('tracks captured presses through the frustration plugin with screen and target properties', async () => {
