@@ -64,13 +64,7 @@ select:focus-visible {
   outline: 2px solid #318a69;
   outline-offset: 2px;
 }
-nav,
-.buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
-}
+
 pre {
   padding: 12px;
   background: #eaf0ec;
@@ -112,4 +106,41 @@ summary {
 details pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin: 18px 0;
+}
+table {
+  width: 100%;
+  min-width: 540px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+caption {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  color: #53685b;
+}
+th,
+td {
+  padding: 12px;
+  border: 1px solid #ccd6ce;
+  text-align: left;
+  vertical-align: top;
+}
+thead th {
+  background: #eaf0ec;
+}
+thead th:first-child {
+  width: 50%;
+}
+th[scope='row'] {
+  font-weight: normal;
+}
+thead .active-mode {
+  border-bottom: 3px solid #318a69;
 }

@@ -16,13 +16,19 @@ const parsers = {
   page: parseAsInteger.withDefault(1),
 };
 
-function Action({ children, code, operation, ...buttonProps }) {
+function Action({ children, code, operation, expectedAll, expectedPathOnly, ...buttonProps }) {
   return (
-    <div className="action">
-      <button {...buttonProps}>{children}</button>
-      <code>{code}</code>
-      <small>{operation}</small>
-    </div>
+    <tr>
+      <th scope="row">
+        <div className="action">
+          <button {...buttonProps}>{children}</button>
+          <code>{code}</code>
+          <small>{operation}</small>
+        </div>
+      </th>
+      <td>{expectedAll}</td>
+      <td>{expectedPathOnly}</td>
+    </tr>
   );
 }
 
@@ -103,30 +109,6 @@ function App() {
 
       <fieldset disabled={status !== 'ready'}>
         <legend>SPA controls</legend>
-        <nav aria-label="Routes">
-          <Action
-            code={"navigate('/' + location.search)"}
-            operation="history.pushState(...)"
-            className={route.pathname === '/' ? 'selected' : ''}
-            onClick={() => navigate(`/${location.search}`)}
-          >
-            Catalog
-          </Action>
-          <Action
-            code={"navigate('/settings' + location.search)"}
-            operation="history.pushState(...)"
-            className={route.pathname === '/settings' ? 'selected' : ''}
-            onClick={() => navigate(`/settings${location.search}`)}
-          >
-            Settings
-          </Action>
-          <Action code="navigate(-1)" operation="history.go(-1) → popstate" onClick={() => navigate(-1)}>
-            ← Back
-          </Action>
-          <Action code="navigate(1)" operation="history.go(1) → popstate" onClick={() => navigate(1)}>
-            Forward →
-          </Action>
-        </nav>
         <label>
           nuqs history mode
           <select value={historyMode} onChange={(event) => setHistoryMode(event.target.value)}>
@@ -150,25 +132,6 @@ function App() {
             <option value="archived">Archived</option>
           </select>
         </label>
-        <div className="buttons">
-          <Action
-            code="update({ page: filters.page + 1 })"
-            operation={queryOperation}
-            onClick={() => update({ page: filters.page + 1 })}
-          >
-            Next page ({filters.page})
-          </Action>
-          <Action
-            code="update({ page: filters.page })"
-            operation={queryOperation}
-            onClick={() => update({ page: filters.page })}
-          >
-            Write same value
-          </Action>
-          <Action code="update(null)" operation={queryOperation} onClick={() => update(null)}>
-            Clear query
-          </Action>
-        </div>
         <details>
           <summary>Code used by the nuqs query controls</summary>
           <pre>
@@ -178,28 +141,118 @@ function App() {
           </pre>
         </details>
         <pre>{JSON.stringify(filters, null, 2)}</pre>
-        <div className="buttons">
-          <Action
-            code="navigate(nextRoute, { replace: true })"
-            operation="history.replaceState(...) · toggles / and /settings"
-            onClick={replaceRoute}
-          >
-            Replace route
-          </Action>
-          <Action
-            code="navigate(nextHashUrl, { replace: true })"
-            operation="history.replaceState(...) · toggles #details and #summary"
-            onClick={replaceHash}
-          >
-            Replace hash
-          </Action>
-          <Action
-            code={"history.replaceState({ ...history.state, demoState: Date.now() }, '')"}
-            operation="Replaces state without changing the URL"
-            onClick={() => history.replaceState({ ...history.state, demoState: Date.now() }, '')}
-          >
-            State only
-          </Action>
+        <div className="table-scroll">
+          <table>
+            <caption>
+              Expected additional page views with trackOn checked. Back/Forward require an existing SPA history entry.
+              nuqs may batch query updates.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Button / underlying code</th>
+                <th scope="col" className={mode === 'all' ? 'active-mode' : ''}>
+                  all (default)
+                </th>
+                <th scope="col" className={mode === 'pathOnly' ? 'active-mode' : ''}>
+                  pathOnly
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <Action
+                expectedAll="1 if URL changes; otherwise 0"
+                expectedPathOnly="1 if path changes; otherwise 0"
+                code={"navigate('/' + location.search)"}
+                operation="history.pushState(...)"
+                className={route.pathname === '/' ? 'selected' : ''}
+                onClick={() => navigate(`/${location.search}`)}
+              >
+                Catalog
+              </Action>
+              <Action
+                expectedAll="1 if URL changes; otherwise 0"
+                expectedPathOnly="1 if path changes; otherwise 0"
+                code={"navigate('/settings' + location.search)"}
+                operation="history.pushState(...)"
+                className={route.pathname === '/settings' ? 'selected' : ''}
+                onClick={() => navigate(`/settings${location.search}`)}
+              >
+                Settings
+              </Action>
+              <Action
+                expectedAll="1 if URL changes; otherwise 0"
+                expectedPathOnly="1 if path changes; otherwise 0"
+                code="navigate(-1)"
+                operation="history.go(-1) → popstate"
+                onClick={() => navigate(-1)}
+              >
+                ← Back
+              </Action>
+              <Action
+                expectedAll="1 if URL changes; otherwise 0"
+                expectedPathOnly="1 if path changes; otherwise 0"
+                code="navigate(1)"
+                operation="history.go(1) → popstate"
+                onClick={() => navigate(1)}
+              >
+                Forward →
+              </Action>
+              <Action
+                expectedAll="1 per query URL update"
+                expectedPathOnly="0"
+                code="update({ page: filters.page + 1 })"
+                operation={queryOperation}
+                onClick={() => update({ page: filters.page + 1 })}
+              >
+                Next page ({filters.page})
+              </Action>
+              <Action
+                expectedAll="0 if URL is unchanged"
+                expectedPathOnly="0"
+                code="update({ page: filters.page })"
+                operation={queryOperation}
+                onClick={() => update({ page: filters.page })}
+              >
+                Write same value
+              </Action>
+              <Action
+                expectedAll="1 if query changes; otherwise 0"
+                expectedPathOnly="0"
+                code="update(null)"
+                operation={queryOperation}
+                onClick={() => update(null)}
+              >
+                Clear query
+              </Action>
+              <Action
+                expectedAll="1"
+                expectedPathOnly="1"
+                code="navigate(nextRoute, { replace: true })"
+                operation="history.replaceState(...) · toggles / and /settings"
+                onClick={replaceRoute}
+              >
+                Replace route
+              </Action>
+              <Action
+                expectedAll="1"
+                expectedPathOnly="0"
+                code="navigate(nextHashUrl, { replace: true })"
+                operation="history.replaceState(...) · toggles #details and #summary"
+                onClick={replaceHash}
+              >
+                Replace hash
+              </Action>
+              <Action
+                expectedAll="0"
+                expectedPathOnly="0"
+                code={"history.replaceState({ ...history.state, demoState: Date.now() }, '')"}
+                operation="Replaces state without changing the URL"
+                onClick={() => history.replaceState({ ...history.state, demoState: Date.now() }, '')}
+              >
+                State only
+              </Action>
+            </tbody>
+          </table>
         </div>
         <label className="checkbox">
           <input
