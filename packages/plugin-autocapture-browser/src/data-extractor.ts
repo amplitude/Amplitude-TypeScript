@@ -15,12 +15,14 @@ import * as constants from './constants';
 import {
   removeEmptyProperties,
   extractPrefixedAttributes,
+  isContentEditableElement,
   isElementPointerCursor,
   getClosestElement,
   isElementBasedEvent,
   parseAttributesToMask,
   getCurrentPageViewId,
   resolveEventTarget,
+  isElementWithinContentEditableElement,
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent, JSONValue } from './helpers';
 import { getAncestors, getElementProperties } from './hierarchy';
@@ -454,7 +456,7 @@ export class DataExtractor {
       }
 
       // Replace entire masked/contenteditable subtrees with the mask token.
-      if (childNode.hasAttribute(TEXT_MASK_ATTRIBUTE) || childNode.hasAttribute('contenteditable')) {
+      if (childNode.hasAttribute(TEXT_MASK_ATTRIBUTE) || isContentEditableElement(childNode)) {
         output += MASKED_TEXT_VALUE;
         continue;
       }
@@ -482,7 +484,8 @@ export class DataExtractor {
   getText = (element: Element): string => {
     // Check if element or any parent has data-amp-mask attribute
     const hasMaskAttribute = this.hasMaskedAncestor(element);
-    if (hasMaskAttribute) {
+    const hasContentEditableAttribute = isElementWithinContentEditableElement(element);
+    if (hasMaskAttribute || hasContentEditableAttribute) {
       return MASKED_TEXT_VALUE;
     }
     let output = '';

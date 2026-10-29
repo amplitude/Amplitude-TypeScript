@@ -1,5 +1,6 @@
 import {
   isTextNode,
+  isContentEditableElement,
   isNonSensitiveElement,
   parseAttributesToMask,
   isEmpty,
@@ -72,6 +73,15 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
+  describe('isContentEditableElement', () => {
+    test('should return false when element is not an HTMLElement', () => {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('contenteditable', 'true');
+
+      expect(isContentEditableElement(svg)).toEqual(false);
+    });
+  });
+
   describe('isNonSensitiveElement', () => {
     test('should return false when element is a sensitive tag', () => {
       const element = document.createElement('textarea');
@@ -98,6 +108,15 @@ describe('autocapture-plugin helpers', () => {
 
       element.setAttribute('contenteditable', 'True');
       expect(isNonSensitiveElement(element)).toEqual(false);
+
+      element.setAttribute('contenteditable', '');
+      expect(isNonSensitiveElement(element)).toEqual(false);
+
+      element.setAttribute('contenteditable', 'plaintext-only');
+      expect(isNonSensitiveElement(element)).toEqual(false);
+
+      element.setAttribute('contenteditable', 'false');
+      expect(isNonSensitiveElement(element)).toEqual(true);
     });
   });
 
