@@ -1,4 +1,32 @@
 describe('NativeSessionReplay module resolution', () => {
+  it('subscribes to typed native interface signals and exposes listener cleanup', () => {
+    const listener = jest.fn();
+    const remove = jest.fn();
+    const addListener = jest.fn((_event: string, callback: typeof listener) => {
+      callback({ type: 'interfaceChanged', timestamp: 123 });
+      return { remove };
+    });
+    const nativeModule = { addListener: jest.fn(), removeListeners: jest.fn() };
+    const emitter = jest.fn(() => ({ addListener }));
+
+    jest.isolateModules(() => {
+      jest.doMock('react-native', () => ({
+        Platform: { select: () => '' },
+        TurboModuleRegistry: { get: () => nativeModule },
+        NativeEventEmitter: emitter,
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-var-requires -- isolateModules needs a fresh require
+      const { addInterfaceSignalListener } = require('../src/native-module') as typeof import('../src/native-module');
+      const subscription = addInterfaceSignalListener(listener);
+
+      expect(emitter).toHaveBeenCalledWith(nativeModule);
+      expect(addListener).toHaveBeenCalledWith('AMPNativeSessionReplayInterfaceSignal', listener);
+      expect(listener).toHaveBeenCalledWith({ type: 'interfaceChanged', timestamp: 123 });
+      subscription.remove();
+      expect(remove).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('throws a descriptive linking error on first use when the native module is unavailable', () => {
     jest.isolateModules(() => {
       jest.doMock('react-native', () => ({

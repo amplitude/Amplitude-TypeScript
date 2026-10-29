@@ -17,6 +17,8 @@ export interface Spec extends TurboModule {
   setCustomSessionId(customSessionId: string): Promise<void>;
   getCustomSessionId(): Promise<string>;
   getInterfaceSignalState(): Promise<UnsafeObject>;
+  addListener(eventName: string): void;
+  removeListeners(count: number): void;
   setDeviceId(deviceId: string | null): Promise<void>;
   setOptOut(optOut: boolean): Promise<void>;
   start(): Promise<void>;

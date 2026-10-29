@@ -10,37 +10,42 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
-import com.facebook.react.bridge.LifecycleEventListener
-import java.util.concurrent.atomic.AtomicLong
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
-  ReactContextBaseJavaModule(reactContext), LifecycleEventListener {
+  ReactContextBaseJavaModule(reactContext) {
   private lateinit var sessionReplay: SessionReplay
-  private var deviceId: String? = null
-  private var signalSessionId = "-1"
-  private var signalActive = false
-  private val signalGeneration = AtomicLong(0)
-  private val lastUiChangeTime = AtomicLong(0)
-
-  init { reactContext.addLifecycleEventListener(this) }
-
-  override fun onHostResume() { signalGeneration.incrementAndGet() }
-  override fun onHostPause() { signalGeneration.incrementAndGet() }
-  override fun onHostDestroy() { signalGeneration.incrementAndGet() }
+  private var shouldStart = false
 
   @ReactMethod
   fun getInterfaceSignalState(promise: Promise) {
     val state = WritableNativeMap().apply {
-      putBoolean("isProviding", signalActive && ::sessionReplay.isInitialized && sessionReplay.shouldRecord())
-      putDouble("lastChangeTime", lastUiChangeTime.get().toDouble())
-      putDouble("generation", signalGeneration.get().toDouble())
-      putString("sessionId", signalSessionId)
-      putString("deviceId", deviceId)
+      putBoolean("isProviding", shouldStart && ::sessionReplay.isInitialized && sessionReplay.shouldRecord())
+      putString("sessionId", if (::sessionReplay.isInitialized) sessionReplay.getSessionId().toString() else "-1")
+      putString("deviceId", if (::sessionReplay.isInitialized) sessionReplay.getDeviceId() else null)
     }
     promise.resolve(state)
   }
+
+  // Native SDK callbacks are forwarded directly; JS owns observation history.
+  private fun emitInterfaceSignal(type: String) {
+    if (!reactContext.hasActiveCatalystInstance()) return
+    val signal = Arguments.createMap().apply {
+      putString("type", type)
+      putDouble("timestamp", System.currentTimeMillis().toDouble())
+    }
+    reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit("PluginSessionReplayReactNativeInterfaceSignal", signal)
+  }
+
+  @ReactMethod
+  fun addListener(eventName: String) {}
+
+  @ReactMethod
+  fun removeListeners(count: Double) {}
 
   override fun getName(): String {
     return "PluginSessionReplayReactNative"
@@ -48,10 +53,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String?, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean, maskLevel: String) {
-    signalGeneration.incrementAndGet()
-    this.deviceId = deviceId
-    signalSessionId = sessionId.toLong().toString()
-    signalActive = true
+    emitInterfaceSignal("stateChanged")
+    shouldStart = autoStart
     LogcatLogger.logger.logMode = when (logLevel) {
         0 -> Logger.LogMode.OFF
         1 -> Logger.LogMode.ERROR
@@ -95,34 +98,14 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       },
       autoStart = autoStart,
       privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
-      uiChangeCallback = { lastUiChangeTime.set(System.currentTimeMillis()) }
+      uiChangeCallback = { emitInterfaceSignal("interfaceChanged") }
     )
   }
 
   @ReactMethod
   fun setSessionId(sessionId: Double) {
-    if (signalSessionId != sessionId.toLong().toString()) signalGeneration.incrementAndGet()
-    signalSessionId = sessionId.toLong().toString()
+    emitInterfaceSignal("stateChanged")
     sessionReplay.setSessionId(sessionId.toLong())
-  }
-
-  @ReactMethod
-  fun setDeviceId(deviceId: String?, promise: Promise) {
-    try {
-      if (::sessionReplay.isInitialized) {
-        sessionReplay.setDeviceId(deviceId ?: "")
-      }
-      if (this.deviceId != deviceId) signalGeneration.incrementAndGet()
-      this.deviceId = deviceId
-      promise.resolve(null)
-    } catch (e: Exception) {
-      promise.reject("SET_DEVICE_ID_ERROR", e.message, e)
-    }
-  }
-
-  @ReactMethod
-  fun getDeviceId(promise: Promise) {
-    promise.resolve(deviceId)
   }
 
   @ReactMethod
@@ -152,14 +135,15 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun start() {
-    signalGeneration.incrementAndGet()
-    signalActive = true
+    emitInterfaceSignal("stateChanged")
+    shouldStart = true
     sessionReplay.start()
   }
 
   @ReactMethod
   fun stop() {
-    signalGeneration.incrementAndGet()
+    emitInterfaceSignal("stateChanged")
+    shouldStart = false
     sessionReplay.stop()
   }
 
@@ -170,15 +154,13 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun teardown() {
-    signalGeneration.incrementAndGet()
-    signalActive = false
+    emitInterfaceSignal("stateChanged")
+    shouldStart = false
     sessionReplay.shutdown()
   }
 
   override fun invalidate() {
-    signalGeneration.incrementAndGet()
-    signalActive = false
-    reactContext.removeLifecycleEventListener(this)
+    shouldStart = false
     if (::sessionReplay.isInitialized) {
       sessionReplay.shutdown()
     }
