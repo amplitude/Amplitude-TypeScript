@@ -19,6 +19,8 @@ interface PluginSessionReplayNativeModule extends NativeModule {
     maskLevel: string,
   ): Promise<void>;
   getSessionId(): Promise<number>;
+  getDeviceId?(): Promise<string | null>;
+  setDeviceId?(deviceId: string | null): Promise<void>;
   setSessionId(sessionId: number): Promise<void>;
   getSessionReplayProperties(): Promise<Record<string, string | number | boolean>>;
   getInterfaceSignalState(): Promise<{ isProviding: boolean; sessionId: string; deviceId: string | null }>;

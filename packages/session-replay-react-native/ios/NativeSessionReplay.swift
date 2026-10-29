@@ -74,6 +74,11 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
         resolve(nil)
     }
 
+    @objc(getDeviceId:reject:)
+    func getDeviceId(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        resolve(sessionReplay?.deviceId)
+    }
+
     @objc(getCustomSessionId:reject:)
     func getCustomSessionId(
         _ resolve: RCTPromiseResolveBlock,

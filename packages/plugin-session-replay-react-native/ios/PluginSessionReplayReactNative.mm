@@ -7,6 +7,10 @@ RCT_EXTERN_METHOD(setup:(NSString)apiKey deviceId:(NSString)deviceId sessionId:(
 
 RCT_EXTERN_METHOD(setSessionId:(nonnull NSNumber)sessionId resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(getDeviceId:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+
+RCT_EXTERN_METHOD(setDeviceId:(NSString)deviceId resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+
 RCT_EXTERN_METHOD(getSessionId:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(getInterfaceSignalState:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)

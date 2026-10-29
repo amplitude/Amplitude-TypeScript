@@ -19,6 +19,7 @@ export interface Spec extends TurboModule {
   getInterfaceSignalState(): Promise<UnsafeObject>;
   addListener(eventName: string): void;
   removeListeners(count: number): void;
+  getDeviceId(): Promise<string | null>;
   setDeviceId(deviceId: string | null): Promise<void>;
   setOptOut(optOut: boolean): Promise<void>;
   start(): Promise<void>;

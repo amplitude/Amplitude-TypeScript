@@ -61,6 +61,18 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
       resolve(nil)
     }
 
+    @objc(getDeviceId:reject:)
+    func getDeviceId(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        resolve(sessionReplay?.deviceId)
+    }
+
+    @objc(setDeviceId:resolve:reject:)
+    func setDeviceId(_ deviceId: NSString?, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        emitInterfaceSignal("stateChanged")
+        sessionReplay?.deviceId = deviceId as String?
+        resolve(nil)
+    }
+
     @objc(getSessionId:reject:)
     func getSessionId(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
       print("getSessionId")
