@@ -50,3 +50,5 @@ packages/analytics-browser/playground/react-spa/public/amplitude.js
 .github/instructions/nx.instructions.md
 .pnpm-store/
 packages/session-replay-browser/e2e/results.json
+
+.watchman-cookie-*

@@ -49,32 +49,13 @@ import { VERSION } from './version';
 import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
 import { customEnrichmentPlugin } from '@amplitude/plugin-custom-enrichment-browser';
 import { isEventPropertyAttributionEnabled, isUserPropertyAttributionEnabled } from './attribution/tracking-methods';
-import { AmplitudeBrowserCore } from './browser-client-core';
-
-type AutocaptureAdapter = {
-  trackCampaignEventIfNeeded: (lastEventId?: number, promises?: Promise<Result>[]) => boolean;
-  addAttributionTrackingPlugin: () => Promise<void>;
-  addPlugins: () => Promise<void>;
-  getRemoteConfigClient: (
-    options: BrowserOptions & { apiKey: string },
-    loggerProvider: ILogger,
-    serverZone: ServerZoneType,
-  ) => Promise<IRemoteConfigClient>;
-  getDiagnosticsClient: (
-    options: BrowserOptions & { apiKey: string },
-    loggerProvider: ILogger,
-    serverZone: ServerZoneType,
-    enableDiagnostics: boolean,
-    diagnosticsSampleRate: number,
-  ) => Promise<DiagnosticsClient>;
-  fetchRemoteConfig: (remoteConfigClient: IRemoteConfigClient, browserOptions: BrowserConfig) => Promise<void>;
-};
+import { AmplitudeBrowserLite, AutocaptureAdapter } from './browser-client-lite';
 
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
  * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
  */
-export class AmplitudeBrowser extends AmplitudeBrowserCore implements BrowserClient, AnalyticsClient {
+export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserClient, AnalyticsClient {
   // The ES5 helper for a class that extends another derived class includes an
   // unreachable `|| this` branch. Ignore that generated constructor.
   /* istanbul ignore next */

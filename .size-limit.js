@@ -45,10 +45,10 @@ const limits = [
     ...fileOnly,
   },
   {
-    // Bundles the core entry and the modules it imports, then checks that the
+    // Bundles the lite entry and the modules it imports, then checks that the
     // minified gzipped ESM stays under 25 kB.
-    name: '@amplitude/analytics-browser/core (gzipped esm)',
-    path: './packages/analytics-browser/lib/esm/index-core.js',
+    name: '@amplitude/analytics-browser/lite (gzipped esm)',
+    path: './packages/analytics-browser/lib/esm/index-lite.js',
     limit: '25kb',
     gzip: true,
     modifyEsbuildConfig(config) {

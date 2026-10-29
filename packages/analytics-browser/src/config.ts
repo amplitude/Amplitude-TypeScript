@@ -42,7 +42,7 @@ import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { VERSION } from './version';
 import { getDomain, KNOWN_2LDS } from './attribution/helpers';
-import { AmplitudeBrowserCore } from './browser-client-core';
+import { AmplitudeBrowserLite } from './browser-client-lite';
 
 export class BrowserConfig extends Config implements IBrowserConfig {
   public readonly version = VERSION;
@@ -293,7 +293,7 @@ export interface EarlyConfig {
 export const useBrowserConfig = async (
   apiKey: string,
   options: BrowserOptions = {},
-  amplitudeInstance: AmplitudeBrowserCore,
+  amplitudeInstance: AmplitudeBrowserLite,
   diagnosticsClient?: IDiagnosticsClient,
   earlyConfig?: EarlyConfig,
 ): Promise<IBrowserConfig> => {
