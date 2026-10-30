@@ -21,6 +21,7 @@ import {
   SessionReplayOptions as SessionReplayBrowserOptions,
 } from '@amplitude/session-replay-browser';
 import { parseUserProperties } from './helpers';
+import { semanticAutocaptureFamilies } from './semantic-context';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';
 
@@ -92,6 +93,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         configServerUrl: this.options.configServerUrl || this.config.remoteConfig?.serverUrl,
         trackServerUrl: this.options.trackServerUrl,
         sampleRate: this.options.sampleRate,
+        semanticCapture: this.options.semanticCapture,
+        semanticAnalyticsContext: {
+          present: true,
+          autocapture: semanticAutocaptureFamilies(this.config.autocapture),
+        },
         privacyConfig: {
           blockSelector: this.options.privacyConfig?.blockSelector,
           maskAttributes: this.options.privacyConfig?.maskAttributes,
