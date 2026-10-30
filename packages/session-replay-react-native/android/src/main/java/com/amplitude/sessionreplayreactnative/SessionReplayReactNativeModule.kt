@@ -10,6 +10,8 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.Arguments
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 // `@ReactMethod` is required on the legacy architecture and ignored on the new
 // one, so it stays on the overrides below.
@@ -30,12 +32,44 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   private var nativeConfig: NativeConfig? = null
   private var shouldStart = false
 
+  @ReactMethod
+  override fun getInterfaceSignalState(promise: Promise) {
+    try {
+      val state = Arguments.createMap().apply {
+        putBoolean("isProviding", shouldStart && sessionReplay?.shouldRecord() == true)
+        putString("sessionId", nativeConfig?.customSessionId ?: "-1")
+        putString("deviceId", sessionReplay?.getDeviceId())
+      }
+      promise.resolve(state)
+    } catch (e: Exception) {
+      promise.reject("INTERFACE_SIGNAL_ERROR", e.message, e)
+    }
+  }
+
+  // Native SDK callbacks are forwarded directly; JS owns observation history.
+  private fun emitInterfaceSignal(type: String) {
+    if (!reactContext.hasActiveCatalystInstance()) return
+    val signal = Arguments.createMap().apply {
+      putString("type", type)
+      putDouble("timestamp", System.currentTimeMillis().toDouble())
+    }
+    reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit("AMPNativeSessionReplayInterfaceSignal", signal)
+  }
+
+  @ReactMethod
+  override fun addListener(eventName: String) {}
+
+  @ReactMethod
+  override fun removeListeners(count: Double) {}
+
   override fun getName(): String {
     return NAME
   }
 
   @ReactMethod
   override fun setup(config: ReadableMap, promise: Promise) {
+    emitInterfaceSignal("stateChanged")
     try {
       val apiKey = config.getString("apiKey") ?: throw IllegalArgumentException("apiKey is required")
       val deviceId = config.getString("deviceId")
@@ -96,6 +130,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun setCustomSessionId(customSessionId: String, promise: Promise) {
+    emitInterfaceSignal("stateChanged")
     try {
       nativeConfig = requireNotNull(nativeConfig).copy(customSessionId = customSessionId)
       sessionReplay?.setCustomSessionId(customSessionId)
@@ -116,6 +151,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun setDeviceId(deviceId: String?, promise: Promise) {
+    emitInterfaceSignal("stateChanged")
     try {
       nativeConfig = requireNotNull(nativeConfig).copy(deviceId = deviceId)
       sessionReplay?.setDeviceId(deviceId ?: "")
@@ -127,6 +163,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun setOptOut(optOut: Boolean, promise: Promise) {
+    emitInterfaceSignal("stateChanged")
     try {
       val currentConfig = requireNotNull(nativeConfig)
       if (currentConfig.optOut == optOut) {
@@ -152,6 +189,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun start(promise: Promise) {
+    emitInterfaceSignal("stateChanged")
     try {
       shouldStart = true
       sessionReplay?.start()
@@ -163,6 +201,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun stop(promise: Promise) {
+    emitInterfaceSignal("stateChanged")
     try {
       shouldStart = false
       sessionReplay?.stop()
@@ -184,6 +223,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun teardown(promise: Promise) {
+    emitInterfaceSignal("stateChanged")
     try {
       sessionReplay?.shutdown()
       sessionReplay = null
@@ -229,6 +269,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       },
       autoStart = false,
       privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
+      uiChangeCallback = { emitInterfaceSignal("interfaceChanged") },
     )
     sessionReplay.setCustomSessionId(config.customSessionId)
     return sessionReplay

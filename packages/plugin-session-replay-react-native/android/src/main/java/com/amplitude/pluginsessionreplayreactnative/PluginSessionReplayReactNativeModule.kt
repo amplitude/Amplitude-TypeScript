@@ -10,12 +10,42 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
   private lateinit var sessionReplay: SessionReplay
+  private var shouldStart = false
+
+  @ReactMethod
+  fun getInterfaceSignalState(promise: Promise) {
+    val state = WritableNativeMap().apply {
+      putBoolean("isProviding", shouldStart && ::sessionReplay.isInitialized && sessionReplay.shouldRecord())
+      putString("sessionId", if (::sessionReplay.isInitialized) sessionReplay.getSessionId().toString() else "-1")
+      putString("deviceId", if (::sessionReplay.isInitialized) sessionReplay.getDeviceId() else null)
+    }
+    promise.resolve(state)
+  }
+
+  // Native SDK callbacks are forwarded directly; JS owns observation history.
+  private fun emitInterfaceSignal(type: String) {
+    if (!reactContext.hasActiveCatalystInstance()) return
+    val signal = Arguments.createMap().apply {
+      putString("type", type)
+      putDouble("timestamp", System.currentTimeMillis().toDouble())
+    }
+    reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit("PluginSessionReplayReactNativeInterfaceSignal", signal)
+  }
+
+  @ReactMethod
+  fun addListener(eventName: String) {}
+
+  @ReactMethod
+  fun removeListeners(count: Double) {}
 
   override fun getName(): String {
     return "PluginSessionReplayReactNative"
@@ -23,6 +53,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String?, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean, maskLevel: String) {
+    emitInterfaceSignal("stateChanged")
+    shouldStart = autoStart
     LogcatLogger.logger.logMode = when (logLevel) {
         0 -> Logger.LogMode.OFF
         1 -> Logger.LogMode.ERROR
@@ -65,12 +97,14 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         else -> ServerZone.US
       },
       autoStart = autoStart,
-      privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel)
+      privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
+      uiChangeCallback = { emitInterfaceSignal("interfaceChanged") }
     )
   }
 
   @ReactMethod
   fun setSessionId(sessionId: Double) {
+    emitInterfaceSignal("stateChanged")
     sessionReplay.setSessionId(sessionId.toLong())
   }
 
@@ -101,11 +135,15 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun start() {
+    emitInterfaceSignal("stateChanged")
+    shouldStart = true
     sessionReplay.start()
   }
 
   @ReactMethod
   fun stop() {
+    emitInterfaceSignal("stateChanged")
+    shouldStart = false
     sessionReplay.stop()
   }
 
@@ -116,10 +154,13 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun teardown() {
+    emitInterfaceSignal("stateChanged")
+    shouldStart = false
     sessionReplay.shutdown()
   }
 
   override fun invalidate() {
+    shouldStart = false
     if (::sessionReplay.isInitialized) {
       sessionReplay.shutdown()
     }

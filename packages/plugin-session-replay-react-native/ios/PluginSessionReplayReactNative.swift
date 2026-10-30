@@ -1,10 +1,13 @@
 import Foundation
+import React
 import AmplitudeSessionReplay
+import AmplitudeCore
 
 @objc(PluginSessionReplayReactNative)
-class PluginSessionReplayReactNative: NSObject {
+class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, @unchecked Sendable {
     
     var sessionReplay: SessionReplay!
+    private var hasListeners = false
     
     @objc(setup:deviceId:sessionId:serverZone:sampleRate:enableRemoteConfig:logLevel:autoStart:maskLevel:resolve:reject:)
     func setup(_ apiKey: String,
@@ -18,6 +21,9 @@ class PluginSessionReplayReactNative: NSObject {
                maskLevel: String,
                resolve: RCTPromiseResolveBlock,
                reject: RCTPromiseRejectBlock) -> Void {
+        emitInterfaceSignal("stateChanged")
+        sessionReplay?.removeInterfaceSignalReceiver(self)
+        sessionReplay?.stop()
         print(
             """
             setup:
@@ -40,6 +46,7 @@ class PluginSessionReplayReactNative: NSObject {
                                       serverZone: serverZone == "EU" ? .EU : .US,
                                       maskLevel: .fromString(maskLevel),
                                       enableRemoteConfig: enableRemoteConfig)
+        sessionReplay.addInterfaceSignalReceiver(self)
         if (autoStart) {
             sessionReplay.start()
         }
@@ -48,11 +55,12 @@ class PluginSessionReplayReactNative: NSObject {
     
     @objc(setSessionId:resolve:reject:)
     func setSessionId(_ sessionId: NSNumber, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        emitInterfaceSignal("stateChanged")
       print("setSessionId: \(sessionId)")
       sessionReplay.sessionId = sessionId.int64Value
       resolve(nil)
     }
-    
+
     @objc(getSessionId:reject:)
     func getSessionId(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
       print("getSessionId")
@@ -67,6 +75,7 @@ class PluginSessionReplayReactNative: NSObject {
     
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        emitInterfaceSignal("stateChanged")
       print("start")
       sessionReplay.start()
       resolve(nil)
@@ -74,6 +83,7 @@ class PluginSessionReplayReactNative: NSObject {
     
     @objc(stop:reject:)
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        emitInterfaceSignal("stateChanged")
       print("stop")
       sessionReplay.stop()
       resolve(nil)
@@ -88,10 +98,61 @@ class PluginSessionReplayReactNative: NSObject {
     
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        emitInterfaceSignal("stateChanged")
+      sessionReplay?.removeInterfaceSignalReceiver(self)
       print("teardown")
       sessionReplay.stop()
       resolve(nil)
     }
+
+    @objc(getInterfaceSignalState:reject:)
+    func getInterfaceSignalState(_ resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else {
+                resolve(["isProviding": false])
+                return
+            }
+            var state: [String: Any] = [:]
+            state["isProviding"] = self.sessionReplay?.isProviding ?? false
+            state["sessionId"] = self.sessionReplay.map { String($0.sessionId) } ?? "-1"
+            state["deviceId"] = self.sessionReplay?.deviceId as Any? ?? NSNull()
+            resolve(state)
+        }
+    }
+
+    override func invalidate() {
+        sessionReplay?.removeInterfaceSignalReceiver(self)
+        sessionReplay?.stop()
+        sessionReplay = nil
+        super.invalidate()
+    }
+
+    override func supportedEvents() -> [String]! {
+        ["PluginSessionReplayReactNativeInterfaceSignal"]
+    }
+
+    override func startObserving() {
+        DispatchQueue.main.async { [weak self] in self?.hasListeners = true }
+    }
+
+    override func stopObserving() {
+        DispatchQueue.main.async { [weak self] in self?.hasListeners = false }
+    }
+
+    func onInterfaceChanged(signal: InterfaceChangeSignal) {
+        emitInterfaceSignal("interfaceChanged", timestamp: signal.time.timeIntervalSince1970 * 1000)
+    }
+
+    func onStartProviding() { emitInterfaceSignal("stateChanged") }
+    func onStopProviding() { emitInterfaceSignal("stateChanged") }
+
+    private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.hasListeners else { return }
+            self.sendEvent(withName: "PluginSessionReplayReactNativeInterfaceSignal", body: ["type": type, "timestamp": timestamp])
+        }
+    }
+
 }
 
 extension MaskLevel {
