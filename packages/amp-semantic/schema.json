@@ -1,0 +1,193 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Amplitude semantic capture v1 events",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/context"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "sdk": {
+                  "type": "string"
+                },
+                "mask": {
+                  "enum": ["light", "medium", "conservative"]
+                },
+                "css": {
+                  "type": "object",
+                  "properties": {
+                    "total": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "inlined": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "unreadable": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": ["total", "inlined", "unreadable"],
+                  "additionalProperties": false
+                },
+                "viewport": {
+                  "type": "object",
+                  "properties": {
+                    "w": {
+                      "type": "number"
+                    },
+                    "h": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["w", "h"],
+                  "additionalProperties": false
+                },
+                "device": {
+                  "enum": ["desktop", "tablet", "mobile"]
+                },
+                "language": {
+                  "type": "string"
+                },
+                "visibility_state": {
+                  "enum": ["hidden", "visible"]
+                },
+                "focused": {
+                  "type": "boolean"
+                },
+                "user_agent": {
+                  "type": "string"
+                },
+                "analytics_sdk": {
+                  "type": "object",
+                  "properties": {
+                    "present": {
+                      "type": "boolean"
+                    },
+                    "autocapture": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": ["present", "autocapture"],
+                  "additionalProperties": false
+                },
+                "caps_hit": {
+                  "type": "object",
+                  "properties": {
+                    "context": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "visibility": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "tab_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "document_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": [
+                "sdk",
+                "mask",
+                "css",
+                "viewport",
+                "device",
+                "language",
+                "analytics_sdk",
+                "v",
+                "tab_id",
+                "document_id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/visibility"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "enum": ["hidden", "visible"]
+                },
+                "focused": {
+                  "type": "boolean",
+                  "description": "Legacy observation-time focus snapshot; no longer emitted by visibility producers."
+                },
+                "trigger": {
+                  "enum": ["visibilitychange", "focus", "blur"],
+                  "description": "Legacy trigger; new visibility events emit only state plus version and identity."
+                },
+                "tab_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "document_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": ["state", "v", "tab_id", "document_id"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["tag", "payload"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    }
+  ]
+}
