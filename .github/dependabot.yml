@@ -1,0 +1,125 @@
+# Security-update PRs are triggered by alerts, independently of this schedule.
+# Keep routine version-update PRs disabled; enable security updates in repository settings.
+# Gradle security alerts also require dependency submission to the dependency graph.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /examples/browser/html-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /examples/browser/next-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /examples/browser/react-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /examples/browser/vue-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /examples/node/nest-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /examples/react-native/expo-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /examples/unified/react-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /packages/analytics-browser/playground/react-spa
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /packages/plugin-session-replay-react-native/example
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm
+    directory: /packages/session-replay-react-native/example
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: bundler
+    directory: /examples/react-native/app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: bundler
+    directory: /examples/unified/react-native-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: bundler
+    directory: /packages/plugin-session-replay-react-native/example
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: bundler
+    directory: /packages/session-replay-react-native/example
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: gradle
+    directory: /examples/react-native/app/android
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: gradle
+    directory: /examples/react-native/expo-app/android
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: gradle
+    directory: /examples/unified/react-native-app/android
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: gradle
+    directory: /packages/analytics-react-native/android
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: gradle
+    directory: /packages/plugin-session-replay-react-native/android
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: gradle
+    directory: /packages/plugin-session-replay-react-native/example/android
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: gradle
+    directory: /packages/session-replay-react-native/android
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: gradle
+    directory: /packages/session-replay-react-native/example/android
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
