@@ -15,11 +15,13 @@
   "exports": {
     ".": {
       "types": "./lib/esm/index.d.ts",
+      "node": "./lib/cjs/index.js",
       "import": "./lib/esm/index.js",
       "require": "./lib/cjs/index.js"
     },
     "./lite": {
       "types": "./lib/esm/index-lite.d.ts",
+      "node": "./lib/cjs/index-lite.js",
       "import": "./lib/esm/index-lite.js",
       "require": "./lib/cjs/index-lite.js"
     }
