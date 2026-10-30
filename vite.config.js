@@ -76,7 +76,7 @@ function fileListingPlugin() {
           const files = await glob('**/*.html', {
             cwd: testServerDir,
             absolute: false,
-            ignore: ['**/dist/**', '**/trc-e2e/**']
+            ignore: ['**/dist/**', '**/trc-e2e/**', '**/nuqs-spa/**']
           });
           
           const fileList = files.map(file => ({
@@ -152,9 +152,9 @@ export default defineConfig({
     host: true,
   },
   plugins: [
-    // trc-e2e is a standalone React SPA with its own dedicated vite config (see `dev:trc`).
-    // It references /main.jsx and must not be swept into the shared multi-page build.
-    htmlEntriesPlugin('**/*.html', { cwd: testServerDir, ignore: ['**/trc-e2e/**'] }),
+    // These standalone React SPAs have dedicated Vite configs (`dev:trc` and `dev:nuqs`).
+    // Their root-relative entry points must not be swept into the shared multi-page build.
+    htmlEntriesPlugin('**/*.html', { cwd: testServerDir, ignore: ['**/trc-e2e/**', '**/nuqs-spa/**'] }),
     // Scoped to configurator/ so the babel + react-refresh transform stays off the other test pages
     // and the packages/* builds they pull in.
     react({ include: [/\/configurator\/.*\.[jt]sx?$/] }),

@@ -136,16 +136,21 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
         /* istanbul ignore next */
         // There is no global browser listener for changes to history, so we have
-        // to modify pushState directly.
+        // to modify pushState and replaceState directly.
         // https://stackoverflow.com/a/64927639
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        globalScope.history.pushState = new Proxy(globalScope.history.pushState, {
-          apply: (target, thisArg, [state, unused, url]) => {
-            target.apply(thisArg, [state, unused, url]);
-            if (isTracking) {
-              handlePageChange();
-            }
-          },
+        (['pushState', 'replaceState'] as const).forEach((method) => {
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          globalScope.history[method] = new Proxy(globalScope.history[method], {
+            apply: (target, thisArg, args: Parameters<History['pushState']>) => {
+              const prevUrl = location.href;
+              const result = target.apply(thisArg, args);
+              // Routers also replace state during hydration without navigating.
+              if (isTracking && (method === 'pushState' || location.href !== prevUrl)) {
+                handlePageChange();
+              }
+              return result;
+            },
+          });
         });
       }
 
