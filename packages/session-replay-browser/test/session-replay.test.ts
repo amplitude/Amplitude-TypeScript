@@ -2776,6 +2776,58 @@ describe('SessionReplay', () => {
       expect(recordArg?.checkoutEveryNms).toBeUndefined();
     });
 
+    test('should keep recordCanvas false when canvas config is omitted', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.recordCanvas).toBe(false);
+      expect(recordArg?.sampling).toBeUndefined();
+      expect(recordArg?.dataURLOptions).toBeUndefined();
+    });
+
+    test.each([
+      {
+        description: 'should pass recordCanvas true without sampling when only enabled is set',
+        canvas: { enabled: true },
+        expected: { recordCanvas: true, sampling: undefined, dataURLOptions: undefined },
+      },
+      {
+        description: 'should pass recordCanvas true and sampling.canvas "all" when canvas sampling is all',
+        canvas: { enabled: true, sampling: 'all' as const },
+        expected: {
+          recordCanvas: true,
+          sampling: { canvas: 'all' as const },
+          dataURLOptions: undefined,
+        },
+      },
+      {
+        description: 'should pass sampling.canvas and dataURLOptions through to rrweb',
+        canvas: {
+          enabled: true,
+          sampling: 15,
+          dataURLOptions: { type: 'image/webp', quality: 0.6 },
+        },
+        expected: {
+          recordCanvas: true,
+          sampling: { canvas: 15 },
+          dataURLOptions: { type: 'image/webp', quality: 0.6 },
+        },
+      },
+      {
+        description: 'should pass recordCanvas false when canvas.enabled is false',
+        canvas: { enabled: false, sampling: 15, dataURLOptions: { type: 'image/webp', quality: 0.6 } },
+        expected: { recordCanvas: false, sampling: undefined, dataURLOptions: undefined },
+      },
+    ])('$description', async ({ canvas, expected }) => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, canvas }).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.recordCanvas).toBe(expected.recordCanvas);
+      expect(recordArg?.sampling).toEqual(expected.sampling);
+      expect(recordArg?.dataURLOptions).toEqual(expected.dataURLOptions);
+    });
+
     test.each([
       {
         description: 'should pass inlineImages=true to rrweb when option is true',

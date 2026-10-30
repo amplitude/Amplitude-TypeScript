@@ -16,6 +16,8 @@ import {
   CrossOriginIframesConfig,
   FlushIntervalConfig,
   InteractionConfig,
+  CanvasDataURLOptions,
+  CanvasRecordConfig,
   PrivacyConfig,
   SessionReplayPerformanceConfig,
   SessionReplayVersion,
@@ -42,6 +44,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   trackServerUrl?: string;
   shouldInlineStylesheet?: boolean;
   inlineImages?: boolean;
+  canvas?: CanvasRecordConfig;
   version?: SessionReplayVersion;
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
@@ -83,6 +86,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.trackServerUrl = options.trackServerUrl;
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
     this.inlineImages = options.inlineImages;
+    this.canvas = sanitizeCanvasConfig(options.canvas, this.loggerProvider);
     this.version = options.version;
     this.performanceConfig = options.performanceConfig || DEFAULT_PERFORMANCE_CONFIG;
     this.storeType = options.storeType ?? 'memory';
@@ -203,6 +207,97 @@ function sanitizeByteSize(
     return max;
   }
   return raw;
+}
+
+const MIN_CANVAS_SAMPLING_FPS = 1;
+const MAX_CANVAS_SAMPLING_FPS = 60;
+
+// rrweb only records canvas when `recordCanvas` is true. Sampling and image encoding are
+// forwarded alongside that flag; they have no effect while recording is off, so warn instead
+// of silently dropping them from the stored config.
+function sanitizeCanvasConfig(
+  raw: CanvasRecordConfig | undefined,
+  loggerProvider: ILogger,
+): CanvasRecordConfig | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    loggerProvider.warn(`canvas config is not an object (got ${String(raw)}); ignoring.`);
+    return undefined;
+  }
+
+  const sanitized: CanvasRecordConfig = {};
+  if (raw.enabled !== undefined) {
+    sanitized.enabled = Boolean(raw.enabled);
+  }
+
+  if (raw.sampling !== undefined) {
+    if (raw.sampling === 'all') {
+      sanitized.sampling = 'all';
+    } else if (typeof raw.sampling === 'number' && Number.isFinite(raw.sampling)) {
+      if (raw.sampling < MIN_CANVAS_SAMPLING_FPS || raw.sampling > MAX_CANVAS_SAMPLING_FPS) {
+        const clamped = Math.min(MAX_CANVAS_SAMPLING_FPS, Math.max(MIN_CANVAS_SAMPLING_FPS, raw.sampling));
+        loggerProvider.warn(`canvas.sampling ${raw.sampling} is outside 1–60; clamping to ${clamped}.`);
+        sanitized.sampling = clamped;
+      } else {
+        sanitized.sampling = raw.sampling;
+      }
+    } else {
+      loggerProvider.warn(
+        `canvas.sampling must be 'all' or a number from 1 to 60 (got ${String(raw.sampling)}); ignoring.`,
+      );
+    }
+  }
+
+  if (raw.dataURLOptions !== undefined) {
+    const dataURLOptions = sanitizeCanvasDataURLOptions(raw.dataURLOptions, loggerProvider);
+    if (dataURLOptions) {
+      sanitized.dataURLOptions = dataURLOptions;
+    }
+  }
+
+  if ((sanitized.sampling !== undefined || sanitized.dataURLOptions) && sanitized.enabled !== true) {
+    loggerProvider.warn(
+      'canvas.sampling and canvas.dataURLOptions apply only when canvas.enabled is true; canvas recording stays off.',
+    );
+  }
+
+  return sanitized;
+}
+
+function sanitizeCanvasDataURLOptions(
+  raw: CanvasDataURLOptions,
+  loggerProvider: ILogger,
+): CanvasDataURLOptions | undefined {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    loggerProvider.warn('canvas.dataURLOptions is not an object; ignoring.');
+    return undefined;
+  }
+
+  const dataURLOptions: CanvasDataURLOptions = {};
+  if (raw.type !== undefined) {
+    if (typeof raw.type === 'string' && raw.type.length > 0) {
+      dataURLOptions.type = raw.type;
+    } else {
+      loggerProvider.warn('canvas.dataURLOptions.type is not a non-empty string; ignoring.');
+    }
+  }
+  if (raw.quality !== undefined) {
+    if (typeof raw.quality === 'number' && Number.isFinite(raw.quality)) {
+      if (raw.quality < 0 || raw.quality > 1) {
+        const clamped = Math.min(1, Math.max(0, raw.quality));
+        loggerProvider.warn(`canvas.dataURLOptions.quality ${raw.quality} is outside 0–1; clamping to ${clamped}.`);
+        dataURLOptions.quality = clamped;
+      } else {
+        dataURLOptions.quality = raw.quality;
+      }
+    } else {
+      loggerProvider.warn('canvas.dataURLOptions.quality is not a finite number; ignoring.');
+    }
+  }
+
+  return dataURLOptions.type !== undefined || dataURLOptions.quality !== undefined ? dataURLOptions : undefined;
 }
 
 function sanitizeFlushIntervalConfig(raw: FlushIntervalConfig, loggerProvider: ILogger): FlushIntervalConfig {

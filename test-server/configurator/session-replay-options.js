@@ -247,6 +247,62 @@ export const SESSION_REPLAY_SECTIONS = [
     title: 'Capture behavior',
     fields: [
       {
+        key: 'canvas',
+        label: 'Canvas',
+        type: 'group',
+        description:
+          'Canvas recording settings passed through to rrweb. Canvas pixels are not part of the DOM, so they stay out of the replay unless enabled. enabled maps to recordCanvas. sampling maps to sampling.canvas: "all" records every drawing call, and a frames-per-second value records image snapshots. dataURLOptions maps to rrweb dataURLOptions for those images. Canvas capture increases payload size.',
+        fields: [
+          {
+            key: 'enabled',
+            label: 'Enabled',
+            type: 'boolean',
+            defaultValue: false,
+            description:
+              'Passed through to rrweb recordCanvas. When false (default), canvas contents are not recorded.',
+          },
+          {
+            key: 'sampling',
+            label: 'Sampling',
+            type: 'enum',
+            hint: "default: every drawing call when enabled",
+            description:
+              "Passed through to rrweb sampling.canvas when enabled is true. all records every canvas drawing call. A frames-per-second value records image snapshots at most that many times per second (requires OffscreenCanvas).",
+            choices: [
+              { value: 'all', label: 'all — every drawing call' },
+              { value: '1', label: '1 fps', runtime: 1 },
+              { value: '5', label: '5 fps', runtime: 5 },
+              { value: '15', label: '15 fps', runtime: 15 },
+              { value: '30', label: '30 fps', runtime: 30 },
+              { value: '60', label: '60 fps', runtime: 60 },
+            ],
+          },
+          {
+            key: 'dataURLOptions',
+            label: 'Data URL options',
+            type: 'group',
+            description:
+              'Passed through to rrweb dataURLOptions. Used when encoding canvas image snapshots and the canvas image stored on the full snapshot.',
+            fields: [
+              {
+                key: 'type',
+                label: 'Image type',
+                type: 'string',
+                hint: 'default: image/png',
+                description: 'MIME type such as image/webp or image/jpeg. rrweb uses PNG when this is unset.',
+              },
+              {
+                key: 'quality',
+                label: 'Quality',
+                type: 'number',
+                hint: '0–1, default: encoder default',
+                description: 'Encoder quality from 0 to 1. Used by lossy types such as image/webp and image/jpeg.',
+              },
+            ],
+          },
+        ],
+      },
+      {
         key: 'shouldInlineStylesheet',
         label: 'Inline stylesheets',
         type: 'boolean',
