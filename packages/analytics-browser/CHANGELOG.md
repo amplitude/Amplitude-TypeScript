@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.49.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.48.1...@amplitude/analytics-browser@2.49.0) (2026-10-30)
+
+
+### Features
+
+* **analytics-browser:** add lite entrypoint to reduce bundle size for precision tracking ([#2110](https://github.com/amplitude/Amplitude-TypeScript/issues/2110)) ([f82ccac](https://github.com/amplitude/Amplitude-TypeScript/commit/f82ccac226c6a0dfd94963b1a0b39b6ae34e948c))
+* **core:** add shared network request event factory ([#2093](https://github.com/amplitude/Amplitude-TypeScript/issues/2093)) ([42a171b](https://github.com/amplitude/Amplitude-TypeScript/commit/42a171b7f3dd22f8f14c86155d93c727e5871541))
+
+
+
+
+
 ## [2.48.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.48.0...@amplitude/analytics-browser@2.48.1) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

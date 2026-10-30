@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.10.24...@amplitude/plugin-network-capture-browser@1.11.0) (2026-10-30)
+
+
+### Features
+
+* **core:** add shared network request event factory ([#2093](https://github.com/amplitude/Amplitude-TypeScript/issues/2093)) ([42a171b](https://github.com/amplitude/Amplitude-TypeScript/commit/42a171b7f3dd22f8f14c86155d93c727e5871541))
+
+
+
+
+
 ## [1.10.24](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.10.23...@amplitude/plugin-network-capture-browser@1.10.24) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

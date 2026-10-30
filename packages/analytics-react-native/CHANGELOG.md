@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.12.4...@amplitude/analytics-react-native@1.13.0) (2026-10-30)
+
+
+### Features
+
+* **core:** add shared network request event factory ([#2093](https://github.com/amplitude/Amplitude-TypeScript/issues/2093)) ([42a171b](https://github.com/amplitude/Amplitude-TypeScript/commit/42a171b7f3dd22f8f14c86155d93c727e5871541))
+
+
+
+
+
 ## [1.12.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.12.3...@amplitude/analytics-react-native@1.12.4) (2026-10-20)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

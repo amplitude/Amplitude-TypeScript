@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.24...@amplitude/plugin-page-view-tracking-browser@2.12.0) (2026-10-30)
+
+
+### Bug Fixes
+
+* **browser:** track page views on replaceState navigation ([#2108](https://github.com/amplitude/Amplitude-TypeScript/issues/2108)) ([16be3af](https://github.com/amplitude/Amplitude-TypeScript/commit/16be3af626c768073b82519072c24eeae2f6179f))
+
+
+### Features
+
+* **analytics-browser:** add page context and SDK initialization offset ([#2067](https://github.com/amplitude/Amplitude-TypeScript/issues/2067)) ([cc7389f](https://github.com/amplitude/Amplitude-TypeScript/commit/cc7389fd5a3547f46d078ebd7971134f1c9f2411))
+
+
+
+
+
 ## [2.11.24](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.23...@amplitude/plugin-page-view-tracking-browser@2.11.24) (2026-10-20)
 
 
