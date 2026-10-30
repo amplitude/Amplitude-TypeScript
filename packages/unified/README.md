@@ -9,6 +9,8 @@
 
 Official Amplitude SDK for Web analytics, experiment, session replay, Guides and Surveys, and more.
 
+Full Amplitude Unified SDK Documentation lives at [(https://amplitude.com/docs/sdks/analytics/browser/browser-unified-sdk)](https://amplitude.com/docs/sdks/analytics/browser/browser-unified-sdk/get-started)
+
 ## Installation
 
 This package is published on NPM registry and is available to be installed using npm and yarn.
