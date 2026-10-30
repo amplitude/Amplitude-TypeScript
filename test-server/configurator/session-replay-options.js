@@ -291,7 +291,7 @@ export const SESSION_REPLAY_SECTIONS = [
         type: 'boolean',
         defaultValue: false,
         description:
-          'When true, the window focus listener forces a fresh rrweb full snapshot every time the page regains focus, so the replay reflects any DOM changes that happened while the tab was backgrounded. When false (default), the on-focus full snapshot is skipped entirely. On pages with heavy focus churn this fires constantly, and combined with eagerFullSnapshotSend each focus produces an immediate network send.',
+          'When true, the window focus listener forces a fresh rrweb full snapshot every time the page regains focus. When false (default), the on-focus full snapshot is skipped entirely. On pages with heavy focus churn this fires constantly, and combined with eagerFullSnapshotSend each focus produces an immediate network send. Browser tab switches are handled separately: hiding the tab flushes queued mutations, and showing it takes one checkout snapshot, whether or not this option is on.',
       },
       {
         key: 'enableUrlChangePolling',
