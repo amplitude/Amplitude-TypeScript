@@ -142,10 +142,10 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
           // eslint-disable-next-line @typescript-eslint/unbound-method
           globalScope.history[method] = new Proxy(globalScope.history[method], {
             apply: (target, thisArg, args: Parameters<History['pushState']>) => {
-              const oldURL = location.href;
+              const prevUrl = location.href;
               const result = target.apply(thisArg, args);
               // Routers also replace state during hydration without navigating.
-              if (isTracking && (method === 'pushState' || location.href !== oldURL)) {
+              if (isTracking && (method === 'pushState' || location.href !== prevUrl)) {
                 handlePageChange();
               }
               return result;
