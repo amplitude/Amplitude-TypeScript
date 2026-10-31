@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { UGCFilterRule } from '../src/config/types';
+import { SessionReplayJoinedConfig, UGCFilterRule } from '../src/config/types';
 import { SESSION_REPLAY_EU_URL, SESSION_REPLAY_SERVER_URL, SESSION_REPLAY_STAGING_URL } from '../src/constants';
 import { ServerZone } from '@amplitude/analytics-core';
-import { getServerUrl, getStorageSize, getPageUrl, validateUGCFilterRules } from '../src/helpers';
+import { getServerUrl, getStorageSize, getPageUrl, validateUGCFilterRules, getDebugConfig } from '../src/helpers';
 import * as AnalyticsCore from '@amplitude/analytics-core';
+import { serialize } from 'v8';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('getServerUrl', () => {
@@ -179,6 +180,53 @@ describe('SessionReplayPlugin helpers', () => {
       const rules = [{ selector: '\t\n\r ', replacement: 'replacement' }];
       expect(() => validateUGCFilterRules(rules)).toThrow(
         'ugcFilterRules must be an array of objects with valid globs',
+      );
+    });
+  });
+
+  describe('getDebugConfig', () => {
+    const makeConfig = () =>
+      ({
+        apiKey: 'static_key',
+        sampleRate: 1,
+        loggerProvider: {
+          log: jest.fn(),
+          warn: jest.fn(),
+          error: jest.fn(),
+          debug: jest.fn(),
+          enable: jest.fn(),
+          disable: jest.fn(),
+        },
+        sendEventsHandler: jest.fn(),
+        privacyConfig: { defaultMaskLevel: 'medium', maskFn: () => '' },
+        crossOriginIframes: { enabled: true },
+      } as unknown as SessionReplayJoinedConfig);
+
+    test('should mask the api key', () => {
+      expect(getDebugConfig(makeConfig()).apiKey).toEqual('****_key');
+    });
+
+    test('should not mutate the original config', () => {
+      const config = makeConfig();
+      getDebugConfig(config);
+      expect(config.apiKey).toEqual('static_key');
+      expect(config.loggerProvider).toBeDefined();
+    });
+
+    test('should be structured-cloneable so cross-origin iframes can postMessage it', () => {
+      const config = makeConfig();
+      // v8.serialize uses the same structured clone algorithm as postMessage
+      expect(() => serialize(config)).toThrow();
+      const debugConfig = getDebugConfig(config);
+      expect(() => serialize(debugConfig)).not.toThrow();
+      expect(debugConfig).not.toHaveProperty('loggerProvider');
+      expect(debugConfig).not.toHaveProperty('sendEventsHandler');
+      expect(debugConfig).toEqual(
+        expect.objectContaining({
+          sampleRate: 1,
+          privacyConfig: { defaultMaskLevel: 'medium' },
+          crossOriginIframes: { enabled: true },
+        }),
       );
     });
   });

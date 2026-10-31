@@ -68,10 +68,14 @@ export const getStorageSize = async (): Promise<StorageData> => {
 };
 
 export const getDebugConfig = (config: SessionReplayJoinedConfig): SessionReplayJoinedConfig => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { loggerProvider, ...rest } = config;
   const debugConfig = {
-    ...config,
+    ...rest,
+    apiKey: `****${config.apiKey.substring(config.apiKey.length - 4)}`,
   };
-  const { apiKey } = debugConfig;
-  debugConfig.apiKey = `****${apiKey.substring(apiKey.length - 4)}`;
-  return debugConfig;
+  // Debug config is attached to custom rrweb events, which a cross-origin iframe child
+  // forwards to its parent via postMessage. Round-trip through JSON so runtime values
+  // (logger, transport/handler functions, class instances) can't break structured clone.
+  return JSON.parse(JSON.stringify(debugConfig)) as SessionReplayJoinedConfig;
 };
