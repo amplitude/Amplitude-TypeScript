@@ -712,6 +712,37 @@ describe('data extractor', () => {
       Object.defineProperty(window, 'innerWidth', { value: 1200 });
     });
 
+    test('falls back to a tracked parent for a Text pointerdown target with cursor capture enabled', () => {
+      const button = document.createElement('button');
+      const text = document.createTextNode('Click me');
+      button.appendChild(text);
+      document.body.appendChild(button);
+      const getComputedStyle = jest.spyOn(window, 'getComputedStyle');
+      let result: ElementBasedTimestampedEvent<PointerEvent> | undefined;
+      text.addEventListener(
+        'pointerdown',
+        (event) => {
+          result = dataExtractor.addAdditionalEventProperties(
+            event,
+            'click',
+            ['button'],
+            'data-amp-',
+            true,
+          ) as ElementBasedTimestampedEvent<PointerEvent>;
+        },
+        { once: true },
+      );
+      try {
+        text.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        expect(result?.closestTrackedAncestor).toBe(button);
+        expect(result?.targetElementProperties['[Amplitude] Element Tag']).toBe('button');
+        expect(getComputedStyle).not.toHaveBeenCalledWith(text);
+      } finally {
+        getComputedStyle.mockRestore();
+        button.remove();
+      }
+    });
+
     test('should add properties when isCapturingCursorPointer is true and element has pointer cursor', () => {
       // Create a button element with pointer cursor
       const span = document.createElement('span');

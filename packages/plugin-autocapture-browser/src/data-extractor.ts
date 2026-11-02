@@ -385,7 +385,7 @@ export class DataExtractor {
         const shadow = this.getShadowMode();
         const eventTarget = resolveEventTarget(baseEvent.event, shadow);
         if (isCapturingCursorPointer) {
-          const isCursorPointer = isElementPointerCursor(eventTarget as Element, baseEvent.type);
+          const isCursorPointer = isElementPointerCursor(eventTarget, baseEvent.type);
           if (isCursorPointer) {
             baseEvent.closestTrackedAncestor = eventTarget as HTMLElement;
             baseEvent.targetElementProperties = this.getEventProperties(
