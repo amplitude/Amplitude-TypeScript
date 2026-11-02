@@ -7,6 +7,7 @@ import AmplitudeCore
 class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, @unchecked Sendable {
     
     var sessionReplay: SessionReplay!
+    private let listenersLock = NSLock()
     private var hasListeners = false
     
     @objc(setup:deviceId:sessionId:serverZone:sampleRate:enableRemoteConfig:logLevel:autoStart:maskLevel:resolve:reject:)
@@ -126,11 +127,15 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     }
 
     override func startObserving() {
+        listenersLock.lock()
         hasListeners = true
+        listenersLock.unlock()
     }
 
     override func stopObserving() {
+        listenersLock.lock()
         hasListeners = false
+        listenersLock.unlock()
     }
 
     func onInterfaceChanged(signal: InterfaceChangeSignal) {
@@ -141,7 +146,10 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     func onStopProviding() { emitInterfaceSignal("stateChanged") }
 
     private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
-        guard hasListeners else { return }
+        listenersLock.lock()
+        let shouldEmit = hasListeners
+        listenersLock.unlock()
+        guard shouldEmit else { return }
         sendEvent(withName: "PluginSessionReplayReactNativeInterfaceSignal", body: ["type": type, "timestamp": timestamp])
     }
 

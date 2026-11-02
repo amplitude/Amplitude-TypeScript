@@ -7,6 +7,7 @@ import AmplitudeCore
 class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked Sendable {
     var sessionReplay: SessionReplay?
     var logger: CoreLogger?
+    private let listenersLock = NSLock()
     private var hasListeners = false
     
     override init() {
@@ -157,11 +158,15 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     }
 
     override func startObserving() {
+        listenersLock.lock()
         hasListeners = true
+        listenersLock.unlock()
     }
 
     override func stopObserving() {
+        listenersLock.lock()
         hasListeners = false
+        listenersLock.unlock()
     }
 
     func onInterfaceChanged(signal: InterfaceChangeSignal) {
@@ -172,7 +177,10 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     func onStopProviding() { emitInterfaceSignal("stateChanged") }
 
     private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
-        guard hasListeners else { return }
+        listenersLock.lock()
+        let shouldEmit = hasListeners
+        listenersLock.unlock()
+        guard shouldEmit else { return }
         sendEvent(withName: "AMPNativeSessionReplayInterfaceSignal", body: ["type": type, "timestamp": timestamp])
     }
 
