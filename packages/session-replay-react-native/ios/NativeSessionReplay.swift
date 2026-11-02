@@ -157,11 +157,11 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     }
 
     override func startObserving() {
-        DispatchQueue.main.async { [weak self] in self?.hasListeners = true }
+        hasListeners = true
     }
 
     override func stopObserving() {
-        DispatchQueue.main.async { [weak self] in self?.hasListeners = false }
+        hasListeners = false
     }
 
     func onInterfaceChanged(signal: InterfaceChangeSignal) {
@@ -172,10 +172,8 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     func onStopProviding() { emitInterfaceSignal("stateChanged") }
 
     private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self, self.hasListeners else { return }
-            self.sendEvent(withName: "AMPNativeSessionReplayInterfaceSignal", body: ["type": type, "timestamp": timestamp])
-        }
+        guard hasListeners else { return }
+        sendEvent(withName: "AMPNativeSessionReplayInterfaceSignal", body: ["type": type, "timestamp": timestamp])
     }
 
 }

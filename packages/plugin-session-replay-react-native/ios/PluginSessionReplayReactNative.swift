@@ -126,11 +126,11 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     }
 
     override func startObserving() {
-        DispatchQueue.main.async { [weak self] in self?.hasListeners = true }
+        hasListeners = true
     }
 
     override func stopObserving() {
-        DispatchQueue.main.async { [weak self] in self?.hasListeners = false }
+        hasListeners = false
     }
 
     func onInterfaceChanged(signal: InterfaceChangeSignal) {
@@ -141,10 +141,8 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     func onStopProviding() { emitInterfaceSignal("stateChanged") }
 
     private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self, self.hasListeners else { return }
-            self.sendEvent(withName: "PluginSessionReplayReactNativeInterfaceSignal", body: ["type": type, "timestamp": timestamp])
-        }
+        guard hasListeners else { return }
+        sendEvent(withName: "PluginSessionReplayReactNativeInterfaceSignal", body: ["type": type, "timestamp": timestamp])
     }
 
 }
