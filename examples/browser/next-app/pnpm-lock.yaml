@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@amplitude/analytics-browser':
-        specifier: ^2.49.0
+        specifier: ^2.0.0-beta
         version: 2.49.0
       next:
         specifier: 16.4.1
