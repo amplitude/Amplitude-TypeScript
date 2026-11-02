@@ -6,7 +6,19 @@ packages:
 
 overrides:
   typescript: ^4.9.4
+  # Newer nwsapi regresses escaped numeric-leading ID selectors in jsdom tests.
+  nwsapi: 2.2.22
   js-cookie: ^3.0.7
+  # Keep scanner-reported transitive packages on patched releases in their existing majors.
+  js-yaml@3: ^3.15.2
+  js-yaml@4: ^4.3.2
+  '@babel/plugin-transform-modules-systemjs@7': ^7.29.8
+  node-forge@1: ^1.4.2
+  follow-redirects@1: ^1.16.2
+  'lerna>nx': ^22.7.10
+  'lerna>@nx/devkit': ^22.7.10
+  fast-xml-parser@4: ^4.5.5
+  fast-xml-parser@5: ^5.7.0
 
 blockExoticSubdeps: true
 
