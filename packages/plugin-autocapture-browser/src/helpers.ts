@@ -15,11 +15,15 @@ const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 
 export type shouldTrackEvent = (actionType: ActionType, element: Element) => boolean;
 
-export const isElementPointerCursor = (element: Element, actionType: ActionType): boolean => {
+export const isElementPointerCursor = (element: EventTarget | null, actionType: ActionType): boolean => {
+  // DOM events can target Document, Window, or Text nodes as well as elements.
+  if (actionType !== 'click' || !(element instanceof Element)) {
+    return false;
+  }
   /* istanbul ignore next */
   const computedStyle = window?.getComputedStyle?.(element);
   /* istanbul ignore next */
-  return computedStyle?.getPropertyValue('cursor') === 'pointer' && actionType === 'click';
+  return computedStyle?.getPropertyValue('cursor') === 'pointer';
 };
 
 export const isUrlAllowed = (autocaptureOptions: ElementInteractionsOptions): boolean => {

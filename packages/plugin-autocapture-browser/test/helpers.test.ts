@@ -1,4 +1,5 @@
 import {
+  isElementPointerCursor,
   isTextNode,
   isContentEditableElement,
   isNonSensitiveElement,
@@ -51,6 +52,44 @@ describe('autocapture-plugin helpers', () => {
   afterEach(() => {
     document.getElementsByTagName('body')[0].innerHTML = '';
     jest.clearAllMocks();
+  });
+
+  describe('isElementPointerCursor', () => {
+    test.each([
+      ['Document', document],
+      ['Window', window],
+      ['Text', document.createTextNode('text')],
+      ['null', null],
+    ])('does not read computed style for %s targets', (_name, target) => {
+      const getComputedStyle = jest.spyOn(window, 'getComputedStyle');
+      try {
+        expect(isElementPointerCursor(target, 'click')).toBe(false);
+        expect(getComputedStyle).not.toHaveBeenCalled();
+      } finally {
+        getComputedStyle.mockRestore();
+      }
+    });
+
+    test.each([document.createElement('button'), document.createElementNS('http://www.w3.org/2000/svg', 'svg')])(
+      'reads pointer style for HTML and SVG elements',
+      (element) => {
+        document.body.appendChild(element);
+        element.style.cursor = 'pointer';
+        expect(isElementPointerCursor(element, 'click')).toBe(true);
+        element.style.cursor = 'default';
+        expect(isElementPointerCursor(element, 'click')).toBe(false);
+      },
+    );
+
+    test('does not read computed style for change events', () => {
+      const getComputedStyle = jest.spyOn(window, 'getComputedStyle');
+      try {
+        expect(isElementPointerCursor(document.createElement('input'), 'change')).toBe(false);
+        expect(getComputedStyle).not.toHaveBeenCalled();
+      } finally {
+        getComputedStyle.mockRestore();
+      }
+    });
   });
 
   describe('isTextNode', () => {
