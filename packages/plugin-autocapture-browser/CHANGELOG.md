@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.0...@amplitude/plugin-autocapture-browser@1.31.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** do not capture element text for 'contenteditable' ([#2066](https://github.com/amplitude/Amplitude-TypeScript/issues/2066)) ([c56d5f1](https://github.com/amplitude/Amplitude-TypeScript/commit/c56d5f129270dce6698341685b5b38d0ae385b3e))
+
+
+
+
+
 # [1.31.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.4...@amplitude/plugin-autocapture-browser@1.31.0) (2026-10-30)
 
 
