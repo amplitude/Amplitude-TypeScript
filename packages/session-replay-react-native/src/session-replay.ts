@@ -163,6 +163,15 @@ export async function setDeviceId(deviceId: string | null): Promise<void> {
   await NativeSessionReplay.setDeviceId(deviceId);
 }
 
+/** Read the current device identifier directly from the native recorder. */
+export async function getDeviceId(): Promise<string | null> {
+  if (!isInitialized) {
+    logger.warn('SessionReplay is not initialized');
+    return null;
+  }
+  return NativeSessionReplay.getDeviceId();
+}
+
 /**
  * Get the current session identifier from the session replay SDK.
  * Resolves to a number when the active session ID is a safe integer, and to a

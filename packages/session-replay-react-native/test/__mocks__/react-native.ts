@@ -4,10 +4,12 @@
 // replaced by setCustomSessionId. The mock holds it so `getSessionId()`, which
 // now reads back through the bridge, can be exercised end to end.
 let customSessionId = '-1';
+let deviceId: string | null = null;
 
 const ampNativeSessionReplay = {
-  setup: jest.fn((config: { customSessionId: string }) => {
+  setup: jest.fn((config: { customSessionId: string; deviceId: string | null }) => {
     customSessionId = config.customSessionId;
+    deviceId = config.deviceId;
     return Promise.resolve();
   }),
   start: jest.fn().mockResolvedValue(undefined),
@@ -18,7 +20,11 @@ const ampNativeSessionReplay = {
   }),
   flush: jest.fn().mockResolvedValue(undefined),
   getSessionId: jest.fn().mockResolvedValue(12345),
-  setDeviceId: jest.fn().mockResolvedValue(undefined),
+  setDeviceId: jest.fn((id: string | null) => {
+    deviceId = id;
+    return Promise.resolve();
+  }),
+  getDeviceId: jest.fn(() => Promise.resolve(deviceId)),
   setSessionId: jest.fn().mockResolvedValue(undefined),
   setCustomSessionId: jest.fn((id: string) => {
     customSessionId = id;

@@ -489,7 +489,7 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.onSessionIdChanged?.(456);
 
       expect(setSessionId).toHaveBeenCalledTimes(1);
-      expect(setSessionId).toHaveBeenCalledWith(456);
+      expect(setSessionId).toHaveBeenCalledWith(456, mockConfig.deviceId);
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(
         'Analytics session id is changed to 456, SR session id is 123.',
       );
@@ -529,6 +529,18 @@ describe('SessionReplayPlugin', () => {
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith('optOut is changed to false, calling sessionReplay.init().');
       expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ deviceId: customDeviceId }));
       expect(init).toHaveBeenNthCalledWith(2, 'static_key', expect.objectContaining({ deviceId: customDeviceId }));
+    });
+
+    test('should reinitialize with the current Analytics device id after reset while opted out', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const config = { ...mockConfig };
+      await sessionReplay.setup(config, mockAmplitude);
+      await sessionReplay.onOptOutChanged(true);
+      config.deviceId = 'reset-device';
+
+      await sessionReplay.onOptOutChanged(false);
+
+      expect(init).toHaveBeenLastCalledWith('static_key', expect.objectContaining({ deviceId: 'reset-device' }));
     });
 
     test('should not re init when optOut is false but config is null', async () => {
@@ -597,7 +609,7 @@ describe('SessionReplayPlugin', () => {
       }
       await sessionReplay.execute(newEvent);
       expect(setSessionId).toHaveBeenCalledTimes(1);
-      expect(setSessionId).toHaveBeenCalledWith(456);
+      expect(setSessionId).toHaveBeenCalledWith(456, mockConfig.deviceId);
     });
 
     test('should not update if session id unchanged', async () => {
@@ -611,6 +623,73 @@ describe('SessionReplayPlugin', () => {
       };
       await sessionReplay.execute?.(event);
       expect(setSessionId).not.toHaveBeenCalled();
+    });
+
+    test.each(['reset', 'setDeviceId'])('should synchronize a device id changed by %s', async (operation) => {
+      const sessionReplay = new SessionReplayPlugin();
+      const config = { ...mockConfig };
+      await sessionReplay.setup(config, mockAmplitude);
+      getSessionId.mockReturnValue(config.sessionId);
+
+      // Both Analytics APIs change config.deviceId without changing the session.
+      config.deviceId = operation === 'reset' ? 'generated-device-id' : 'custom-device-id';
+      const event = { event_type: 'page view', session_id: config.sessionId, device_id: config.deviceId };
+      let replayDeviceId = mockConfig.deviceId;
+      setSessionId.mockImplementation((_sessionId, deviceId) => ({
+        promise: Promise.resolve().then(() => {
+          replayDeviceId = deviceId;
+        }),
+      }));
+      getSessionReplayProperties.mockImplementation(() => ({
+        '[Amplitude] Session Replay ID': `${String(replayDeviceId)}/${String(config.sessionId)}`,
+      }));
+
+      const enrichedEvent = await sessionReplay.execute(event);
+
+      expect(setSessionId).toHaveBeenCalledWith(config.sessionId, config.deviceId);
+      expect(enrichedEvent.event_properties).toEqual({
+        '[Amplitude] Session Replay ID': `${config.deviceId}/${String(config.sessionId)}`,
+      });
+      await sessionReplay.execute({ ...event });
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+    });
+
+    test('should synchronize from config instead of a delayed event device id', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const config = { ...mockConfig };
+      await sessionReplay.setup(config, mockAmplitude);
+      getSessionId.mockReturnValue(config.sessionId);
+      config.deviceId = 'new-device';
+
+      await sessionReplay.execute({ event_type: 'delayed', session_id: 122, device_id: 'old-device' });
+
+      expect(setSessionId).toHaveBeenCalledWith(config.sessionId, 'new-device');
+    });
+
+    test('should preserve an explicit Replay device id when Analytics identity changes', async () => {
+      const sessionReplay = new SessionReplayPlugin({ deviceId: 'replay-device' });
+      const config = { ...mockConfig };
+      await sessionReplay.setup(config, mockAmplitude);
+      getSessionId.mockReturnValue(config.sessionId);
+      config.deviceId = 'new-analytics-device';
+
+      await sessionReplay.execute({ event_type: 'page view', session_id: config.sessionId });
+      expect(setSessionId).not.toHaveBeenCalled();
+      config.sessionId = 456;
+      await sessionReplay.execute({ event_type: 'page view', session_id: 456 });
+      expect(setSessionId).toHaveBeenCalledWith(456, 'replay-device');
+    });
+
+    test('should synchronize device id with an unchanged custom session id', async () => {
+      const sessionReplay = new SessionReplayPlugin({ customSessionId: () => 'custom-session' });
+      const config = { ...mockConfig };
+      await sessionReplay.setup(config, mockAmplitude);
+      getSessionId.mockReturnValue('custom-session');
+      config.deviceId = 'new-device';
+
+      await sessionReplay.execute({ event_type: 'page view' });
+
+      expect(setSessionId).toHaveBeenCalledWith('custom-session', 'new-device');
     });
 
     test('should call evaluateTargetingAndCapture for IDENTIFY events', async () => {
@@ -729,7 +808,7 @@ describe('SessionReplayPlugin', () => {
 
       await sessionReplay.execute?.(event);
       expect(setSessionId).toHaveBeenCalledTimes(1);
-      expect(setSessionId).toHaveBeenCalledWith('test_123');
+      expect(setSessionId).toHaveBeenCalledWith('test_123', mockConfig.deviceId);
     });
 
     test('should not update the session id when using custom session id and it does not change', async () => {

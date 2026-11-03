@@ -86,6 +86,9 @@ export interface NativeSessionReplaySpec {
    */
   flush(): Promise<void>;
 
+  /** Reads the current device identifier from the native recorder. */
+  getDeviceId(): Promise<string | null>;
+
   /**
    * Updates the device identifier used for session replay tracking.
    * @param deviceId - The device identifier string, or null to clear the device ID
