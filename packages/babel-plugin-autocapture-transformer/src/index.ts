@@ -1,4 +1,5 @@
 import { types as t, type NodePath, type PluginObj, type PluginPass } from '@babel/core';
+import path from 'path';
 import type { TransformerOptions } from './types';
 
 export const PACKAGE_NAME = '@amplitude/babel-plugin-autocapture-transformer';
@@ -298,8 +299,13 @@ export default function autocaptureTransformer(
   return {
     name: PLUGIN_NAME,
     visitor: {
-      JSXOpeningElement(path) {
-        const { node } = path;
+      JSXOpeningElement(elementPath, state) {
+        const filename = state.filename;
+        if (filename?.includes(`${path.sep}node_modules${path.sep}`)) {
+          return;
+        }
+
+        const { node } = elementPath;
         const category = getCapturableElementCategory(node.name, capturableElementCategories);
         if (!category) {
           return;
@@ -333,7 +339,7 @@ export default function autocaptureTransformer(
           return;
         }
 
-        const programPath = path.findParent((parent) => parent.isProgram());
+        const programPath = elementPath.findParent((parent) => parent.isProgram());
         if (!programPath?.isProgram()) {
           return;
         }
@@ -344,7 +350,7 @@ export default function autocaptureTransformer(
           programPath.setData('autocaptureCaptureIdentifier', captureIdentifier);
         }
 
-        const captureProperties = getCapturePropertiesFromElement(path);
+        const captureProperties = getCapturePropertiesFromElement(elementPath);
 
         for (const attr of node.attributes) {
           if (!t.isJSXAttribute(attr)) {
