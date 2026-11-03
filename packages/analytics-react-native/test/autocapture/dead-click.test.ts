@@ -22,7 +22,7 @@ type SignalState = {
 // RN's Promise polyfill schedules continuations on setImmediate. Keep it real
 // while controlling the detector's clock and timeout with fake timers.
 const settlePromises = () => new Promise<void>((resolve) => setImmediate(resolve));
-type Signal = { type: 'interfaceChanged' | 'stateChanged'; timestamp: number };
+type Signal = { type: 'interfaceChanged' | 'startProviding' | 'stopProviding' | 'identityChanged'; timestamp: number };
 type Provider = {
   getInterfaceSignalState?: jest.Mock;
   addInterfaceSignalListener?: jest.Mock;
@@ -38,7 +38,6 @@ const emitSignal = (type: Signal['type'], timestamp = Date.now(), provider: keyo
 const subscribe = (provider: keyof typeof listeners) =>
   jest.fn((listener: (signal: Signal) => void) => {
     listeners[provider].add(listener);
-    listener({ type: 'stateChanged', timestamp: Date.now() });
     return { remove: () => listeners[provider].delete(listener) };
   });
 
@@ -193,8 +192,42 @@ describe('dead click detection', () => {
 
       // Final recording identity and availability are unchanged. Only the JS
       // observer saw that capture was interrupted between the two reads.
-      emitSignal('stateChanged');
-      emitSignal('stateChanged');
+      emitSignal('stopProviding');
+      emitSignal('startProviding');
+      if (timing === 'during the final query') resolveState({ ...state });
+      await settlePromises();
+      await advance();
+      expect(onDeadClick).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not invalidate a press when its first state query discovers recording is available', async () => {
+    readState.mockImplementation(() => {
+      emitSignal('startProviding');
+      return Promise.resolve({ ...state });
+    });
+    createTracker().registerClickEvent(coordinates, properties);
+    await settlePromises();
+    await advance();
+    expect(onDeadClick).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['before the initial response', 'during the timeout', 'during the final query'])(
+    'invalidates a transient Replay identity change %s even when the final identity matches',
+    async (timing) => {
+      let resolveState: (value: SignalState) => void = () => undefined;
+      if (timing === 'during the final query') {
+        readState.mockResolvedValueOnce({ ...state }).mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveState = resolve;
+            }),
+        );
+      }
+      createTracker().registerClickEvent(coordinates, properties);
+      if (timing !== 'before the initial response') await settlePromises();
+      if (timing === 'during the final query') await advance();
+      emitSignal('identityChanged');
       if (timing === 'during the final query') resolveState({ ...state });
       await settlePromises();
       await advance();
@@ -309,7 +342,7 @@ describe('dead click detection', () => {
     const tracker = createTracker();
     tracker.registerClickEvent(coordinates, properties);
     await settlePromises();
-    emitSignal('stateChanged');
+    emitSignal('stopProviding');
     emitSignal('interfaceChanged');
     await advance();
     expect(onDeadClick).toHaveBeenCalledTimes(1);

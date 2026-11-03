@@ -1,7 +1,7 @@
 import type { InterfaceSignalState } from '../src/native-module';
 
 describe('interface signal subscriptions', () => {
-  it.each(['ios', 'android'])('initializes each subscriber on %s and supports cleanup', (platform) => {
+  it.each(['ios', 'android'])('subscribes on %s without synthetic events and supports cleanup', (platform) => {
     const callbacks: ((signal: unknown) => void)[] = [];
     const remove = jest.fn();
     const addListener = jest.fn((_event: string, callback: (signal: unknown) => void) => {
@@ -26,13 +26,14 @@ describe('interface signal subscriptions', () => {
 
       expect(emitter.mock.calls).toEqual(platform === 'ios' ? [[nativeModule], [nativeModule]] : [[], []]);
       for (const listener of [first, second]) {
-        expect(listener).toHaveBeenCalledTimes(1);
-        expect(listener).toHaveBeenCalledWith({ type: 'stateChanged', timestamp: expect.any(Number) });
+        expect(listener).not.toHaveBeenCalled();
       }
-      const signal = { type: 'interfaceChanged', timestamp: 123 };
-      callbacks.forEach((callback) => callback(signal));
-      expect(first).toHaveBeenLastCalledWith(signal);
-      expect(second).toHaveBeenLastCalledWith(signal);
+      for (const type of ['interfaceChanged', 'startProviding', 'stopProviding', 'identityChanged']) {
+        const signal = { type, timestamp: 123 };
+        callbacks.forEach((callback) => callback(signal));
+        expect(first).toHaveBeenLastCalledWith(signal);
+        expect(second).toHaveBeenLastCalledWith(signal);
+      }
       subscription.remove();
       expect(remove).toHaveBeenCalledTimes(1);
     });
