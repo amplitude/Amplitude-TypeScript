@@ -21,7 +21,7 @@ interface PluginSessionReplayNativeModule extends NativeModule {
   getSessionId(): Promise<number>;
   setSessionId(sessionId: number): Promise<void>;
   getSessionReplayProperties(): Promise<Record<string, string | number | boolean>>;
-  getInterfaceSignalState(): Promise<{ isProviding: boolean; sessionId: string; deviceId: string | null }>;
+  getInterfaceSignalState(): Promise<InterfaceSignalState>;
   start(): Promise<void>;
   stop(): Promise<void>;
   flush(): Promise<void>;
@@ -46,8 +46,33 @@ export interface InterfaceSignal {
   timestamp: number;
 }
 
+/** Current native recording availability and identity for interface-signal consumers. */
+export interface InterfaceSignalState {
+  isProviding: boolean;
+  sessionId: string;
+  deviceId: string | null;
+}
+
+function supportsInterfaceSignals(): boolean {
+  return (
+    typeof nativeModule?.getInterfaceSignalState === 'function' &&
+    (Platform.OS === 'android' ||
+      (typeof nativeModule?.addListener === 'function' && typeof nativeModule?.removeListeners === 'function'))
+  );
+}
+
+/** Returns null when the linked native binary cannot provide interface signals. */
+export async function getInterfaceSignalState(): Promise<InterfaceSignalState | null> {
+  return supportsInterfaceSignals() ? PluginSessionReplayReactNative.getInterfaceSignalState() : null;
+}
+
 /** Subscribe to native interface changes, immediately notifying the listener to read current state. */
-export function addInterfaceSignalListener(listener: (signal: InterfaceSignal) => void): EmitterSubscription {
+export function addInterfaceSignalListener(
+  listener: (signal: InterfaceSignal) => void,
+): Pick<EmitterSubscription, 'remove'> {
+  if (!supportsInterfaceSignals()) {
+    return { remove: () => undefined };
+  }
   // Android events arrive on the shared device event emitter, so the emitter is
   // constructed without a module. iOS passes the module so RCTEventEmitter can
   // start and stop observation.

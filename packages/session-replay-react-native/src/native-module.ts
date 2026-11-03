@@ -29,8 +29,34 @@ export interface InterfaceSignal {
   timestamp: number;
 }
 
+/** Current native recording availability and identity for interface-signal consumers. */
+export interface InterfaceSignalState {
+  isProviding: boolean;
+  sessionId: string;
+  deviceId: string | null;
+}
+
+function supportsInterfaceSignals(): boolean {
+  return (
+    typeof SessionReplaySpec?.getInterfaceSignalState === 'function' &&
+    (Platform.OS === 'android' ||
+      (typeof SessionReplaySpec?.addListener === 'function' &&
+        typeof SessionReplaySpec?.removeListeners === 'function'))
+  );
+}
+
+/** Returns null when the linked native binary cannot provide interface signals. */
+export async function getInterfaceSignalState(): Promise<InterfaceSignalState | null> {
+  return supportsInterfaceSignals() ? NativeSessionReplay.getInterfaceSignalState() : null;
+}
+
 /** Subscribe to native interface changes, immediately notifying the listener to read current state. */
-export function addInterfaceSignalListener(listener: (signal: InterfaceSignal) => void): EmitterSubscription {
+export function addInterfaceSignalListener(
+  listener: (signal: InterfaceSignal) => void,
+): Pick<EmitterSubscription, 'remove'> {
+  if (!supportsInterfaceSignals()) {
+    return { remove: () => undefined };
+  }
   const emitter =
     Platform.OS === 'android'
       ? new NativeEventEmitter()
@@ -108,11 +134,7 @@ export interface NativeSessionReplaySpec {
   getCustomSessionId(): Promise<string>;
 
   /** Internal UI change signal state used by React Native dead click detection. */
-  getInterfaceSignalState(): Promise<{
-    isProviding: boolean;
-    sessionId: string;
-    deviceId: string | null;
-  }>;
+  getInterfaceSignalState(): Promise<InterfaceSignalState>;
 
   /**
    * Updates whether session replay collection is disabled for the current user.
