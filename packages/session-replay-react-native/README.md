@@ -104,3 +104,19 @@ them by doing the following
   <WebView source={{ uri: 'https://reactnative.dev/' }} style={{ flex: 1 }} />
 </AmpMaskView>
 ```
+
+
+## Interface signals
+
+`addInterfaceSignalListener(listener)` subscribes to native `interfaceChanged` and
+`stateChanged` notifications and returns a subscription with `remove()`. Supported
+subscribers immediately receive `stateChanged` so they can read the current state.
+
+`getInterfaceSignalState()` reads the recorder's current `isProviding`, `sessionId`,
+and `deviceId`. It resolves to `null` if the native module is unlinked or lacks
+interface-signal support; subscriptions are then no-ops. Native query failures
+reject the promise so consumers can skip detection for that observation window.
+
+These APIs let optional consumers observe Replay without resolving native modules
+or depending on native event names. Consumers own their timing and lifecycle
+bookkeeping.
