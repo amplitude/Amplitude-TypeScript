@@ -102,15 +102,26 @@ Web views are blocked by default and will not be tracked. If you'd like webviews
 
 ## Interface signals
 
-`addInterfaceSignalListener(listener)` subscribes to native `interfaceChanged` and
-`stateChanged` notifications and returns a subscription with `remove()`. Supported
-subscribers immediately receive `stateChanged` so they can read the current state.
+`addInterfaceSignalListener(listener)` returns a subscription with `remove()` and
+forwards these native events:
 
-`getInterfaceSignalState()` reads the recorder's current `isProviding`, `sessionId`,
-and `deviceId`. It resolves to `null` if the native module is unlinked or lacks
+- `interfaceChanged`: the native recorder observed a UI change.
+- `startProviding`: the recording provider became available.
+- `stopProviding`: the recording provider became unavailable or was replaced.
+- `identityChanged`: the recording session or device ID actually changed.
+
+No event is synthesized when a listener subscribes. No-op setters do not emit
+identity events. Dead-click consumers invalidate pending observations on
+`stopProviding` and `identityChanged`; `startProviding` alone does not invalidate
+an observation. Recording availability and identity are checked at both ends of
+each click window.
+
+`getInterfaceSignalState()` reads current `isProviding`, `sessionId`, and
+`deviceId`. It resolves to `null` if the native module is unlinked or lacks
 interface-signal support; subscriptions are then no-ops. Native query failures
 reject the promise so consumers can skip detection for that observation window.
 
-These APIs let optional consumers observe Replay without resolving native modules
-or depending on native event names. Consumers own their timing and lifecycle
-bookkeeping.
+On Android, the bridge reports availability transitions when lifecycle methods,
+state queries, or UI callbacks observe them; the native SDK has no dedicated
+availability callback. On iOS, native start/stop-providing callbacks are forwarded,
+with an explicit stop notification before an active recorder is detached.

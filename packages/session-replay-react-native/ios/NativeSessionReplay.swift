@@ -69,8 +69,10 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     
     @objc(setCustomSessionId:resolve:reject:)
     func setCustomSessionId(_ customSessionId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "setCustomSessionId: \(customSessionId)")
+        if let replay = sessionReplay, replay.customSessionId != customSessionId as String {
+            emitInterfaceSignal("identityChanged")
+        }
         sessionReplay?.customSessionId = customSessionId as String
         resolve(nil)
     }
@@ -86,15 +88,16 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     
     @objc(setDeviceId:resolve:reject:)
     func setDeviceId(_ deviceId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "setDeviceId: \(deviceId)")
+        if let replay = sessionReplay, replay.deviceId != deviceId as String? {
+            emitInterfaceSignal("identityChanged")
+        }
         sessionReplay?.deviceId = deviceId as String?
         resolve(nil)
     }
 
     @objc(setOptOut:resolve:reject:)
     func setOptOut(_ optOut: Bool, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "setOptOut: \(optOut)")
         sessionReplay?.optOut = optOut
         resolve(nil)
@@ -102,7 +105,6 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "start")
         sessionReplay?.start()
         resolve(nil)
@@ -110,7 +112,6 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     
     @objc(stop:reject:)
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        emitInterfaceSignal("stateChanged")
         logger?.debug(message: "stop")
         sessionReplay?.stop()
         resolve(nil)
@@ -133,13 +134,13 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     @objc(invalidate)
     override func invalidate() {
         print("invalidate")
-        tearDownSessionReplay(emitStateChange: false)
+        tearDownSessionReplay(emitStopProviding: false)
         super.invalidate()
     }
 
-    private func tearDownSessionReplay(emitStateChange: Bool = true) {
-        if emitStateChange {
-            emitInterfaceSignal("stateChanged")
+    private func tearDownSessionReplay(emitStopProviding: Bool = true) {
+        if emitStopProviding && sessionReplay?.isProviding == true {
+            emitInterfaceSignal("stopProviding")
         }
         sessionReplay?.removeInterfaceSignalReceiver(self)
         sessionReplay?.stop()
@@ -175,8 +176,8 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
         emitInterfaceSignal("interfaceChanged", timestamp: signal.time.timeIntervalSince1970 * 1000)
     }
 
-    func onStartProviding() { emitInterfaceSignal("stateChanged") }
-    func onStopProviding() { emitInterfaceSignal("stateChanged") }
+    func onStartProviding() { emitInterfaceSignal("startProviding") }
+    func onStopProviding() { emitInterfaceSignal("stopProviding") }
 
     private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
         listenersLock.lock()

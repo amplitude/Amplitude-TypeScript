@@ -17,10 +17,10 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
-  private var sessionReplay: SessionReplay? = null
+  @Volatile private var sessionReplay: SessionReplay? = null
   // shouldRecord() reports sampling eligibility even while capture is stopped.
   // Track start/stop intent so signal availability also respects autoStart=false.
-  private var shouldStart = false
+  @Volatile private var shouldStart = false
   @Volatile private var replayGeneration = 0
 
   // Android delivers events on the shared device emitter. These no-op methods
@@ -35,11 +35,33 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   fun getInterfaceSignalState(promise: Promise) {
     val replay = sessionReplay
     val state = WritableNativeMap().apply {
-      putBoolean("isProviding", shouldStart && replay?.shouldRecord() == true)
+      putBoolean("isProviding", updateProvidingState())
       putString("sessionId", replay?.getSessionId()?.toString() ?: "-1")
       putString("deviceId", replay?.getDeviceId())
     }
     promise.resolve(state)
+  }
+
+  private var reportedProviding = false
+
+  // The Android SDK has no availability callback. Report observed transitions,
+  // rather than treating every bridge method call as an interruption.
+  @Synchronized
+  private fun updateProvidingState(): Boolean {
+    val isProviding = shouldStart && sessionReplay?.shouldRecord() == true
+    if (isProviding != reportedProviding) {
+      reportedProviding = isProviding
+      emitInterfaceSignal(if (isProviding) "startProviding" else "stopProviding")
+    }
+    return isProviding
+  }
+
+  @Synchronized
+  private fun detachProviding() {
+    if (reportedProviding || (shouldStart && sessionReplay?.shouldRecord() == true)) {
+      emitInterfaceSignal("stopProviding")
+    }
+    reportedProviding = false
   }
 
   // Native SDK callbacks are forwarded directly; JS owns observation history.
@@ -59,8 +81,6 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String?, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean, maskLevel: String) {
-    emitInterfaceSignal("stateChanged")
-    shouldStart = autoStart
     LogcatLogger.logger.logMode = when (logLevel) {
         0 -> Logger.LogMode.OFF
         1 -> Logger.LogMode.ERROR
@@ -91,7 +111,9 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
     """.trimIndent())
 
     val generation = ++replayGeneration
+    detachProviding()
     sessionReplay?.shutdown()
+    shouldStart = autoStart
     sessionReplay = SessionReplay(
       apiKey,
       reactContext.applicationContext,
@@ -108,16 +130,21 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
       uiChangeCallback = {
         if (generation == replayGeneration) {
+          updateProvidingState()
           emitInterfaceSignal("interfaceChanged")
         }
       }
     )
+    updateProvidingState()
   }
 
   @ReactMethod
   fun setSessionId(sessionId: Double) {
-    emitInterfaceSignal("stateChanged")
-    sessionReplay?.setSessionId(sessionId.toLong())
+    val replay = sessionReplay
+    val changed = replay != null && replay.getSessionId() != sessionId.toLong()
+    replay?.setSessionId(sessionId.toLong())
+    if (changed) emitInterfaceSignal("identityChanged")
+    updateProvidingState()
   }
 
   @ReactMethod
@@ -147,16 +174,16 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun start() {
-    emitInterfaceSignal("stateChanged")
     shouldStart = true
     sessionReplay?.start()
+    updateProvidingState()
   }
 
   @ReactMethod
   fun stop() {
-    emitInterfaceSignal("stateChanged")
     shouldStart = false
     sessionReplay?.stop()
+    updateProvidingState()
   }
 
   @ReactMethod
@@ -166,16 +193,17 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun teardown() {
-    shouldStart = false
     replayGeneration++
+    detachProviding()
+    shouldStart = false
     sessionReplay?.shutdown()
     sessionReplay = null
-    emitInterfaceSignal("stateChanged")
   }
 
   override fun invalidate() {
-    shouldStart = false
     replayGeneration++
+    reportedProviding = false
+    shouldStart = false
     sessionReplay?.shutdown()
     sessionReplay = null
   }

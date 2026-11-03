@@ -25,7 +25,7 @@ export const NativeSessionReplay = (SessionReplaySpec ??
 
 /** Native UI observation events. Lifecycle bookkeeping belongs to the JS consumer. */
 export interface InterfaceSignal {
-  type: 'interfaceChanged' | 'stateChanged';
+  type: 'interfaceChanged' | 'startProviding' | 'stopProviding' | 'identityChanged';
   timestamp: number;
 }
 
@@ -50,7 +50,7 @@ export async function getInterfaceSignalState(): Promise<InterfaceSignalState | 
   return supportsInterfaceSignals() ? NativeSessionReplay.getInterfaceSignalState() : null;
 }
 
-/** Subscribe to native interface changes, immediately notifying the listener to read current state. */
+/** Subscribe to UI changes, recording availability transitions, and recording identity changes. */
 export function addInterfaceSignalListener(
   listener: (signal: InterfaceSignal) => void,
 ): Pick<EmitterSubscription, 'remove'> {
@@ -62,9 +62,6 @@ export function addInterfaceSignalListener(
       ? new NativeEventEmitter()
       : new NativeEventEmitter(NativeSessionReplay as unknown as NativeModule);
   const subscription = emitter.addListener('AMPNativeSessionReplayInterfaceSignal', listener);
-  // Prompt each subscriber to read current state, even when native state has
-  // not changed since it started listening.
-  listener({ type: 'stateChanged', timestamp: Date.now() });
   return subscription;
 }
 
