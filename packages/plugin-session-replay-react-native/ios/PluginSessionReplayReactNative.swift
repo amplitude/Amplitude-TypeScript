@@ -99,11 +99,12 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        print("teardown")
+        sessionReplay?.stop()
+        sessionReplay?.removeInterfaceSignalReceiver(self)
+        sessionReplay = nil
         emitInterfaceSignal("stateChanged")
-      sessionReplay?.removeInterfaceSignalReceiver(self)
-      print("teardown")
-      sessionReplay.stop()
-      resolve(nil)
+        resolve(nil)
     }
 
     @objc(getInterfaceSignalState:reject:)

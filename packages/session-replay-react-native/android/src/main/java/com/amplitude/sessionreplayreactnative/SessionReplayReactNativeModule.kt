@@ -35,10 +35,22 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @ReactMethod
   override fun getInterfaceSignalState(promise: Promise) {
     try {
+      // Snapshot the SDK instance only. nativeConfig and shouldStart are bridge
+      // bookkeeping and can diverge from it (opt-out drops the instance; setters
+      // update the copy before the SDK call). shouldRecord() already includes
+      // the SDK started flag, sample rate, and opt-out.
+      val replay = sessionReplay
       val state = Arguments.createMap().apply {
-        putBoolean("isProviding", shouldStart && sessionReplay?.shouldRecord() == true)
-        putString("sessionId", nativeConfig?.customSessionId ?: "-1")
-        putString("deviceId", sessionReplay?.getDeviceId())
+        if (replay == null) {
+          putBoolean("isProviding", false)
+          putString("sessionId", "-1")
+          putNull("deviceId")
+        } else {
+          putBoolean("isProviding", replay.shouldRecord())
+          putString("sessionId", replay.getCustomSessionId() ?: "-1")
+          val deviceId = replay.getDeviceId()
+          if (deviceId == null) putNull("deviceId") else putString("deviceId", deviceId)
+        }
       }
       promise.resolve(state)
     } catch (e: Exception) {

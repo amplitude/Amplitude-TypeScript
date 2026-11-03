@@ -84,7 +84,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         Mask Level: $maskLevel
     """.trimIndent())
 
-    sessionReplay = SessionReplay(
+    val nextSessionReplay = SessionReplay(
       apiKey,
       reactContext.applicationContext,
       deviceId ?: "",
@@ -100,6 +100,10 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
       uiChangeCallback = { emitInterfaceSignal("interfaceChanged") }
     )
+    if (::sessionReplay.isInitialized) {
+      sessionReplay.shutdown()
+    }
+    sessionReplay = nextSessionReplay
   }
 
   @ReactMethod
