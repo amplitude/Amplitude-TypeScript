@@ -1,30 +1,28 @@
 {
   "name": "@amplitude/amp-semantic",
   "version": "0.1.0",
-  "description": "Composable browser context and visibility capture for Amplitude",
+  "description": "Shared package foundation for Amplitude semantic event capture",
   "license": "MIT",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "types": "lib/esm/index.d.ts",
   "sideEffects": false,
   "files": [
-    "lib",
-    "schema.json"
+    "lib"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "pnpm build:es5 && pnpm build:esm",
+    "clean": "rimraf lib",
+    "build": "pnpm clean && pnpm build:es5 && pnpm build:esm",
     "build:es5": "tsc -p tsconfig.es5.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "test": "jest",
-    "lint": "eslint '{src,test,e2e}/**/*.ts'",
-    "typecheck": "tsc -p tsconfig.json",
-    "test:playwright": "playwright test --config playwright.config.ts"
+    "lint": "eslint '{src,test}/**/*.ts'",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@amplitude/session-replay-dom-privacy": "workspace:*",
     "tslib": "^2.4.1"
   },
   "repository": {
@@ -33,6 +31,6 @@
   },
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "devDependencies": {
-    "ajv": "^8.17.1"
+    "rimraf": "^3.0.2"
   }
 }

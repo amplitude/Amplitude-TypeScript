@@ -97,8 +97,6 @@ export interface SessionReplayInteractionConfig {
 }
 
 export interface SessionReplayOptions {
-  /** Opt-in semantic facts in the replay stream. */
-  semanticCapture?: StandaloneSessionReplayOptions['semanticCapture'];
   /**
    * @see {@link StandaloneSessionReplayOptions.sampleRate}
    */
