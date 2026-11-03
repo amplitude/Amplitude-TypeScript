@@ -22,7 +22,7 @@ type SignalState = {
 // RN's Promise polyfill schedules continuations on setImmediate. Keep it real
 // while controlling the detector's clock and timeout with fake timers.
 const settlePromises = () => new Promise<void>((resolve) => setImmediate(resolve));
-type Signal = { type: 'interfaceChanged' | 'startProviding' | 'stopProviding' | 'identityChanged'; timestamp: number };
+type Signal = { interfaceChanged: boolean; identityChanged: boolean; isProviding: boolean; timestamp: number };
 type Provider = {
   getInterfaceSignalState?: jest.Mock;
   addInterfaceSignalListener?: jest.Mock;
@@ -33,8 +33,19 @@ const listeners = { plugin: new Set<(signal: Signal) => void>(), standalone: new
 jest.mock('@amplitude/plugin-session-replay-react-native', () => mockPluginReplay);
 jest.mock('@amplitude/session-replay-react-native', () => mockStandaloneReplay);
 
-const emitSignal = (type: Signal['type'], timestamp = Date.now(), provider: keyof typeof listeners = 'plugin') =>
-  listeners[provider].forEach((listener) => listener({ type, timestamp }));
+const emitSignal = (
+  type: 'interfaceChanged' | 'startProviding' | 'stopProviding' | 'identityChanged',
+  timestamp = Date.now(),
+  provider: keyof typeof listeners = 'plugin',
+) =>
+  listeners[provider].forEach((listener) =>
+    listener({
+      interfaceChanged: type === 'interfaceChanged',
+      identityChanged: type === 'identityChanged',
+      isProviding: type !== 'stopProviding',
+      timestamp,
+    }),
+  );
 const subscribe = (provider: keyof typeof listeners) =>
   jest.fn((listener: (signal: Signal) => void) => {
     listeners[provider].add(listener);
@@ -230,6 +241,26 @@ describe('dead click detection', () => {
       emitSignal('identityChanged');
       if (timing === 'during the final query') resolveState({ ...state });
       await settlePromises();
+      await advance();
+      expect(onDeadClick).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['recording stopped', 'identity changed'])(
+    'processes a combined UI/availability report when %s',
+    async (change) => {
+      createTracker().registerClickEvent(coordinates, properties);
+      await settlePromises();
+      // The native UI timestamp precedes this press; the accompanying interruption
+      // must still invalidate it rather than being lost in an else-if branch.
+      listeners.plugin.forEach((listener) =>
+        listener({
+          interfaceChanged: true,
+          identityChanged: change === 'identity changed',
+          isProviding: change !== 'recording stopped',
+          timestamp: START - 1,
+        }),
+      );
       await advance();
       expect(onDeadClick).not.toHaveBeenCalled();
     },

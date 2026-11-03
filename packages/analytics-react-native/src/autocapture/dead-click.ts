@@ -50,9 +50,10 @@ export function createDeadClickTracker(
         const observation = { generation: 0, lastChangeTime: 0 };
         try {
           const subscription = replay.addInterfaceSignalListener((signal) => {
-            if (signal.type === 'interfaceChanged') {
+            if (signal.interfaceChanged) {
               observation.lastChangeTime = Math.max(observation.lastChangeTime, signal.timestamp);
-            } else if (signal.type === 'stopProviding' || signal.type === 'identityChanged') {
+            }
+            if (!signal.isProviding || signal.identityChanged) {
               observation.generation++;
             }
           });

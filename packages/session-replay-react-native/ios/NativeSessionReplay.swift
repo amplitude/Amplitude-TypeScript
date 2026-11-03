@@ -71,7 +71,7 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     func setCustomSessionId(_ customSessionId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         logger?.debug(message: "setCustomSessionId: \(customSessionId)")
         if let replay = sessionReplay, replay.customSessionId != customSessionId as String {
-            emitInterfaceSignal("identityChanged")
+            emitInterfaceSignal(identityChanged: true)
         }
         sessionReplay?.customSessionId = customSessionId as String
         resolve(nil)
@@ -95,7 +95,7 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     func setDeviceId(_ deviceId: NSString, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         logger?.debug(message: "setDeviceId: \(deviceId)")
         if let replay = sessionReplay, replay.deviceId != deviceId as String? {
-            emitInterfaceSignal("identityChanged")
+            emitInterfaceSignal(identityChanged: true)
         }
         sessionReplay?.deviceId = deviceId as String?
         resolve(nil)
@@ -145,7 +145,7 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
 
     private func tearDownSessionReplay(emitStopProviding: Bool = true) {
         if emitStopProviding && sessionReplay?.isProviding == true {
-            emitInterfaceSignal("stopProviding")
+            emitInterfaceSignal(isProviding: false)
         }
         sessionReplay?.removeInterfaceSignalReceiver(self)
         sessionReplay?.stop()
@@ -178,18 +178,28 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     }
 
     func onInterfaceChanged(signal: InterfaceChangeSignal) {
-        emitInterfaceSignal("interfaceChanged", timestamp: signal.time.timeIntervalSince1970 * 1000)
+        emitInterfaceSignal(interfaceChanged: true, timestamp: signal.time.timeIntervalSince1970 * 1000)
     }
 
-    func onStartProviding() { emitInterfaceSignal("startProviding") }
-    func onStopProviding() { emitInterfaceSignal("stopProviding") }
+    func onStartProviding() { emitInterfaceSignal(isProviding: true) }
+    func onStopProviding() { emitInterfaceSignal(isProviding: false) }
 
-    private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
+    private func emitInterfaceSignal(
+        interfaceChanged: Bool = false,
+        identityChanged: Bool = false,
+        isProviding: Bool? = nil,
+        timestamp: Double = Date().timeIntervalSince1970 * 1000
+    ) {
         listenersLock.lock()
         let shouldEmit = hasListeners
         listenersLock.unlock()
         guard shouldEmit else { return }
-        sendEvent(withName: "AMPNativeSessionReplayInterfaceSignal", body: ["type": type, "timestamp": timestamp])
+        sendEvent(withName: "AMPNativeSessionReplayInterfaceSignal", body: [
+            "interfaceChanged": interfaceChanged,
+            "identityChanged": identityChanged,
+            "isProviding": isProviding ?? sessionReplay?.isProviding ?? false,
+            "timestamp": timestamp
+        ])
     }
 
 }

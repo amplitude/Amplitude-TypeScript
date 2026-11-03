@@ -44,7 +44,9 @@ export const PluginSessionReplayReactNative = (nativeModule ??
 
 /** Native UI observation events. Lifecycle bookkeeping belongs to the JS consumer. */
 export interface InterfaceSignal {
-  type: 'interfaceChanged' | 'startProviding' | 'stopProviding' | 'identityChanged';
+  interfaceChanged: boolean;
+  identityChanged: boolean;
+  isProviding: boolean;
   timestamp: number;
 }
 
