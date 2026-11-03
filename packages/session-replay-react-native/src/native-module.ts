@@ -1,4 +1,4 @@
-import { NativeEventEmitter, Platform, type EmitterSubscription } from 'react-native';
+import { NativeEventEmitter, Platform, type EmitterSubscription, type NativeModule } from 'react-native';
 import SessionReplaySpec from './specs/NativeAmpSessionReplay';
 
 const LINKING_ERROR =
@@ -31,7 +31,11 @@ export interface InterfaceSignal {
 
 /** Subscribe to native interface changes without polling or retaining native history. */
 export function addInterfaceSignalListener(listener: (signal: InterfaceSignal) => void): EmitterSubscription {
-  return new NativeEventEmitter(NativeSessionReplay).addListener('AMPNativeSessionReplayInterfaceSignal', listener);
+  const emitter =
+    Platform.OS === 'android'
+      ? new NativeEventEmitter()
+      : new NativeEventEmitter(NativeSessionReplay as unknown as NativeModule);
+  return emitter.addListener('AMPNativeSessionReplayInterfaceSignal', listener);
 }
 
 /**
@@ -105,9 +109,6 @@ export interface NativeSessionReplaySpec {
     sessionId: string;
     deviceId: string | null;
   }>;
-
-  addListener(eventName: string): void;
-  removeListeners(count: number): void;
 
   /**
    * Updates whether session replay collection is disabled for the current user.

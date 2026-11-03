@@ -31,6 +31,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   private var sessionReplay: SessionReplay? = null
   private var nativeConfig: NativeConfig? = null
   private var shouldStart = false
+  @Volatile private var replayGeneration = 0
 
   @ReactMethod
   override fun getInterfaceSignalState(promise: Promise) {
@@ -225,6 +226,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   override fun teardown(promise: Promise) {
     emitInterfaceSignal("stateChanged")
     try {
+      replayGeneration++
       sessionReplay?.shutdown()
       sessionReplay = null
       nativeConfig = null
@@ -236,6 +238,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   override fun invalidate() {
+    replayGeneration++
     sessionReplay?.shutdown()
     sessionReplay = null
     nativeConfig = null
@@ -243,17 +246,19 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   private fun rebootSessionReplay(config: NativeConfig) {
+    val nextGeneration = replayGeneration + 1
     val nextSessionReplay = if (config.optOut) {
       LogcatLogger.logger.debug("skipping SessionReplay init because optOut=true")
       null
     } else {
-      createSessionReplay(config)
+      createSessionReplay(config, nextGeneration)
     }
+    replayGeneration = nextGeneration
     sessionReplay?.shutdown()
     sessionReplay = nextSessionReplay
   }
 
-  private fun createSessionReplay(config: NativeConfig): SessionReplay {
+  private fun createSessionReplay(config: NativeConfig, generation: Int): SessionReplay {
     val sessionReplay = SessionReplay(
       apiKey = config.apiKey,
       context = reactContext.applicationContext,
@@ -269,7 +274,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       },
       autoStart = false,
       privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
-      uiChangeCallback = { emitInterfaceSignal("interfaceChanged") },
+      uiChangeCallback = {
+        if (generation == replayGeneration) {
+          emitInterfaceSignal("interfaceChanged")
+        }
+      },
     )
     sessionReplay.setCustomSessionId(config.customSessionId)
     return sessionReplay

@@ -1,17 +1,17 @@
 describe('NativeSessionReplay module resolution', () => {
-  it('subscribes to typed native interface signals and exposes listener cleanup', () => {
+  it('uses the native module to subscribe on iOS and exposes listener cleanup', () => {
     const listener = jest.fn();
     const remove = jest.fn();
     const addListener = jest.fn((_event: string, callback: typeof listener) => {
       callback({ type: 'interfaceChanged', timestamp: 123 });
       return { remove };
     });
-    const nativeModule = { addListener: jest.fn(), removeListeners: jest.fn() };
+    const nativeModule = {};
     const emitter = jest.fn(() => ({ addListener }));
 
     jest.isolateModules(() => {
       jest.doMock('react-native', () => ({
-        Platform: { select: () => '' },
+        Platform: { OS: 'ios', select: () => '' },
         TurboModuleRegistry: { get: () => nativeModule },
         NativeEventEmitter: emitter,
       }));
@@ -24,6 +24,27 @@ describe('NativeSessionReplay module resolution', () => {
       expect(listener).toHaveBeenCalledWith({ type: 'interfaceChanged', timestamp: 123 });
       subscription.remove();
       expect(remove).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('subscribes without the native module on Android', () => {
+    const listener = jest.fn();
+    const addListener = jest.fn(() => ({ remove: jest.fn() }));
+    const nativeModule = {};
+    const emitter = jest.fn(() => ({ addListener }));
+
+    jest.isolateModules(() => {
+      jest.doMock('react-native', () => ({
+        Platform: { OS: 'android', select: () => '' },
+        TurboModuleRegistry: { get: () => nativeModule },
+        NativeEventEmitter: emitter,
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-var-requires -- isolateModules needs a fresh require
+      const { addInterfaceSignalListener } = require('../src/native-module') as typeof import('../src/native-module');
+      addInterfaceSignalListener(listener);
+
+      expect(emitter).toHaveBeenCalledWith();
+      expect(addListener).toHaveBeenCalledWith('AMPNativeSessionReplayInterfaceSignal', listener);
     });
   });
 
