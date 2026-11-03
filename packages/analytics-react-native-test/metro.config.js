@@ -66,6 +66,7 @@ const resolveWithNode = (context, moduleName) => {
 const defaultConfig = getDefaultConfig(projectRoot);
 
 const config = {
+  transformer: { allowOptionalDependencies: true },
   watchFolders: [
     hostAppRoot,
     path.join(workspaceRoot, 'packages/analytics-react-native'),

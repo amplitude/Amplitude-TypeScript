@@ -1,3 +1,5 @@
+import type { InterfaceSignalState } from '../src/native-module';
+
 describe('interface signal subscriptions', () => {
   it.each(['ios', 'android'])('initializes each subscriber on %s and supports cleanup', (platform) => {
     const callbacks: ((signal: unknown) => void)[] = [];
@@ -6,7 +8,7 @@ describe('interface signal subscriptions', () => {
       callbacks.push(callback);
       return { remove };
     });
-    const nativeModule = {};
+    const nativeModule = { getInterfaceSignalState: jest.fn(), addListener: jest.fn(), removeListeners: jest.fn() };
     const emitter = jest.fn(() => ({ addListener }));
 
     jest.isolateModules(() => {
@@ -35,4 +37,55 @@ describe('interface signal subscriptions', () => {
       expect(remove).toHaveBeenCalledTimes(1);
     });
   });
+});
+
+describe('public interface-signal API', () => {
+  it.each(['ios', 'android'])('reads current native state through the public API on %s', async (platform) => {
+    const state: InterfaceSignalState = { isProviding: true, sessionId: 'custom-session', deviceId: 'device' };
+    const readState = jest.fn().mockResolvedValue(state);
+    const nativeModule = { getInterfaceSignalState: readState, addListener: jest.fn(), removeListeners: jest.fn() };
+    let read: () => Promise<unknown> = () => Promise.resolve(null);
+    jest.isolateModules(() => {
+      jest.doMock('react-native', () => ({
+        Platform: { OS: platform, select: () => '' },
+        NativeModules: { PluginSessionReplayReactNative: nativeModule },
+      }));
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      read = (require('../src/native-module') as typeof import('../src/native-module')).getInterfaceSignalState;
+    });
+    await expect(read()).resolves.toBe(state);
+    expect(readState).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['unlinked', 'old binary', 'missing event support'])(
+    'returns unavailable state and a no-op subscription for %s',
+    async (scenario) => {
+      const nativeModule =
+        scenario === 'unlinked'
+          ? null
+          : scenario === 'old binary'
+          ? {}
+          : {
+              getInterfaceSignalState: jest.fn(),
+            };
+      const emitter = jest.fn();
+      const listener = jest.fn();
+      let read: () => Promise<unknown> = () => Promise.resolve(null);
+      jest.isolateModules(() => {
+        jest.doMock('react-native', () => ({
+          Platform: { OS: 'ios', select: () => '' },
+          NativeModules: { PluginSessionReplayReactNative: nativeModule },
+          NativeEventEmitter: emitter,
+        }));
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const api = require('../src/native-module') as typeof import('../src/native-module');
+        read = api.getInterfaceSignalState;
+        const subscription = api.addInterfaceSignalListener(listener);
+        subscription.remove();
+      });
+      await expect(read()).resolves.toBeNull();
+      expect(listener).not.toHaveBeenCalled();
+      expect(emitter).not.toHaveBeenCalled();
+    },
+  );
 });
