@@ -53,7 +53,9 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       val state = Arguments.createMap().apply {
         putBoolean("isProviding", shouldStart && replay?.shouldRecord() == true)
         putString("sessionId", replay?.getCustomSessionId() ?: config?.customSessionId ?: "-1")
-        val deviceId = replay?.getDeviceId() ?: config?.deviceId
+        // The SDK is constructed with "" for a null device id; report null so the
+        // value matches iOS and the opted-out fallback.
+        val deviceId = replay?.getDeviceId()?.takeIf { it.isNotEmpty() } ?: config?.deviceId
         if (deviceId == null) putNull("deviceId") else putString("deviceId", deviceId)
       }
       promise.resolve(state)

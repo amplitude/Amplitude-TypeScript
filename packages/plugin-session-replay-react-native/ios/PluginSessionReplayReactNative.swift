@@ -58,27 +58,27 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     func setSessionId(_ sessionId: NSNumber, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         emitInterfaceSignal("stateChanged")
       print("setSessionId: \(sessionId)")
-      sessionReplay.sessionId = sessionId.int64Value
+      sessionReplay?.sessionId = sessionId.int64Value
       resolve(nil)
     }
 
     @objc(getSessionId:reject:)
     func getSessionId(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
       print("getSessionId")
-      resolve(NSNumber(value:sessionReplay.sessionId))
+      resolve(NSNumber(value: sessionReplay?.sessionId ?? -1))
     }
     
     @objc(getSessionReplayProperties:reject:)
     func getSessionReplayProperties(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
       print("getSessionReplayProperties")
-      resolve(sessionReplay.additionalEventProperties)
+      resolve(sessionReplay?.additionalEventProperties ?? [:])
     }
     
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         emitInterfaceSignal("stateChanged")
       print("start")
-      sessionReplay.start()
+      sessionReplay?.start()
       resolve(nil)
     }
     
@@ -86,14 +86,14 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         emitInterfaceSignal("stateChanged")
       print("stop")
-      sessionReplay.stop()
+      sessionReplay?.stop()
       resolve(nil)
     }
     
     @objc(flush:reject:)
     func flush(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("flush")
-      sessionReplay.flush()
+      sessionReplay?.flush()
       resolve(nil)
     }
     

@@ -109,17 +109,17 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   @ReactMethod
   fun setSessionId(sessionId: Double) {
     emitInterfaceSignal("stateChanged")
-    requireNotNull(sessionReplay).setSessionId(sessionId.toLong())
+    sessionReplay?.setSessionId(sessionId.toLong())
   }
 
   @ReactMethod
   fun getSessionId(promise: Promise) {
-    promise.resolve(requireNotNull(sessionReplay).getSessionId().toDouble())
+    promise.resolve(sessionReplay?.getSessionId()?.toDouble() ?: -1.0)
   }
 
   @ReactMethod
   fun getSessionReplayProperties(promise: Promise) {
-    val properties: Map<String, Any> = requireNotNull(sessionReplay).getSessionReplayProperties()
+    val properties: Map<String, Any> = sessionReplay?.getSessionReplayProperties() ?: emptyMap()
     val map: WritableMap = WritableNativeMap()
     for ((key, value) in properties) {
       if (value is String) {
@@ -141,19 +141,19 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   fun start() {
     emitInterfaceSignal("stateChanged")
     shouldStart = true
-    requireNotNull(sessionReplay).start()
+    sessionReplay?.start()
   }
 
   @ReactMethod
   fun stop() {
     emitInterfaceSignal("stateChanged")
     shouldStart = false
-    requireNotNull(sessionReplay).stop()
+    sessionReplay?.stop()
   }
 
   @ReactMethod
   fun flush() {
-    requireNotNull(sessionReplay).flush()
+    sessionReplay?.flush()
   }
 
   @ReactMethod

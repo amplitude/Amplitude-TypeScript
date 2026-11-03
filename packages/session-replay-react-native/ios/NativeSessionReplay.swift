@@ -133,12 +133,14 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     @objc(invalidate)
     override func invalidate() {
         print("invalidate")
-        tearDownSessionReplay()
+        tearDownSessionReplay(emitStateChange: false)
         super.invalidate()
     }
 
-    private func tearDownSessionReplay() {
-        emitInterfaceSignal("stateChanged")
+    private func tearDownSessionReplay(emitStateChange: Bool = true) {
+        if emitStateChange {
+            emitInterfaceSignal("stateChanged")
+        }
         sessionReplay?.removeInterfaceSignalReceiver(self)
         sessionReplay?.stop()
         sessionReplay = nil
