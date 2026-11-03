@@ -29,13 +29,17 @@ export interface InterfaceSignal {
   timestamp: number;
 }
 
-/** Subscribe to native interface changes without polling or retaining native history. */
+/** Subscribe to native interface changes, immediately notifying the listener to read current state. */
 export function addInterfaceSignalListener(listener: (signal: InterfaceSignal) => void): EmitterSubscription {
   const emitter =
     Platform.OS === 'android'
       ? new NativeEventEmitter()
       : new NativeEventEmitter(NativeSessionReplay as unknown as NativeModule);
-  return emitter.addListener('AMPNativeSessionReplayInterfaceSignal', listener);
+  const subscription = emitter.addListener('AMPNativeSessionReplayInterfaceSignal', listener);
+  // Prompt each subscriber to read current state, even when native state has
+  // not changed since it started listening.
+  listener({ type: 'stateChanged', timestamp: Date.now() });
+  return subscription;
 }
 
 /**

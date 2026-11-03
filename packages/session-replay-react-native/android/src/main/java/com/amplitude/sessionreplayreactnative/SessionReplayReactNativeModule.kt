@@ -30,8 +30,17 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   private var sessionReplay: SessionReplay? = null
   private var nativeConfig: NativeConfig? = null
+  // shouldRecord() alone does not account for setup/start/stop state.
   private var shouldStart = false
   @Volatile private var replayGeneration = 0
+
+  // Android uses the shared device emitter; iOS uses these spec methods to
+  // manage RCTEventEmitter observation.
+  @ReactMethod
+  override fun addListener(eventName: String) {}
+
+  @ReactMethod
+  override fun removeListeners(count: Double) {}
 
   @ReactMethod
   override fun getInterfaceSignalState(promise: Promise) {
@@ -42,7 +51,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       val replay = sessionReplay
       val config = nativeConfig
       val state = Arguments.createMap().apply {
-        putBoolean("isProviding", replay?.shouldRecord() ?: false)
+        putBoolean("isProviding", shouldStart && replay?.shouldRecord() == true)
         putString("sessionId", replay?.getCustomSessionId() ?: config?.customSessionId ?: "-1")
         val deviceId = replay?.getDeviceId() ?: config?.deviceId
         if (deviceId == null) putNull("deviceId") else putString("deviceId", deviceId)

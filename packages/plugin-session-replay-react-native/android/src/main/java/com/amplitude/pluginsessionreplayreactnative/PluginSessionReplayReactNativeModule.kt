@@ -18,8 +18,10 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
   private var sessionReplay: SessionReplay? = null
+  // shouldRecord() reports sampling eligibility even while capture is stopped.
+  // Track start/stop intent so signal availability also respects autoStart=false.
   private var shouldStart = false
-  private var replayGeneration = 0
+  @Volatile private var replayGeneration = 0
 
   @ReactMethod
   fun getInterfaceSignalState(promise: Promise) {
