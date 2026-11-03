@@ -17,16 +17,17 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
-  private lateinit var sessionReplay: SessionReplay
+  private var sessionReplay: SessionReplay? = null
   private var shouldStart = false
   private var replayGeneration = 0
 
   @ReactMethod
   fun getInterfaceSignalState(promise: Promise) {
+    val replay = sessionReplay
     val state = WritableNativeMap().apply {
-      putBoolean("isProviding", shouldStart && ::sessionReplay.isInitialized && sessionReplay.shouldRecord())
-      putString("sessionId", if (::sessionReplay.isInitialized) sessionReplay.getSessionId().toString() else "-1")
-      putString("deviceId", if (::sessionReplay.isInitialized) sessionReplay.getDeviceId() else null)
+      putBoolean("isProviding", shouldStart && replay?.shouldRecord() == true)
+      putString("sessionId", replay?.getSessionId()?.toString() ?: "-1")
+      putString("deviceId", replay?.getDeviceId())
     }
     promise.resolve(state)
   }
@@ -80,9 +81,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
     """.trimIndent())
 
     val generation = ++replayGeneration
-    if (::sessionReplay.isInitialized) {
-      sessionReplay.shutdown()
-    }
+    sessionReplay?.shutdown()
     sessionReplay = SessionReplay(
       apiKey,
       reactContext.applicationContext,
@@ -108,17 +107,17 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   @ReactMethod
   fun setSessionId(sessionId: Double) {
     emitInterfaceSignal("stateChanged")
-    sessionReplay.setSessionId(sessionId.toLong())
+    requireNotNull(sessionReplay).setSessionId(sessionId.toLong())
   }
 
   @ReactMethod
   fun getSessionId(promise: Promise) {
-    promise.resolve(sessionReplay.getSessionId().toDouble())
+    promise.resolve(requireNotNull(sessionReplay).getSessionId().toDouble())
   }
 
   @ReactMethod
   fun getSessionReplayProperties(promise: Promise) {
-    val properties: Map<String, Any> = sessionReplay.getSessionReplayProperties()
+    val properties: Map<String, Any> = requireNotNull(sessionReplay).getSessionReplayProperties()
     val map: WritableMap = WritableNativeMap()
     for ((key, value) in properties) {
       if (value is String) {
@@ -140,36 +139,34 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   fun start() {
     emitInterfaceSignal("stateChanged")
     shouldStart = true
-    sessionReplay.start()
+    requireNotNull(sessionReplay).start()
   }
 
   @ReactMethod
   fun stop() {
     emitInterfaceSignal("stateChanged")
     shouldStart = false
-    sessionReplay.stop()
+    requireNotNull(sessionReplay).stop()
   }
 
   @ReactMethod
   fun flush() {
-    sessionReplay.flush()
+    requireNotNull(sessionReplay).flush()
   }
 
   @ReactMethod
   fun teardown() {
-    emitInterfaceSignal("stateChanged")
     shouldStart = false
     replayGeneration++
-    if (::sessionReplay.isInitialized) {
-      sessionReplay.shutdown()
-    }
+    sessionReplay?.shutdown()
+    sessionReplay = null
+    emitInterfaceSignal("stateChanged")
   }
 
   override fun invalidate() {
     shouldStart = false
     replayGeneration++
-    if (::sessionReplay.isInitialized) {
-      sessionReplay.shutdown()
-    }
+    sessionReplay?.shutdown()
+    sessionReplay = null
   }
 }
