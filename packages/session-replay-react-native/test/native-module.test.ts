@@ -22,7 +22,7 @@ describe('NativeSessionReplay module resolution', () => {
       expect(emitter).toHaveBeenCalledWith(nativeModule);
       expect(addListener).toHaveBeenCalledWith('AMPNativeSessionReplayInterfaceSignal', listener);
       expect(listener).toHaveBeenCalledWith({ type: 'interfaceChanged', timestamp: 123 });
-      expect(listener).toHaveBeenLastCalledWith({ type: 'stateChanged', timestamp: expect.any(Number) });
+      expect(listener).toHaveBeenCalledTimes(1);
       subscription.remove();
       expect(remove).toHaveBeenCalledTimes(1);
     });
@@ -46,8 +46,7 @@ describe('NativeSessionReplay module resolution', () => {
 
       expect(emitter).toHaveBeenCalledWith();
       expect(addListener).toHaveBeenCalledWith('AMPNativeSessionReplayInterfaceSignal', listener);
-      expect(listener).toHaveBeenCalledTimes(1);
-      expect(listener).toHaveBeenCalledWith({ type: 'stateChanged', timestamp: expect.any(Number) });
+      expect(listener).not.toHaveBeenCalled();
     });
   });
 

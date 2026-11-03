@@ -22,7 +22,9 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
                maskLevel: String,
                resolve: RCTPromiseResolveBlock,
                reject: RCTPromiseRejectBlock) -> Void {
-        emitInterfaceSignal("stateChanged")
+        if sessionReplay?.isProviding == true {
+            emitInterfaceSignal("stopProviding")
+        }
         sessionReplay?.removeInterfaceSignalReceiver(self)
         sessionReplay?.stop()
         print(
@@ -56,8 +58,10 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     
     @objc(setSessionId:resolve:reject:)
     func setSessionId(_ sessionId: NSNumber, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        emitInterfaceSignal("stateChanged")
       print("setSessionId: \(sessionId)")
+      if let replay = sessionReplay, replay.sessionId != sessionId.int64Value {
+          emitInterfaceSignal("identityChanged")
+      }
       sessionReplay?.sessionId = sessionId.int64Value
       resolve(nil)
     }
@@ -76,7 +80,6 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        emitInterfaceSignal("stateChanged")
       print("start")
       sessionReplay?.start()
       resolve(nil)
@@ -84,7 +87,6 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     
     @objc(stop:reject:)
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-        emitInterfaceSignal("stateChanged")
       print("stop")
       sessionReplay?.stop()
       resolve(nil)
@@ -100,10 +102,12 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         print("teardown")
-        sessionReplay?.stop()
+        if sessionReplay?.isProviding == true {
+            emitInterfaceSignal("stopProviding")
+        }
         sessionReplay?.removeInterfaceSignalReceiver(self)
+        sessionReplay?.stop()
         sessionReplay = nil
-        emitInterfaceSignal("stateChanged")
         resolve(nil)
     }
 
@@ -143,8 +147,8 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
         emitInterfaceSignal("interfaceChanged", timestamp: signal.time.timeIntervalSince1970 * 1000)
     }
 
-    func onStartProviding() { emitInterfaceSignal("stateChanged") }
-    func onStopProviding() { emitInterfaceSignal("stateChanged") }
+    func onStartProviding() { emitInterfaceSignal("startProviding") }
+    func onStopProviding() { emitInterfaceSignal("stopProviding") }
 
     private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
         listenersLock.lock()

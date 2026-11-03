@@ -28,10 +28,10 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     val maskLevel: MaskLevel,
   )
 
-  private var sessionReplay: SessionReplay? = null
+  @Volatile private var sessionReplay: SessionReplay? = null
   private var nativeConfig: NativeConfig? = null
   // shouldRecord() alone does not account for setup/start/stop state.
-  private var shouldStart = false
+  @Volatile private var shouldStart = false
   @Volatile private var replayGeneration = 0
 
   // Android uses the shared device emitter; iOS uses these spec methods to
@@ -51,7 +51,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       val replay = sessionReplay
       val config = nativeConfig
       val state = Arguments.createMap().apply {
-        putBoolean("isProviding", shouldStart && replay?.shouldRecord() == true)
+        putBoolean("isProviding", updateProvidingState())
         putString("sessionId", replay?.getCustomSessionId() ?: config?.customSessionId ?: "-1")
         // The SDK is constructed with "" for a null device id; report null so the
         // value matches iOS and the opted-out fallback.
@@ -62,6 +62,28 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     } catch (e: Exception) {
       promise.reject("INTERFACE_SIGNAL_ERROR", e.message, e)
     }
+  }
+
+  private var reportedProviding = false
+
+  // The Android SDK has no availability callback. Report observed transitions,
+  // rather than treating every bridge method call as an interruption.
+  @Synchronized
+  private fun updateProvidingState(): Boolean {
+    val isProviding = shouldStart && sessionReplay?.shouldRecord() == true
+    if (isProviding != reportedProviding) {
+      reportedProviding = isProviding
+      emitInterfaceSignal(if (isProviding) "startProviding" else "stopProviding")
+    }
+    return isProviding
+  }
+
+  @Synchronized
+  private fun detachProviding() {
+    if (reportedProviding || (shouldStart && sessionReplay?.shouldRecord() == true)) {
+      emitInterfaceSignal("stopProviding")
+    }
+    reportedProviding = false
   }
 
   // Native SDK callbacks are forwarded directly; JS owns observation history.
@@ -81,7 +103,6 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun setup(config: ReadableMap, promise: Promise) {
-    emitInterfaceSignal("stateChanged")
     try {
       val apiKey = config.getString("apiKey") ?: throw IllegalArgumentException("apiKey is required")
       val deviceId = config.getString("deviceId")
@@ -133,6 +154,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       )
       rebootSessionReplay(requireNotNull(nativeConfig))
       shouldStart = false
+      updateProvidingState()
 
       promise.resolve(null)
     } catch (e: Exception) {
@@ -142,10 +164,13 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun setCustomSessionId(customSessionId: String, promise: Promise) {
-    emitInterfaceSignal("stateChanged")
     try {
-      nativeConfig = requireNotNull(nativeConfig).copy(customSessionId = customSessionId)
+      val currentConfig = requireNotNull(nativeConfig)
+      val currentId = sessionReplay?.getCustomSessionId() ?: currentConfig.customSessionId
       sessionReplay?.setCustomSessionId(customSessionId)
+      nativeConfig = currentConfig.copy(customSessionId = customSessionId)
+      if (currentId != customSessionId) emitInterfaceSignal("identityChanged")
+      updateProvidingState()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_CUSTOM_SESSION_ID_ERROR", e.message, e)
@@ -163,10 +188,13 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun setDeviceId(deviceId: String?, promise: Promise) {
-    emitInterfaceSignal("stateChanged")
     try {
-      nativeConfig = requireNotNull(nativeConfig).copy(deviceId = deviceId)
+      val currentConfig = requireNotNull(nativeConfig)
+      val currentId = sessionReplay?.getDeviceId() ?: currentConfig.deviceId.orEmpty()
       sessionReplay?.setDeviceId(deviceId ?: "")
+      nativeConfig = currentConfig.copy(deviceId = deviceId)
+      if (currentId != deviceId.orEmpty()) emitInterfaceSignal("identityChanged")
+      updateProvidingState()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_DEVICE_ID_ERROR", e.message, e)
@@ -175,7 +203,6 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun setOptOut(optOut: Boolean, promise: Promise) {
-    emitInterfaceSignal("stateChanged")
     try {
       val currentConfig = requireNotNull(nativeConfig)
       if (currentConfig.optOut == optOut) {
@@ -193,6 +220,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       if (shouldStart && !optOut) {
         sessionReplay?.start()
       }
+      updateProvidingState()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_OPT_OUT_ERROR", e.message, e)
@@ -201,10 +229,10 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun start(promise: Promise) {
-    emitInterfaceSignal("stateChanged")
     try {
       shouldStart = true
       sessionReplay?.start()
+      updateProvidingState()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("START_ERROR", e.message, e)
@@ -213,10 +241,10 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun stop(promise: Promise) {
-    emitInterfaceSignal("stateChanged")
     try {
       shouldStart = false
       sessionReplay?.stop()
+      updateProvidingState()
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("STOP_ERROR", e.message, e)
@@ -235,9 +263,9 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun teardown(promise: Promise) {
-    emitInterfaceSignal("stateChanged")
     try {
       replayGeneration++
+      detachProviding()
       sessionReplay?.shutdown()
       sessionReplay = null
       nativeConfig = null
@@ -250,6 +278,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   override fun invalidate() {
     replayGeneration++
+    reportedProviding = false
     sessionReplay?.shutdown()
     sessionReplay = null
     nativeConfig = null
@@ -265,6 +294,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       createSessionReplay(config, nextGeneration)
     }
     replayGeneration = nextGeneration
+    detachProviding()
     sessionReplay?.shutdown()
     sessionReplay = nextSessionReplay
   }
@@ -287,6 +317,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
       uiChangeCallback = {
         if (generation == replayGeneration) {
+          updateProvidingState()
           emitInterfaceSignal("interfaceChanged")
         }
       },
