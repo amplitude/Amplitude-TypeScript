@@ -228,7 +228,7 @@ export default function App() {
             },
             appLifecycles: true,
             sessions: true,
-            frustrationInteractions: true,
+            frustrationInteractions: {rageClick: true, errorClick: true, deadClick: true},
           },
           remoteConfig: {
             fetchRemoteConfig: false,

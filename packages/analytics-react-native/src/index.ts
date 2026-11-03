@@ -25,7 +25,12 @@ export const {
   trackScreenViewOnNavigationStateChange,
 } = client;
 
-export { Revenue, Identify } from '@amplitude/analytics-core';
+export {
+  Revenue,
+  Identify,
+  createNetworkRequestEvent,
+  type NetworkRequestEventProperties,
+} from '@amplitude/analytics-core';
 
 export { ampCapture } from './amp-capture';
 
