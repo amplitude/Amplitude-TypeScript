@@ -52,7 +52,7 @@ export function createDeadClickTracker(
           const subscription = replay.addInterfaceSignalListener((signal) => {
             if (signal.type === 'interfaceChanged') {
               observation.lastChangeTime = Math.max(observation.lastChangeTime, signal.timestamp);
-            } else if (signal.type === 'stateChanged') {
+            } else if (signal.type === 'stopProviding' || signal.type === 'identityChanged') {
               observation.generation++;
             }
           });
