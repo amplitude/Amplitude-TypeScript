@@ -79,19 +79,16 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     val availabilityChanged = isProviding != reportedProviding || (detached && currentlyProviding)
     reportedProviding = isProviding
 
-    val eventTypes = mutableListOf<String>()
-    if (availabilityChanged) eventTypes.add(if (isProviding) "startProviding" else "stopProviding")
-    if (interfaceChanged) eventTypes.add("interfaceChanged")
-    if (identityChanged) eventTypes.add("identityChanged")
-    if (eventTypes.isEmpty() || !reactContext.hasActiveCatalystInstance()) return isProviding
-    val emitter = reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-    for (eventType in eventTypes) {
-      val signal = Arguments.createMap().apply {
-        putString("type", eventType)
-        putDouble("timestamp", System.currentTimeMillis().toDouble())
-      }
-      emitter.emit("AMPNativeSessionReplayInterfaceSignal", signal)
+    if ((!availabilityChanged && !interfaceChanged && !identityChanged) ||
+      !reactContext.hasActiveCatalystInstance()) return isProviding
+    val signal = Arguments.createMap().apply {
+      putBoolean("interfaceChanged", interfaceChanged)
+      putBoolean("identityChanged", identityChanged)
+      putBoolean("isProviding", isProviding)
+      putDouble("timestamp", System.currentTimeMillis().toDouble())
     }
+    reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit("AMPNativeSessionReplayInterfaceSignal", signal)
     return isProviding
   }
 

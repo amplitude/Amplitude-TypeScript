@@ -23,7 +23,7 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
                resolve: RCTPromiseResolveBlock,
                reject: RCTPromiseRejectBlock) -> Void {
         if sessionReplay?.isProviding == true {
-            emitInterfaceSignal("stopProviding")
+            emitInterfaceSignal(isProviding: false)
         }
         sessionReplay?.removeInterfaceSignalReceiver(self)
         sessionReplay?.stop()
@@ -60,7 +60,7 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     func setSessionId(_ sessionId: NSNumber, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("setSessionId: \(sessionId)")
       if let replay = sessionReplay, replay.sessionId != sessionId.int64Value {
-          emitInterfaceSignal("identityChanged")
+          emitInterfaceSignal(identityChanged: true)
       }
       sessionReplay?.sessionId = sessionId.int64Value
       resolve(nil)
@@ -103,7 +103,7 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         print("teardown")
         if sessionReplay?.isProviding == true {
-            emitInterfaceSignal("stopProviding")
+            emitInterfaceSignal(isProviding: false)
         }
         sessionReplay?.removeInterfaceSignalReceiver(self)
         sessionReplay?.stop()
@@ -144,18 +144,28 @@ class PluginSessionReplayReactNative: RCTEventEmitter, InterfaceSignalReceiver, 
     }
 
     func onInterfaceChanged(signal: InterfaceChangeSignal) {
-        emitInterfaceSignal("interfaceChanged", timestamp: signal.time.timeIntervalSince1970 * 1000)
+        emitInterfaceSignal(interfaceChanged: true, timestamp: signal.time.timeIntervalSince1970 * 1000)
     }
 
-    func onStartProviding() { emitInterfaceSignal("startProviding") }
-    func onStopProviding() { emitInterfaceSignal("stopProviding") }
+    func onStartProviding() { emitInterfaceSignal(isProviding: true) }
+    func onStopProviding() { emitInterfaceSignal(isProviding: false) }
 
-    private func emitInterfaceSignal(_ type: String, timestamp: Double = Date().timeIntervalSince1970 * 1000) {
+    private func emitInterfaceSignal(
+        interfaceChanged: Bool = false,
+        identityChanged: Bool = false,
+        isProviding: Bool? = nil,
+        timestamp: Double = Date().timeIntervalSince1970 * 1000
+    ) {
         listenersLock.lock()
         let shouldEmit = hasListeners
         listenersLock.unlock()
         guard shouldEmit else { return }
-        sendEvent(withName: "PluginSessionReplayReactNativeInterfaceSignal", body: ["type": type, "timestamp": timestamp])
+        sendEvent(withName: "PluginSessionReplayReactNativeInterfaceSignal", body: [
+            "interfaceChanged": interfaceChanged,
+            "identityChanged": identityChanged,
+            "isProviding": isProviding ?? sessionReplay?.isProviding ?? false,
+            "timestamp": timestamp
+        ])
     }
 
 }

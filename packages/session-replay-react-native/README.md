@@ -108,19 +108,24 @@ them by doing the following
 
 ## Interface signals
 
-`addInterfaceSignalListener(listener)` returns a subscription with `remove()` and
-forwards these native events:
+`addInterfaceSignalListener(listener)` returns a subscription with `remove()`.
+Each report is one object that can carry multiple changes together:
 
-- `interfaceChanged`: the native recorder observed a UI change.
-- `startProviding`: the recording provider became available.
-- `stopProviding`: the recording provider became unavailable or was replaced.
-- `identityChanged`: the recording session or device ID actually changed.
+```typescript
+{
+  interfaceChanged: true,
+  identityChanged: false,
+  isProviding: false,
+  timestamp: 1767225600000,
+}
+```
 
-No event is synthesized when a listener subscribes. No-op setters do not emit
-identity events. Dead-click consumers invalidate pending observations on
-`stopProviding` and `identityChanged`; `startProviding` alone does not invalidate
-an observation. Recording availability and identity are checked at both ends of
-each click window.
+`interfaceChanged` indicates an observed UI change. `identityChanged` indicates
+an actual session/device change. `isProviding` reports recording availability;
+a report with both change flags false communicates an availability transition.
+There is no synthetic report on subscription, and no-op setters do not report
+identity changes. Dead-click consumers process both flags independently and
+invalidate pending observations when `isProviding` is false or identity changes.
 
 `getInterfaceSignalState()` reads current `isProviding`, `sessionId`, and
 `deviceId`. It resolves to `null` if the native module is unlinked or lacks
@@ -129,5 +134,5 @@ reject the promise so consumers can skip detection for that observation window.
 
 On Android, the bridge reports availability transitions when lifecycle methods,
 state queries, or UI callbacks observe them; the native SDK has no dedicated
-availability callback. On iOS, native start/stop-providing callbacks are forwarded,
-with an explicit stop notification before an active recorder is detached.
+availability callback. On iOS, native availability callbacks are forwarded,
+with an explicit unavailable report before an active recorder is detached.

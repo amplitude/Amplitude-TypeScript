@@ -28,8 +28,12 @@ describe('interface signal subscriptions', () => {
       for (const listener of [first, second]) {
         expect(listener).not.toHaveBeenCalled();
       }
-      for (const type of ['interfaceChanged', 'startProviding', 'stopProviding', 'identityChanged']) {
-        const signal = { type, timestamp: 123 };
+      for (const signal of [
+        { interfaceChanged: true, identityChanged: false, isProviding: true, timestamp: 123 },
+        { interfaceChanged: false, identityChanged: false, isProviding: true, timestamp: 124 },
+        { interfaceChanged: false, identityChanged: false, isProviding: false, timestamp: 125 },
+        { interfaceChanged: true, identityChanged: true, isProviding: false, timestamp: 126 },
+      ]) {
         callbacks.forEach((callback) => callback(signal));
         expect(first).toHaveBeenLastCalledWith(signal);
         expect(second).toHaveBeenLastCalledWith(signal);

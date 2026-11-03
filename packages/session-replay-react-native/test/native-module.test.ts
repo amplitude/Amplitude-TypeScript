@@ -3,7 +3,7 @@ describe('NativeSessionReplay module resolution', () => {
     const listener = jest.fn();
     const remove = jest.fn();
     const addListener = jest.fn((_event: string, callback: typeof listener) => {
-      callback({ type: 'interfaceChanged', timestamp: 123 });
+      callback({ interfaceChanged: true, identityChanged: false, isProviding: true, timestamp: 123 });
       return { remove };
     });
     const nativeModule = { getInterfaceSignalState: jest.fn(), addListener: jest.fn(), removeListeners: jest.fn() };
@@ -21,7 +21,12 @@ describe('NativeSessionReplay module resolution', () => {
 
       expect(emitter).toHaveBeenCalledWith(nativeModule);
       expect(addListener).toHaveBeenCalledWith('AMPNativeSessionReplayInterfaceSignal', listener);
-      expect(listener).toHaveBeenCalledWith({ type: 'interfaceChanged', timestamp: 123 });
+      expect(listener).toHaveBeenCalledWith({
+        interfaceChanged: true,
+        identityChanged: false,
+        isProviding: true,
+        timestamp: 123,
+      });
       expect(listener).toHaveBeenCalledTimes(1);
       subscription.remove();
       expect(remove).toHaveBeenCalledTimes(1);
