@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Semantic context and visibility</title>
+    <style>
+      body {
+        max-width: 960px;
+        margin: 40px auto;
+        padding: 0 24px;
+        font: 16px/1.6 system-ui;
+        color: #19283d;
+      }
+      button {
+        padding: 8px 14px;
+        margin: 0 8px 8px 0;
+        cursor: pointer;
+      }
+      pre {
+        padding: 20px;
+        background: #eef2f7;
+        overflow: auto;
+        max-height: 65vh;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Semantic context and visibility</h1>
+    <p>
+      <strong>Context:</strong> environment facts at each replay full snapshot: user agent, viewport, masking policy,
+      visibility, focus and analytics configuration.
+    </p>
+    <p>
+      <strong>Visibility:</strong> hidden/visible transitions. Switch to another Chrome tab for a few seconds and
+      return. Keyboard focus changes alone do not emit this event.
+    </p>
+    <section class="amp-block" aria-label="Local event inspector">
+      <p>Local transport only. No API key required and no replay data sent to Amplitude.</p>
+      <p id="status" role="status">Initializing…</p>
+      <button id="flush">Flush and inspect</button>
+      <button id="stop">Stop recording</button>
+      <button id="start">Resume recording</button>
+      <pre id="events" aria-label="Captured semantic events">[]</pre>
+    </section>
+    <script type="module" src="./sr-semantic-test.js"></script>
+  </body>
+</html>
