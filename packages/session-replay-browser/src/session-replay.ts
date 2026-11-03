@@ -38,7 +38,7 @@ import {
   SESSION_REPLAY_SERVER_URL,
   SESSION_REPLAY_STAGING_URL,
 } from './constants';
-import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, getCurrentUrl } from './helpers';
+import { associateUserAgent, getServerUrl, getDebugConfig, getPageUrl, getStorageSize, getCurrentUrl } from './helpers';
 import { EventCompressor } from './events/event-compressor';
 import { createEventsManager, EventsManagerWithBeacon } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
@@ -1041,6 +1041,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
             if (event.type === RRWebEventType.Meta) {
               event.data.href = getPageUrl(event.data.href, ugcFilterRules);
+              // The user agent is stable for a recording. Keep it on the meta event
+              // (one per full snapshot) rather than copying it onto every rrweb event.
+              associateUserAgent(event.data);
             }
 
             if (this.eventCompressor) {
