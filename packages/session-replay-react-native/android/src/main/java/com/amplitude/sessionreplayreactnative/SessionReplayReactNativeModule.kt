@@ -57,12 +57,6 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       .emit("AMPNativeSessionReplayInterfaceSignal", signal)
   }
 
-  @ReactMethod
-  override fun addListener(eventName: String) {}
-
-  @ReactMethod
-  override fun removeListeners(count: Double) {}
-
   override fun getName(): String {
     return NAME
   }
