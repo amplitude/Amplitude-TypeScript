@@ -66,6 +66,7 @@ jest.mock('../src/plugins/url-tracking-plugin', () => ({
 }));
 
 import { createUrlTrackingPlugin, subscribeToUrlChanges } from '../src/plugins/url-tracking-plugin';
+import { serialize } from 'v8';
 
 // Mock remote config storage
 let mockRemoteConfig: RemoteConfig | null = null;
@@ -3926,6 +3927,21 @@ describe('SessionReplay', () => {
           }),
         }),
       );
+    });
+    test('should attach a structured-cloneable debug config (cross-origin iframe postMessage)', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordCancelCallback = () => {
+        return;
+      };
+      mockRecordFunction.addCustomEvent = jest.fn();
+      (sessionReplay as any).recordFunction = mockRecordFunction;
+      await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, { url: '/replay-network-check' });
+      const [, payload] = mockRecordFunction.addCustomEvent.mock.calls.find(
+        ([name]) => name === CustomRRwebEvent.FETCH_REQUEST,
+      );
+      expect(payload.config).not.toHaveProperty('loggerProvider');
+      // v8.serialize uses the same structured clone algorithm as postMessage
+      expect(() => serialize(payload)).not.toThrow();
     });
     test('should not add custom event if not recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
