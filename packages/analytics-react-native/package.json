@@ -65,6 +65,8 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
+    "@amplitude/plugin-session-replay-react-native": "workspace:*",
+    "@amplitude/session-replay-react-native": "workspace:*",
     "@types/react": "^18.0.26",
     "@types/react-native": "0.70.8",
     "@types/ua-parser-js": "^0.7.39",
@@ -73,6 +75,8 @@
     "react-native-builder-bob": "^0.20.3"
   },
   "peerDependencies": {
+    "@amplitude/plugin-session-replay-react-native": "*",
+    "@amplitude/session-replay-react-native": "*",
     "react": "*",
     "react-native": "*"
   },
@@ -89,5 +93,13 @@
         }
       ]
     ]
+  },
+  "peerDependenciesMeta": {
+    "@amplitude/plugin-session-replay-react-native": {
+      "optional": true
+    },
+    "@amplitude/session-replay-react-native": {
+      "optional": true
+    }
   }
 }

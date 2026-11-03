@@ -27,6 +27,28 @@ yarn add @amplitude/analytics-react-native
 yarn add @react-native-async-storage/async-storage
 ```
 
+## Optional Session Replay integration
+
+Dead-click detection subscribes to `addInterfaceSignalListener` and reads
+`getInterfaceSignalState` exported by either `@amplitude/session-replay-react-native`
+or `@amplitude/plugin-session-replay-react-native`. Install and initialize one of
+these optional peer dependencies with native interface-signal support to enable
+detection. Replay owns native module lookup, event names, and recording state;
+Analytics owns click timing and classification.
+
+Allow Metro to bundle Analytics when either Replay package is absent by adding
+this setting to your existing Metro configuration:
+
+```js
+module.exports = mergeConfig(getDefaultConfig(__dirname), {
+  transformer: { allowOptionalDependencies: true },
+});
+```
+
+This setting is needed even in apps that do not use Replay. Without a compatible,
+recording Replay provider with matching session and device identity, dead-click
+detection is disabled; other Analytics features remain available.
+
 ## Usage
 
 ### Initializing SDK
