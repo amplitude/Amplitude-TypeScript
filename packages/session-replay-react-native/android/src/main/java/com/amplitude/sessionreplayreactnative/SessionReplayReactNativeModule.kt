@@ -69,7 +69,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   // Check availability and forward an optional UI/identity event in one synchronized report.
   // Detaching an active recorder must report a stop even before its first state query.
   @Synchronized
-  private fun reportInterfaceSignal(type: String? = null, detached: Boolean = false): Boolean {
+  private fun reportInterfaceSignal(
+    interfaceChanged: Boolean = false,
+    identityChanged: Boolean = false,
+    detached: Boolean = false,
+  ): Boolean {
     val currentlyProviding = shouldStart && sessionReplay?.shouldRecord() == true
     val isProviding = !detached && currentlyProviding
     val availabilityChanged = isProviding != reportedProviding || (detached && currentlyProviding)
@@ -77,7 +81,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
     val eventTypes = mutableListOf<String>()
     if (availabilityChanged) eventTypes.add(if (isProviding) "startProviding" else "stopProviding")
-    if (type != null) eventTypes.add(type)
+    if (interfaceChanged) eventTypes.add("interfaceChanged")
+    if (identityChanged) eventTypes.add("identityChanged")
     if (eventTypes.isEmpty() || !reactContext.hasActiveCatalystInstance()) return isProviding
     val emitter = reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
     for (eventType in eventTypes) {
@@ -162,7 +167,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       val currentId = sessionReplay?.getCustomSessionId() ?: currentConfig.customSessionId
       sessionReplay?.setCustomSessionId(customSessionId)
       nativeConfig = currentConfig.copy(customSessionId = customSessionId)
-      reportInterfaceSignal(if (currentId != customSessionId) "identityChanged" else null)
+      reportInterfaceSignal(identityChanged = currentId != customSessionId)
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_CUSTOM_SESSION_ID_ERROR", e.message, e)
@@ -190,7 +195,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       val currentId = sessionReplay?.getDeviceId() ?: currentConfig.deviceId.orEmpty()
       sessionReplay?.setDeviceId(deviceId ?: "")
       nativeConfig = currentConfig.copy(deviceId = deviceId)
-      reportInterfaceSignal(if (currentId != deviceId.orEmpty()) "identityChanged" else null)
+      reportInterfaceSignal(identityChanged = currentId != deviceId.orEmpty())
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_DEVICE_ID_ERROR", e.message, e)
@@ -313,7 +318,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
       uiChangeCallback = {
         if (generation == replayGeneration) {
-          reportInterfaceSignal("interfaceChanged")
+          reportInterfaceSignal(interfaceChanged = true)
         }
       },
     )

@@ -47,7 +47,11 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   // Check availability and forward an optional UI/identity event in one synchronized report.
   // Detaching an active recorder must report a stop even before its first state query.
   @Synchronized
-  private fun reportInterfaceSignal(type: String? = null, detached: Boolean = false): Boolean {
+  private fun reportInterfaceSignal(
+    interfaceChanged: Boolean = false,
+    identityChanged: Boolean = false,
+    detached: Boolean = false,
+  ): Boolean {
     val currentlyProviding = shouldStart && sessionReplay?.shouldRecord() == true
     val isProviding = !detached && currentlyProviding
     val availabilityChanged = isProviding != reportedProviding || (detached && currentlyProviding)
@@ -55,7 +59,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
     val eventTypes = mutableListOf<String>()
     if (availabilityChanged) eventTypes.add(if (isProviding) "startProviding" else "stopProviding")
-    if (type != null) eventTypes.add(type)
+    if (interfaceChanged) eventTypes.add("interfaceChanged")
+    if (identityChanged) eventTypes.add("identityChanged")
     if (eventTypes.isEmpty() || !reactContext.hasActiveCatalystInstance()) return isProviding
     val emitter = reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
     for (eventType in eventTypes) {
@@ -123,7 +128,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
       uiChangeCallback = {
         if (generation == replayGeneration) {
-          reportInterfaceSignal("interfaceChanged")
+          reportInterfaceSignal(interfaceChanged = true)
         }
       }
     )
@@ -135,7 +140,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
     val replay = sessionReplay
     val changed = replay != null && replay.getSessionId() != sessionId.toLong()
     replay?.setSessionId(sessionId.toLong())
-    reportInterfaceSignal(if (changed) "identityChanged" else null)
+    reportInterfaceSignal(identityChanged = changed)
   }
 
   @ReactMethod
@@ -149,7 +154,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       val replay = sessionReplay
       val changed = replay != null && replay.getDeviceId() != deviceId.orEmpty()
       replay?.setDeviceId(deviceId ?: "")
-      reportInterfaceSignal(if (changed) "identityChanged" else null)
+      reportInterfaceSignal(identityChanged = changed)
       promise.resolve(null)
     } catch (e: Exception) {
       promise.reject("SET_DEVICE_ID_ERROR", e.message, e)
