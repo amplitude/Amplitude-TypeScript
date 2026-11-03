@@ -153,6 +153,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
+  override fun getDeviceId(promise: Promise) {
+    promise.resolve(sessionReplay?.getDeviceId())
+  }
+
+  @ReactMethod
   override fun getCustomSessionId(promise: Promise) {
     try {
       promise.resolve(sessionReplay?.getCustomSessionId() ?: nativeConfig?.customSessionId ?: "-1")

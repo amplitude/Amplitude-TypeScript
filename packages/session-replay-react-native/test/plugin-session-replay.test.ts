@@ -136,4 +136,37 @@ describe('SessionReplayPlugin Integration', () => {
     expect(enriched).toEqual(event);
     expect(NativeModules.AMPNativeSessionReplay.setup).not.toHaveBeenCalled();
   });
+
+  it('pushes a changed analytics device id into Session Replay once', async () => {
+    const plugin = new SessionReplayPlugin({ autoStart: false });
+    const config = { ...minimalConfig };
+    await plugin.setup(config, mockReactNativeClient);
+    const event = { event_type: 'test_event', session_id: config.sessionId, event_properties: {} };
+
+    await plugin.execute(event);
+    expect(NativeModules.AMPNativeSessionReplay.setDeviceId).not.toHaveBeenCalled();
+
+    config.deviceId = 'device-after-reset';
+    await plugin.execute(event);
+    expect(NativeModules.AMPNativeSessionReplay.setDeviceId).toHaveBeenCalledTimes(1);
+    expect(NativeModules.AMPNativeSessionReplay.setDeviceId).toHaveBeenCalledWith('device-after-reset');
+
+    await plugin.execute(event);
+    expect(NativeModules.AMPNativeSessionReplay.setDeviceId).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads native identity on each event instead of caching the setup device id', async () => {
+    const plugin = new SessionReplayPlugin({ autoStart: false });
+    const config = { ...minimalConfig };
+    await plugin.setup(config, mockReactNativeClient);
+    const event = { event_type: 'test_event', session_id: config.sessionId };
+
+    NativeModules.AMPNativeSessionReplay.getDeviceId.mockResolvedValueOnce('changed-outside-the-plugin');
+    await plugin.execute(event);
+
+    expect(NativeModules.AMPNativeSessionReplay.setDeviceId).toHaveBeenCalledWith(config.deviceId);
+    await plugin.execute(event);
+    expect(NativeModules.AMPNativeSessionReplay.setDeviceId).toHaveBeenCalledTimes(1);
+    expect(NativeModules.AMPNativeSessionReplay.getDeviceId).toHaveBeenCalledTimes(2);
+  });
 });

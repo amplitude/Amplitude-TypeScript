@@ -7,6 +7,8 @@ RCT_EXTERN_METHOD(flush:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseReject
 
 RCT_EXTERN_METHOD(setCustomSessionId:(nonnull NSString)customSessionId resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(getDeviceId:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+
 RCT_EXTERN_METHOD(getCustomSessionId:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(getInterfaceSignalState:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
