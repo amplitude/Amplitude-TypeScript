@@ -23,6 +23,14 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   private var shouldStart = false
   @Volatile private var replayGeneration = 0
 
+  // Android delivers events on the shared device emitter. These no-op methods
+  // let NativeEventEmitter attach; iOS uses RCTEventEmitter for the same names.
+  @ReactMethod
+  fun addListener(eventName: String) {}
+
+  @ReactMethod
+  fun removeListeners(count: Double) {}
+
   @ReactMethod
   fun getInterfaceSignalState(promise: Promise) {
     val replay = sessionReplay
