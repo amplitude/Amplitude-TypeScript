@@ -48,8 +48,12 @@ export interface InterfaceSignal {
 
 /** Subscribe to the native SDK's interface change and recording lifecycle events. */
 export function addInterfaceSignalListener(listener: (signal: InterfaceSignal) => void): EmitterSubscription {
-  return new NativeEventEmitter(PluginSessionReplayReactNative).addListener(
-    'PluginSessionReplayReactNativeInterfaceSignal',
-    listener,
-  );
+  // Android events arrive on the shared device event emitter, so the emitter is
+  // constructed without a module. iOS passes the module so RCTEventEmitter can
+  // start and stop observation.
+  const emitter =
+    Platform.OS === 'android'
+      ? new NativeEventEmitter()
+      : new NativeEventEmitter(PluginSessionReplayReactNative);
+  return emitter.addListener('PluginSessionReplayReactNativeInterfaceSignal', listener);
 }

@@ -19,6 +19,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   ReactContextBaseJavaModule(reactContext) {
   private lateinit var sessionReplay: SessionReplay
   private var shouldStart = false
+  private var replayGeneration = 0
 
   @ReactMethod
   fun getInterfaceSignalState(promise: Promise) {
@@ -40,12 +41,6 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
     reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
       .emit("PluginSessionReplayReactNativeInterfaceSignal", signal)
   }
-
-  @ReactMethod
-  fun addListener(eventName: String) {}
-
-  @ReactMethod
-  fun removeListeners(count: Double) {}
 
   override fun getName(): String {
     return "PluginSessionReplayReactNative"
@@ -84,7 +79,11 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         Mask Level: $maskLevel
     """.trimIndent())
 
-    val nextSessionReplay = SessionReplay(
+    val generation = ++replayGeneration
+    if (::sessionReplay.isInitialized) {
+      sessionReplay.shutdown()
+    }
+    sessionReplay = SessionReplay(
       apiKey,
       reactContext.applicationContext,
       deviceId ?: "",
@@ -98,12 +97,12 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       },
       autoStart = autoStart,
       privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
-      uiChangeCallback = { emitInterfaceSignal("interfaceChanged") }
+      uiChangeCallback = {
+        if (generation == replayGeneration) {
+          emitInterfaceSignal("interfaceChanged")
+        }
+      }
     )
-    if (::sessionReplay.isInitialized) {
-      sessionReplay.shutdown()
-    }
-    sessionReplay = nextSessionReplay
   }
 
   @ReactMethod
@@ -160,11 +159,15 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   fun teardown() {
     emitInterfaceSignal("stateChanged")
     shouldStart = false
-    sessionReplay.shutdown()
+    replayGeneration++
+    if (::sessionReplay.isInitialized) {
+      sessionReplay.shutdown()
+    }
   }
 
   override fun invalidate() {
     shouldStart = false
+    replayGeneration++
     if (::sessionReplay.isInitialized) {
       sessionReplay.shutdown()
     }
