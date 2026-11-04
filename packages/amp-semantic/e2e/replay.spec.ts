@@ -32,7 +32,9 @@ async function visibility(page: Page, state: 'hidden' | 'visible') {
   }, state);
 }
 
-test('real replay transport delivers context with stable identity and timestamps', async ({ page }) => {
+test('real replay transport delivers only the two supported families with stable identity and timestamps', async ({
+  page,
+}) => {
   const external: string[] = [];
   page.on('request', (request) => {
     if (/^https?:/.test(request.url()) && !new URL(request.url()).hostname.match(/^(localhost|127\.0\.0\.1)$/)) {
@@ -43,9 +45,19 @@ test('real replay transport delivers context with stable identity and timestamps
   await expect
     .poll(async () => (await flush(page)).filter((e) => e.data.tag === 'amp-semantic/context').length)
     .toBe(1);
+  await visibility(page, 'hidden');
+  await page.waitForTimeout(100);
+  await visibility(page, 'visible');
+  await expect
+    .poll(async () => (await flush(page)).filter((e) => e.data.tag === 'amp-semantic/visibility').length)
+    .toBe(2);
   const events = await flush(page);
-  expect(events.map((e) => e.data.tag)).toEqual(['amp-semantic/context']);
-  expect(events[0].timestamp).toBeGreaterThan(0);
+  expect(events.map((e) => e.data.tag)).toEqual([
+    'amp-semantic/context',
+    'amp-semantic/visibility',
+    'amp-semantic/visibility',
+  ]);
+  expect(events[2].timestamp - events[1].timestamp).toBeGreaterThanOrEqual(90);
   for (const event of events) {
     expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
     expect(event.data.payload.tab_id).toBe(events[0].data.payload.tab_id);
@@ -55,7 +67,7 @@ test('real replay transport delivers context with stable identity and timestamps
   expect(await page.evaluate(() => window.semanticHarness.errors)).toEqual([]);
 });
 
-for (const query of ['?enabled=false', '?sampleRate=0', '?remoteEnabled=false', '?disabled=context']) {
+for (const query of ['?enabled=false', '?sampleRate=0', '?remoteEnabled=false', '?disabled=context,visibility']) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
     await open(page, query);
     await visibility(page, 'hidden');
