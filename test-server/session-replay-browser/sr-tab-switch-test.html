@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SR tab switch manual test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 24px auto;
+        max-width: 880px;
+        color: #1a1a1a;
+      }
+      h1 {
+        font-size: 22px;
+      }
+      p,
+      li {
+        line-height: 1.45;
+      }
+      button {
+        background: #0066cc;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        margin: 6px 6px 6px 0;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      button.secondary {
+        background: #444;
+      }
+      button:disabled {
+        background: #99b;
+        cursor: default;
+      }
+      #screen {
+        margin: 16px 0;
+        padding: 28px 20px;
+        border-radius: 8px;
+        color: white;
+        font-size: 42px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      #screen.a {
+        background: #1d4e89;
+      }
+      #screen.b {
+        background: #b45309;
+      }
+      #screen.peer {
+        background: #166534;
+      }
+      .status,
+      #results {
+        padding: 10px 12px;
+        margin: 10px 0;
+        border-radius: 4px;
+        background: #f3f3f3;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+      #log {
+        margin-top: 12px;
+        padding: 10px;
+        background: #111;
+        color: #d6ffd6;
+        font-family: monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        border-radius: 4px;
+        min-height: 160px;
+        max-height: 360px;
+        overflow: auto;
+      }
+      .pass {
+        color: #0a7a28;
+      }
+      .fail {
+        color: #a32020;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Session replay — tab switch</h1>
+    <p>
+      Manual checks for
+      <a href="https://linear.app/amplitude/issue/SR-5910">SR-5910</a>.
+      Hiding this document should flush queued mutations. Showing it should record one checkout
+      snapshot of the screen below, even though focus snapshots stay off. Open with
+      <code>pnpm dev</code>, then this page.
+    </p>
+    <ol>
+      <li><strong>Scripted.</strong> Click “Run scripted checks”. It moves to Screen B, hides the tab, then shows it.</li>
+      <li><strong>Real tab.</strong> Leave Screen B up, switch to another browser tab, and come back. The log should gain a full snapshot of <code>SCREEN B</code>.</li>
+      <li><strong>Second tab.</strong> Click “Open other tab”. Switch between the two tabs. Each log should snapshot its own screen (<code>SCREEN A</code> / <code>SCREEN B</code> here, <code>OTHER TAB</code> there).</li>
+    </ol>
+
+    <div class="status" id="status">Starting…</div>
+    <div id="screen" class="a">SCREEN A</div>
+
+    <button id="show-a" class="secondary" disabled>Show screen A</button>
+    <button id="show-b" class="secondary" disabled>Show screen B</button>
+    <button id="hide" class="secondary" disabled>Simulate tab hidden</button>
+    <button id="show" class="secondary" disabled>Simulate tab visible</button>
+    <button id="peer" class="secondary" disabled>Open other tab</button>
+    <button id="run" disabled>Run scripted checks</button>
+
+    <div id="results">Checks have not been run.</div>
+    <div id="log"></div>
+
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      const FULL_SNAPSHOT = 2;
+      const params = new URLSearchParams(location.search);
+      const isPeer = params.get('role') === 'peer';
+      const sessionKey = 'sr-tab-switch-manual-session';
+      const sessionId = resolveSessionId();
+      const sends = [];
+      let visibilityOverride = null;
+      let visibilityHooked = false;
+
+      const statusEl = document.getElementById('status');
+      const screenEl = document.getElementById('screen');
+      const resultsEl = document.getElementById('results');
+      const logEl = document.getElementById('log');
+
+      window.sessionReplay = sessionReplay;
+      window.srSends = sends;
+
+      function resolveSessionId() {
+        const fromUrl = params.get('sessionId');
+        if (fromUrl) {
+          localStorage.setItem(sessionKey, fromUrl);
+          return Number(fromUrl);
+        }
+        const stored = localStorage.getItem(sessionKey);
+        if (stored) return Number(stored);
+        const created = Date.now();
+        localStorage.setItem(sessionKey, String(created));
+        return created;
+      }
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function log(line) {
+        logEl.textContent += line + '\n';
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      function showScreen(which) {
+        const label = which === 'b' ? 'SCREEN B' : which === 'peer' ? 'OTHER TAB' : 'SCREEN A';
+        const kind = which === 'b' ? 'b' : which === 'peer' ? 'peer' : 'a';
+        screenEl.textContent = label;
+        screenEl.className = kind;
+      }
+
+      function hookVisibility() {
+        const proto = Object.getOwnPropertyDescriptor(Document.prototype, 'visibilityState');
+        try {
+          Object.defineProperty(document, 'visibilityState', {
+            configurable: true,
+            get() {
+              if (visibilityOverride) return visibilityOverride;
+              return proto && proto.get ? proto.get.call(this) : 'visible';
+            },
+          });
+          visibilityHooked = true;
+        } catch (error) {
+          log('Could not override visibilityState (' + error.message + '). Use a real tab switch.');
+        }
+      }
+
+      function dispatchVisibility(state) {
+        if (!visibilityHooked) {
+          log('Simulate buttons are unavailable in this browser. Switch tabs for real.');
+          return false;
+        }
+        visibilityOverride = state;
+        document.dispatchEvent(new Event('visibilitychange'));
+        window.dispatchEvent(new Event(state === 'hidden' ? 'blur' : 'focus'));
+        log('dispatched visibility=' + state);
+        return true;
+      }
+
+      function releaseVisibilityOverride() {
+        visibilityOverride = null;
+      }
+
+      function collectText(node, out) {
+        if (!node || typeof node !== 'object') return;
+        if (node.type === 3 && typeof node.textContent === 'string') out.push(node.textContent);
+        const children = node.childNodes || [];
+        for (let i = 0; i < children.length; i++) collectText(children[i], out);
+      }
+
+      function findById(node, id) {
+        if (!node || typeof node !== 'object') return null;
+        if (node.attributes && node.attributes.id === id) return node;
+        const children = node.childNodes || [];
+        for (let i = 0; i < children.length; i++) {
+          const found = findById(children[i], id);
+          if (found) return found;
+        }
+        return null;
+      }
+
+      function screenLabels(events) {
+        const labels = [];
+        for (const event of events) {
+          if (event.type !== FULL_SNAPSHOT) continue;
+          const screen = findById(event.data && event.data.node, 'screen');
+          const found = [];
+          collectText(screen, found);
+          labels.push(found.join(' ').replace(/\s+/g, ' ').trim());
+        }
+        return labels;
+      }
+
+      function summarize(events) {
+        let snapshots = 0;
+        let incremental = 0;
+        for (const event of events) {
+          if (event.type === FULL_SNAPSHOT) snapshots += 1;
+          else if (event.type === 3) incremental += 1;
+        }
+        const labels = screenLabels(events);
+        const screenNote = labels.length ? ' #screen: ' + labels.join(' → ') : '';
+        return snapshots + ' full snapshot(s), ' + incremental + ' incremental' + screenNote;
+      }
+
+      async function bodyToText(body) {
+        if (typeof body === 'string') return body;
+        const bytes = body instanceof Uint8Array ? body : new Uint8Array(body);
+        if (bytes[0] === 0x1f && bytes[1] === 0x8b && typeof DecompressionStream !== 'undefined') {
+          const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+          return new Response(stream).text();
+        }
+        return new TextDecoder().decode(bytes);
+      }
+
+      async function handleSendEvents(request) {
+        try {
+          const text = await bodyToText(request.body);
+          const payload = JSON.parse(text);
+          const events = (payload.events || []).map((entry) => (typeof entry === 'string' ? JSON.parse(entry) : entry));
+          sends.push({ at: new Date(), events });
+          log(new Date().toLocaleTimeString() + '  send #' + sends.length + ' — ' + summarize(events));
+        } catch (error) {
+          log('send could not be decoded: ' + error.message);
+        }
+        return new Response(JSON.stringify({ code: 200 }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      function handleFetchConfig() {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              configs: {
+                sessionReplay: {
+                  sr_sampling_config: { capture_enabled: true, sample_rate: 1 },
+                },
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        );
+      }
+
+      function delay(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function waitUntil(predicate, timeoutMs) {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+          if (predicate()) return true;
+          await delay(50);
+        }
+        return predicate();
+      }
+
+      function latestScreenLabel() {
+        for (let i = sends.length - 1; i >= 0; i--) {
+          const labels = screenLabels(sends[i].events);
+          if (labels.length) return labels[labels.length - 1];
+        }
+        return '';
+      }
+
+      function snapshotCount() {
+        let count = 0;
+        for (const send of sends) count += screenLabels(send.events).length;
+        return count;
+      }
+
+      async function runScriptedChecks() {
+        const lines = [];
+        const record = (name, ok, detail) => {
+          lines.push((ok ? 'PASS' : 'FAIL') + '  ' + name + (detail ? ' — ' + detail : ''));
+        };
+
+        setStatus('Running scripted checks…');
+        showScreen('a');
+        let recording = false;
+        for (let attempt = 0; attempt < 20 && !recording; attempt++) {
+          const before = sends.length;
+          if (!dispatchVisibility('hidden')) break;
+          recording = await waitUntil(() => sends.length > before, 400);
+          if (!recording) await delay(200);
+        }
+        record('Hiding the tab sends what is already captured', recording);
+
+        showScreen('b');
+        await delay(150);
+        const snapshotsBeforeShow = snapshotCount();
+        const sentBeforeShow = sends.length;
+        dispatchVisibility('visible');
+        const sawScreenB = await waitUntil(
+          () => snapshotCount() > snapshotsBeforeShow && latestScreenLabel() === 'SCREEN B',
+          3000,
+        );
+        record(
+          'Showing the tab records a checkout snapshot of Screen B',
+          sawScreenB,
+          sawScreenB ? 'send #' + sends.length : 'no SCREEN B snapshot after send #' + sentBeforeShow,
+        );
+
+        releaseVisibilityOverride();
+        resultsEl.innerHTML = lines
+          .map((line) => {
+            const kind = line.startsWith('PASS') ? 'pass' : 'fail';
+            return '<div class="' + kind + '">' + line + '</div>';
+          })
+          .join('');
+        const ok = recording && sawScreenB;
+        setStatus(ok ? 'Scripted checks passed.' : 'Scripted checks failed. See the log.');
+        window.srCheckResult = { ok, lines };
+        return window.srCheckResult;
+      }
+
+      function enableControls() {
+        for (const id of ['show-a', 'show-b', 'hide', 'show', 'peer', 'run']) {
+          document.getElementById(id).disabled = false;
+        }
+      }
+
+      document.getElementById('show-a').addEventListener('click', () => showScreen('a'));
+      document.getElementById('show-b').addEventListener('click', () => showScreen('b'));
+      document.getElementById('hide').addEventListener('click', () => dispatchVisibility('hidden'));
+      document.getElementById('show').addEventListener('click', () => dispatchVisibility('visible'));
+      document.getElementById('peer').addEventListener('click', () => {
+        const url = new URL(location.href);
+        url.searchParams.set('role', 'peer');
+        url.searchParams.set('sessionId', String(sessionId));
+        window.open(url.toString(), '_blank');
+      });
+      document.getElementById('run').addEventListener('click', () => {
+        void runScriptedChecks();
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        log('browser visibilitychange → ' + document.visibilityState);
+      });
+
+      hookVisibility();
+      if (isPeer) showScreen('peer');
+
+      window.runScriptedChecks = runScriptedChecks;
+
+      void (async () => {
+        try {
+          await sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', {
+            deviceId: 'tab-switch-manual',
+            sessionId,
+            sampleRate: 1,
+            logLevel: 1,
+            // Keep the idle queue that hid the bug, and keep focus snapshots off.
+            performanceConfig: { enabled: true },
+            captureFullSnapshotOnFocus: false,
+            eagerFullSnapshotSend: false,
+            enableTransportCompression: false,
+            useWebWorker: false,
+            storeType: 'memory',
+            handleSendEvents,
+            handleFetchConfig,
+          }).promise;
+          window.srReady = true;
+          enableControls();
+          setStatus(
+            (isPeer ? 'Other tab ready' : 'Ready') +
+              '. Session ' +
+              sessionId +
+              '. Focus snapshots are off. Switch tabs or run the scripted checks.',
+          );
+        } catch (error) {
+          window.srError = error.message;
+          setStatus('Failed to start: ' + error.message);
+          log(error.stack || error.message);
+        }
+      })();
+    </script>
+  </body>
+</html>
