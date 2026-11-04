@@ -14,6 +14,7 @@ import {
   INVALID_API_KEY,
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
+  STALE_EVENT_OVERWRITTEN_MESSAGE,
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../types/messages';
@@ -190,7 +191,7 @@ export class Destination implements DestinationPlugin {
         // if events are not in flight, or if the target event is marked to skipRemoval,
         // then the incoming event supersedes the target event, and target event should be dropped
         if (!areDelayedEventsInFlight || targetEvent.delay?.skipRemoval) {
-          context.callback(buildResult(targetEvent, 0, 'Stale event overwritten'));
+          context.callback(buildResult(targetEvent, 0, STALE_EVENT_OVERWRITTEN_MESSAGE));
           return false;
         }
 
