@@ -66,7 +66,6 @@ describe('capture runtime', () => {
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
     for (let i = 0; i < 200; i++) context.emit('sample', { state: 'visible' });
-    for (let i = 0; i < 10; i++) expect(context.hasCapacity('sample')).toBe(false);
     expect(context.dropped()).toEqual({});
     const payload = jest.fn(() => ({ state: 'hidden' as const }));
     if (context.canEmit('sample')) context.emit('sample', payload());
@@ -117,6 +116,36 @@ describe('capture runtime', () => {
       throw new Error('diagnostic');
     };
     expect(() => context.emit('sample', { state: 'visible' })).not.toThrow();
+  });
+  test('restores capacity when the host rejects an event', () => {
+    const capture = createCapture({ enabled: true }, host, [recorder], { sample: 1 });
+    capture.start();
+    const error = new Error('transport failed');
+    host.emit = () => {
+      throw error;
+    };
+    host.onError = jest.fn();
+    expect(context.emit('sample', { state: 'visible' })).toBe(false);
+    expect(host.onError).toHaveBeenCalledWith(error);
+    host.emit = jest.fn();
+    expect(context.emit('sample', { state: 'hidden' })).toBe(true);
+    expect(context.emit('sample', { state: 'visible' })).toBe(false);
+    expect(host.emit).toHaveBeenCalledTimes(1);
+    capture.stop();
+  });
+  test('runs a registered cleanup once even when setup returns it', () => {
+    const release = jest.fn();
+    const recorderWithRegisteredCleanup: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: (ctx) => {
+        ctx.onCleanup(release);
+        return release;
+      },
+    };
+    const capture = createCapture({ enabled: true }, host, [recorderWithRegisteredCleanup]);
+    capture.start();
+    capture.stop();
+    expect(release).toHaveBeenCalledTimes(1);
   });
   test('reserves caps before calling a reentrant host emitter', () => {
     const capture = createCapture({ enabled: true }, host, [recorder]);

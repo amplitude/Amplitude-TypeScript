@@ -32,13 +32,11 @@ export function createCapture<P extends object = SemanticPayloads>(
   let settings = copyConfig(config);
   let active = false;
   let requested = false;
-  let snapshotSeen = false;
   let sample: number | undefined;
   let cleanups: Cleanup[] = [];
   let counts: Partial<Record<SemanticFamily<P>, number>> = {};
   let dropped: Partial<Record<SemanticFamily<P>, number>> = {};
   const signals = new Map<keyof HostSignals, Set<(value: never) => void>>();
-  const subscribers = new Set<(event: SemanticEvent<P>) => void>();
   const now = host.now ?? Date.now;
   const report = (error: unknown) => {
     try {
@@ -66,14 +64,11 @@ export function createCapture<P extends object = SemanticPayloads>(
   const context: Omit<RecorderContext<P>, 'onCleanup'> = {
     host,
     now,
-    enabled,
     canEmit,
-    hasCapacity,
     dropped: () => ({ ...dropped }),
     clearDropped: () => {
       dropped = {};
     },
-    hasSnapshot: () => snapshotSeen,
     emit: <K extends SemanticFamily<P>>(family: K, payload: P[K], timestamp = now()): boolean => {
       if (!canEmit(family)) return false;
       let identity;
@@ -88,14 +83,16 @@ export function createCapture<P extends object = SemanticPayloads>(
         payload: { ...payload, v: 1, tab_id: identity.tab_id, document_id: identity.document_id },
         timestamp,
       } as SemanticEvent<P>;
-      counts[family] = (counts[family] ?? 0) + 1;
+      // Reserve capacity before calling a host that may emit reentrantly.
+      const reservedCounts = counts;
+      reservedCounts[family] = (reservedCounts[family] ?? 0) + 1;
       try {
         host.emit(event);
       } catch (error) {
+        reservedCounts[family] = (reservedCounts[family] as number) - 1;
         report(error);
         return false;
       }
-      subscribers.forEach((subscriber) => safely(() => subscriber(event)));
       return true;
     },
     on: (signal, callback) => {
@@ -111,12 +108,6 @@ export function createCapture<P extends object = SemanticPayloads>(
         registered.delete(listener);
       };
     },
-    subscribe: (callback) => {
-      subscribers.add(callback);
-      return () => {
-        subscribers.delete(callback);
-      };
-    },
   };
   const detach = () => {
     active = false;
@@ -124,7 +115,6 @@ export function createCapture<P extends object = SemanticPayloads>(
     cleanups = [];
     previous.reverse().forEach((cleanup) => safely(cleanup));
     signals.clear();
-    subscribers.clear();
   };
   const attach = () => {
     if (active || !requested || !settings.enabled) return;
@@ -136,19 +126,15 @@ export function createCapture<P extends object = SemanticPayloads>(
     for (const recorder of recorders) {
       if (recorder.families.some(enabled)) {
         const acquired: Cleanup[] = [];
+        const registerCleanup = (cleanup: Cleanup) => {
+          if (!acquired.includes(cleanup)) acquired.push(cleanup);
+        };
         const scoped: RecorderContext<P> = {
           ...context,
-          onCleanup: (cleanup) => {
-            acquired.push(cleanup);
-          },
+          onCleanup: registerCleanup,
           on: (signal, callback) => {
             const cleanup = context.on(signal, callback);
-            acquired.push(cleanup);
-            return cleanup;
-          },
-          subscribe: (callback) => {
-            const cleanup = context.subscribe(callback);
-            acquired.push(cleanup);
+            registerCleanup(cleanup);
             return cleanup;
           },
         };
@@ -159,7 +145,7 @@ export function createCapture<P extends object = SemanticPayloads>(
             .forEach((cleanup) => safely(cleanup));
         };
         try {
-          acquired.push(recorder.setup(scoped));
+          registerCleanup(recorder.setup(scoped));
           cleanups.push(rollback);
         } catch (error) {
           rollback();
@@ -176,7 +162,6 @@ export function createCapture<P extends object = SemanticPayloads>(
     },
     stop: () => {
       requested = false;
-      snapshotSeen = false;
       detach();
     },
     updateConfig: (next) => {
@@ -187,13 +172,11 @@ export function createCapture<P extends object = SemanticPayloads>(
     resetSession: () => {
       detach();
       sample = undefined;
-      snapshotSeen = false;
       counts = {};
       dropped = {};
       attach();
     },
     notify: (signal, value) => {
-      if (signal === 'snapshot') snapshotSeen = true;
       if (!active) return;
       signals.get(signal)?.forEach((callback) => callback(value as never));
     },

@@ -69,19 +69,13 @@ export interface RecorderContext<P extends object = SemanticPayloads> {
   onCleanup: (cleanup: Cleanup) => void;
   host: SemanticHost<P>;
   now: () => number;
-  enabled: (family: SemanticFamily<P>) => boolean;
-  /** Check session capacity without counting a dropped event. */
-  hasCapacity: (family: SemanticFamily<P>) => boolean;
   /** Check before expensive payload work. A rejected candidate increments the dropped count. */
   canEmit: (family: SemanticFamily<P>) => boolean;
   emit: <K extends SemanticFamily<P>>(family: K, payload: P[K], timestamp?: number) => boolean;
   on: <K extends keyof HostSignals>(signal: K, callback: (value: HostSignals[K]) => void) => Cleanup;
-  subscribe: (callback: (event: SemanticEvent<P>) => void) => Cleanup;
   /** Peek at dropped counts; a recorder can acknowledge them after successful delivery. */
   dropped: () => Partial<Record<SemanticFamily<P>, number>>;
   clearDropped: () => void;
-  /** Preserves page readiness when families are reconfigured mid-recording. */
-  hasSnapshot: () => boolean;
 }
 /** A factory owns its listeners/timers and returns complete teardown. */
 export interface SemanticRecorder<P extends object = SemanticPayloads> {
