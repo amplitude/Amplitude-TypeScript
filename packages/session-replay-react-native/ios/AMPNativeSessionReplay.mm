@@ -11,9 +11,7 @@ RCT_EXTERN_METHOD(getDeviceId:(RCTPromiseResolveBlock)resolve reject:(RCTPromise
 
 RCT_EXTERN_METHOD(getCustomSessionId:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
-RCT_EXTERN_METHOD(observeInterfaceSignals:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
-
-RCT_EXTERN_METHOD(stopObservingInterfaceSignals)
+RCT_EXTERN_METHOD(getInterfaceSignalState:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(setDeviceId:(NSString)deviceId resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 

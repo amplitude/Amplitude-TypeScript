@@ -23,8 +23,7 @@ interface PluginSessionReplayNativeModule extends NativeModule {
   setDeviceId?(deviceId: string | null): Promise<void>;
   setSessionId(sessionId: number): Promise<void>;
   getSessionReplayProperties(): Promise<Record<string, string | number | boolean>>;
-  observeInterfaceSignals(): Promise<NativeInterfaceSignal>;
-  stopObservingInterfaceSignals(): void;
+  getInterfaceSignalState(): Promise<InterfaceSignalState>;
   start(): Promise<void>;
   stop(): Promise<void>;
   flush(): Promise<void>;
@@ -43,86 +42,49 @@ export const PluginSessionReplayReactNative = (nativeModule ??
     },
   )) as PluginSessionReplayNativeModule;
 
-/** Current recording state included with every observation report. */
+/** Native UI observation events. Lifecycle bookkeeping belongs to the JS consumer. */
+export interface InterfaceSignal {
+  interfaceChanged: boolean;
+  identityChanged: boolean;
+  isProviding: boolean;
+  timestamp: number;
+}
+
+/** Current native recording availability and identity for interface-signal consumers. */
 export interface InterfaceSignalState {
   isProviding: boolean;
   sessionId: string;
   deviceId: string | null;
 }
 
-/** The first report is a snapshot; subsequent reports also describe what changed. */
-export interface InterfaceSignal extends InterfaceSignalState {
-  interfaceChanged: boolean;
-  identityChanged: boolean;
-  timestamp: number;
+function supportsInterfaceSignals(): boolean {
+  return (
+    typeof nativeModule?.getInterfaceSignalState === 'function' &&
+    (Platform.OS === 'android' ||
+      (typeof nativeModule?.addListener === 'function' && typeof nativeModule?.removeListeners === 'function'))
+  );
 }
 
-// Native sequence numbers order the initial snapshot relative to queued events.
-interface NativeInterfaceSignal extends InterfaceSignal {
-  sequence: number;
+/** Returns null when the linked native binary cannot provide interface signals. */
+export async function getInterfaceSignalState(): Promise<InterfaceSignalState | null> {
+  return supportsInterfaceSignals() ? PluginSessionReplayReactNative.getInterfaceSignalState() : null;
 }
 
-/** Subscribe to an initial snapshot followed by complete state updates. */
+/**
+ * Subscribe to observation reports. Read initial state with getInterfaceSignalState();
+ * subscribing does not synthesize a UI/identity change or duplicate an availability report.
+ */
 export function addInterfaceSignalListener(
   listener: (signal: InterfaceSignal) => void,
 ): Pick<EmitterSubscription, 'remove'> {
-  if (
-    typeof nativeModule?.observeInterfaceSignals !== 'function' ||
-    typeof nativeModule?.stopObservingInterfaceSignals !== 'function' ||
-    (Platform.OS !== 'android' &&
-      (typeof nativeModule?.addListener !== 'function' || typeof nativeModule?.removeListeners !== 'function'))
-  ) {
+  if (!supportsInterfaceSignals()) {
     return { remove: () => undefined };
   }
+  // Android events arrive on the shared device event emitter, so the emitter is
+  // constructed without a module. iOS passes the module so RCTEventEmitter can
+  // start and stop observation.
   const emitter =
-    Platform.OS === 'android'
-      ? new NativeEventEmitter()
-      : new NativeEventEmitter(PluginSessionReplayReactNative as unknown as NativeModule);
-  let removed = false;
-  let initialized = false;
-  let sequence = -1;
-  const pending: NativeInterfaceSignal[] = [];
-  const deliver = (signal: NativeInterfaceSignal) => {
-    if (removed || signal.sequence <= sequence) return;
-    sequence = signal.sequence;
-    const { sequence: _sequence, ...report } = signal;
-    listener(report);
-  };
-  const subscription = emitter.addListener(
-    'PluginSessionReplayReactNativeInterfaceSignal',
-    (signal: NativeInterfaceSignal) => {
-      if (removed) return;
-      if (initialized) deliver(signal);
-      else pending.push(signal);
-    },
-  );
-  // Install the JS listener first. Buffer native events until the subscription's
-  // initial snapshot arrives, then deliver them in native order without duplicates.
-  void PluginSessionReplayReactNative.observeInterfaceSignals().then(
-    (snapshot) => {
-      if (removed) {
-        PluginSessionReplayReactNative.stopObservingInterfaceSignals();
-        return;
-      }
-      pending.push(snapshot);
-      pending.sort((left, right) => left.sequence - right.sequence);
-      initialized = true;
-      pending.forEach(deliver);
-      pending.length = 0;
-    },
-    () => {
-      removed = true;
-      pending.length = 0;
-      subscription.remove();
-    },
-  );
-  return {
-    remove: () => {
-      if (removed) return;
-      removed = true;
-      pending.length = 0;
-      subscription.remove();
-      if (initialized) PluginSessionReplayReactNative.stopObservingInterfaceSignals();
-    },
-  };
+    Platform.OS === 'android' ? new NativeEventEmitter() : new NativeEventEmitter(PluginSessionReplayReactNative);
+  const subscription = emitter.addListener('PluginSessionReplayReactNativeInterfaceSignal', listener);
+  return subscription;
 }

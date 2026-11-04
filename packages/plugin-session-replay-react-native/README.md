@@ -103,31 +103,30 @@ Web views are blocked by default and will not be tracked. If you'd like webviews
 ## Interface signals
 
 `addInterfaceSignalListener(listener)` returns a subscription with `remove()`.
-It first delivers a snapshot, followed by reports containing the full current state:
+Each report is one object that can carry multiple changes together:
 
 ```typescript
 {
-  interfaceChanged: false,
+  interfaceChanged: true,
   identityChanged: false,
-  isProviding: true,
-  sessionId: '123',
-  deviceId: 'device',
+  isProviding: false,
   timestamp: 1767225600000,
 }
 ```
 
-The snapshot establishes current state without inventing a UI change. Subscribe
-before processing presses, and wait for that first report. Unsupported or unlinked
-native binaries produce no reports; detection stays unavailable.
+`interfaceChanged` indicates an observed UI change. `identityChanged` indicates
+an actual session/device change. `isProviding` reports recording availability;
+a report with both change flags false communicates an availability transition.
+There is no synthetic report on subscription, and no-op setters do not report
+identity changes. Dead-click consumers process both flags independently and
+invalidate pending observations when `isProviding` is false or identity changes.
 
-`interfaceChanged` indicates an observed UI change. `identityChanged` indicates an
-actual session/device change. Every report includes recording availability and
-identity, so consumers do not need a separate state query. Process both change
-flags independently, and invalidate pending observations when availability is
-false or identity changes. Remove the subscription when finished.
+`getInterfaceSignalState()` reads current `isProviding`, `sessionId`, and
+`deviceId`. It resolves to `null` if the native module is unlinked or lacks
+interface-signal support; subscriptions are then no-ops. Native query failures
+reject the promise so consumers can skip detection for that observation window.
 
-Queued reports and the initial snapshot are delivered in native order. Removing a
-subscription cancels its pending snapshot and releases the native observer.
-Android checks SDK availability every 100 ms while subscribers exist, in addition
-to lifecycle and UI reports, because the SDK has no availability callback. iOS
-forwards native callbacks and ignores queued callbacks from detached recorders.
+On Android, the bridge reports availability transitions when lifecycle methods,
+state queries, or UI callbacks observe them; the native SDK has no dedicated
+availability callback. On iOS, native availability callbacks are forwarded,
+with an explicit unavailable report before an active recorder is detached.
