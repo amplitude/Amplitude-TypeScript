@@ -95,11 +95,11 @@ const updateLibPrefixPlugin = () => {
   };
 }
 
-export const iife = {
-  input: 'src/snippet-index.ts',
+export const createIife = (input, file) => ({
+  input,
   output: {
     name: 'amplitude',
-    file: 'lib/scripts/amplitude-min.js',
+    file,
     format: 'iife',
     sourcemap: true,
   },
@@ -129,7 +129,9 @@ export const iife = {
     }),
     gzip(),
   ],
-};
+});
+
+export const iife = createIife('src/snippet-index.ts', 'lib/scripts/amplitude-min.js');
 
 export const snippet = {
   output: {

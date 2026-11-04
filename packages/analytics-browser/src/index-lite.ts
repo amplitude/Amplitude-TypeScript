@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import client from './browser-client-core-factory';
-export { createInstance } from './browser-client-core-factory';
+import client from './browser-client-lite-factory';
+export { createInstance } from './browser-client-lite-factory';
 export const {
   add,
   extendSession,
@@ -27,7 +27,7 @@ export const {
   track,
   _setDiagnosticsSampleRate,
 } = client;
-export { AmplitudeBrowserCore as AmplitudeBrowser } from './browser-client-core';
+export { AmplitudeBrowserLite as AmplitudeBrowser } from './browser-client-lite';
 export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';
 

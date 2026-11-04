@@ -1,19 +1,17 @@
 import { createCapture } from './capture';
-import { contextRecorder } from './recorders/context';
-import { visibilityRecorder } from './recorders/visibility';
-import type { SemanticCaptureConfig, SemanticHost, SemanticRecorder } from './types';
+import type { SemanticCaptureConfig, SemanticHost, SemanticPayloads, SemanticRecorder } from './types';
 
-export { contextRecorder, visibilityRecorder };
-export const defaultRecorders: readonly SemanticRecorder[] = [contextRecorder, visibilityRecorder];
 export * from './types';
 export type { SemanticCapture } from './capture';
-export { SEMANTIC_CAPS } from './capture';
+export { DEFAULT_SEMANTIC_CAP } from './capture';
 export { getDocumentIdentity } from './identity';
 
-export function createSemanticCapture(
-  config: SemanticCaptureConfig,
-  host: SemanticHost,
-  recorders: readonly SemanticRecorder[] = defaultRecorders,
+/** Starts only the supplied recorders; no event families are installed by default. */
+export function createSemanticCapture<P extends object = SemanticPayloads>(
+  config: SemanticCaptureConfig<P>,
+  host: SemanticHost<P>,
+  recorders: readonly SemanticRecorder<P>[] = [],
+  caps: Partial<Record<Extract<keyof P, string>, number>> = {},
 ) {
-  return createCapture(config, host, recorders);
+  return createCapture(config, host, recorders, caps);
 }

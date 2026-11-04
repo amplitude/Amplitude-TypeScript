@@ -1,0 +1,5 @@
+packages:
+  - '.'
+
+overrides:
+  svgo@2: ^2.8.4

@@ -1,5 +1,5 @@
 import { createCapture } from '../src/capture';
-import { RecorderContext, SemanticHost, SemanticRecorder } from '../src/types';
+import { RecorderContext, SemanticHost, SemanticRecorder } from './fixtures';
 
 describe('capture runtime', () => {
   let host: SemanticHost;
@@ -12,8 +12,6 @@ describe('capture runtime', () => {
       document,
       window,
       emit: jest.fn(),
-      getPrivacy: () => ({}),
-      sdk: 'test',
       getIdentity: jest.fn(() => ({ tab_id: 'tab-test', document_id: 'document-test' })),
       random: jest.fn(() => 0.25),
       now: () => 123,
@@ -23,7 +21,7 @@ describe('capture runtime', () => {
       context = value;
       return cleanup;
     });
-    recorder = { families: ['context'], setup };
+    recorder = { families: ['diagnostic'], setup };
   });
   test('disabled attaches no recorders and emits nothing', () => {
     const capture = createCapture({ enabled: false }, host, [recorder]);
@@ -51,33 +49,33 @@ describe('capture runtime', () => {
     capture.start();
     capture.start();
     expect(setup).toHaveBeenCalledTimes(1);
-    for (let i = 0; i < 201; i++) context.emit('visibility', { state: 'visible' });
+    for (let i = 0; i < 201; i++) context.emit('sample', { state: 'visible' });
     expect(host.emit).toHaveBeenCalledTimes(200);
-    expect(context.dropped()).toEqual({ visibility: 1 });
-    capture.updateConfig({ enabled: true, families: { context: false } });
+    expect(context.dropped()).toEqual({ sample: 1 });
+    capture.updateConfig({ enabled: true, families: { diagnostic: false } });
     expect(cleanup).toHaveBeenCalledTimes(1);
     expect(setup).toHaveBeenCalledTimes(1);
     capture.updateConfig({ enabled: true });
-    expect(context.emit('visibility', { state: 'hidden' })).toBe(false);
+    expect(context.emit('sample', { state: 'hidden' })).toBe(false);
     capture.resetSession();
-    expect(context.emit('visibility', { state: 'hidden' })).toBe(true);
+    expect(context.emit('sample', { state: 'hidden' })).toBe(true);
   });
   test('preflight avoids payload work after the cap and counts each dropped candidate once', () => {
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
-    for (let i = 0; i < 200; i++) context.emit('visibility', { state: 'visible' });
-    for (let i = 0; i < 10; i++) expect(context.hasCapacity('visibility')).toBe(false);
+    for (let i = 0; i < 200; i++) context.emit('sample', { state: 'visible' });
+    for (let i = 0; i < 10; i++) expect(context.hasCapacity('sample')).toBe(false);
     expect(context.dropped()).toEqual({});
     const payload = jest.fn(() => ({ state: 'hidden' as const }));
-    if (context.canEmit('visibility')) context.emit('visibility', payload());
+    if (context.canEmit('sample')) context.emit('sample', payload());
     expect(payload).not.toHaveBeenCalled();
-    expect(context.dropped()).toEqual({ visibility: 1 });
+    expect(context.dropped()).toEqual({ sample: 1 });
     capture.stop();
-    expect(context.canEmit('visibility')).toBe(false);
-    expect(context.dropped()).toEqual({ visibility: 1 });
+    expect(context.canEmit('sample')).toBe(false);
+    expect(context.dropped()).toEqual({ sample: 1 });
     capture.start();
     capture.resetSession();
-    expect(context.canEmit('visibility')).toBe(true);
+    expect(context.canEmit('sample')).toBe(true);
     capture.stop();
   });
 
@@ -91,15 +89,15 @@ describe('capture runtime', () => {
     capture.stop();
     capture.notify('snapshot', undefined);
     expect(callback).toHaveBeenCalledTimes(1);
-    expect(context.emit('visibility', { state: 'visible' })).toBe(false);
+    expect(context.emit('sample', { state: 'visible' })).toBe(false);
   });
   test('preserves timestamp and version and isolates host errors', () => {
     host.onError = jest.fn();
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
-    context.emit('visibility', { state: 'hidden' }, 99);
+    context.emit('sample', { state: 'hidden' }, 99);
     expect(host.emit).toHaveBeenCalledWith({
-      name: 'visibility',
+      name: 'sample',
       payload: {
         v: 1,
         state: 'hidden',
@@ -111,34 +109,34 @@ describe('capture runtime', () => {
     host.emit = () => {
       throw new Error('host');
     };
-    expect(context.emit('visibility', { state: 'visible' })).toBe(false);
+    expect(context.emit('sample', { state: 'visible' })).toBe(false);
     expect(host.onError).toHaveBeenCalled();
     host.onError = () => {
       throw new Error('diagnostic');
     };
-    expect(() => context.emit('visibility', { state: 'visible' })).not.toThrow();
+    expect(() => context.emit('sample', { state: 'visible' })).not.toThrow();
   });
   test('reserves caps before calling a reentrant host emitter', () => {
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
-    for (let i = 0; i < 199; i++) context.emit('visibility', { state: 'visible' });
+    for (let i = 0; i < 199; i++) context.emit('sample', { state: 'visible' });
     host.emit = jest.fn(() => {
-      context.emit('visibility', { state: 'hidden' });
+      context.emit('sample', { state: 'hidden' });
     });
-    context.emit('visibility', { state: 'visible' });
+    context.emit('sample', { state: 'visible' });
     expect(host.emit).toHaveBeenCalledTimes(1);
-    expect(context.dropped()).toEqual({ visibility: 1 });
+    expect(context.dropped()).toEqual({ sample: 1 });
   });
   test('stamps all families centrally and retains document identity through stop and reset', () => {
     host.getIdentity = undefined;
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
-    context.emit('visibility', { state: 'hidden' });
+    context.emit('sample', { state: 'hidden' });
     const first = jest.mocked(host.emit).mock.calls[0][0].payload;
     capture.stop();
     capture.start();
     capture.resetSession();
-    context.emit('visibility', { state: 'visible' });
+    context.emit('sample', { state: 'visible' });
     expect(jest.mocked(host.emit).mock.calls[1][0].payload).toMatchObject({
       tab_id: first.tab_id,
       document_id: first.document_id,
@@ -155,7 +153,7 @@ describe('capture runtime', () => {
     host.onError = jest.fn();
     const capture = createCapture({ enabled: true }, host, [recorder]);
     capture.start();
-    expect(context.emit('visibility', { state: 'visible' })).toBe(true);
+    expect(context.emit('sample', { state: 'visible' })).toBe(true);
     expect(host.onError).toHaveBeenCalled();
     expect(jest.mocked(host.emit).mock.calls[0][0].payload).toMatchObject({
       tab_id: expect.any(String),
@@ -169,7 +167,7 @@ describe('capture runtime', () => {
     const release = jest.fn();
     const listener = jest.fn();
     const failing: SemanticRecorder = {
-      families: ['context'],
+      families: ['diagnostic'],
       setup: (ctx) => {
         ctx.onCleanup(release);
         ctx.on('snapshot', listener);

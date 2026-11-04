@@ -23,3 +23,7 @@ To run the server as HTTPS follow these steps
 
 ## TIPS
 * You can enable a "Workspace" in Chrome on this site, which allows you to edit the files from inside the browser
+
+## nuqs SPA
+
+Run `pnpm dev:nuqs` for the [nuqs page-view example](./nuqs-spa/README.md) at http://127.0.0.1:5174/. Initialize the real SDK with a test project's API key, select `all` (default) or `pathOnly`, and observe page views from nuqs query-state updates.

@@ -11,33 +11,34 @@ import {
   SemanticRecorder,
 } from './types';
 
-export const SEMANTIC_CAPS: Record<SemanticFamily, number> = { context: 200, visibility: 200 };
+export const DEFAULT_SEMANTIC_CAP = 200;
 
-export interface SemanticCapture {
+export interface SemanticCapture<P extends object = SemanticPayloads> {
   isActive: () => boolean;
   start: () => void;
   stop: () => void;
-  updateConfig: (config: SemanticCaptureConfig) => void;
+  updateConfig: (config: SemanticCaptureConfig<P>) => void;
   resetSession: () => void;
   notify: <K extends keyof HostSignals>(signal: K, value: HostSignals[K]) => void;
 }
 
 /** Composable runtime. Sampling and caps belong to a session, listeners to a recording. */
-export function createCapture(
-  config: SemanticCaptureConfig,
-  host: SemanticHost,
-  recorders: readonly SemanticRecorder[],
-): SemanticCapture {
+export function createCapture<P extends object = SemanticPayloads>(
+  config: SemanticCaptureConfig<P>,
+  host: SemanticHost<P>,
+  recorders: readonly SemanticRecorder<P>[],
+  caps: Partial<Record<SemanticFamily<P>, number>> = {},
+): SemanticCapture<P> {
   let settings = copyConfig(config);
   let active = false;
   let requested = false;
   let snapshotSeen = false;
   let sample: number | undefined;
   let cleanups: Cleanup[] = [];
-  let counts: Partial<Record<SemanticFamily, number>> = {};
-  let dropped: Partial<Record<SemanticFamily, number>> = {};
+  let counts: Partial<Record<SemanticFamily<P>, number>> = {};
+  let dropped: Partial<Record<SemanticFamily<P>, number>> = {};
   const signals = new Map<keyof HostSignals, Set<(value: never) => void>>();
-  const subscribers = new Set<(event: SemanticEvent) => void>();
+  const subscribers = new Set<(event: SemanticEvent<P>) => void>();
   const now = host.now ?? Date.now;
   const report = (error: unknown) => {
     try {
@@ -53,23 +54,27 @@ export function createCapture(
       report(error);
     }
   };
-  const enabled = (family: SemanticFamily) => active && settings.families?.[family] !== false;
-  const hasCapacity = (family: SemanticFamily) => enabled(family) && (counts[family] ?? 0) < SEMANTIC_CAPS[family];
-  const canEmit = (family: SemanticFamily): boolean => {
+  const enabled = (family: SemanticFamily<P>) => active && settings.families?.[family] !== false;
+  const hasCapacity = (family: SemanticFamily<P>) =>
+    enabled(family) && (counts[family] ?? 0) < (caps[family] ?? DEFAULT_SEMANTIC_CAP);
+  const canEmit = (family: SemanticFamily<P>): boolean => {
     if (!enabled(family)) return false;
     if (hasCapacity(family)) return true;
     dropped[family] = (dropped[family] ?? 0) + 1;
     return false;
   };
-  const context: Omit<RecorderContext, 'onCleanup'> = {
+  const context: Omit<RecorderContext<P>, 'onCleanup'> = {
     host,
     now,
     enabled,
     canEmit,
     hasCapacity,
     dropped: () => ({ ...dropped }),
+    clearDropped: () => {
+      dropped = {};
+    },
     hasSnapshot: () => snapshotSeen,
-    emit: <K extends SemanticFamily>(family: K, payload: SemanticPayloads[K], timestamp = now()): boolean => {
+    emit: <K extends SemanticFamily<P>>(family: K, payload: P[K], timestamp = now()): boolean => {
       if (!canEmit(family)) return false;
       let identity;
       try {
@@ -82,7 +87,7 @@ export function createCapture(
         name: family,
         payload: { ...payload, v: 1, tab_id: identity.tab_id, document_id: identity.document_id },
         timestamp,
-      } as SemanticEvent;
+      } as SemanticEvent<P>;
       counts[family] = (counts[family] ?? 0) + 1;
       try {
         host.emit(event);
@@ -90,7 +95,6 @@ export function createCapture(
         report(error);
         return false;
       }
-      if (family === 'context') dropped = {};
       subscribers.forEach((subscriber) => safely(() => subscriber(event)));
       return true;
     },
@@ -132,7 +136,7 @@ export function createCapture(
     for (const recorder of recorders) {
       if (recorder.families.some(enabled)) {
         const acquired: Cleanup[] = [];
-        const scoped: RecorderContext = {
+        const scoped: RecorderContext<P> = {
           ...context,
           onCleanup: (cleanup) => {
             acquired.push(cleanup);
@@ -196,6 +200,6 @@ export function createCapture(
   };
 }
 
-function copyConfig(config: SemanticCaptureConfig): SemanticCaptureConfig {
+function copyConfig<P extends object>(config: SemanticCaptureConfig<P>): SemanticCaptureConfig<P> {
   return { ...config, families: config.families ? { ...config.families } : undefined };
 }

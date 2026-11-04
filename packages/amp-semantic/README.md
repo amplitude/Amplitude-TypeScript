@@ -1,116 +1,17 @@
 # @amplitude/amp-semantic
 
-Composable semantic capture for Session Replay. This event increment builds on the package scaffold in PR #2113 and ships only
-`amp-semantic/context` and `amp-semantic/visibility`. Capture is disabled by default.
+Internal, composable semantic capture runtime for Amplitude. This increment installs no production event recorders and is not connected to Session Replay.
 
-## Enable through Session Replay
+The host supplies a document, window, and transport callback. `createSemanticCapture` accepts typed recorder factories and optional per-family budgets (200 events per session by default). With no recorders supplied it emits nothing and installs no browser listeners.
 
-```ts
-sessionReplay.init(API_KEY, {
-  deviceId: DEVICE_ID,
-  sessionId: SESSION_ID,
-  sampleRate: 1,
-  semanticCapture: {
-    enabled: true,
-    sampleRate: 1,
-    families: { context: true, visibility: true },
-  },
-});
-```
+The runtime owns opt-in sampling, start/stop and session reset, event version/timestamp/identity stamping, host signals, subscriptions, exception isolation, and cleanup rollback. Sampling and caps survive stop/start and reset only for a new session. Identity is allocated lazily when an event is accepted; its fallback is document-scoped memory, with no storage access.
 
-The analytics Session Replay plugin accepts the same `semanticCapture` option.
-Semantic sampling is additional to replay sampling. A stable random draw is kept
-across stop/start cycles within the session; a new session resets sampling and caps.
-Each family allows at most 200 events per session in this capture instance.
-`families` disables individual registered families when set to `false`; omitted
-families are enabled. Only context and visibility are registered in this release.
+Recorders register teardown immediately with `onCleanup` when setup can fail. `canEmit` lets them avoid expensive payload work at capacity. `dropped` returns delivery-cap diagnostics; recorders acknowledge successfully delivered diagnostics with `clearDropped`.
 
-The remote `sr_semantic_config` can override `enabled`, `sampleRate`, and individual
-family settings. A partial remote config does not enable capture unless local or
-remote `enabled` is true. Remote `enabled: false` is the kill switch.
+The `snapshot` host signal describes an accepted full snapshot; the runtime does not subscribe to rrweb itself. The host remains responsible for privacy-safe payloads, recording consent, transport, and any persisted tab identity.
 
-## Events
+Context, Session Replay integration, and visibility are added in separate follow-up PRs. No analytics SDK depends on this package in this increment.
 
-Both are rrweb custom events (`type: 5`). The envelope has the rrweb timestamp and
-`data.tag`; the payload has `v: 1`, `tab_id`, and `document_id`. `schema.json`
-describes the two supported wire payloads.
+## Development
 
-| Event | When | Payload |
-| --- | --- | --- |
-| `amp-semantic/context` | Each accepted rrweb full snapshot, after recording is ready | SDK, effective default mask level, stylesheet counts, viewport, device heuristic, language, user agent, current visibility and focus, analytics configuration, optional dropped-event counts |
-| `amp-semantic/visibility` | Document visibility changes, with duplicates suppressed | `state: "hidden"` or `"visible"` |
-
-```json
-{
-  "type": 5,
-  "timestamp": 1792627218062,
-  "data": {
-    "tag": "amp-semantic/visibility",
-    "payload": {
-      "v": 1,
-      "tab_id": "tab-uuid",
-      "document_id": "document-uuid",
-      "state": "hidden"
-    }
-  }
-}
-```
-
-Context is a snapshot, not continuous tracking: `visibility_state` and `focused`
-describe that moment. Visibility events update the document visibility timeline;
-focus/blur do not emit events. A visible document need not have keyboard focus.
-Browser notification timing can vary, particularly in embedded browsers. Visibility
-does not measure element visibility, user activity, or explain all replay gaps.
-
-`css.inlined` counts readable stylesheets when the host has stylesheet inlining
-enabled; it is not confirmation that each sheet was included in the replay.
-`css.unreadable` counts access failures, including cross-origin restrictions, not
-failed network loads. No stylesheet contents are read into the payload. `device`
-is a viewport/coarse-pointer heuristic. Analytics autocapture lists configuration,
-not a guarantee that every detector is active.
-
-No DOM text, field values, URLs, click targets, or accessibility trees are captured
-by these two families. The privacy setting is reported as context, while rrweb
-continues to enforce replay masking. The package adds one document visibility
-listener, no DOM observers or polling. Context collection runs only on snapshots
-and stops doing payload work when its cap is exhausted.
-
-## Identity and lifecycle
-
-The runtime stamps identity centrally. Session Replay supplies a tab ID using
-session storage and a document ID in memory. A normal same-tab navigation reuses
-the tab ID when the outgoing page releases ownership on `pagehide`; a copied,
-still-owned storage record generates a fresh ID. Blocked storage or a missing
-pagehide can result in a fresh tab ID on navigation. IDs are correlation hints,
-not an authoritative browser tab registry. Child frames do not claim parent storage.
-
-Stop, shutdown, reinitialization, and loss of recording eligibility detach capture.
-Identity bookkeeping is shared for the document lifetime; its pagehide/pageshow
-listeners do not emit semantic lifecycle events. Existing rrweb delivery and upload
-policies still apply to semantic custom events.
-
-## Extension boundary
-
-`createSemanticCapture(config, host, recorders?)` injects the host and accepts
-recorders. The runtime owns sampling, caps, timestamps, identity, fault isolation,
-subscriptions, and cleanup. This package does not import rrweb or an analytics SDK.
-Dialog and notice recorders, DOM enrichment helpers, and forwarding rrweb mutations
-are deferred to the next increment. Clicks, forms, keys, navigation, resource errors,
-recording/lifecycle events, and analytics-event forwarding are also not shipped here.
-
-## Local validation
-
-From the repository root, run `pnpm install` and `pnpm build`, then:
-
-```sh
-pnpm --filter @amplitude/amp-semantic test --runInBand
-pnpm --filter @amplitude/session-replay-browser test --runInBand
-pnpm exec vite --port 5175
-```
-
-Open `/session-replay-browser/sr-semantic-test.html`. The fixture uses local
-configuration and transport handlers; it does not upload replay data to Amplitude.
-Switch Chrome tabs and return, then flush to inspect visibility timestamps. Stop
-and resume to verify cleanup and new context snapshots. Query parameters
-`enabled=false`, `sampleRate=0`, `disabled=context`, `disabled=visibility`, and
-`remoteEnabled=false` exercise the capture gates.
+From the repository root, install dependencies and build with Node 24, `pnpm install`, and `pnpm build`. Run `pnpm --filter @amplitude/amp-semantic test` for runtime lifecycle and public contract tests.

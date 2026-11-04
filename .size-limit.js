@@ -45,19 +45,17 @@ const limits = [
     ...fileOnly,
   },
   {
-    // Bundles the core entry and the modules it imports, then checks that the
-    // minified gzipped ESM stays under 25 kB.
-    name: '@amplitude/analytics-browser/core (gzipped esm)',
-    path: './packages/analytics-browser/lib/esm/index-core.js',
-    limit: '25kb',
-    gzip: true,
-    modifyEsbuildConfig(config) {
-      return {
-        ...config,
-        format: 'esm',
-        platform: 'browser',
-      };
-    },
+    // analytics-browser lite CDN bundle
+    name: '@amplitude/analytics-browser/lite (gzipped CDN bundle)',
+    path: './packages/analytics-browser/lib/scripts/amplitude-lite-min.js.gz',
+    // NOTE TO CONTRIBUTORS:
+    // This bundle is meant to be a lightweight version of analytics-browser
+    // that doesn't include autocapture ootb. If the bundle size went up,
+    // please make sure you know why it went up before increasing the limit
+    // and make sure there aren't any unexpected dependencies or features.
+    limit: '23kb',
+    brotli: false,
+    ...fileOnly,
   },
 ]
 

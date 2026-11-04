@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import * as amplitude from '../src/index-core';
+import * as amplitude from '../src/index-lite';
 import { FakeBrowserClient } from './utils/fake-browser-client';
 
 const {
@@ -30,7 +30,7 @@ const {
   AmplitudeBrowser,
 } = amplitude;
 
-describe('index-core', () => {
+describe('index-lite', () => {
   test(`structural typing test, 'default export' should be BrowserClient`, () => {
     for (const key of Object.keys(FakeBrowserClient.prototype)) {
       if (!(amplitude as any)[key]) {

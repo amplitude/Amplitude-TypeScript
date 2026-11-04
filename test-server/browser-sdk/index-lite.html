@@ -14,7 +14,7 @@
     <p id="status">SDK loading…</p>
 
     <script type="module">
-      import * as amplitude from '@amplitude/analytics-browser/lib/esm/index-core.js';
+      import * as amplitude from '@amplitude/analytics-browser/lib/esm/index-lite.js';
 
       window.amplitude = amplitude;
 
@@ -23,7 +23,7 @@
 
       amplitude.init(apiKey, userId, {
         logLevel: amplitude.Types.LogLevel.Debug,
-        autocapture: true,
+        autocapture: true, // set to "true" but should not autocapture anything
       });
 
       document.getElementById('status').textContent = 'SDK initialized.';

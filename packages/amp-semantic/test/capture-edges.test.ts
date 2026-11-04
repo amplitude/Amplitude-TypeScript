@@ -1,14 +1,13 @@
 import * as semantic from '../src';
 import { createCapture } from '../src/capture';
-import { RecorderContext, SemanticRecorder } from '../src/types';
-import { recorderContext } from './fixtures';
+import { RecorderContext, SemanticRecorder, recorderContext } from './fixtures';
 
 function runtime() {
   const host = recorderContext().context.host;
   let context!: RecorderContext;
   const cleanup = jest.fn();
   const recorder: SemanticRecorder = {
-    families: ['context'],
+    families: ['diagnostic'],
     setup: (value) => {
       context = value;
       return cleanup;
@@ -19,14 +18,17 @@ function runtime() {
   return { host, capture, context, cleanup };
 }
 
-test('exposes the composable public recorders and default runtime', () => {
-  expect(semantic.defaultRecorders).toEqual([semantic.contextRecorder, semantic.visibilityRecorder]);
-  expect(semantic.SEMANTIC_CAPS.context).toBe(200);
+test('exposes an empty runtime and document identity without installing browser listeners', () => {
   const h = recorderContext().context.host;
+  const listener = jest.spyOn(document, 'addEventListener');
+  expect(semantic.DEFAULT_SEMANTIC_CAP).toBe(200);
   expect(semantic.getDocumentIdentity(document, window).tab_id).toEqual(expect.any(String));
   const capture = semantic.createSemanticCapture({ enabled: true }, h);
   capture.start();
+  capture.notify('snapshot', undefined);
   expect(capture.isActive()).toBe(true);
+  expect(listener).not.toHaveBeenCalled();
+  expect(h.emit).not.toHaveBeenCalled();
   capture.stop();
 });
 
@@ -43,18 +45,10 @@ test.each([0, -1, 2, NaN, Infinity])(
   },
 );
 
-test('ignores unknown host signals and avoids context payload reads after its cap', () => {
-  const host = recorderContext().context.host;
-  const capture = semantic.createSemanticCapture({ enabled: true }, host);
-  capture.start();
-  // JavaScript hosts can send signals that this release does not implement.
+test('ignores unknown host signals', () => {
+  const { host, capture } = runtime();
   capture.notify('future-signal' as 'snapshot', undefined);
   expect(host.emit).not.toHaveBeenCalled();
-  for (let i = 0; i < semantic.SEMANTIC_CAPS.context; i++) capture.notify('snapshot', undefined);
-  const read = jest.spyOn(document, 'styleSheets', 'get');
-  capture.notify('snapshot', undefined);
-  expect(read).not.toHaveBeenCalled();
-  expect(host.emit).toHaveBeenCalledTimes(semantic.SEMANTIC_CAPS.context);
   capture.stop();
 });
 
@@ -75,7 +69,7 @@ test('tracks snapshot state, explicit subscriptions and fault isolation', () => 
   expect(() => capture.notify('snapshot', undefined)).not.toThrow();
   expect(context.hasSnapshot()).toBe(true);
   expect(listener).toHaveBeenCalledTimes(1);
-  context.emit('visibility', { state: 'hidden' });
+  context.emit('sample', { state: 'hidden' });
   expect(subscriber).toHaveBeenCalledTimes(1);
   host.onError = jest.fn();
   capture.notify('snapshot', undefined);
@@ -91,17 +85,40 @@ test('tracks snapshot state, explicit subscriptions and fault isolation', () => 
   remove();
 });
 
-test('isolates failing cleanup and clears cap diagnostics only after a successful context event', () => {
-  const { host, capture, context, cleanup } = runtime();
+test('isolates failing cleanup and lets recorders acknowledge dropped counts', () => {
+  const { capture, context, cleanup } = runtime();
   cleanup.mockImplementation(() => {
     throw new Error('cleanup');
   });
-  for (let i = 0; i < 202; i++) context.emit('visibility', { state: 'visible' });
-  expect(context.dropped()).toEqual({ visibility: 2 });
-  const stop = semantic.contextRecorder.setup(context);
-  capture.notify('snapshot', undefined);
+  for (let i = 0; i < 202; i++) context.emit('sample', { state: 'visible' });
+  expect(context.dropped()).toEqual({ sample: 2 });
+  context.clearDropped();
   expect(context.dropped()).toEqual({});
-  expect(host.emit).toHaveBeenCalledWith(expect.objectContaining({ name: 'context' }));
-  stop();
   expect(() => capture.stop()).not.toThrow();
+});
+
+test('supports typed extensions with explicit family budgets', () => {
+  type Payloads = { sample: { value: number } };
+  const emit = jest.fn();
+  const capture = semantic.createSemanticCapture<Payloads>(
+    { enabled: true },
+    { document, window, emit },
+    [
+      {
+        families: ['sample'],
+        setup: (context) => {
+          context.emit('sample', { value: 1 });
+          context.emit('sample', { value: 2 });
+          return () => undefined;
+        },
+      },
+    ],
+    { sample: 1 },
+  );
+  capture.start();
+  expect(emit).toHaveBeenCalledTimes(1);
+  expect(emit).toHaveBeenCalledWith(
+    expect.objectContaining({ name: 'sample', payload: expect.objectContaining({ value: 1 }) }),
+  );
+  capture.stop();
 });
