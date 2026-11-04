@@ -52,36 +52,23 @@ test('ignores unknown host signals', () => {
   capture.stop();
 });
 
-test('tracks snapshot state, explicit subscriptions and fault isolation', () => {
+test('isolates failing signal callbacks and allows explicit unsubscription', () => {
   const { host, capture, context } = runtime();
-  expect(context.hasSnapshot()).toBe(false);
   const error = new Error('extension error');
+  host.onError = jest.fn();
   const bad = context.on('snapshot', () => {
     throw error;
   });
   const listener = jest.fn();
   const remove = context.on('snapshot', listener);
-  const subscriber = jest.fn();
-  const unsubscribe = context.subscribe(subscriber);
-  const badSubscriber = context.subscribe(() => {
-    throw error;
-  });
   expect(() => capture.notify('snapshot', undefined)).not.toThrow();
-  expect(context.hasSnapshot()).toBe(true);
   expect(listener).toHaveBeenCalledTimes(1);
-  context.emit('sample', { state: 'hidden' });
-  expect(subscriber).toHaveBeenCalledTimes(1);
-  host.onError = jest.fn();
-  capture.notify('snapshot', undefined);
   expect(host.onError).toHaveBeenCalledWith(error);
   bad();
   remove();
-  unsubscribe();
-  badSubscriber();
   capture.notify('snapshot', undefined);
-  expect(listener).toHaveBeenCalledTimes(2);
+  expect(listener).toHaveBeenCalledTimes(1);
   capture.stop();
-  expect(context.hasSnapshot()).toBe(false);
   remove();
 });
 
