@@ -1091,17 +1091,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private prepareSemanticCapture(config: SessionReplayJoinedConfig, sessionId: string | number): void {
     const scope = getGlobalScope() as Window | undefined;
     if (!scope?.document) return;
-    const factory = config.semanticCapture?.factory;
-    if (!config.semanticCapture?.enabled || typeof factory !== 'function') {
+    const createCapture = config.semanticCapture?.createCapture;
+    if (!config.semanticCapture?.enabled || typeof createCapture !== 'function') {
       this.semanticAdapter?.stop();
       this.semanticAdapter?.prepare({ enabled: false }, sessionId);
       return;
     }
-    if (this.semanticAdapter?.factory !== factory) {
+    if (this.semanticAdapter?.createCapture !== createCapture) {
       this.semanticAdapter?.stop();
       this.semanticAdapter = undefined;
       try {
-        this.semanticAdapter = new ReplaySemanticAdapter(factory, {
+        this.semanticAdapter = new ReplaySemanticAdapter(createCapture, {
           document: scope.document,
           window: scope,
           sdk: `@amplitude/session-replay-browser@${VERSION}`,
@@ -1117,7 +1117,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           onError: (error) => this.loggerProvider.debug('Semantic capture error:', error),
         });
       } catch (error) {
-        this.loggerProvider.debug('Semantic capture factory failed:', error);
+        this.loggerProvider.debug('Semantic capture initialization failed:', error);
         return;
       }
     }

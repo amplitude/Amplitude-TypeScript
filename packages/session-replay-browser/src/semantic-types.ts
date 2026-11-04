@@ -39,6 +39,6 @@ export type SemanticCaptureFactory = (
   host: SemanticCaptureHost,
 ) => SemanticCaptureController;
 export interface SemanticCaptureOptions extends SemanticCaptureConfig {
-  /** Local implementation. No semantic capture runs without a supplied factory. */
-  factory?: SemanticCaptureFactory;
+  /** Local implementation. No semantic capture runs without a supplied createCapture callback. */
+  createCapture?: SemanticCaptureFactory;
 }

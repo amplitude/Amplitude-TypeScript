@@ -17,8 +17,8 @@ export class ReplaySemanticAdapter {
   private pendingSnapshots = 0;
   private config: SemanticCaptureConfig = { enabled: false };
 
-  constructor(readonly factory: SemanticCaptureFactory, host: SemanticCaptureHost) {
-    this.capture = factory(this.config, host);
+  constructor(readonly createCapture: SemanticCaptureFactory, host: SemanticCaptureHost) {
+    this.capture = createCapture(this.config, host);
   }
 
   prepare(config: SemanticCaptureConfig, sessionId: string | number): void {
