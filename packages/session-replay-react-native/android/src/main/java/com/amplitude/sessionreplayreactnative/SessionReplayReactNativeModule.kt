@@ -30,7 +30,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @Volatile private var sessionReplay: SessionReplay? = null
   private var nativeConfig: NativeConfig? = null
-  // shouldRecord() alone does not account for setup/start/stop state.
+  // Gate availability immediately while asynchronous SDK start/stop work is pending.
   @Volatile private var shouldStart = false
   @Volatile private var replayGeneration = 0
 
@@ -55,7 +55,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
         putString("sessionId", replay?.getCustomSessionId() ?: config?.customSessionId ?: "-1")
         // The SDK is constructed with "" for a null device id; report null so the
         // value matches iOS and the opted-out fallback.
-        val deviceId = replay?.getDeviceId()?.takeIf { it.isNotEmpty() } ?: config?.deviceId
+        val deviceId = replay?.getDeviceId()?.takeIf { it.isNotEmpty() } ?: config?.deviceId?.takeIf { it.isNotEmpty() }
         if (deviceId == null) putNull("deviceId") else putString("deviceId", deviceId)
       }
       promise.resolve(state)

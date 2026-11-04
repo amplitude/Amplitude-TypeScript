@@ -18,8 +18,8 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
   @Volatile private var sessionReplay: SessionReplay? = null
-  // shouldRecord() reports sampling eligibility even while capture is stopped.
-  // Track start/stop intent so signal availability also respects autoStart=false.
+  // SDK start/stop work is dispatched asynchronously. Gate signal availability
+  // immediately on bridge intent, including autoStart=false and a pending stop.
   @Volatile private var shouldStart = false
   @Volatile private var replayGeneration = 0
 
@@ -37,7 +37,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
     val state = WritableNativeMap().apply {
       putBoolean("isProviding", reportInterfaceSignal())
       putString("sessionId", replay?.getSessionId()?.toString() ?: "-1")
-      putString("deviceId", replay?.getDeviceId())
+      val deviceId = replay?.getDeviceId()?.takeIf { it.isNotEmpty() }
+      if (deviceId == null) putNull("deviceId") else putString("deviceId", deviceId)
     }
     promise.resolve(state)
   }

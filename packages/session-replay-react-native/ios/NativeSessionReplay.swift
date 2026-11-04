@@ -4,11 +4,31 @@ import AmplitudeSessionReplay
 import AmplitudeCore
 
 @objc(AMPNativeSessionReplay)
-class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked Sendable {
+class NativeSessionReplay: RCTEventEmitter, @unchecked Sendable {
     var sessionReplay: SessionReplay?
     var logger: CoreLogger?
-    private let listenersLock = NSLock()
+    private let listenersLock = NSRecursiveLock()
+    private var interfaceSignalReceiver: RecorderSignalReceiver?
     private var hasListeners = false
+
+    // A receiver belongs to one recorder. Queued callbacks from detached recorders
+    // retain their old receiver and cannot be mistaken for callbacks from a new one.
+    private final class RecorderSignalReceiver: NSObject, InterfaceSignalReceiver, @unchecked Sendable {
+        private weak var owner: NativeSessionReplay?
+
+        init(owner: NativeSessionReplay) {
+            self.owner = owner
+            super.init()
+        }
+
+        func onInterfaceChanged(signal: InterfaceChangeSignal) {
+            owner?.emitInterfaceSignal(from: self, interfaceChanged: true,
+                                       timestamp: signal.time.timeIntervalSince1970 * 1000)
+        }
+
+        func onStartProviding() { owner?.emitInterfaceSignal(from: self, isProviding: true) }
+        func onStopProviding() { owner?.emitInterfaceSignal(from: self, isProviding: false) }
+    }
     
     override init() {
         super.init()
@@ -62,7 +82,11 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
         )
 
         sessionReplay?.customSessionId = customSessionId
-        sessionReplay?.addInterfaceSignalReceiver(self)
+        let receiver = RecorderSignalReceiver(owner: self)
+        listenersLock.lock()
+        interfaceSignalReceiver = receiver
+        listenersLock.unlock()
+        sessionReplay?.addInterfaceSignalReceiver(receiver)
 
         resolve(nil)
     }
@@ -139,12 +163,17 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
     }
 
     private func tearDownSessionReplay(emitStopProviding: Bool = true) {
-        if emitStopProviding && sessionReplay?.isProviding == true {
+        listenersLock.lock()
+        let replay = sessionReplay
+        let receiver = interfaceSignalReceiver
+        interfaceSignalReceiver = nil
+        sessionReplay = nil
+        if emitStopProviding && replay?.isProviding == true {
             emitInterfaceSignal(isProviding: false)
         }
-        sessionReplay?.removeInterfaceSignalReceiver(self)
-        sessionReplay?.stop()
-        sessionReplay = nil
+        listenersLock.unlock()
+        if let receiver { replay?.removeInterfaceSignalReceiver(receiver) }
+        replay?.stop()
         logger = nil
     }
 
@@ -153,7 +182,11 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
         var state: [String: Any] = [:]
         state["isProviding"] = sessionReplay?.isProviding ?? false
         state["sessionId"] = sessionReplay?.customSessionId ?? "-1"
-        state["deviceId"] = sessionReplay?.deviceId as Any? ?? NSNull()
+        if let deviceId = sessionReplay?.deviceId, !deviceId.isEmpty {
+            state["deviceId"] = deviceId
+        } else {
+            state["deviceId"] = NSNull()
+        }
         resolve(state)
     }
     override func supportedEvents() -> [String]! {
@@ -172,23 +205,17 @@ class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked 
         listenersLock.unlock()
     }
 
-    func onInterfaceChanged(signal: InterfaceChangeSignal) {
-        emitInterfaceSignal(interfaceChanged: true, timestamp: signal.time.timeIntervalSince1970 * 1000)
-    }
-
-    func onStartProviding() { emitInterfaceSignal(isProviding: true) }
-    func onStopProviding() { emitInterfaceSignal(isProviding: false) }
-
     private func emitInterfaceSignal(
+        from receiver: RecorderSignalReceiver? = nil,
         interfaceChanged: Bool = false,
         identityChanged: Bool = false,
         isProviding: Bool? = nil,
         timestamp: Double = Date().timeIntervalSince1970 * 1000
     ) {
         listenersLock.lock()
-        let shouldEmit = hasListeners
-        listenersLock.unlock()
-        guard shouldEmit else { return }
+        defer { listenersLock.unlock() }
+        guard hasListeners else { return }
+        if let receiver, receiver !== interfaceSignalReceiver { return }
         sendEvent(withName: "AMPNativeSessionReplayInterfaceSignal", body: [
             "interfaceChanged": interfaceChanged,
             "identityChanged": identityChanged,
