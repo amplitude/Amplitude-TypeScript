@@ -1,5 +1,5 @@
 import { setImmediate } from 'timers';
-import { AppState, Platform } from 'react-native';
+import { AppState, DeviceEventEmitter, Platform } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import type { ReactNativeClient } from '@amplitude/analytics-core';
 import { createDeadClickTracker } from '../../src/autocapture/dead-click';
@@ -131,6 +131,60 @@ describe('dead click detection', () => {
       START,
     );
   });
+
+  it.each(['no response', 'UI change', 'recording interruption'])(
+    'uses the Android Replay wrapper without native listener methods: %s',
+    async (response) => {
+      Platform.OS = 'android';
+      const nativeModule = { getInterfaceSignalState: readState };
+      // Exercise RN's real constructor checks; its preset emitter mock ignores native modules.
+      const NativeEventEmitter = jest.requireActual<{ default: typeof import('react-native').NativeEventEmitter }>(
+        'react-native/Libraries/EventEmitter/NativeEventEmitter',
+      ).default;
+      const warn = jest.spyOn(console, 'warn');
+      const replayReactNative = require.resolve(
+        '../../../plugin-session-replay-react-native/node_modules/react-native',
+      );
+      try {
+        jest.isolateModules(() => {
+          jest.doMock(replayReactNative, () => ({
+            Platform: { OS: 'android', select: () => '' },
+            NativeModules: { PluginSessionReplayReactNative: nativeModule },
+            NativeEventEmitter,
+          }));
+          // Use the actual Replay wrapper behind the package's exported API.
+          const replay = jest.requireActual<Provider>('../../../plugin-session-replay-react-native/src/native-module');
+          mockPluginReplay.getInterfaceSignalState = replay.getInterfaceSignalState;
+          mockPluginReplay.addInterfaceSignalListener = replay.addInterfaceSignalListener;
+        });
+
+        expect(await mockPluginReplay.getInterfaceSignalState?.()).toEqual(state);
+        const eventName = 'PluginSessionReplayReactNativeInterfaceSignal';
+        const initialListeners = DeviceEventEmitter.listenerCount(eventName);
+        const tracker = createTracker();
+        expect(DeviceEventEmitter.listenerCount(eventName)).toBe(initialListeners + 1);
+        tracker.registerClickEvent(coordinates, properties);
+        await settlePromises();
+        await advance(1_000);
+        if (response !== 'no response') {
+          DeviceEventEmitter.emit(eventName, {
+            interfaceChanged: response === 'UI change',
+            identityChanged: false,
+            isProviding: response !== 'recording interruption',
+            timestamp: Date.now(),
+          });
+        }
+        await advance(TIMEOUT - 1_000);
+        expect(onDeadClick).toHaveBeenCalledTimes(response === 'no response' ? 1 : 0);
+        expect(readState).toHaveBeenCalled();
+        expect(warn).not.toHaveBeenCalled();
+        tracker.teardown();
+        expect(DeviceEventEmitter.listenerCount(eventName)).toBe(initialListeners);
+      } finally {
+        jest.dontMock(replayReactNative);
+      }
+    },
+  );
 
   it.each(['before the initial native response', 'during the timeout'])(
     'suppresses a press when UI activity arrives %s',
