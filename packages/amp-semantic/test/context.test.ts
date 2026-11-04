@@ -11,10 +11,8 @@ function setup(families: SemanticFamily[] = ['context']) {
       getPrivacy: () => ({ defaultMaskLevel: 'medium' }),
       getAnalyticsContext: () => ({ present: true, autocapture: ['elementInteractions'] }),
     },
-    enabled: (family: SemanticFamily) => families.includes(family),
     emit: jest.fn(() => true),
     canEmit: () => true,
-    hasCapacity: () => true,
     clearDropped: jest.fn(),
     dropped: jest.fn(() => ({})),
     on: jest.fn((name: keyof HostSignals, callback: (value: never) => void) => {
