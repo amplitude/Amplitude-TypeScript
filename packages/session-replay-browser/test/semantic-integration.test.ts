@@ -31,7 +31,7 @@ describe('Session Replay context integration', () => {
   function prepare(enabled: boolean) {
     const sdk = new SessionReplay();
     const config: Partial<SessionReplayJoinedConfig> = {
-      semanticCapture: { enabled, factory: createSemanticCapture },
+      semanticCapture: { enabled, createCapture: createSemanticCapture },
       privacyConfig: { defaultMaskLevel: 'conservative' },
     };
     sdk.config = config as SessionReplayJoinedConfig;
@@ -106,12 +106,12 @@ describe('Session Replay context integration', () => {
     expect(capture.updateConfig).toHaveBeenLastCalledWith({ enabled: false });
   });
 
-  test('enabled capture without a local factory is inert, and removing it stops capture', () => {
+  test('enabled capture without a local createCapture callback is inert, and removing it stops capture', () => {
     const { sdk, internal } = prepare(false);
     internal.prepareSemanticCapture({ semanticCapture: { enabled: true } }, 1);
     expect(createSemanticCapture).not.toHaveBeenCalled();
     internal.prepareSemanticCapture(
-      { ...sdk.config, semanticCapture: { enabled: true, factory: createSemanticCapture } },
+      { ...sdk.config, semanticCapture: { enabled: true, createCapture: createSemanticCapture } },
       1,
     );
     expect(createSemanticCapture).toHaveBeenCalledTimes(1);
@@ -121,17 +121,17 @@ describe('Session Replay context integration', () => {
     expect(capture.updateConfig).toHaveBeenLastCalledWith({ enabled: false });
   });
 
-  test('replaces the runtime when the supplied factory changes', () => {
+  test('replaces the runtime when the supplied createCapture callback changes', () => {
     const { sdk, internal } = prepare(true);
     const next = jest.fn(() => capture);
     capture.stop.mockClear();
-    internal.prepareSemanticCapture({ ...sdk.config, semanticCapture: { enabled: true, factory: next } }, 1);
+    internal.prepareSemanticCapture({ ...sdk.config, semanticCapture: { enabled: true, createCapture: next } }, 1);
     expect(capture.stop).toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(1);
-    expect(internal.semanticAdapter.factory).toBe(next);
+    expect(internal.semanticAdapter.createCapture).toBe(next);
   });
 
-  test('a failing factory does not throw into replay initialization', () => {
+  test('a failing createCapture callback does not throw into replay initialization', () => {
     const { sdk, internal } = prepare(false);
     const error = new Error('factory failed');
     const factory = jest.fn(() => {
@@ -139,10 +139,10 @@ describe('Session Replay context integration', () => {
     });
     const debug = jest.spyOn(internal.loggerProvider, 'debug');
     expect(() => {
-      internal.prepareSemanticCapture({ ...sdk.config, semanticCapture: { enabled: true, factory } }, 1);
+      internal.prepareSemanticCapture({ ...sdk.config, semanticCapture: { enabled: true, createCapture: factory } }, 1);
     }).not.toThrow();
     expect(internal.semanticAdapter).toBeUndefined();
-    expect(debug).toHaveBeenCalledWith('Semantic capture factory failed:', error);
+    expect(debug).toHaveBeenCalledWith('Semantic capture initialization failed:', error);
   });
 
   test('skips setup without a browser document', () => {

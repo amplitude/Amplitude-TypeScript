@@ -157,20 +157,25 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         expect(remoteConfig?.sr_semantic_config?.enabled).toBe(false);
       });
 
-      test('remote controls preserve the local factory and cannot inject or replace it', async () => {
+      test('remote controls preserve the local createCapture callback and cannot inject or replace it', async () => {
         const factory = jest.fn(() => {
           throw new Error('not called during configuration');
         });
         const remoteFactory = jest.fn();
-        mockRemoteConfig = { sr_semantic_config: { enabled: true, sampleRate: 0.5, factory: remoteFactory } };
+        mockRemoteConfig = { sr_semantic_config: { enabled: true, sampleRate: 0.5, createCapture: remoteFactory } };
         const generator = await createSessionReplayJoinedConfigGenerator('static_key', {
           ...mockOptions,
-          semanticCapture: { enabled: false, factory },
+          semanticCapture: { enabled: false, createCapture: factory },
         });
         const { joinedConfig } = await generator.generateJoinedConfig();
-        expect(joinedConfig.semanticCapture).toEqual({ enabled: true, sampleRate: 0.5, families: {}, factory });
-        const withoutFactory = await joinedConfigGenerator.generateJoinedConfig();
-        expect(withoutFactory.joinedConfig.semanticCapture).not.toHaveProperty('factory');
+        expect(joinedConfig.semanticCapture).toEqual({
+          enabled: true,
+          sampleRate: 0.5,
+          families: {},
+          createCapture: factory,
+        });
+        const withoutCreateCapture = await joinedConfigGenerator.generateJoinedConfig();
+        expect(withoutCreateCapture.joinedConfig.semanticCapture).not.toHaveProperty('createCapture');
         expect(factory).not.toHaveBeenCalled();
         expect(remoteFactory).not.toHaveBeenCalled();
       });

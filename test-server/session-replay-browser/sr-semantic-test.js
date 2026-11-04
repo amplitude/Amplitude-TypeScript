@@ -79,7 +79,7 @@ async function boot() {
       enabled: params.get('enabled') !== 'false',
       sampleRate: rate,
       families,
-      ...(params.get('factory') === 'false' ? {} : { factory: createSemanticCapture }),
+      ...(params.get('createCapture') === 'false' ? {} : { createCapture: createSemanticCapture }),
     },
     privacyConfig: { defaultMaskLevel: 'medium' },
     performanceConfig: { enabled: false },

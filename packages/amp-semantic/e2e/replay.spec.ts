@@ -60,7 +60,7 @@ for (const query of [
   '?sampleRate=0',
   '?remoteEnabled=false',
   '?disabled=context',
-  '?factory=false&remoteEnabled=true',
+  '?createCapture=false&remoteEnabled=true',
 ]) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
     await open(page, query);
