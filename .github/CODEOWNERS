@@ -10,6 +10,7 @@
 
 # Session Replay Packages (Browser)
 # Owned by the Session Replay SDK team
+/packages/amp-semantic/ @amplitude/session-replay-sdk
 /packages/session-replay-browser/ @amplitude/session-replay-sdk
 /packages/plugin-session-replay-browser/ @amplitude/session-replay-sdk
 /packages/segment-session-replay-plugin/ @amplitude/session-replay-sdk
