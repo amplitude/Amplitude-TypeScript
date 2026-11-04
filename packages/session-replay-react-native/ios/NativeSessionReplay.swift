@@ -1,18 +1,46 @@
 import Foundation
 import AmplitudeSessionReplay
 import AmplitudeCore
+import React
 
 @objc(AMPNativeSessionReplay)
-class NativeSessionReplay: NSObject, RCTBridgeModule {
+class NativeSessionReplay: RCTEventEmitter, InterfaceSignalReceiver, @unchecked Sendable {
+    private static let interfaceChangedEventName = "AmplitudeSessionReplayInterfaceChanged"
+    private static let interfaceSignalProviderChangedEventName = "AmplitudeSessionReplayInterfaceSignalProviderChanged"
+
     static func moduleName() -> String! {
         "AMPNativeSessionReplay"
     }
     
     var sessionReplay: SessionReplay?
     var logger: CoreLogger?
+    private var hasListeners = false
+    private var isProvidingInterfaceSignals = false
     
     override init() {
         print("NativeSessionReplay init")
+        super.init()
+    }
+
+    override func supportedEvents() -> [String]! {
+        [
+            Self.interfaceChangedEventName,
+            Self.interfaceSignalProviderChangedEventName,
+        ]
+    }
+
+    @objc
+    override static func requiresMainQueueSetup() -> Bool {
+        false
+    }
+
+    override func startObserving() {
+        hasListeners = true
+        sendInterfaceSignalProviderChangedEvent()
+    }
+
+    override func stopObserving() {
+        hasListeners = false
     }
     
     @objc(setup:resolve:reject:)
@@ -61,6 +89,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         )
 
         sessionReplay?.customSessionId = customSessionId
+        registerInterfaceSignalObserver()
 
         resolve(nil)
     }
@@ -130,9 +159,54 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     }
 
     private func tearDownSessionReplay() {
+        (sessionReplay as? InterfaceSignalProvider)?.removeInterfaceSignalReceiver(self)
+        isProvidingInterfaceSignals = false
+        sendInterfaceSignalProviderChangedEvent()
         sessionReplay?.stop()
         sessionReplay = nil
         logger = nil
+    }
+
+    private func registerInterfaceSignalObserver() {
+        guard let interfaceSignalProvider = sessionReplay as? InterfaceSignalProvider else {
+            logger?.warn(message: "SessionReplay interface signal provider is unavailable")
+            return
+        }
+
+        interfaceSignalProvider.removeInterfaceSignalReceiver(self)
+        interfaceSignalProvider.addInterfaceSignalReceiver(self)
+        isProvidingInterfaceSignals = interfaceSignalProvider.isProviding
+        sendInterfaceSignalProviderChangedEvent()
+    }
+
+    func onInterfaceChanged(signal: InterfaceChangeSignal) {
+        sendInterfaceChangedEvent(time: signal.time)
+    }
+
+    func onStartProviding() {
+        isProvidingInterfaceSignals = true
+        sendInterfaceSignalProviderChangedEvent()
+    }
+
+    func onStopProviding() {
+        isProvidingInterfaceSignals = false
+        sendInterfaceSignalProviderChangedEvent()
+    }
+
+    private func sendInterfaceChangedEvent(time: Date) {
+        guard hasListeners else {
+            return
+        }
+        sendEvent(withName: Self.interfaceChangedEventName,
+                  body: ["time": Int64(time.timeIntervalSince1970 * 1000)])
+    }
+
+    private func sendInterfaceSignalProviderChangedEvent() {
+        guard hasListeners else {
+            return
+        }
+        sendEvent(withName: Self.interfaceSignalProviderChangedEventName,
+                  body: ["isProviding": isProvidingInterfaceSignals])
     }
 }
 

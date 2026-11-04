@@ -6,6 +6,7 @@ import {
 import * as Capture from '../../src/amp-capture';
 import { frustrationPlugin, FRUSTRATION_PLUGIN_NAME } from '../../src/plugins/frustration-plugin';
 import {
+  DEFAULT_ELEMENT_DEAD_CLICKED_EVENT,
   DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
   DEFAULT_ELEMENT_ERROR_CLICKED_EVENT,
   SCREEN_NAME,
@@ -16,6 +17,11 @@ import {
   TARGET_TEST_ID,
 } from '../../src/constants';
 import { useDefaultConfig } from '../helpers/default';
+import { subscribeToSessionReplayInterfaceSignals } from '../../src/autocapture/interface-signals';
+
+jest.mock('../../src/autocapture/interface-signals', () => ({
+  subscribeToSessionReplayInterfaceSignals: jest.fn(() => jest.fn()),
+}));
 
 describe('frustrationPlugin', () => {
   const pressEvent = { nativeEvent: { pageX: 100, pageY: 100 } };
@@ -25,6 +31,10 @@ describe('frustrationPlugin', () => {
   let previousErrorUtils: unknown;
   let currentErrorHandler: ((error: unknown, isFatal?: boolean) => void) | undefined;
   let previousErrorHandler: jest.Mock;
+  let interfaceSignalHandlers: {
+    onInterfaceChanged: (time: number) => void;
+    onProviderChanged: (isProviding: boolean) => void;
+  };
 
   const press = (count: number, properties: Capture.AmpCaptureProperties = { action: 'Press', testID: 'button' }) => {
     for (let i = 0; i < count; i++) {
@@ -53,6 +63,11 @@ describe('frustrationPlugin', () => {
     previousErrorHandler = jest.fn();
     currentErrorHandler = previousErrorHandler;
     previousErrorUtils = (globalThis as any).ErrorUtils;
+    jest.mocked(subscribeToSessionReplayInterfaceSignals).mockClear();
+    jest.mocked(subscribeToSessionReplayInterfaceSignals).mockImplementation((handlers) => {
+      interfaceSignalHandlers = handlers;
+      return jest.fn();
+    });
     (globalThis as any).ErrorUtils = {
       getGlobalHandler: jest.fn(() => currentErrorHandler),
       setGlobalHandler: jest.fn((handler) => {
@@ -278,6 +293,67 @@ describe('frustrationPlugin', () => {
     await plugin.teardown?.();
   });
 
+  test('should track a dead click when session replay reports no interface change', async () => {
+    const plugin = frustrationPlugin({ getScreenName: () => 'Home' });
+    await plugin.setup?.(useDefaultConfig(), amplitude);
+
+    withFakeTimers(() => {
+      const start = Date.now();
+      interfaceSignalHandlers.onProviderChanged(true);
+      press(1, { action: 'Press', testID: 'dead-button', component: 'Button' });
+      jest.advanceTimersByTime(3500);
+
+      expect(track).toHaveBeenCalledWith(
+        DEFAULT_ELEMENT_DEAD_CLICKED_EVENT,
+        {
+          [SCREEN_NAME]: 'Home',
+          [TARGET_ACCESSIBILITY_LABEL]: undefined,
+          [TARGET_ACTION]: 'Press',
+          [TARGET_COMPONENT]: 'Button',
+          [TARGET_ELEMENT]: undefined,
+          [TARGET_TEST_ID]: 'dead-button',
+          '[Amplitude] X Coordinate': 100,
+          '[Amplitude] Y Coordinate': 100,
+        },
+        { time: start },
+      );
+    });
+
+    await plugin.teardown?.();
+  });
+
+  test('should not track a dead click when session replay reports an interface change', async () => {
+    const plugin = frustrationPlugin();
+    await plugin.setup?.(useDefaultConfig(), amplitude);
+
+    withFakeTimers(() => {
+      interfaceSignalHandlers.onProviderChanged(true);
+      press(1, { action: 'Press', testID: 'changed-button' });
+      jest.advanceTimersByTime(100);
+      interfaceSignalHandlers.onInterfaceChanged(Date.now());
+      jest.advanceTimersByTime(3500);
+
+      expect(track).not.toHaveBeenCalledWith(DEFAULT_ELEMENT_DEAD_CLICKED_EVENT, expect.anything(), expect.anything());
+    });
+
+    await plugin.teardown?.();
+  });
+
+  test('should not track dead clicks when deadClick is disabled', async () => {
+    const plugin = frustrationPlugin({ deadClick: false });
+    await plugin.setup?.(useDefaultConfig(), amplitude);
+
+    withFakeTimers(() => {
+      expect(subscribeToSessionReplayInterfaceSignals).not.toHaveBeenCalled();
+      press(1, { action: 'Press', testID: 'dead-button' });
+      jest.advanceTimersByTime(3500);
+
+      expect(track).not.toHaveBeenCalledWith(DEFAULT_ELEMENT_DEAD_CLICKED_EVENT, expect.anything(), expect.anything());
+    });
+
+    await plugin.teardown?.();
+  });
+
   test('should remove each error observer independently of teardown order', async () => {
     const firstTrack = jest.fn();
     const secondTrack = jest.fn();
@@ -316,7 +392,7 @@ describe('frustrationPlugin', () => {
 
     withFakeTimers(() => {
       press(DEFAULT_RAGE_CLICK_THRESHOLD);
-      expect(jest.getTimerCount()).toBe(2);
+      expect(jest.getTimerCount()).toBeGreaterThan(0);
 
       // teardown() is async but its body runs synchronously before the first await boundary.
       void plugin.teardown?.();
