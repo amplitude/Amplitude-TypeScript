@@ -5,13 +5,37 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } from '@amplitude/analytics-core';
 
-import { PluginSessionReplayReactNative } from './native-module';
+import {
+  PluginSessionReplayReactNative,
+  addInterfaceSignalListener,
+  getInterfaceSignalState,
+  type InterfaceSignal,
+  type InterfaceSignalState,
+} from './native-module';
 import { VERSION } from './version';
 import { SessionReplayConfig, getDefaultConfig } from './session-replay-config';
+
+/** A removable interface subscription with access to current recording state. */
+export interface InterfaceChangeSubscription {
+  getState(): Promise<InterfaceSignalState | null>;
+  remove(): void;
+}
+
+/**
+ * Observe native UI, availability and identity changes without resolving a native
+ * module. This can be called before Replay is initialized; unsupported binaries
+ * return a no-op subscription whose getState() resolves to null.
+ */
+export function onInterfaceChange(listener: (signal: InterfaceSignal) => void): InterfaceChangeSubscription {
+  const subscription = addInterfaceSignalListener(listener);
+  return { getState: getInterfaceSignalState, remove: () => subscription.remove() };
+}
 
 type ResolvedSessionReplayConfig = Required<SessionReplayConfig>;
 
 export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, ReactNativeConfig> {
+  static onInterfaceChange = onInterfaceChange;
+
   name = '@amplitude/plugin-session-replay-react-native';
   type = 'enrichment' as const;
   // this.config is defined in setup() which will always be called first
