@@ -1,60 +1,126 @@
-describe('NativeSessionReplay module resolution', () => {
-  it('uses the native module to subscribe on iOS and exposes listener cleanup', () => {
-    const listener = jest.fn();
-    const remove = jest.fn();
-    const addListener = jest.fn((_event: string, callback: typeof listener) => {
-      callback({ interfaceChanged: true, identityChanged: false, isProviding: true, timestamp: 123 });
-      return { remove };
-    });
-    const nativeModule = { getInterfaceSignalState: jest.fn(), addListener: jest.fn(), removeListeners: jest.fn() };
-    const emitter = jest.fn(() => ({ addListener }));
+import type { InterfaceSignal } from '../src/native-module';
 
-    jest.isolateModules(() => {
-      jest.doMock('react-native', () => ({
-        Platform: { OS: 'ios', select: () => '' },
-        TurboModuleRegistry: { get: () => nativeModule },
-        NativeEventEmitter: emitter,
-      }));
-      // eslint-disable-next-line @typescript-eslint/no-var-requires -- isolateModules needs a fresh require
-      const { addInterfaceSignalListener } = require('../src/native-module') as typeof import('../src/native-module');
-      const subscription = addInterfaceSignalListener(listener);
+type NativeReport = InterfaceSignal & { sequence: number };
+const snapshot: NativeReport = {
+  interfaceChanged: false,
+  identityChanged: false,
+  isProviding: true,
+  sessionId: '123',
+  deviceId: 'device',
+  timestamp: 100,
+  sequence: 2,
+};
+const publicReport = ({ sequence: _sequence, ...signal }: NativeReport) => signal;
 
-      expect(emitter).toHaveBeenCalledWith(nativeModule);
-      expect(addListener).toHaveBeenCalledWith('AMPNativeSessionReplayInterfaceSignal', listener);
-      expect(listener).toHaveBeenCalledWith({
-        interfaceChanged: true,
-        identityChanged: false,
-        isProviding: true,
-        timestamp: 123,
-      });
-      expect(listener).toHaveBeenCalledTimes(1);
-      subscription.remove();
-      expect(remove).toHaveBeenCalledTimes(1);
-    });
+function createSubscription(platform = 'android', nativeSupport = true) {
+  let resolve: (signal: NativeReport) => void = () => undefined;
+  let reject: (error: Error) => void = () => undefined;
+  const initial = new Promise<NativeReport>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  const nativeModule = {
+    ...(nativeSupport
+      ? { observeInterfaceSignals: jest.fn(() => initial), stopObservingInterfaceSignals: jest.fn() }
+      : {}),
+    ...(platform === 'ios' ? { addListener: jest.fn(), removeListeners: jest.fn() } : {}),
+  };
+  let emit: (signal: NativeReport) => void = () => undefined;
+  const remove = jest.fn();
+  const addListener = jest.fn((_name: string, callback: typeof emit) => {
+    emit = callback;
+    return { remove };
+  });
+  const emitter = jest.fn(() => ({ addListener }));
+  const listener = jest.fn();
+  let subscription: { remove(): void } = { remove: () => undefined };
+  jest.isolateModules(() => {
+    jest.doMock('react-native', () => ({
+      Platform: { OS: platform, select: () => '' },
+      TurboModuleRegistry: { get: () => nativeModule },
+      NativeEventEmitter: emitter,
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const api = require('../src/native-module') as typeof import('../src/native-module');
+    subscription = api.addInterfaceSignalListener(listener);
+  });
+  return {
+    resolve,
+    reject,
+    emit: (signal: NativeReport) => emit(signal),
+    listener,
+    subscription,
+    nativeModule,
+    emitter,
+    addListener,
+    remove,
+  };
+}
+
+describe('snapshot interface-signal subscriptions', () => {
+  it.each(['android', 'ios'])('delivers initial and complete live state on %s', async (platform) => {
+    const test = createSubscription(platform);
+    expect(test.emitter.mock.calls).toEqual(platform === 'ios' ? [[test.nativeModule]] : [[]]);
+    expect(test.addListener).toHaveBeenCalledWith('AMPNativeSessionReplayInterfaceSignal', expect.any(Function));
+    expect(test.listener).not.toHaveBeenCalled();
+    test.resolve(snapshot);
+    await Promise.resolve();
+    expect(test.listener).toHaveBeenCalledWith(publicReport(snapshot));
+    const changed = { ...snapshot, sequence: 3, identityChanged: true, sessionId: '456', deviceId: null };
+    test.emit(changed);
+    expect(test.listener).toHaveBeenLastCalledWith(publicReport(changed));
+    test.subscription.remove();
+    test.subscription.remove();
+    expect(test.remove).toHaveBeenCalledTimes(1);
+    expect(test.nativeModule.stopObservingInterfaceSignals).toHaveBeenCalledTimes(1);
+    test.emit({ ...snapshot, sequence: 4 });
+    expect(test.listener).toHaveBeenCalledTimes(2);
   });
 
-  it('subscribes without the native module on Android', () => {
-    const listener = jest.fn();
-    const addListener = jest.fn(() => ({ remove: jest.fn() }));
-    const nativeModule = { getInterfaceSignalState: jest.fn(), addListener: jest.fn(), removeListeners: jest.fn() };
-    const emitter = jest.fn(() => ({ addListener }));
-
-    jest.isolateModules(() => {
-      jest.doMock('react-native', () => ({
-        Platform: { OS: 'android', select: () => '' },
-        TurboModuleRegistry: { get: () => nativeModule },
-        NativeEventEmitter: emitter,
-      }));
-      // eslint-disable-next-line @typescript-eslint/no-var-requires -- isolateModules needs a fresh require
-      const { addInterfaceSignalListener } = require('../src/native-module') as typeof import('../src/native-module');
-      addInterfaceSignalListener(listener);
-
-      expect(emitter).toHaveBeenCalledWith();
-      expect(addListener).toHaveBeenCalledWith('AMPNativeSessionReplayInterfaceSignal', listener);
-      expect(listener).not.toHaveBeenCalled();
-    });
+  it('orders buffered reports around the snapshot without duplicates or stale overwrites', async () => {
+    const test = createSubscription();
+    const ui = { ...snapshot, sequence: 1, interfaceChanged: true, timestamp: 99 };
+    const stopped = { ...snapshot, sequence: 3, isProviding: false };
+    test.emit(ui);
+    test.emit(snapshot);
+    test.emit(stopped);
+    test.resolve(snapshot);
+    await Promise.resolve();
+    expect(test.listener.mock.calls).toEqual([ui, snapshot, stopped].map((signal) => [publicReport(signal)]));
+    test.emit({ ...snapshot, sequence: 2 });
+    expect(test.listener).toHaveBeenCalledTimes(3);
+    test.subscription.remove();
   });
 
+  it('does not deliver a pending snapshot after removal and releases its native observer', async () => {
+    const test = createSubscription();
+    test.subscription.remove();
+    test.resolve(snapshot);
+    await Promise.resolve();
+    expect(test.listener).not.toHaveBeenCalled();
+    expect(test.remove).toHaveBeenCalledTimes(1);
+    expect(test.nativeModule.stopObservingInterfaceSignals).toHaveBeenCalledTimes(1);
+  });
+
+  it('cleans up a failed initialization without accepting later events', async () => {
+    const test = createSubscription();
+    test.reject(new Error('native initialization failed'));
+    await Promise.resolve();
+    test.emit(snapshot);
+    test.subscription.remove();
+    expect(test.listener).not.toHaveBeenCalled();
+    expect(test.remove).toHaveBeenCalledTimes(1);
+  });
+
+  it('makes unsupported native binaries a no-op', () => {
+    const test = createSubscription('android', false);
+    test.subscription.remove();
+    expect(test.emitter).not.toHaveBeenCalled();
+    expect(test.listener).not.toHaveBeenCalled();
+  });
+});
+
+describe('native module resolution', () => {
   it('throws a descriptive linking error on first use when the native module is unavailable', () => {
     jest.isolateModules(() => {
       jest.doMock('react-native', () => ({
@@ -85,55 +151,4 @@ describe('NativeSessionReplay module resolution', () => {
       expect(setCustomSessionId).toHaveBeenCalledWith('test-id');
     });
   });
-});
-
-describe('public interface-signal API', () => {
-  it.each(['ios', 'android'])('reads current native state through the public API on %s', async (platform) => {
-    const state = { isProviding: true, sessionId: 'custom-session', deviceId: 'device' };
-    const readState = jest.fn().mockResolvedValue(state);
-    const nativeModule = { getInterfaceSignalState: readState, addListener: jest.fn(), removeListeners: jest.fn() };
-    let read: () => Promise<unknown> = () => Promise.resolve(null);
-    jest.isolateModules(() => {
-      jest.doMock('react-native', () => ({
-        Platform: { OS: platform, select: () => '' },
-        TurboModuleRegistry: { get: () => nativeModule },
-      }));
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      read = (require('../src/native-module') as typeof import('../src/native-module')).getInterfaceSignalState;
-    });
-    await expect(read()).resolves.toBe(state);
-    expect(readState).toHaveBeenCalledTimes(1);
-  });
-
-  it.each(['unlinked', 'old binary', 'missing event support'])(
-    'returns unavailable state and a no-op subscription for %s',
-    async (scenario) => {
-      const nativeModule =
-        scenario === 'unlinked'
-          ? null
-          : scenario === 'old binary'
-          ? {}
-          : {
-              getInterfaceSignalState: jest.fn(),
-            };
-      const emitter = jest.fn();
-      const listener = jest.fn();
-      let read: () => Promise<unknown> = () => Promise.resolve(null);
-      jest.isolateModules(() => {
-        jest.doMock('react-native', () => ({
-          Platform: { OS: 'ios', select: () => '' },
-          TurboModuleRegistry: { get: () => nativeModule },
-          NativeEventEmitter: emitter,
-        }));
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const api = require('../src/native-module') as typeof import('../src/native-module');
-        read = api.getInterfaceSignalState;
-        const subscription = api.addInterfaceSignalListener(listener);
-        subscription.remove();
-      });
-      await expect(read()).resolves.toBeNull();
-      expect(listener).not.toHaveBeenCalled();
-      expect(emitter).not.toHaveBeenCalled();
-    },
-  );
 });

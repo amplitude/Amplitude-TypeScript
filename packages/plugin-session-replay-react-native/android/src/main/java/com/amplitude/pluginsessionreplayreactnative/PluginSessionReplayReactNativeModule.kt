@@ -1,5 +1,7 @@
 package com.amplitude.pluginsessionreplayreactnative
 
+import android.os.Handler
+import android.os.Looper
 import com.amplitude.android.sessionreplay.SessionReplay
 import com.amplitude.android.sessionreplay.config.MaskLevel
 import com.amplitude.android.sessionreplay.config.PrivacyConfig
@@ -23,44 +25,80 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   @Volatile private var shouldStart = false
   @Volatile private var replayGeneration = 0
 
-  @ReactMethod
-  fun getInterfaceSignalState(promise: Promise) {
-    val replay = sessionReplay
-    val state = WritableNativeMap().apply {
-      putBoolean("isProviding", reportInterfaceSignal())
-      putString("sessionId", replay?.getSessionId()?.toString() ?: "-1")
-      val deviceId = replay?.getDeviceId()?.takeIf { it.isNotEmpty() }
-      if (deviceId == null) putNull("deviceId") else putString("deviceId", deviceId)
+  private val signalHandler = Handler(Looper.getMainLooper())
+  private var signalObservers = 0
+  private var signalSequence = 0L
+  private var reportedProviding = false
+  private var reportedSessionId: String? = null
+  private var reportedDeviceId: String? = null
+  private var hasReportedState = false
+
+  // The SDK has no availability callback. Observe asynchronous start/sampling/
+  // memory changes while JS is subscribed, including when the UI is motionless.
+  private val checkSignalState = object : Runnable {
+    override fun run() {
+      synchronized(this@PluginSessionReplayReactNativeModule) {
+        if (signalObservers == 0) return
+        reportInterfaceSignal()
+        signalHandler.postDelayed(this, 100L)
+      }
     }
-    promise.resolve(state)
   }
 
-  private var reportedProviding = false
+  @ReactMethod
+  @Synchronized
+  fun observeInterfaceSignals(promise: Promise) {
+    try {
+      val initial = reportInterfaceSignal(snapshot = true)
+      signalObservers++
+      if (signalObservers == 1) signalHandler.post(checkSignalState)
+      promise.resolve(initial)
+    } catch (e: Exception) {
+      promise.reject("INTERFACE_SIGNAL_ERROR", e.message, e)
+    }
+  }
 
-  // Check availability and forward an optional UI/identity event in one synchronized report.
-  // Detaching an active recorder must report a stop even before its first state query.
+  @ReactMethod
+  @Synchronized
+  fun stopObservingInterfaceSignals() {
+    signalObservers = (signalObservers - 1).coerceAtLeast(0)
+    if (signalObservers == 0) signalHandler.removeCallbacks(checkSignalState)
+  }
+
   @Synchronized
   private fun reportInterfaceSignal(
     interfaceChanged: Boolean = false,
     identityChanged: Boolean = false,
     detached: Boolean = false,
-  ): Boolean {
-    val currentlyProviding = shouldStart && sessionReplay?.shouldRecord() == true
+    snapshot: Boolean = false,
+  ): WritableMap {
+    val replay = sessionReplay
+    val sessionId = replay?.getSessionId()?.toString() ?: "-1"
+    val deviceId = replay?.getDeviceId()?.takeIf { it.isNotEmpty() }
+    val currentlyProviding = shouldStart && replay?.shouldRecord() == true
     val isProviding = !detached && currentlyProviding
     val availabilityChanged = isProviding != reportedProviding || (detached && currentlyProviding)
+    val changedIdentity = identityChanged ||
+      (hasReportedState && (sessionId != reportedSessionId || deviceId != reportedDeviceId))
     reportedProviding = isProviding
-
-    if ((!availabilityChanged && !interfaceChanged && !identityChanged) ||
-      !reactContext.hasActiveCatalystInstance()) return isProviding
+    reportedSessionId = sessionId
+    reportedDeviceId = deviceId
+    hasReportedState = true
     val signal = Arguments.createMap().apply {
       putBoolean("interfaceChanged", interfaceChanged)
-      putBoolean("identityChanged", identityChanged)
+      putBoolean("identityChanged", changedIdentity)
       putBoolean("isProviding", isProviding)
+      putString("sessionId", sessionId)
+      if (deviceId == null) putNull("deviceId") else putString("deviceId", deviceId)
       putDouble("timestamp", System.currentTimeMillis().toDouble())
+      putDouble("sequence", (++signalSequence).toDouble())
     }
-    reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-      .emit("PluginSessionReplayReactNativeInterfaceSignal", signal)
-    return isProviding
+    if (signalObservers > 0 && (snapshot || availabilityChanged || interfaceChanged || changedIdentity) &&
+      reactContext.hasActiveCatalystInstance()) {
+      reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+        .emit("PluginSessionReplayReactNativeInterfaceSignal", if (snapshot) signal.copy() else signal)
+    }
+    return signal
   }
 
   override fun getName(): String {
@@ -68,6 +106,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
+  @Synchronized
   fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String?, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean, maskLevel: String) {
     LogcatLogger.logger.logMode = when (logLevel) {
         0 -> Logger.LogMode.OFF
@@ -122,10 +161,11 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         }
       }
     )
-    reportInterfaceSignal()
+    reportInterfaceSignal(snapshot = true)
   }
 
   @ReactMethod
+  @Synchronized
   fun setSessionId(sessionId: Double) {
     val replay = sessionReplay
     val changed = replay != null && replay.getSessionId() != sessionId.toLong()
@@ -159,6 +199,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
+  @Synchronized
   fun start() {
     shouldStart = true
     sessionReplay?.start()
@@ -166,6 +207,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
+  @Synchronized
   fun stop() {
     shouldStart = false
     sessionReplay?.stop()
@@ -178,6 +220,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
+  @Synchronized
   fun teardown() {
     replayGeneration++
     reportInterfaceSignal(detached = true)
@@ -186,7 +229,10 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
     sessionReplay = null
   }
 
+  @Synchronized
   override fun invalidate() {
+    signalObservers = 0
+    signalHandler.removeCallbacks(checkSignalState)
     replayGeneration++
     reportedProviding = false
     shouldStart = false

@@ -23,51 +23,86 @@ export const NativeSessionReplay = (SessionReplaySpec ??
     },
   )) as unknown as NativeSessionReplaySpec;
 
-/** Native UI observation events. Lifecycle bookkeeping belongs to the JS consumer. */
-export interface InterfaceSignal {
-  interfaceChanged: boolean;
-  identityChanged: boolean;
-  isProviding: boolean;
-  timestamp: number;
-}
-
-/** Current native recording availability and identity for interface-signal consumers. */
+/** Current recording state included with every observation report. */
 export interface InterfaceSignalState {
   isProviding: boolean;
   sessionId: string;
   deviceId: string | null;
 }
 
-function supportsInterfaceSignals(): boolean {
-  return (
-    typeof SessionReplaySpec?.getInterfaceSignalState === 'function' &&
-    (Platform.OS === 'android' ||
-      (typeof SessionReplaySpec?.addListener === 'function' &&
-        typeof SessionReplaySpec?.removeListeners === 'function'))
-  );
+/** The first report is a snapshot; subsequent reports also describe what changed. */
+export interface InterfaceSignal extends InterfaceSignalState {
+  interfaceChanged: boolean;
+  identityChanged: boolean;
+  timestamp: number;
 }
 
-/** Returns null when the linked native binary cannot provide interface signals. */
-export async function getInterfaceSignalState(): Promise<InterfaceSignalState | null> {
-  return supportsInterfaceSignals() ? NativeSessionReplay.getInterfaceSignalState() : null;
+// Native sequence numbers order the initial snapshot relative to queued events.
+interface NativeInterfaceSignal extends InterfaceSignal {
+  sequence: number;
 }
 
-/**
- * Subscribe to observation reports. Read initial state with getInterfaceSignalState();
- * subscribing does not synthesize a UI/identity change or duplicate an availability report.
- */
+/** Subscribe to an initial snapshot followed by complete state updates. */
 export function addInterfaceSignalListener(
   listener: (signal: InterfaceSignal) => void,
 ): Pick<EmitterSubscription, 'remove'> {
-  if (!supportsInterfaceSignals()) {
+  if (
+    typeof SessionReplaySpec?.observeInterfaceSignals !== 'function' ||
+    typeof SessionReplaySpec?.stopObservingInterfaceSignals !== 'function' ||
+    (Platform.OS !== 'android' &&
+      (typeof SessionReplaySpec?.addListener !== 'function' ||
+        typeof SessionReplaySpec?.removeListeners !== 'function'))
+  ) {
     return { remove: () => undefined };
   }
   const emitter =
     Platform.OS === 'android'
       ? new NativeEventEmitter()
       : new NativeEventEmitter(NativeSessionReplay as unknown as NativeModule);
-  const subscription = emitter.addListener('AMPNativeSessionReplayInterfaceSignal', listener);
-  return subscription;
+  let removed = false;
+  let initialized = false;
+  let sequence = -1;
+  const pending: NativeInterfaceSignal[] = [];
+  const deliver = (signal: NativeInterfaceSignal) => {
+    if (removed || signal.sequence <= sequence) return;
+    sequence = signal.sequence;
+    const { sequence: _sequence, ...report } = signal;
+    listener(report);
+  };
+  const subscription = emitter.addListener('AMPNativeSessionReplayInterfaceSignal', (signal: NativeInterfaceSignal) => {
+    if (removed) return;
+    if (initialized) deliver(signal);
+    else pending.push(signal);
+  });
+  // Install the JS listener first. Buffer native events until the subscription's
+  // initial snapshot arrives, then deliver them in native order without duplicates.
+  void NativeSessionReplay.observeInterfaceSignals().then(
+    (snapshot) => {
+      if (removed) {
+        NativeSessionReplay.stopObservingInterfaceSignals();
+        return;
+      }
+      pending.push(snapshot);
+      pending.sort((left, right) => left.sequence - right.sequence);
+      initialized = true;
+      pending.forEach(deliver);
+      pending.length = 0;
+    },
+    () => {
+      removed = true;
+      pending.length = 0;
+      subscription.remove();
+    },
+  );
+  return {
+    remove: () => {
+      if (removed) return;
+      removed = true;
+      pending.length = 0;
+      subscription.remove();
+      if (initialized) NativeSessionReplay.stopObservingInterfaceSignals();
+    },
+  };
 }
 
 /**
@@ -136,7 +171,8 @@ export interface NativeSessionReplaySpec {
   getCustomSessionId(): Promise<string>;
 
   /** Internal UI change signal state used by React Native dead click detection. */
-  getInterfaceSignalState(): Promise<InterfaceSignalState>;
+  observeInterfaceSignals(): Promise<NativeInterfaceSignal>;
+  stopObservingInterfaceSignals(): void;
 
   /**
    * Updates whether session replay collection is disabled for the current user.
