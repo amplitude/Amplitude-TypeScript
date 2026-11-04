@@ -10,6 +10,11 @@ class PluginSessionReplayReactNative: RCTEventEmitter, @unchecked Sendable {
     private let listenersLock = NSRecursiveLock()
     private var interfaceSignalReceiver: RecorderSignalReceiver?
     private var hasListeners = false
+    private var signalObservers = 0
+    private var signalSequence = 0
+    private var reportedSessionId: String?
+    private var reportedDeviceId: String?
+    private var hasReportedState = false
 
     // A receiver belongs to one recorder. Queued callbacks from detached recorders
     // retain their old receiver and cannot be mistaken for callbacks from a new one.
@@ -42,6 +47,8 @@ class PluginSessionReplayReactNative: RCTEventEmitter, @unchecked Sendable {
                maskLevel: String,
                resolve: RCTPromiseResolveBlock,
                reject: RCTPromiseRejectBlock) -> Void {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
         tearDownSessionReplay()
         print(
             """
@@ -73,47 +80,58 @@ class PluginSessionReplayReactNative: RCTEventEmitter, @unchecked Sendable {
         if (autoStart) {
             sessionReplay.start()
         }
+        emitInterfaceSignal()
         resolve(nil)
     }
     
     @objc(setSessionId:resolve:reject:)
     func setSessionId(_ sessionId: NSNumber, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("setSessionId: \(sessionId)")
-      if let replay = sessionReplay, replay.sessionId != sessionId.int64Value {
-          emitInterfaceSignal(identityChanged: true)
-      }
+      listenersLock.lock()
+      defer { listenersLock.unlock() }
+      let changed = sessionReplay.map { $0.sessionId != sessionId.int64Value } ?? false
       sessionReplay?.sessionId = sessionId.int64Value
+      if changed { emitInterfaceSignal(identityChanged: true) }
       resolve(nil)
     }
 
     @objc(getDeviceId:reject:)
     func getDeviceId(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
         resolve(sessionReplay?.deviceId)
     }
 
     @objc(setDeviceId:resolve:reject:)
     func setDeviceId(_ deviceId: NSString?, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
-        if let replay = sessionReplay, replay.deviceId != deviceId as String? {
-            emitInterfaceSignal(identityChanged: true)
-        }
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
+        let changed = sessionReplay.map { $0.deviceId != deviceId as String? } ?? false
         sessionReplay?.deviceId = deviceId as String?
+        if changed { emitInterfaceSignal(identityChanged: true) }
         resolve(nil)
     }
 
     @objc(getSessionId:reject:)
     func getSessionId(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
       print("getSessionId")
       resolve(NSNumber(value: sessionReplay?.sessionId ?? -1))
     }
     
     @objc(getSessionReplayProperties:reject:)
     func getSessionReplayProperties(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
       print("getSessionReplayProperties")
       resolve(sessionReplay?.additionalEventProperties ?? [:])
     }
     
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
       print("start")
       sessionReplay?.start()
       resolve(nil)
@@ -121,6 +139,8 @@ class PluginSessionReplayReactNative: RCTEventEmitter, @unchecked Sendable {
     
     @objc(stop:reject:)
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
       print("stop")
       sessionReplay?.stop()
       resolve(nil)
@@ -128,6 +148,8 @@ class PluginSessionReplayReactNative: RCTEventEmitter, @unchecked Sendable {
     
     @objc(flush:reject:)
     func flush(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
       print("flush")
       sessionReplay?.flush()
       resolve(nil)
@@ -135,25 +157,33 @@ class PluginSessionReplayReactNative: RCTEventEmitter, @unchecked Sendable {
     
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
         print("teardown")
         tearDownSessionReplay()
         resolve(nil)
     }
 
-    @objc(getInterfaceSignalState:reject:)
-    func getInterfaceSignalState(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
-        var state: [String: Any] = [:]
-        state["isProviding"] = sessionReplay?.isProviding ?? false
-        state["sessionId"] = sessionReplay.map { String($0.sessionId) } ?? "-1"
-        if let deviceId = sessionReplay?.deviceId, !deviceId.isEmpty {
-            state["deviceId"] = deviceId
-        } else {
-            state["deviceId"] = NSNull()
-        }
-        resolve(state)
+    @objc(observeInterfaceSignals:reject:)
+    func observeInterfaceSignals(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
+        signalObservers += 1
+        resolve(emitInterfaceSignal())
+    }
+
+    @objc(stopObservingInterfaceSignals)
+    func stopObservingInterfaceSignals() {
+        listenersLock.lock()
+        defer { listenersLock.unlock() }
+        signalObservers = max(0, signalObservers - 1)
     }
 
     override func invalidate() {
+        listenersLock.lock()
+        signalObservers = 0
+        hasListeners = false
+        listenersLock.unlock()
         tearDownSessionReplay(emitStopProviding: false)
         super.invalidate()
     }
@@ -188,23 +218,38 @@ class PluginSessionReplayReactNative: RCTEventEmitter, @unchecked Sendable {
         listenersLock.unlock()
     }
 
+    @discardableResult
     private func emitInterfaceSignal(
         from receiver: RecorderSignalReceiver? = nil,
         interfaceChanged: Bool = false,
         identityChanged: Bool = false,
         isProviding: Bool? = nil,
         timestamp: Double = Date().timeIntervalSince1970 * 1000
-    ) {
+    ) -> [String: Any]? {
         listenersLock.lock()
         defer { listenersLock.unlock() }
-        guard hasListeners else { return }
-        if let receiver, receiver !== interfaceSignalReceiver { return }
-        sendEvent(withName: "PluginSessionReplayReactNativeInterfaceSignal", body: [
+        if let receiver, receiver !== interfaceSignalReceiver { return nil }
+        let sessionId = sessionReplay.map { String($0.sessionId) } ?? "-1"
+        let deviceId = sessionReplay?.deviceId.flatMap { $0.isEmpty ? nil : $0 }
+        let changedIdentity = identityChanged ||
+            (hasReportedState && (sessionId != reportedSessionId || deviceId != reportedDeviceId))
+        reportedSessionId = sessionId
+        reportedDeviceId = deviceId
+        hasReportedState = true
+        signalSequence += 1
+        let signal: [String: Any] = [
             "interfaceChanged": interfaceChanged,
-            "identityChanged": identityChanged,
+            "identityChanged": changedIdentity,
             "isProviding": isProviding ?? sessionReplay?.isProviding ?? false,
-            "timestamp": timestamp
-        ])
+            "sessionId": sessionId,
+            "deviceId": deviceId as Any? ?? NSNull(),
+            "timestamp": timestamp,
+            "sequence": signalSequence
+        ]
+        if hasListeners && signalObservers > 0 {
+            sendEvent(withName: "PluginSessionReplayReactNativeInterfaceSignal", body: signal)
+        }
+        return signal
     }
 
 }

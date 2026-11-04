@@ -1,13 +1,12 @@
 import { ReactNativeConfig } from '@amplitude/analytics-core';
 import { AppState } from 'react-native';
-import type { InterfaceSignal, InterfaceSignalState } from '@amplitude/session-replay-react-native';
+import type { InterfaceSignal } from '@amplitude/session-replay-react-native';
 import type { AmpCaptureCoordinates } from '../amp-capture';
 import { isWeb } from '../utils/platform';
 
 const DEAD_CLICK_TIMEOUT = 3_000;
 
 interface InterfaceSignalProvider {
-  getInterfaceSignalState(): Promise<InterfaceSignalState | null>;
   addInterfaceSignalListener(listener: (signal: InterfaceSignal) => void): { remove(): void };
 }
 
@@ -28,15 +27,13 @@ function getInterfaceSignalProviders(): InterfaceSignalProvider[] {
     // Either Replay package can provide interface signals independently.
   }
   return providers.filter(
-    (provider): provider is InterfaceSignalProvider =>
-      typeof provider.getInterfaceSignalState === 'function' &&
-      typeof provider.addInterfaceSignalListener === 'function',
+    (provider): provider is InterfaceSignalProvider => typeof provider.addInterfaceSignalListener === 'function',
   );
 }
 
 /**
- * Session Replay owns UI observation, sampling and recording availability. Read its
- * exported APIs instead of interpreting JS renders or analytics events as UI changes.
+ * Session Replay owns UI observation, sampling and recording availability. Subscribe to its
+ * exported snapshots instead of interpreting JS renders or analytics events as UI changes.
  * Observation history and lifecycle invalidation are maintained here in JavaScript.
  * Replay packages are optional peers, loaded only when native dead-click detection is enabled.
  */
@@ -47,15 +44,21 @@ export function createDeadClickTracker(
   const providers = isWeb()
     ? []
     : getInterfaceSignalProviders().flatMap((replay) => {
-        const observation = { generation: 0, lastChangeTime: 0 };
+        const observation = { generation: 0, lastChangeTime: 0, state: null as InterfaceSignal | null };
         try {
           const subscription = replay.addInterfaceSignalListener((signal) => {
             if (signal.interfaceChanged) {
               observation.lastChangeTime = Math.max(observation.lastChangeTime, signal.timestamp);
             }
-            if (!signal.isProviding || signal.identityChanged) {
+            const previous = observation.state;
+            if (
+              !signal.isProviding ||
+              signal.identityChanged ||
+              (previous && (previous.sessionId !== signal.sessionId || previous.deviceId !== signal.deviceId))
+            ) {
               observation.generation++;
             }
+            observation.state = signal;
           });
           return [{ replay, observation, subscription }];
         } catch (error) {
@@ -93,73 +96,42 @@ export function createDeadClickTracker(
       !config.optOut &&
       config.sessionId === sessionId &&
       config.deviceId === deviceId;
-    const isProviding = (state: InterfaceSignalState | null) =>
+    const isProviding = (state: InterfaceSignal | null) =>
       state?.isProviding && state.sessionId === String(sessionId) && state.deviceId === deviceId;
 
-    // Register before the application's press handler runs. Each press has its own
-    // deadline, so subsequent presses do not replace earlier candidates.
-    void Promise.all(
-      providers.map(async (provider) => {
-        const generation = provider.observation.generation;
-        try {
-          return { ...provider, generation, state: await provider.replay.getInterfaceSignalState() };
-        } catch (error) {
-          config.loggerProvider.debug(`Could not read Session Replay UI-change signals: ${String(error)}`);
-          return undefined;
-        }
-      }),
-    )
-      .then((states) => {
-        // Both packages can be linked even when only one is initialized. Use a
-        // recording provider with matching identity, and emit at most once per press.
-        const provider = states.find((entry) => entry && isProviding(entry.state));
-        if (!isCurrent()) {
-          return;
-        }
-        if (!provider) {
-          config.loggerProvider.debug(
-            'Skipping dead click: no recording Session Replay provider matches the Analytics session and device. ' +
-              'If this follows Fast Refresh, fully restart the development app to clear stale SDK instances.',
-          );
-          return;
-        }
-        if (provider.observation.lastChangeTime >= time || provider.observation.generation !== provider.generation) {
-          return;
-        }
-        const { replay, observation, generation } = provider;
-        const timer = setTimeout(() => {
-          timers.delete(timer);
-          if (!isCurrent()) {
-            return;
-          }
-          void replay
-            .getInterfaceSignalState()
-            .then((state) => {
-              if (
-                isCurrent() &&
-                isProviding(state) &&
-                observation.generation === generation &&
-                observation.lastChangeTime < time
-              ) {
-                onDeadClick(
-                  {
-                    ...eventProperties,
-                    '[Amplitude] Begin Time': new Date(time).toISOString(),
-                    '[Amplitude] End Time': new Date(time + DEAD_CLICK_TIMEOUT).toISOString(),
-                    '[Amplitude] Duration': DEAD_CLICK_TIMEOUT,
-                    '[Amplitude] X': Math.trunc(coordinates.x),
-                    '[Amplitude] Y': Math.trunc(coordinates.y),
-                    '[Amplitude] Click Count': 1,
-                  },
-                  time,
-                );
-              }
-            })
-            .catch(() => undefined);
-        }, Math.max(0, time + DEAD_CLICK_TIMEOUT - Date.now()));
-        timers.add(timer);
-      })
-      .catch(() => undefined);
+    // Wait for an initial Replay snapshot before accepting presses. Each report
+    // carries complete state, so presses and deadlines never query native modules.
+    const provider = providers.find(({ observation }) => isProviding(observation.state));
+    if (!provider) {
+      config.loggerProvider.debug('Skipping dead click: no Replay snapshot matches the Analytics session and device.');
+      return;
+    }
+    const { observation } = provider;
+    if (observation.lastChangeTime >= time) return;
+    const providerGeneration = observation.generation;
+    const timer = setTimeout(() => {
+      timers.delete(timer);
+      if (
+        isCurrent() &&
+        isProviding(observation.state) &&
+        observation.generation === providerGeneration &&
+        observation.lastChangeTime < time
+      ) {
+        onDeadClick(
+          {
+            ...eventProperties,
+            '[Amplitude] Begin Time': new Date(time).toISOString(),
+            '[Amplitude] End Time': new Date(time + DEAD_CLICK_TIMEOUT).toISOString(),
+            '[Amplitude] Duration': DEAD_CLICK_TIMEOUT,
+            '[Amplitude] X': Math.trunc(coordinates.x),
+            '[Amplitude] Y': Math.trunc(coordinates.y),
+            '[Amplitude] Click Count': 1,
+          },
+          time,
+        );
+      }
+    }, DEAD_CLICK_TIMEOUT);
+    timers.add(timer);
   };
 
   return {

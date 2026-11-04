@@ -29,8 +29,8 @@ yarn add @react-native-async-storage/async-storage
 
 ## Optional Session Replay integration
 
-Dead-click detection subscribes to `addInterfaceSignalListener` and reads
-`getInterfaceSignalState` exported by either `@amplitude/session-replay-react-native`
+Dead-click detection receives an initial snapshot and complete state updates through
+`addInterfaceSignalListener`, exported by either `@amplitude/session-replay-react-native`
 or `@amplitude/plugin-session-replay-react-native`. Install and initialize one of
 these optional peer dependencies with native interface-signal support to enable
 detection. Replay owns native module lookup, event names, and recording state;

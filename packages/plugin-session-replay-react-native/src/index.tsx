@@ -1,6 +1,5 @@
 export { SessionReplayPlugin } from './session-replay';
 export {
-  getInterfaceSignalState,
   addInterfaceSignalListener,
   type InterfaceSignal,
   type InterfaceSignalState,
