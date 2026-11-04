@@ -1,3 +1,5 @@
-import { umd, iife, snippet, iifeGTM, snippetGTM, bookmarklet } from '../../scripts/build/rollup.config';
+import { umd, iife, createIife, snippet, iifeGTM, snippetGTM, bookmarklet } from '../../scripts/build/rollup.config';
 
-export default [umd, iife, snippet, iifeGTM, snippetGTM, bookmarklet];
+const iifeLite = createIife('src/snippet-index-lite.ts', 'lib/scripts/amplitude-lite-min.js');
+
+export default [umd, iife, iifeLite, snippet, iifeGTM, snippetGTM, bookmarklet];
