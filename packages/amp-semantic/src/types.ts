@@ -1,4 +1,10 @@
+import type { PrivacyConfig } from '@amplitude/session-replay-dom-privacy';
+
 export const SEMANTIC_VERSION = 1;
+export interface AnalyticsContext {
+  present: boolean;
+  autocapture: string[];
+}
 export interface SemanticIdentity {
   readonly tab_id: string;
   readonly document_id: string;
@@ -10,8 +16,22 @@ export interface SemanticEventEnvelope<Name extends string, Payload extends obje
   payload: Payload & SemanticIdentity & { v: typeof SEMANTIC_VERSION };
 }
 
-/** Runtime consumers supply a map of event names to payload objects. */
-export type SemanticPayloads = Record<string, object>;
+/** Payloads exclude version and identity, which are owned by the runtime. */
+export interface SemanticPayloads {
+  context: {
+    sdk: string;
+    mask: 'light' | 'medium' | 'conservative';
+    css: { total: number; inlined: number; unreadable: number };
+    viewport: { w: number; h: number };
+    device: 'desktop' | 'tablet' | 'mobile';
+    language: string;
+    visibility_state: 'hidden' | 'visible';
+    focused: boolean;
+    user_agent: string;
+    analytics_sdk: AnalyticsContext;
+    caps_hit?: Partial<Record<SemanticFamily, number>>;
+  };
+}
 export type SemanticFamily<P extends object = SemanticPayloads> = Extract<keyof P, string>;
 export type SemanticEvent<P extends object = SemanticPayloads> = {
   [K in SemanticFamily<P>]: SemanticEventEnvelope<K, P[K] & object>;
@@ -32,6 +52,10 @@ export type Cleanup = () => void;
 export interface SemanticHost<P extends object = SemanticPayloads> {
   document: Document;
   window: Window;
+  sdk: string;
+  getPrivacy: () => PrivacyConfig;
+  getAnalyticsContext?: () => AnalyticsContext;
+  inlineStylesheet?: boolean;
   emit: (event: SemanticEvent<P>) => void;
   /** Called lazily for accepted events. Defaults to document-scoped memory only. */
   getIdentity?: () => SemanticIdentity;

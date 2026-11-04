@@ -23,7 +23,7 @@ test('exposes an empty runtime and document identity without installing browser 
   const listener = jest.spyOn(document, 'addEventListener');
   expect(semantic.DEFAULT_SEMANTIC_CAP).toBe(200);
   expect(semantic.getDocumentIdentity(document, window).tab_id).toEqual(expect.any(String));
-  const capture = semantic.createSemanticCapture({ enabled: true }, h);
+  const capture = semantic.createCapture({ enabled: true }, h, []);
   capture.start();
   capture.notify('snapshot', undefined);
   expect(capture.isActive()).toBe(true);
@@ -36,7 +36,7 @@ test.each([0, -1, 2, NaN, Infinity])(
   'rejects invalid or zero sample rate %s without attaching listeners',
   (sampleRate) => {
     const host = recorderContext().context.host;
-    const capture = semantic.createSemanticCapture({ enabled: true, sampleRate }, host);
+    const capture = semantic.createCapture({ enabled: true, sampleRate }, host, []);
     capture.start();
     capture.notify('snapshot', undefined);
     expect(capture.isActive()).toBe(false);
@@ -100,9 +100,9 @@ test('isolates failing cleanup and lets recorders acknowledge dropped counts', (
 test('supports typed extensions with explicit family budgets', () => {
   type Payloads = { sample: { value: number } };
   const emit = jest.fn();
-  const capture = semantic.createSemanticCapture<Payloads>(
+  const capture = semantic.createCapture<Payloads>(
     { enabled: true },
-    { document, window, emit },
+    { document, window, sdk: 'test', getPrivacy: () => ({}), emit },
     [
       {
         families: ['sample'],

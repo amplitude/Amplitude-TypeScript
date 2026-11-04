@@ -10,6 +10,8 @@ describe('capture runtime', () => {
   beforeEach(() => {
     host = {
       document,
+      sdk: 'test',
+      getPrivacy: () => ({}),
       window,
       emit: jest.fn(),
       getIdentity: jest.fn(() => ({ tab_id: 'tab-test', document_id: 'document-test' })),

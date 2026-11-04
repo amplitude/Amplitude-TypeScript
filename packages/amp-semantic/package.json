@@ -1,14 +1,15 @@
 {
   "name": "@amplitude/amp-semantic",
   "version": "0.1.0",
-  "description": "Shared package foundation for Amplitude semantic event capture",
+  "description": "Composable semantic event capture with browser context for Amplitude",
   "license": "MIT",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "types": "lib/esm/index.d.ts",
   "sideEffects": false,
   "files": [
-    "lib"
+    "lib",
+    "schema.json"
   ],
   "publishConfig": {
     "access": "public"
@@ -23,7 +24,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "tslib": "^2.4.1"
+    "tslib": "^2.4.1",
+    "@amplitude/session-replay-dom-privacy": "workspace:*"
   },
   "repository": {
     "type": "git",
@@ -31,6 +33,7 @@
   },
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "devDependencies": {
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "ajv": "^8.17.1"
   }
 }
