@@ -26,6 +26,7 @@ type Signal = { interfaceChanged: boolean; identityChanged: boolean; isProviding
 type Provider = {
   getInterfaceSignalState?: jest.Mock;
   addInterfaceSignalListener?: jest.Mock;
+  onInterfaceChange?: jest.Mock | typeof import('@amplitude/session-replay-react-native').onInterfaceChange;
 };
 const mockPluginReplay: Provider = {};
 const mockStandaloneReplay: Provider = {};
@@ -46,6 +47,16 @@ const emitSignal = (
       timestamp,
     }),
   );
+const interfaceAPI = (provider: Provider) => (listener: (signal: Signal) => void) => {
+  const subscription = provider.addInterfaceSignalListener?.(listener);
+  return {
+    getState: () =>
+      (provider.getInterfaceSignalState?.() as Promise<SignalState | null> | undefined) ?? Promise.resolve(null),
+    remove: () => {
+      subscription?.remove();
+    },
+  };
+};
 const subscribe = (provider: keyof typeof listeners) =>
   jest.fn((listener: (signal: Signal) => void) => {
     listeners[provider].add(listener);
@@ -87,6 +98,8 @@ describe('dead click detection', () => {
     readState = jest.fn(() => Promise.resolve({ ...state }));
     mockPluginReplay.getInterfaceSignalState = readState;
     mockPluginReplay.addInterfaceSignalListener = subscribe('plugin');
+    mockPluginReplay.onInterfaceChange = interfaceAPI(mockPluginReplay);
+    mockStandaloneReplay.onInterfaceChange = interfaceAPI(mockStandaloneReplay);
     delete mockStandaloneReplay.getInterfaceSignalState;
     delete mockStandaloneReplay.addInterfaceSignalListener;
     listeners.plugin.clear();
@@ -153,12 +166,12 @@ describe('dead click detection', () => {
             NativeEventEmitter,
           }));
           // Use the actual Replay wrapper behind the package's exported API.
-          const replay = jest.requireActual<Provider>('../../../plugin-session-replay-react-native/src/native-module');
-          mockPluginReplay.getInterfaceSignalState = replay.getInterfaceSignalState;
-          mockPluginReplay.addInterfaceSignalListener = replay.addInterfaceSignalListener;
+          const replay = jest.requireActual<
+            typeof import('../../../plugin-session-replay-react-native/src/session-replay')
+          >('../../../plugin-session-replay-react-native/src/session-replay');
+          mockPluginReplay.onInterfaceChange = replay.onInterfaceChange;
         });
 
-        expect(await mockPluginReplay.getInterfaceSignalState?.()).toEqual(state);
         const eventName = 'PluginSessionReplayReactNativeInterfaceSignal';
         const initialListeners = DeviceEventEmitter.listenerCount(eventName);
         const tracker = createTracker();
@@ -376,8 +389,9 @@ describe('dead click detection', () => {
       if (scenario === 'old Replay package') {
         delete mockPluginReplay.getInterfaceSignalState;
         delete mockPluginReplay.addInterfaceSignalListener;
+        delete mockPluginReplay.onInterfaceChange;
       }
-      if (scenario === 'package without subscription API') delete mockPluginReplay.addInterfaceSignalListener;
+      if (scenario === 'package without subscription API') delete mockPluginReplay.onInterfaceChange;
       if (scenario === 'unsupported native binary')
         mockPluginReplay.getInterfaceSignalState = jest.fn().mockResolvedValue(null);
       createTracker().registerClickEvent(coordinates, properties);

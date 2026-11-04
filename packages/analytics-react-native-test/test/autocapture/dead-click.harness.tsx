@@ -10,11 +10,7 @@ import { screen, userEvent } from '@react-native-harness/ui';
 import { MemoryStorage, Status } from '@amplitude/analytics-core';
 import { ampCapture, Types } from '@amplitude/analytics-react-native';
 import { AmplitudeReactNative } from '@amplitude/analytics-react-native/src/react-native-client';
-import {
-  addInterfaceSignalListener,
-  getInterfaceSignalState,
-  SessionReplayPlugin,
-} from '@amplitude/plugin-session-replay-react-native';
+import { onInterfaceChange, SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
 import { createEventCapture, EventCapture } from '../helpers/event-capture';
 
 const THRESHOLD = 3_000;
@@ -58,7 +54,7 @@ describe('autocapture.deadClicks with native Session Replay', () => {
   let unmount: (() => void) | undefined;
   let pressedAt: number;
   let lastChangeTime: number;
-  let signalSubscription: ReturnType<typeof addInterfaceSignalListener> | undefined;
+  let signalSubscription: ReturnType<typeof onInterfaceChange> | undefined;
 
   const deadClicks = () => capture.events.filter((event) => event.event_type === DEAD_CLICK);
 
@@ -69,7 +65,7 @@ describe('autocapture.deadClicks with native Session Replay', () => {
     lastChangeTime = 0;
     signalSubscription = undefined;
     capture = createEventCapture();
-    signalSubscription = addInterfaceSignalListener((signal) => {
+    signalSubscription = onInterfaceChange((signal) => {
       if (signal.interfaceChanged) lastChangeTime = Math.max(lastChangeTime, signal.timestamp);
     });
     client = new AmplitudeReactNative();
@@ -101,7 +97,7 @@ describe('autocapture.deadClicks with native Session Replay', () => {
     // and the identity required by the detector before testing any presses.
     await waitFor(
       async () => {
-        const state = await getInterfaceSignalState();
+        const state = await signalSubscription?.getState();
         expect(state?.isProviding).toBe(true);
         expect(state?.sessionId).toBe(String(client?.getSessionId()));
         expect(state?.deviceId).toBe(client?.getDeviceId());
@@ -123,7 +119,7 @@ describe('autocapture.deadClicks with native Session Replay', () => {
   });
 
   async function press(changeDelay?: number) {
-    const recording = (await getInterfaceSignalState())?.isProviding;
+    const recording = (await signalSubscription?.getState())?.isProviding;
     const renderStartedAt = Date.now();
     const rendered = await render(
       <DeadClickScreen
@@ -197,10 +193,10 @@ describe('autocapture.deadClicks with native Session Replay', () => {
 
   it('does not capture a dead click with Replay stopped and no UI change', async () => {
     await replay?.stop();
-    await waitFor(async () => expect((await getInterfaceSignalState())?.isProviding).toBe(false));
+    await waitFor(async () => expect((await signalSubscription?.getState())?.isProviding).toBe(false));
     await press();
     await sleep(Math.max(0, pressedAt + THRESHOLD + 1_000 - Date.now()));
-    expect((await getInterfaceSignalState())?.isProviding).toBe(false);
+    expect((await signalSubscription?.getState())?.isProviding).toBe(false);
     expect(deadClicks()).toHaveLength(0);
   });
 
@@ -208,7 +204,7 @@ describe('autocapture.deadClicks with native Session Replay', () => {
     await press();
     await replay?.stop();
     await replay?.start();
-    await waitFor(async () => expect((await getInterfaceSignalState())?.isProviding).toBe(true));
+    await waitFor(async () => expect((await signalSubscription?.getState())?.isProviding).toBe(true));
     await sleep(Math.max(0, pressedAt + THRESHOLD + 1_000 - Date.now()));
     expect(deadClicks()).toHaveLength(0);
   });

@@ -1,5 +1,7 @@
 export {
   init,
+  onInterfaceChange,
+  type InterfaceChangeSubscription,
   setSessionId,
   getSessionId,
   flush,

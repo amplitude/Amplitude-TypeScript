@@ -1,9 +1,32 @@
 // @refresh reset
 
-import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
+import {
+  NativeSessionReplay,
+  addInterfaceSignalListener,
+  getInterfaceSignalState,
+  type InterfaceSignal,
+  type InterfaceSignalState,
+  type NativeSessionReplayConfig,
+} from './native-module';
 import { getDefaultConfig, SessionReplayConfig, SessionReplayConfigInternal } from './session-replay-config';
 import { createSessionReplayLogger } from './logger';
 import { VERSION } from './version';
+
+/** A removable interface subscription with access to current recording state. */
+export interface InterfaceChangeSubscription {
+  getState(): Promise<InterfaceSignalState | null>;
+  remove(): void;
+}
+
+/**
+ * Observe native UI, availability and identity changes without resolving a native
+ * module. This can be called before Replay is initialized; unsupported binaries
+ * return a no-op subscription whose getState() resolves to null.
+ */
+export function onInterfaceChange(listener: (signal: InterfaceSignal) => void): InterfaceChangeSubscription {
+  const subscription = addInterfaceSignalListener(listener);
+  return { getState: getInterfaceSignalState, remove: () => subscription.remove() };
+}
 
 type ResolvedSessionReplayConfig = Required<SessionReplayConfigInternal>;
 
