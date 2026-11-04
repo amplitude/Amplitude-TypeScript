@@ -68,7 +68,10 @@ export async function getInterfaceSignalState(): Promise<InterfaceSignalState | 
   return supportsInterfaceSignals() ? PluginSessionReplayReactNative.getInterfaceSignalState() : null;
 }
 
-/** Subscribe to UI changes, recording availability transitions, and recording identity changes. */
+/**
+ * Subscribe to observation reports. Read initial state with getInterfaceSignalState();
+ * subscribing does not synthesize a UI/identity change or duplicate an availability report.
+ */
 export function addInterfaceSignalListener(
   listener: (signal: InterfaceSignal) => void,
 ): Pick<EmitterSubscription, 'remove'> {
