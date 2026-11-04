@@ -67,7 +67,13 @@ test('real replay transport delivers only the two supported families with stable
   expect(await page.evaluate(() => window.semanticHarness.errors)).toEqual([]);
 });
 
-for (const query of ['?enabled=false', '?sampleRate=0', '?remoteEnabled=false', '?disabled=context,visibility']) {
+for (const query of [
+  '?enabled=false',
+  '?sampleRate=0',
+  '?remoteEnabled=false',
+  '?disabled=context,visibility',
+  '?factory=false&remoteEnabled=true',
+]) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
     await open(page, query);
     await visibility(page, 'hidden');

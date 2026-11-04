@@ -1,16 +1,24 @@
-import { createSemanticCapture, SEMANTIC_CAPS, SemanticCaptureConfig, SemanticHost } from '@amplitude/amp-semantic';
+import type {
+  SemanticCaptureConfig,
+  SemanticCaptureController,
+  SemanticCaptureFactory,
+  SemanticCaptureHost,
+} from './semantic-types';
+
+/** Transport startup queue bound, independent of recorder-specific event budgets. */
+export const MAX_PENDING_SEMANTIC_SNAPSHOTS = 200;
 import { EventType, eventWithTime } from '@amplitude/rrweb-types';
 
 /** Starts capture only after rrweb can accept custom events. */
 export class ReplaySemanticAdapter {
-  private readonly capture: ReturnType<typeof createSemanticCapture>;
+  private readonly capture: SemanticCaptureController;
   private sessionId?: string | number;
   private ready = false;
   private pendingSnapshots = 0;
   private config: SemanticCaptureConfig = { enabled: false };
 
-  constructor(host: SemanticHost) {
-    this.capture = createSemanticCapture(this.config, host);
+  constructor(readonly factory: SemanticCaptureFactory, host: SemanticCaptureHost) {
+    this.capture = factory(this.config, host);
   }
 
   prepare(config: SemanticCaptureConfig, sessionId: string | number): void {
@@ -38,8 +46,8 @@ export class ReplaySemanticAdapter {
   private snapshot(): void {
     if (!this.config.enabled) return;
     if (!this.ready) {
-      // No DOM retention; bound startup work by the context event budget.
-      this.pendingSnapshots = Math.min(this.pendingSnapshots + 1, SEMANTIC_CAPS.context);
+      // No DOM retention; bound deferred work before the supplied runtime is ready.
+      this.pendingSnapshots = Math.min(this.pendingSnapshots + 1, MAX_PENDING_SEMANTIC_SNAPSHOTS);
       return;
     }
     if (this.capture.isActive()) this.capture.notify('snapshot', undefined);

@@ -1,0 +1,44 @@
+import type { PrivacyConfig } from '@amplitude/session-replay-dom-privacy';
+
+/** Serializable controls; remote configuration cannot supply executable code. */
+export interface SemanticCaptureConfig {
+  enabled: boolean;
+  sampleRate?: number;
+  families?: Partial<Record<string, boolean>>;
+}
+export interface SemanticAnalyticsContext {
+  present: boolean;
+  autocapture: string[];
+}
+export interface SemanticIdentity {
+  readonly tab_id: string;
+  readonly document_id: string;
+}
+/** Structural contract keeps the semantic implementation out of the replay SDK. */
+export interface SemanticCaptureHost {
+  document: Document;
+  window: Window;
+  sdk: string;
+  emit: (event: { name: string; timestamp: number; payload: object }) => void;
+  getPrivacy: () => PrivacyConfig;
+  getIdentity?: () => SemanticIdentity;
+  getAnalyticsContext?: () => SemanticAnalyticsContext;
+  inlineStylesheet?: boolean;
+  onError?: (error: unknown) => void;
+}
+export interface SemanticCaptureController {
+  isActive: () => boolean;
+  start: () => void;
+  stop: () => void;
+  updateConfig: (config: SemanticCaptureConfig) => void;
+  resetSession: () => void;
+  notify: (signal: 'snapshot', value: undefined) => void;
+}
+export type SemanticCaptureFactory = (
+  config: SemanticCaptureConfig,
+  host: SemanticCaptureHost,
+) => SemanticCaptureController;
+export interface SemanticCaptureOptions extends SemanticCaptureConfig {
+  /** Local implementation. No semantic capture runs without a supplied factory. */
+  factory?: SemanticCaptureFactory;
+}

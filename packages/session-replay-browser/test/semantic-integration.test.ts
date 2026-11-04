@@ -1,13 +1,10 @@
-import { createSemanticCapture } from '@amplitude/amp-semantic';
+import { createSemanticCapture as actualFactory } from '@amplitude/amp-semantic';
+import type { SemanticCaptureFactory } from '../src/semantic-types';
 import { getGlobalScope } from '@amplitude/analytics-core';
 import { EventType } from '@amplitude/rrweb-types';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayJoinedConfig } from '../src/config/types';
 
-jest.mock('@amplitude/amp-semantic', () => ({
-  ...jest.requireActual<typeof import('@amplitude/amp-semantic')>('@amplitude/amp-semantic'),
-  createSemanticCapture: jest.fn(),
-}));
 jest.mock('@amplitude/analytics-core', () => ({
   ...jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core'),
   getGlobalScope: jest.fn(),
@@ -15,6 +12,7 @@ jest.mock('@amplitude/analytics-core', () => ({
 jest.mock('../src/worker', () => ({ compressionScript: '' }), { virtual: true });
 
 describe('Session Replay context integration', () => {
+  const createSemanticCapture = jest.fn<ReturnType<SemanticCaptureFactory>, Parameters<SemanticCaptureFactory>>();
   const capture = {
     isActive: jest.fn(() => true),
     start: jest.fn(),
@@ -32,10 +30,11 @@ describe('Session Replay context integration', () => {
 
   function prepare(enabled: boolean) {
     const sdk = new SessionReplay();
-    sdk.config = {
-      semanticCapture: { enabled },
+    const config: Partial<SessionReplayJoinedConfig> = {
+      semanticCapture: { enabled, factory: createSemanticCapture },
       privacyConfig: { defaultMaskLevel: 'conservative' },
-    } as SessionReplayJoinedConfig;
+    };
+    sdk.config = config as SessionReplayJoinedConfig;
     const record = Object.assign(jest.fn(), {
       addCustomEvent: jest.fn(),
       takeFullSnapshot: jest.fn(),
@@ -105,6 +104,45 @@ describe('Session Replay context integration', () => {
     internal.prepareSemanticCapture({ ...sdk.config, semanticCapture: { enabled: false } }, 1);
     expect(capture.stop).toHaveBeenCalled();
     expect(capture.updateConfig).toHaveBeenLastCalledWith({ enabled: false });
+  });
+
+  test('enabled capture without a local factory is inert, and removing it stops capture', () => {
+    const { sdk, internal } = prepare(false);
+    internal.prepareSemanticCapture({ semanticCapture: { enabled: true } }, 1);
+    expect(createSemanticCapture).not.toHaveBeenCalled();
+    internal.prepareSemanticCapture(
+      { ...sdk.config, semanticCapture: { enabled: true, factory: createSemanticCapture } },
+      1,
+    );
+    expect(createSemanticCapture).toHaveBeenCalledTimes(1);
+    capture.stop.mockClear();
+    internal.prepareSemanticCapture({ semanticCapture: { enabled: true } }, 1);
+    expect(capture.stop).toHaveBeenCalled();
+    expect(capture.updateConfig).toHaveBeenLastCalledWith({ enabled: false });
+  });
+
+  test('replaces the runtime when the supplied factory changes', () => {
+    const { sdk, internal } = prepare(true);
+    const next = jest.fn(() => capture);
+    capture.stop.mockClear();
+    internal.prepareSemanticCapture({ ...sdk.config, semanticCapture: { enabled: true, factory: next } }, 1);
+    expect(capture.stop).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(internal.semanticAdapter.factory).toBe(next);
+  });
+
+  test('a failing factory does not throw into replay initialization', () => {
+    const { sdk, internal } = prepare(false);
+    const error = new Error('factory failed');
+    const factory = jest.fn(() => {
+      throw error;
+    });
+    const debug = jest.spyOn(internal.loggerProvider, 'debug');
+    expect(() => {
+      internal.prepareSemanticCapture({ ...sdk.config, semanticCapture: { enabled: true, factory } }, 1);
+    }).not.toThrow();
+    expect(internal.semanticAdapter).toBeUndefined();
+    expect(debug).toHaveBeenCalledWith('Semantic capture factory failed:', error);
   });
 
   test('skips setup without a browser document', () => {
@@ -184,4 +222,10 @@ describe('Session Replay context integration', () => {
     expect(stop).toHaveBeenCalled();
     sdk.stopRecordingEvents();
   });
+});
+
+test('the semantic package factory satisfies the public injection contract', () => {
+  // A development-only dependency verifies compatibility without leaking it into production declarations.
+  const factory: SemanticCaptureFactory = actualFactory;
+  expect(typeof factory).toBe('function');
 });

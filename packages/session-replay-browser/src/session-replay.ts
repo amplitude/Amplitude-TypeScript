@@ -1091,27 +1091,35 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private prepareSemanticCapture(config: SessionReplayJoinedConfig, sessionId: string | number): void {
     const scope = getGlobalScope() as Window | undefined;
     if (!scope?.document) return;
-    if (!config.semanticCapture?.enabled) {
+    const factory = config.semanticCapture?.factory;
+    if (!config.semanticCapture?.enabled || typeof factory !== 'function') {
       this.semanticAdapter?.stop();
       this.semanticAdapter?.prepare({ enabled: false }, sessionId);
       return;
     }
-    if (!this.semanticAdapter) {
-      this.semanticAdapter = new ReplaySemanticAdapter({
-        document: scope.document,
-        window: scope,
-        sdk: `@amplitude/session-replay-browser@${VERSION}`,
-        getPrivacy: () => this.config?.privacyConfig ?? {},
-        getIdentity: () => getSemanticIdentity(scope),
-        getAnalyticsContext: () => this.config?.semanticAnalyticsContext ?? { present: false, autocapture: [] },
-        inlineStylesheet: config.shouldInlineStylesheet,
-        emit: (event) => {
-          if (this.recordCancelCallback && this.recordFunction) {
-            this.recordFunction.addCustomEvent(`amp-semantic/${event.name}`, event.payload);
-          }
-        },
-        onError: (error) => this.loggerProvider.debug('Semantic capture error:', error),
-      });
+    if (this.semanticAdapter?.factory !== factory) {
+      this.semanticAdapter?.stop();
+      this.semanticAdapter = undefined;
+      try {
+        this.semanticAdapter = new ReplaySemanticAdapter(factory, {
+          document: scope.document,
+          window: scope,
+          sdk: `@amplitude/session-replay-browser@${VERSION}`,
+          getPrivacy: () => this.config?.privacyConfig ?? {},
+          getIdentity: () => getSemanticIdentity(scope),
+          getAnalyticsContext: () => this.config?.semanticAnalyticsContext ?? { present: false, autocapture: [] },
+          inlineStylesheet: config.shouldInlineStylesheet,
+          emit: (event) => {
+            if (this.recordCancelCallback && this.recordFunction) {
+              this.recordFunction.addCustomEvent(`amp-semantic/${event.name}`, event.payload);
+            }
+          },
+          onError: (error) => this.loggerProvider.debug('Semantic capture error:', error),
+        });
+      } catch (error) {
+        this.loggerProvider.debug('Semantic capture factory failed:', error);
+        return;
+      }
     }
     this.semanticAdapter.prepare(config.semanticCapture, sessionId);
   }

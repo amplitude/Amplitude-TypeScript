@@ -1,4 +1,4 @@
-import type { AnalyticsContext, SemanticCaptureConfig } from '@amplitude/amp-semantic';
+import type { SemanticAnalyticsContext, SemanticCaptureConfig, SemanticCaptureOptions } from '../semantic-types';
 import type { PrivacyConfig } from '@amplitude/session-replay-dom-privacy';
 export type { PrivacyConfig, MaskLevel } from '@amplitude/session-replay-dom-privacy';
 import { IConfig, LogLevel, ILogger } from '@amplitude/analytics-core';
@@ -178,9 +178,9 @@ export interface SessionReplayLocalConfig extends IConfig {
   sampleRate: number;
   privacyConfig?: PrivacyConfig;
   /** Optional semantic events in the replay stream. Disabled by default. */
-  semanticCapture?: SemanticCaptureConfig;
+  semanticCapture?: SemanticCaptureOptions;
   /** @internal Supplied by the analytics plugin host. */
-  semanticAnalyticsContext?: AnalyticsContext;
+  semanticAnalyticsContext?: SemanticAnalyticsContext;
   /**
    * Adds additional debug event property to help debug instrumentation issues
    * (such as mismatching apps). Only recommended for debugging initial setup,

@@ -1,4 +1,5 @@
 import * as sessionReplay from '@amplitude/session-replay-browser';
+import { createSemanticCapture } from '@amplitude/amp-semantic';
 
 const params = new URLSearchParams(location.search);
 const events = [];
@@ -74,7 +75,12 @@ async function boot() {
     storeType: 'memory',
     useWebWorker: false,
     logLevel: 0,
-    semanticCapture: { enabled: params.get('enabled') !== 'false', sampleRate: rate, families },
+    semanticCapture: {
+      enabled: params.get('enabled') !== 'false',
+      sampleRate: rate,
+      families,
+      ...(params.get('factory') === 'false' ? {} : { factory: createSemanticCapture }),
+    },
     privacyConfig: { defaultMaskLevel: 'medium' },
     performanceConfig: { enabled: false },
     eagerFullSnapshotSend: true,
