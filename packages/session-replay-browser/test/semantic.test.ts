@@ -1,11 +1,6 @@
-import { createSemanticCapture, SEMANTIC_CAPS, SemanticHost } from '@amplitude/amp-semantic';
+import type { SemanticCaptureFactory, SemanticCaptureHost } from '../src/semantic-types';
 import { eventWithTime, EventType } from '@amplitude/rrweb-types';
-import { ReplaySemanticAdapter } from '../src/semantic';
-
-jest.mock('@amplitude/amp-semantic', () => ({
-  ...jest.requireActual<typeof import('@amplitude/amp-semantic')>('@amplitude/amp-semantic'),
-  createSemanticCapture: jest.fn(),
-}));
+import { ReplaySemanticAdapter, MAX_PENDING_SEMANTIC_SNAPSHOTS } from '../src/semantic';
 
 describe('ReplaySemanticAdapter', () => {
   const capture = {
@@ -16,7 +11,8 @@ describe('ReplaySemanticAdapter', () => {
     resetSession: jest.fn(),
     notify: jest.fn(),
   };
-  const host: SemanticHost = { document, window, sdk: 'test', emit: jest.fn(), getPrivacy: () => ({}) };
+  const createSemanticCapture = jest.fn<ReturnType<SemanticCaptureFactory>, Parameters<SemanticCaptureFactory>>();
+  const host: SemanticCaptureHost = { document, window, sdk: 'test', emit: jest.fn(), getPrivacy: () => ({}) };
   const snapshot = { type: EventType.FullSnapshot, timestamp: 1 } as eventWithTime;
   beforeEach(() => {
     jest.clearAllMocks();
@@ -25,7 +21,7 @@ describe('ReplaySemanticAdapter', () => {
   });
 
   test('waits for rrweb readiness, then forwards each snapshot once without custom-event recursion', () => {
-    const adapter = new ReplaySemanticAdapter(host);
+    const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
     adapter.prepare({ enabled: true }, 1);
     adapter.event(snapshot);
     expect(capture.notify).not.toHaveBeenCalled();
@@ -40,7 +36,7 @@ describe('ReplaySemanticAdapter', () => {
   });
 
   test('clears queued snapshots on stop and prepare; preserves session sampling until the session changes', () => {
-    const adapter = new ReplaySemanticAdapter(host);
+    const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
     adapter.prepare({ enabled: true }, 1);
     adapter.event(snapshot);
     adapter.stop();
@@ -56,7 +52,7 @@ describe('ReplaySemanticAdapter', () => {
   });
 
   test('does not deliver snapshots when disabled or sampled out', () => {
-    const adapter = new ReplaySemanticAdapter(host);
+    const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
     adapter.prepare({ enabled: false }, 1);
     adapter.event(snapshot);
     adapter.recordingReady();
@@ -70,10 +66,10 @@ describe('ReplaySemanticAdapter', () => {
   });
 
   test('bounds deferred startup work without retaining DOM snapshots', () => {
-    const adapter = new ReplaySemanticAdapter(host);
+    const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
     adapter.prepare({ enabled: true }, 1);
     for (let i = 0; i < 1000; i++) adapter.event(snapshot);
     adapter.recordingReady();
-    expect(capture.notify).toHaveBeenCalledTimes(SEMANTIC_CAPS.context);
+    expect(capture.notify).toHaveBeenCalledTimes(MAX_PENDING_SEMANTIC_SNAPSHOTS);
   });
 });

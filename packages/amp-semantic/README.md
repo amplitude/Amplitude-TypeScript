@@ -10,7 +10,7 @@ Recorders register teardown immediately with `onCleanup` when setup can fail. `c
 
 The `snapshot` host signal describes an accepted full snapshot; the runtime does not subscribe to rrweb itself. The host remains responsible for privacy-safe payloads, recording consent, transport, and any persisted tab identity.
 
-Visibility is added in a separate follow-up PR. Session Replay depends on this package; capture remains disabled by default.
+Visibility is added in a separate follow-up PR. Session Replay accepts this package through a locally supplied factory; capture remains disabled by default.
 
 ## Development
 
@@ -22,11 +22,11 @@ From the repository root, install dependencies and build with Node 24, `pnpm ins
 
 `amp-semantic/context` records SDK/masking configuration, stylesheet counts, viewport, a device heuristic, language, user agent, visibility and focus snapshots, analytics SDK configuration, and dropped-event counts. The runtime stamps version, timestamp and document identity. It never captures input values or page text.
 
-The context budget is 200 events per session. At capacity the recorder skips stylesheet and other payload reads. Successfully delivered context acknowledges dropped-event diagnostics; failed delivery preserves them. `schema.json` describes the rrweb custom-event envelope expected from a future transport adapter.
+The context budget is 200 events per session. At capacity the recorder skips stylesheet and other payload reads. Successfully delivered context acknowledges dropped-event diagnostics; failed delivery preserves them. `schema.json` describes the rrweb custom-event envelope used by the Session Replay adapter.
 
 ## Session Replay integration
 
-Enable with `semanticCapture: { enabled: true }`. Additional sampling and a per-family switch apply within replay-selected sessions. Remote configuration can disable capture. The adapter waits for rrweb readiness, forwards accepted full snapshots, and tears down capture on stop or reinitialization. A new session resets sampling and caps.
+Import `createSemanticCapture` from `@amplitude/amp-semantic` and enable with `semanticCapture: { enabled: true, factory: createSemanticCapture }` (also supported by the Session Replay analytics plugin). Without a local factory, semantic capture is inert even if remote configuration enables it. The replay SDK has no production dependency on this package; applications that opt in include its code in their own bundle. To load it later, dynamically import the semantic package before initializing replay with its factory. Additional sampling and a per-family switch apply within replay-selected sessions. Remote configuration can disable capture. The adapter waits for rrweb readiness, forwards accepted full snapshots, and tears down capture on stop or reinitialization. A new session resets sampling and caps.
 
 Accepted context becomes a type-5 rrweb custom event tagged `amp-semantic/context`. The host persists tab identity in session storage when available and keeps document identity in memory, with a fallback when storage is unavailable. The analytics plugin forwards its autocapture configuration.
 

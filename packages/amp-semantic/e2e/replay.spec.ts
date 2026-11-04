@@ -55,7 +55,13 @@ test('real replay transport delivers context with stable identity and timestamps
   expect(await page.evaluate(() => window.semanticHarness.errors)).toEqual([]);
 });
 
-for (const query of ['?enabled=false', '?sampleRate=0', '?remoteEnabled=false', '?disabled=context']) {
+for (const query of [
+  '?enabled=false',
+  '?sampleRate=0',
+  '?remoteEnabled=false',
+  '?disabled=context',
+  '?factory=false&remoteEnabled=true',
+]) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
     await open(page, query);
     await visibility(page, 'hidden');

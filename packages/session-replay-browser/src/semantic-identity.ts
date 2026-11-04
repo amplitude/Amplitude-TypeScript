@@ -1,4 +1,5 @@
-import { getDocumentIdentity, SemanticIdentity } from '@amplitude/amp-semantic';
+import { UUID } from '@amplitude/analytics-core';
+import type { SemanticIdentity } from './semantic-types';
 
 export const SEMANTIC_TAB_STORAGE_KEY = 'AMP_semantic_tab_v1';
 const identities = new WeakMap<Document, SemanticIdentity>();
@@ -10,7 +11,8 @@ export function getSemanticIdentity(scope: Window): SemanticIdentity {
   const document = scope.document;
   const existing = identities.get(document);
   if (existing) return existing;
-  let identity = getDocumentIdentity(document, scope);
+  const fallback = Object.freeze({ tab_id: UUID(), document_id: UUID() });
+  let identity = fallback;
   // Child frames share their parent's sessionStorage. Do not claim its tab record.
   if (scope.top === scope) {
     try {
@@ -50,7 +52,7 @@ export function getSemanticIdentity(scope: Window): SemanticIdentity {
       });
     } catch {
       // No storage access: identity lasts for this document only.
-      identity = getDocumentIdentity(document, scope);
+      identity = fallback;
     }
   }
   identities.set(document, identity);

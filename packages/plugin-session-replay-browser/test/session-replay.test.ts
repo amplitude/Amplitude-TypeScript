@@ -122,6 +122,17 @@ describe('SessionReplayPlugin', () => {
       expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ deviceId: customDeviceId }));
     });
 
+    test('forwards the local semantic factory without invoking it', async () => {
+      const factory = jest.fn(() => {
+        throw new Error('only the replay host invokes the factory');
+      });
+      const semanticCapture = { enabled: true, factory };
+      const plugin = new SessionReplayPlugin({ semanticCapture });
+      await plugin.setup?.(mockConfig, mockAmplitude);
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ semanticCapture }));
+      expect(factory).not.toHaveBeenCalled();
+    });
+
     test('should handle errors during init', async () => {
       const sessionReplay = new SessionReplayPlugin();
       init.mockReturnValue({

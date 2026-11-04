@@ -40,7 +40,6 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/amp-semantic": "workspace:*",
     "@amplitude/analytics-core": "workspace:*",
     "@amplitude/analytics-types": "workspace:*",
     "@amplitude/rrweb-plugin-console-record": "2.1.5",
@@ -66,7 +65,8 @@
     "rollup-plugin-execute": "^1.1.1",
     "rollup-plugin-gzip": "^3.1.0",
     "rollup-plugin-sourcemaps": "^0.6.3",
-    "rollup-plugin-terser": "^7.0.2"
+    "rollup-plugin-terser": "^7.0.2",
+    "@amplitude/amp-semantic": "workspace:*"
   },
   "files": [
     "lib"

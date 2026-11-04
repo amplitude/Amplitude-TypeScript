@@ -137,7 +137,9 @@ export class SessionReplayJoinedConfigGenerator {
       config.semanticCapture = {
         enabled: false,
         ...config.semanticCapture,
-        ...semanticConfig,
+        // Only serializable controls may come from remote config. Preserve the local factory.
+        ...(semanticConfig.enabled !== undefined ? { enabled: semanticConfig.enabled } : {}),
+        ...(semanticConfig.sampleRate !== undefined ? { sampleRate: semanticConfig.sampleRate } : {}),
         families: { ...config.semanticCapture?.families, ...semanticConfig.families },
       };
     }
