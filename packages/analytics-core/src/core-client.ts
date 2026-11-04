@@ -11,7 +11,12 @@ import {
 } from './types/event/event';
 import { IIdentify, OrderedIdentifyOperations } from './identify';
 import { IRevenue } from './revenue';
-import { CLIENT_NOT_INITIALIZED, EMPTY_EVENT_TYPE_MESSAGE, OPT_OUT_MESSAGE } from './types/messages';
+import {
+  CLIENT_NOT_INITIALIZED,
+  EMPTY_EVENT_TYPE_MESSAGE,
+  OPT_OUT_MESSAGE,
+  STALE_EVENT_OVERWRITTEN_MESSAGE,
+} from './types/messages';
 import { Timeline } from './timeline';
 import {
   createGroupEvent,
@@ -254,6 +259,11 @@ export class AmplitudeCore implements CoreClient, PluginHost {
       }
 
       const result = await this.timeline.push(event);
+
+      // Replacing a stale delayed event is expected and should not produce console output.
+      if (result.code === 0 && result.message === STALE_EVENT_OVERWRITTEN_MESSAGE) {
+        return result;
+      }
 
       result.code === 200
         ? this.config.loggerProvider.log(result.message)

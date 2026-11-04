@@ -462,6 +462,47 @@ describe('core-client', () => {
   });
 
   describe('process', () => {
+    test('should return stale event cancellations without logging', async () => {
+      const client = new AmplitudeCore();
+      const loggerProvider = {
+        ...mockLoggerProvider,
+        error: jest.fn(),
+        warn: jest.fn(),
+        log: jest.fn(),
+        debug: jest.fn(),
+      };
+      client.config = { ...mockConfig, loggerProvider } as BrowserConfig;
+      const event: Event = { event_type: 'event_type' };
+      const staleResult = { event, code: 0, message: 'Stale event overwritten' };
+      jest.spyOn(client.timeline, 'push').mockResolvedValueOnce(staleResult);
+
+      const result = await client.process(event);
+
+      expect(result).toBe(staleResult);
+      expect(loggerProvider.error).not.toHaveBeenCalled();
+      expect(loggerProvider.warn).not.toHaveBeenCalled();
+      expect(loggerProvider.log).not.toHaveBeenCalled();
+      expect(loggerProvider.debug).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      [0, 'Unexpected cancellation'],
+      [500, 'Stale event overwritten'],
+    ])('should still log errors with code %s and message %s', async (code, message) => {
+      const client = new AmplitudeCore();
+      const loggerProvider = { ...mockLoggerProvider, error: jest.fn() };
+      client.config = { ...mockConfig, loggerProvider } as BrowserConfig;
+      const event: Event = { event_type: 'event_type' };
+      const errorResult = { event, code, message };
+      jest.spyOn(client.timeline, 'push').mockResolvedValueOnce(errorResult);
+
+      const result = await client.process(event);
+
+      expect(result).toBe(errorResult);
+      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.error).toHaveBeenCalledWith(message);
+    });
+
     test('should call onIdentifyChanged on identify events', async () => {
       const client = new AmplitudeCore();
       client.config = mockConfig;
