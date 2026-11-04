@@ -120,6 +120,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         maxPersistedEventsSizeBytes: this.options.maxPersistedEventsSizeBytes,
         maxSingleEventSizeBytes: this.options.maxSingleEventSizeBytes,
         sendTimeoutMs: this.options.sendTimeoutMs,
+        enableTransportCompression: this.options.enableTransportCompression,
         handleSendEvents: this.options.handleSendEvents,
         handleFetchConfig: this.options.handleFetchConfig,
       };
