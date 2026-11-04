@@ -82,6 +82,30 @@ describe('TargetingIDBStore', () => {
       });
       expect(targetingMatch).toEqual(true);
     });
+    test('should store targeting condition details', async () => {
+      await targetingIDBStore.storeTargetingMatchForSession({
+        loggerProvider: mockLoggerProvider,
+        sessionId: 123,
+        apiKey,
+        targetingMatch: true,
+        targetingConditionName: 'Checkout errors',
+        targetingConditionId: 'condition-123',
+      });
+
+      const targetingDetails = await targetingIDBStore.getTargetingDetailsForSession({
+        loggerProvider: mockLoggerProvider,
+        sessionId: 123,
+        apiKey,
+      });
+
+      expect(targetingDetails).toEqual({
+        sessionId: '123',
+        targetingMatch: true,
+        targetingConditionName: 'Checkout errors',
+        targetingConditionId: 'condition-123',
+        lastUpdated: expect.any(Number),
+      });
+    });
     test('should catch errors', async () => {
       const mockDB: IDBPDatabase<SessionReplayTargetingDB> = {
         put: jest.fn().mockImplementation(() => Promise.reject('error')),
