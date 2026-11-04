@@ -1,4 +1,4 @@
-export { SessionReplayPlugin } from './session-replay';
+export { SessionReplayPlugin, onInterfaceChange, type InterfaceChangeSubscription } from './session-replay';
 export {
   getInterfaceSignalState,
   addInterfaceSignalListener,

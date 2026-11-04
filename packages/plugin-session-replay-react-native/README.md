@@ -102,7 +102,22 @@ Web views are blocked by default and will not be tracked. If you'd like webviews
 
 ## Interface signals
 
-`addInterfaceSignalListener(listener)` returns a subscription with `remove()`.
+`onInterfaceChange(listener)` subscribes without resolving the native module and
+returns `{ remove(), getState() }`. `getState()` reads current recording availability
+and session/device identity. The plugin also exposes
+`SessionReplayPlugin.onInterfaceChange(listener)` without constructing an instance.
+
+```typescript
+import { onInterfaceChange } from '@amplitude/plugin-session-replay-react-native';
+
+const subscription = onInterfaceChange((signal) => {
+  if (signal.interfaceChanged) console.log('UI changed');
+});
+const state = await subscription.getState();
+subscription.remove();
+```
+
+The lower-level `addInterfaceSignalListener(listener)` API remains available.
 Each report is one object that can carry multiple changes together:
 
 ```typescript
