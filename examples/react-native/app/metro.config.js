@@ -51,12 +51,15 @@ const resolveWithNode = (context, moduleName) => {
 };
 
 const config = {
-  transformer: { allowOptionalDependencies: true },
+  transformer: {allowOptionalDependencies: true},
   // Prefer the Node crawler: watchman repeatedly recrawls this monorepo and
   // drops pnpm-store entries (SHA-1 / resolve failures for memoize-one, etc.).
   watchFolders: [
     path.join(workspaceRoot, 'packages/analytics-react-native'),
     path.join(workspaceRoot, 'packages/analytics-core'),
+    // Optional replay providers used by analytics-react-native dead clicks.
+    path.join(workspaceRoot, 'packages/plugin-session-replay-react-native'),
+    path.join(workspaceRoot, 'packages/session-replay-react-native'),
     // Pulled in via analytics-react-native autocapture.networkTracking.
     path.join(workspaceRoot, 'packages/plugin-network-capture-browser'),
     pnpmStore,
