@@ -94,7 +94,7 @@ describe('autocapture.deadClicks with native Session Replay', () => {
     replay = new SessionReplayPlugin({ sampleRate: 1, enableRemoteConfig: false, autoStart: true });
     await client.add(replay).promise;
     // Verify the native SDK is recording before testing any presses.
-    await waitFor(() => expect(isRecording()).toBe(true), { timeout: 5_000 });
+    await waitFor(async () => expect(await isRecording()).toBe(true), { timeout: 5_000 });
     pressedAt = 0;
     unmount = undefined;
   });
@@ -110,7 +110,7 @@ describe('autocapture.deadClicks with native Session Replay', () => {
   });
 
   async function press(changeDelay?: number) {
-    const recording = isRecording();
+    const recording = await isRecording();
     const renderStartedAt = Date.now();
     const rendered = await render(
       <DeadClickScreen
@@ -184,17 +184,17 @@ describe('autocapture.deadClicks with native Session Replay', () => {
 
   it('does not capture a dead click with Replay stopped and no UI change', async () => {
     await replay?.stop();
-    await waitFor(async () => expect(isRecording()).toBe(false));
+    await waitFor(async () => expect(await isRecording()).toBe(false));
     await press();
     await sleep(Math.max(0, pressedAt + THRESHOLD + 1_000 - Date.now()));
-    expect(isRecording()).toBe(false);
+    expect(await isRecording()).toBe(false);
     expect(deadClicks()).toHaveLength(0);
   });
 
   it('does not capture a pending press when native Replay stops', async () => {
     await press();
     await replay?.stop();
-    await waitFor(() => expect(isRecording()).toBe(false));
+    await waitFor(async () => expect(await isRecording()).toBe(false));
     await sleep(Math.max(0, pressedAt + THRESHOLD + 1_000 - Date.now()));
     expect(deadClicks()).toHaveLength(0);
   });

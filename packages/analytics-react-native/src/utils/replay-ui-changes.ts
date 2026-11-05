@@ -1,11 +1,11 @@
 /** The small public Replay API needed by dead-click detection. */
 interface ReplayUiChangeAPI {
   addUiChangeListener(listener: () => void): () => void;
-  isRecording(): boolean;
+  isRecording(): Promise<boolean>;
 }
 
 export interface ReplayUiChangeSource {
-  isRecording(): boolean;
+  isRecording(): Promise<boolean>;
 }
 
 /** Native modules and event names remain private to the optional Replay packages. */
@@ -34,10 +34,11 @@ export function observeReplayUiChanges(
   for (const replay of packages) {
     if (typeof replay.addUiChangeListener !== 'function' || typeof replay.isRecording !== 'function') continue;
     const source: ReplayUiChangeSource = {
-      isRecording: () => {
+      isRecording: async () => {
         if (removed) return false;
         try {
-          return replay.isRecording?.() === true;
+          const recording = await replay.isRecording?.();
+          return !removed && recording === true;
         } catch (error) {
           onError(error);
           return false;

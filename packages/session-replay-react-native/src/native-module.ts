@@ -57,11 +57,11 @@ export interface NativeSessionReplayConfig {
  * This interface provides the contract for communication between JavaScript and
  * the native iOS/Android session replay modules through React Native's bridge.
  *
- * Lifecycle methods return Promises; recording state and event subscription methods are synchronous.
+ * Lifecycle and recording-state queries return Promises; event subscription hooks are synchronous.
  */
 export interface NativeSessionReplaySpec {
   /** Whether native replay is recording and providing UI change signals. */
-  isRecording(): boolean;
+  isRecording(): Promise<boolean>;
   /** NativeEventEmitter subscription hooks. */
   addListener(eventName: string): void;
   removeListeners(count: number): void;

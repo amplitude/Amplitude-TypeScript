@@ -9,7 +9,7 @@ import com.facebook.react.bridge.ReadableMap
 // module's `override`s compile against both bases.
 abstract class SessionReplayReactNativeSpec(reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
-  abstract fun isRecording(): Boolean
+  abstract fun isRecording(promise: Promise)
   abstract fun addListener(eventName: String)
   abstract fun removeListeners(count: Double)
   abstract fun setup(config: ReadableMap, promise: Promise)

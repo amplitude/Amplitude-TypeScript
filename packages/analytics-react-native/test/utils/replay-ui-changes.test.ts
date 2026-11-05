@@ -29,18 +29,18 @@ describe('optional Replay UI adapters', () => {
   it('ignores older peers missing either new function', () => {
     const addListener = jest.fn();
     jest.doMock('@amplitude/plugin-session-replay-react-native', () => ({ addUiChangeListener: addListener }));
-    jest.doMock('@amplitude/session-replay-react-native', () => ({ isRecording: () => true }));
+    jest.doMock('@amplitude/session-replay-react-native', () => ({ isRecording: () => Promise.resolve(true) }));
     const { subscription } = observe();
     expect(subscription.sources).toHaveLength(0);
     expect(addListener).not.toHaveBeenCalled();
     subscription.remove();
   });
 
-  it('guards removed subscriptions and still cleans up the second peer if the first cleanup throws', () => {
+  it('guards removed subscriptions and still cleans up the second peer if the first cleanup throws', async () => {
     let emit: () => void = () => undefined;
     const unsubscribeSecond = jest.fn();
     jest.doMock('@amplitude/plugin-session-replay-react-native', () => ({
-      isRecording: () => true,
+      isRecording: () => Promise.resolve(true),
       addUiChangeListener: (listener: () => void) => {
         emit = listener;
         return () => {
@@ -49,7 +49,7 @@ describe('optional Replay UI adapters', () => {
       },
     }));
     jest.doMock('@amplitude/session-replay-react-native', () => ({
-      isRecording: () => true,
+      isRecording: () => Promise.resolve(true),
       addUiChangeListener: () => unsubscribeSecond,
     }));
     const { subscription, listener, onError } = observe();
@@ -60,7 +60,7 @@ describe('optional Replay UI adapters', () => {
     subscription.remove();
     emit();
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(subscription.sources[0].isRecording()).toBe(false);
+    await expect(subscription.sources[0].isRecording()).resolves.toBe(false);
     expect(unsubscribeSecond).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledTimes(1);
   });

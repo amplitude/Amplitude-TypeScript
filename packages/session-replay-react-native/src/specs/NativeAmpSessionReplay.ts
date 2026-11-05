@@ -11,7 +11,7 @@ import type { UnsafeObject } from 'react-native/Libraries/Types/CodegenTypes';
 // public `SessionReplayConfig`. See native-module.ts for the typed facade that
 // JS callers actually use.
 export interface Spec extends TurboModule {
-  isRecording(): boolean;
+  isRecording(): Promise<boolean>;
   addListener(eventName: string): void;
   removeListeners(count: number): void;
   setup(config: UnsafeObject): Promise<void>;
