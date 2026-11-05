@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amplitude async unified script</title>
+    <script>
+      /**
+       * Queue stub. The async unified script does not assign window.amplitude
+       * until analytics-browser finishes loading, so plugin calls made before
+       * that would throw. This stub matches the Browser SDK snippet queue
+       * ({ name, args }) and sets invoked so the SDK replays the queue.
+       * https://cdn.amplitude.com/script/17fcb31e58fc138462fd64bfe7add49e.async.js
+       * auto-inits this project when init is not already queued.
+       */
+      (function (window) {
+        if (window.amplitude && window.amplitude.invoked) {
+          window.console && console.error('Amplitude snippet has been loaded.');
+          return;
+        }
+
+        var amplitude = window.amplitude || { _q: [], _iq: {} };
+
+        function proxy(obj, fn) {
+          obj.prototype[fn] = function () {
+            this._q.push({ name: fn, args: Array.prototype.slice.call(arguments, 0) });
+            return this;
+          };
+        }
+
+        function queuePromise(instance, fn, args) {
+          return function (resolve) {
+            instance._q.push({
+              name: fn,
+              args: Array.prototype.slice.call(args, 0),
+              resolve: resolve,
+            });
+          };
+        }
+
+        function proxyMain(instance, fn, isPromise) {
+          instance[fn] = function () {
+            var args = Array.prototype.slice.call(arguments, 0);
+            if (isPromise) {
+              return { promise: new Promise(queuePromise(instance, fn, args)) };
+            }
+            instance._q.push({ name: fn, args: args });
+          };
+        }
+
+        function setUpProxy(instance) {
+          var syncFns = [
+            'getDeviceId',
+            'setDeviceId',
+            'getSessionId',
+            'setSessionId',
+            'getUserId',
+            'setUserId',
+            'setOptOut',
+            'setTransport',
+            'reset',
+            'extendSession',
+          ];
+          var promiseFns = [
+            'init',
+            'add',
+            'remove',
+            'track',
+            'logEvent',
+            'identify',
+            'groupIdentify',
+            'setGroup',
+            'revenue',
+            'flush',
+          ];
+          for (var i = 0; i < syncFns.length; i++) proxyMain(instance, syncFns[i], false);
+          for (var j = 0; j < promiseFns.length; j++) proxyMain(instance, promiseFns[j], true);
+        }
+
+        function Identify() {
+          this._q = [];
+          return this;
+        }
+        [
+          'add',
+          'append',
+          'clearAll',
+          'prepend',
+          'set',
+          'setOnce',
+          'unset',
+          'preInsert',
+          'postInsert',
+          'remove',
+          'getUserProperties',
+        ].forEach(function (fn) {
+          proxy(Identify, fn);
+        });
+
+        function Revenue() {
+          this._q = [];
+          return this;
+        }
+        [
+          'getEventProperties',
+          'setProductId',
+          'setQuantity',
+          'setPrice',
+          'setRevenue',
+          'setRevenueType',
+          'setReceipt',
+          'setReceiptSig',
+          'setCurrency',
+          'setEventProperties',
+        ].forEach(function (fn) {
+          proxy(Revenue, fn);
+        });
+
+        amplitude.invoked = true;
+        amplitude.Identify = Identify;
+        amplitude.Revenue = Revenue;
+        setUpProxy(amplitude);
+        amplitude.createInstance = function (instanceName) {
+          amplitude._iq[instanceName] = { _q: [] };
+          setUpProxy(amplitude._iq[instanceName]);
+          return amplitude._iq[instanceName];
+        };
+
+        window.amplitude = amplitude;
+
+        // sessionReplay.plugin does not exist until the async script loads
+        // plugin-session-replay-browser. Queue a marker the loader replaces
+        // with the real plugin once that script arrives.
+        if (!window.sessionReplay) {
+          window.sessionReplay = {
+            plugin: function (options) {
+              return {
+                _STUBBED_PLUGIN_NAME: 'sr',
+                _conf: options,
+              };
+            },
+          };
+        }
+      })(window);
+
+      // Queue these before the async script. Its loader scans the queue after
+      // Session Replay loads and replaces the stub with sessionReplay.plugin().
+      window.amplitude.add(window.sessionReplay.plugin({ sampleRate: 1 }));
+      window.amplitude.init('ce053f29ba7d7f4a5d7ac8600fe40df6', '99005:3180077', {
+        fetchRemoteConfig: true,
+        autocapture: true,
+      });
+    </script>
+    <script src="https://cdn.amplitude.com/script/17fcb31e58fc138462fd64bfe7add49e.async.js"></script>
+  </head>
+  <body>
+    <h1>Amplitude async unified script</h1>
+    <p>
+      <code>window.amplitude</code> and <code>window.sessionReplay.plugin</code> are available before the async
+      script finishes loading. Plugin and init calls are queued, then replayed once the SDK arrives.
+    </p>
+    <button id="track" type="button">Track event</button>
+    <script>
+      document.getElementById('track').addEventListener('click', function () {
+        window.amplitude.track('Button Clicked', { source: 'unified-script-async' });
+      });
+    </script>
+  </body>
+</html>
