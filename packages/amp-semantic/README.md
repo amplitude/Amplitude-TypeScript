@@ -1,44 +1,17 @@
 # @amplitude/amp-semantic
 
-Package foundation for semantic event capture in Amplitude. This increment establishes
-workspace packaging, CommonJS/ESM builds, TypeScript declarations, linting, tests, and
-the shared event envelope. It does not collect or emit events.
+Internal, composable semantic capture runtime for Amplitude. This increment installs no production event recorders and is not connected to Session Replay.
 
-## Public contracts
+The host supplies a document, window, and transport callback. `createSemanticCapture` accepts typed recorder factories and optional per-family budgets (200 events per session by default). With no recorders supplied it emits nothing and installs no browser listeners.
 
-- `SEMANTIC_VERSION`: payload envelope version (`1`).
-- `SemanticIdentity`: `tab_id` and `document_id` correlation fields.
-- `SemanticEventEnvelope<Name, Payload>`: a typed name, timestamp, and payload
-  containing the caller's fields plus version and identity.
+The runtime owns opt-in sampling, start/stop and session reset, event version/timestamp/identity stamping, host signals, subscriptions, exception isolation, and cleanup rollback. Sampling and caps survive stop/start and reset only for a new session. Identity is allocated lazily when an event is accepted; its fallback is document-scoped memory, with no storage access.
 
-No event families are defined or registered. The package has no browser listeners,
-DOM observers, storage access, identity generation, capture runtime, or Session Replay
-integration. It is not yet a usable capture SDK.
+Recorders register teardown immediately with `onCleanup` when setup can fail. `canEmit` lets them avoid expensive payload work at capacity. `dropped` returns delivery-cap diagnostics; recorders acknowledge successfully delivered diagnostics with `clearDropped`.
 
-## Incremental implementation
+The `snapshot` host signal describes an accepted full snapshot; the runtime does not subscribe to rrweb itself. The host remains responsible for privacy-safe payloads, recording consent, transport, and any persisted tab identity.
 
-1. **This PR:** package structure and shared envelope contracts.
-2. **Context and visibility:** capture runtime, sampling/caps, identity generation,
-   recorders, event schemas, Session Replay integration, and a local test page.
-3. **Dialog and notice:** rrweb mutation input, DOM enrichment, and feedback recorders.
-4. Additional event families in later PRs.
-
-The existing full implementation remains available in PR #2082. Each event increment
-should add its contracts, implementation, documentation, and validation together.
+Context, Session Replay integration, and visibility are added in separate follow-up PRs. No analytics SDK depends on this package in this increment.
 
 ## Development
 
-From the repository root:
-
-```sh
-pnpm install
-pnpm build
-pnpm --filter @amplitude/amp-semantic typecheck
-pnpm --filter @amplitude/amp-semantic test --runInBand
-pnpm --filter @amplitude/amp-semantic lint
-```
-
-The package build cleans `lib` before generating `lib/cjs` and `lib/esm`, avoiding stale
-recorders when switching between incremental branches. Runtime dependencies are limited
-to the workspace-standard TypeScript helper library; event-specific dependencies arrive
-with their implementations.
+From the repository root, install dependencies and build with Node 24, `pnpm install`, and `pnpm build`. Run `pnpm --filter @amplitude/amp-semantic test` for runtime lifecycle and public contract tests.
