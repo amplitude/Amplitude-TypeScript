@@ -79,6 +79,44 @@ describe('destination', () => {
       expect(execute).toHaveBeenCalledTimes(1);
     });
 
+    test('should save the queue once when restoring unsent events', async () => {
+      const destination = new Destination();
+      const config = useDefaultConfig();
+      const events = Array.from({ length: 100 }, (_, i) => ({ event_type: `event_${i}`, insert_id: `id_${i}` }));
+      const set = jest.fn().mockResolvedValue(undefined);
+      config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => events,
+        set,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
+      await destination.setup(config);
+      expect(set).toHaveBeenCalledTimes(1);
+      expect(set).toHaveBeenCalledWith(destination.storageKey, events);
+      expect(destination.queue).toHaveLength(100);
+    });
+
+    test('should save again for events executed after restoring unsent events', async () => {
+      const destination = new Destination();
+      const config = useDefaultConfig();
+      const set = jest.fn().mockResolvedValue(undefined);
+      config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => [{ event_type: 'restored', insert_id: 'restored_id' }],
+        set,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
+      await destination.setup(config);
+      set.mockClear();
+      void destination.execute({ event_type: 'new' });
+      expect(set).toHaveBeenCalledTimes(1);
+      expect(set.mock.calls[0][1]).toHaveLength(2);
+    });
+
     test('should be ok with undefined storage', async () => {
       const destination = new Destination();
       const config = useDefaultConfig();
