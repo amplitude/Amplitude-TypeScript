@@ -158,6 +158,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       globalScope.removeEventListener('focus', this.focusListener);
       !teardown && globalScope.addEventListener('blur', this.blurListener);
       !teardown && globalScope.addEventListener('focus', this.focusListener);
+      globalScope.removeEventListener('pageshow', this.pageShowListener);
+      !teardown && globalScope.addEventListener('pageshow', this.pageShowListener);
       // prefer pagehide to unload events, this is the standard going forward. it is not
       // 100% reliable, but is bfcache-compatible.
       if (globalScope.self && 'onpagehide' in globalScope.self) {
@@ -576,6 +578,25 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
     } else if (!this.recordEventsInFlight) {
       void this.recordEvents(false);
+    }
+  };
+
+  pageShowListener = (e: PageTransitionEvent) => {
+    // persisted=false is a regular load, which init() already snapshots.
+    if (!e.persisted || !this.recordingEnabled) {
+      return;
+    }
+    // The page was restored from the back/forward cache. The recorder kept its node ids
+    // from before the page was hidden, but the replay's last full snapshot belongs to the
+    // page the user navigated to in between. Without a new Meta + FullSnapshot the replayer
+    // applies this page's mutations to the other page's DOM. This is not gated by
+    // `captureFullSnapshotOnFocus`: a restore swaps the whole document, and it is rare.
+    if (this.recordCancelCallback && this.recordFunction) {
+      try {
+        this.recordFunction.takeFullSnapshot(true);
+      } catch (error) {
+        this.loggerProvider.warn('Failed to take full snapshot on back/forward cache restore:', error);
+      }
     }
   };
 

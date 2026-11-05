@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.9-sr-bfcache-pageshow-snapshot.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.2.8...@amplitude/plugin-web-vitals-browser@1.2.9-sr-bfcache-pageshow-snapshot.0) (2026-11-05)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
 ## [1.2.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@1.2.7...@amplitude/plugin-web-vitals-browser@1.2.8) (2026-10-30)
 
 **Note:** Version bump only for package @amplitude/plugin-web-vitals-browser

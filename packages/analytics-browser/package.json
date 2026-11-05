@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.49.1",
+  "version": "2.49.2-sr-bfcache-pageshow-snapshot.0",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
