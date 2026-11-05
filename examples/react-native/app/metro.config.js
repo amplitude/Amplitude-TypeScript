@@ -51,6 +51,7 @@ const resolveWithNode = (context, moduleName) => {
 };
 
 const config = {
+  transformer: { allowOptionalDependencies: true },
   // Prefer the Node crawler: watchman repeatedly recrawls this monorepo and
   // drops pnpm-store entries (SHA-1 / resolve failures for memoize-one, etc.).
   watchFolders: [
