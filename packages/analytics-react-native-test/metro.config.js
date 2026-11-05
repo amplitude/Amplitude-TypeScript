@@ -71,7 +71,9 @@ const config = {
     hostAppRoot,
     path.join(workspaceRoot, 'packages/analytics-react-native'),
     path.join(workspaceRoot, 'packages/analytics-core'),
+    // Optional replay providers used by analytics-react-native dead clicks.
     path.join(workspaceRoot, 'packages/plugin-session-replay-react-native'),
+    path.join(workspaceRoot, 'packages/session-replay-react-native'),
     // Pulled in via analytics-react-native autocapture.networkTracking.
     path.join(workspaceRoot, 'packages/plugin-network-capture-browser'),
     path.join(workspaceRoot, 'packages/analytics-react-native-test'),

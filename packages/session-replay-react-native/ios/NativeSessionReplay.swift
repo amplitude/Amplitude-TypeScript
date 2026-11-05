@@ -14,7 +14,7 @@ class NativeSessionReplay: RCTEventEmitter {
     private var uiChangeReceiver: UiChangeReceiver?
 
     // SDK lifecycle changes and recording-state reads run on main.
-    @objc var methodQueue: DispatchQueue { DispatchQueue.main }
+    @objc override var methodQueue: DispatchQueue { DispatchQueue.main }
 
     @objc(isRecording:reject:)
     func isRecording(_ resolve: @escaping RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
