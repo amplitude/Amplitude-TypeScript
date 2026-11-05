@@ -9,6 +9,9 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
     var sessionReplay: SessionReplay!
     private var hasUiChangeListeners = false
     private var recordingRequested = false
+    private var invalidated = false
+    private var uiChangeGeneration = UUID()
+    private var uiChangeReceiver: UiChangeReceiver?
 
     // SDK lifecycle changes and recording-state reads run on main.
     @objc var methodQueue: DispatchQueue { DispatchQueue.main }
@@ -20,11 +23,27 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
             resolve(self.recordingRequested && ((self.sessionReplay as? InterfaceSignalProvider)?.isProviding ?? false))
         }
     }
-    private lazy var uiChangeReceiver = UiChangeReceiver { [weak self] in
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self, self.hasUiChangeListeners else { return }
-            self.sendEvent(withName: "amplitudeSessionReplayUiChange", body: nil)
+    private func attachUiChangeReceiver() {
+        guard let provider = sessionReplay as? InterfaceSignalProvider else { return }
+        let generation = uiChangeGeneration
+        let receiver = UiChangeReceiver { [weak self] in
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, !self.invalidated, self.hasUiChangeListeners,
+                      self.recordingRequested, self.uiChangeGeneration == generation else { return }
+                self.sendEvent(withName: "amplitudeSessionReplayUiChange", body: nil)
+            }
         }
+        uiChangeReceiver = receiver
+        provider.addInterfaceSignalReceiver(receiver)
+    }
+
+    private func removeUiChangeReceiver() {
+        // Retire queued and in-flight callbacks before detaching the old SDK receiver.
+        uiChangeGeneration = UUID()
+        if let receiver = uiChangeReceiver {
+            (sessionReplay as? InterfaceSignalProvider)?.removeInterfaceSignalReceiver(receiver)
+        }
+        uiChangeReceiver = nil
     }
 
     override func supportedEvents() -> [String]! {
@@ -32,7 +51,7 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
     }
 
     override func startObserving() {
-        hasUiChangeListeners = true
+        hasUiChangeListeners = !invalidated
     }
 
     override func stopObserving() {
@@ -65,7 +84,7 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
             Mask Level: \(maskLevel)
             """
         )
-        (sessionReplay as? InterfaceSignalProvider)?.removeInterfaceSignalReceiver(uiChangeReceiver)
+        removeUiChangeReceiver()
         recordingRequested = false
         sessionReplay?.stop()
         sessionReplay = SessionReplay(apiKey:apiKey,
@@ -78,7 +97,7 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
                                       enableRemoteConfig: enableRemoteConfig)
         // Older SDKs do not expose SessionReplay as an InterfaceSignalProvider.
         // UI change notifications require an SDK that provides this conformance.
-        (sessionReplay as? InterfaceSignalProvider)?.addInterfaceSignalReceiver(uiChangeReceiver)
+        attachUiChangeReceiver()
         if (autoStart) {
             recordingRequested = true
             sessionReplay.start()
@@ -132,14 +151,16 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("teardown")
       recordingRequested = false
-      (sessionReplay as? InterfaceSignalProvider)?.removeInterfaceSignalReceiver(uiChangeReceiver)
+      removeUiChangeReceiver()
       sessionReplay.stop()
       resolve(nil)
     }
 
     override func invalidate() {
+        invalidated = true
+        hasUiChangeListeners = false
         recordingRequested = false
-        (sessionReplay as? InterfaceSignalProvider)?.removeInterfaceSignalReceiver(uiChangeReceiver)
+        removeUiChangeReceiver()
         sessionReplay?.stop()
         super.invalidate()
     }
