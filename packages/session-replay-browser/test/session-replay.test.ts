@@ -1182,6 +1182,92 @@ describe('SessionReplay', () => {
         expect(order).toEqual(['flush', 'send']);
       });
 
+      test('focus from another visible window takes a checkout snapshot', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const documentWithFocus = {
+          ...mockDocument,
+          visibilityState: 'visible' as DocumentVisibilityState,
+          activeElement: { tagName: 'BODY' },
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: documentWithFocus,
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        sessionReplay.blurListener();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+
+      test('focus returning from an iframe does not take a checkout snapshot', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const documentWithIframe = {
+          ...mockDocument,
+          visibilityState: 'visible' as DocumentVisibilityState,
+          activeElement: { tagName: 'IFRAME' },
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: documentWithIframe,
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        sessionReplay.blurListener();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('a tab return does not checkout again when focus follows visibility', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        sessionReplay.sendEvents = jest.fn();
+        const documentRef = {
+          ...mockDocument,
+          visibilityState: 'visible' as DocumentVisibilityState,
+          activeElement: { tagName: 'BODY' },
+        };
+        const cancelAnimationFrame = jest.fn();
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: documentRef,
+          requestAnimationFrame: () => 7,
+          cancelAnimationFrame,
+        } as unknown as typeof globalThis);
+
+        sessionReplay.blurListener();
+        documentRef.visibilityState = 'hidden';
+        sessionReplay.visibilityListener();
+        documentRef.visibilityState = 'visible';
+        sessionReplay.visibilityListener();
+        sessionReplay.focusListener();
+
+        expect(cancelAnimationFrame).toHaveBeenCalledWith(7);
+        expect(takeFullSnapshotMock).toHaveBeenCalledTimes(1);
+      });
+
       test('still takes the on-focus full snapshot when config is not yet set', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         const takeFullSnapshotMock = jest.fn();

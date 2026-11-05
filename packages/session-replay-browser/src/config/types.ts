@@ -362,6 +362,10 @@ export interface SessionReplayLocalConfig extends IConfig {
    * shares the session. `visibilitychange` fires once per tab switch, so that path stays
    * on when focus snapshots are off.
    *
+   * Two windows that both stay visible never hide, so focus arriving from outside this
+   * window still takes one checkout. Focus that only moved into an iframe in this page
+   * does not.
+   *
    * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
    * prior to that change.
    */

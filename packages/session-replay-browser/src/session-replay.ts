@@ -137,6 +137,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * is empty and the fetch it raced is cancelled on unload.
    */
   private hiddenFlushTimer: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * Set after blur once we know focus left this window, rather than moving into an
+   * iframe in the same page. Two visible windows never fire `visibilitychange`, so the
+   * window that is focused next uses this to take one checkout snapshot.
+   */
+  private focusLeftWindow = false;
+  private focusDestinationFrame: number | undefined;
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
   private currentPageUrl = '';
@@ -575,6 +582,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // already in the store, and the mutations for the screen the user just left
     // are often still waiting on requestIdleCallback.
     this.scheduleHiddenSend();
+    this.noteFocusDestination();
   };
 
   /**
@@ -596,7 +604,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     if (visibilityState === 'visible') {
       // The deferred hide upload has not run. This send includes those events
-      // plus the checkout snapshot.
+      // plus the checkout snapshot. Drop the external-focus flag so the focus
+      // event that follows a tab return does not take a second checkout.
+      this.focusLeftWindow = false;
+      this.cancelFocusDestinationCheck();
       this.cancelHiddenSend();
       this.captureVisibleTab();
     }
@@ -604,6 +615,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   focusListener = () => {
     if (!this.recordingEnabled) {
+      return;
+    }
+    const focusFromOutside = this.focusLeftWindow && getGlobalScope()?.document?.visibilityState === 'visible';
+    this.focusLeftWindow = false;
+    // Another window of the same session stayed visible, so visibilitychange never
+    // fired. One checkout replaces the replayed document; otherwise that window's
+    // incremental adds share node ids and append onto this one.
+    if (focusFromOutside) {
+      this.captureVisibleTab();
       return;
     }
     if (this.recordCancelCallback && this.recordFunction) {
@@ -654,6 +674,40 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.hostClearTimeout()(this.hiddenFlushTimer);
     this.hiddenFlushTimer = undefined;
+  }
+
+  /**
+   * `activeElement` is still the previous node while `blur` is firing. Check on the
+   * next frame: an iframe means focus stayed in this page, and anything else means
+   * it left the window.
+   */
+  private noteFocusDestination() {
+    this.focusLeftWindow = false;
+    this.cancelFocusDestinationCheck();
+    const scope = getGlobalScope();
+    const inspect = () => {
+      this.focusDestinationFrame = undefined;
+      const active = scope?.document?.activeElement;
+      if (active?.tagName !== 'IFRAME') {
+        this.focusLeftWindow = true;
+      }
+    };
+    if (typeof scope?.requestAnimationFrame === 'function') {
+      this.focusDestinationFrame = scope.requestAnimationFrame(inspect);
+      return;
+    }
+    inspect();
+  }
+
+  private cancelFocusDestinationCheck() {
+    if (this.focusDestinationFrame === undefined) {
+      return;
+    }
+    const scope = getGlobalScope();
+    if (typeof scope?.cancelAnimationFrame === 'function') {
+      scope.cancelAnimationFrame(this.focusDestinationFrame);
+    }
+    this.focusDestinationFrame = undefined;
   }
 
   private hostSetTimeout(): typeof setTimeout {
@@ -1356,6 +1410,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
     this.cancelHiddenSend();
+    this.focusLeftWindow = false;
+    this.cancelFocusDestinationCheck();
     this.stopRecordingEvents();
     this.sendEvents();
   }
@@ -1374,6 +1430,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
     this.cancelHiddenSend();
+    this.focusLeftWindow = false;
+    this.cancelFocusDestinationCheck();
     this.urlChangeCleanup?.();
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;
