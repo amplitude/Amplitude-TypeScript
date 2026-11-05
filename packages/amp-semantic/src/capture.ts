@@ -155,7 +155,10 @@ export function createCapture<P extends object = SemanticPayloads>(
         try {
           // Register rollback before setup so reentrant stop/reset can tear listeners down.
           cleanups.push(rollback);
-          registerCleanup(recorder.setup(scoped));
+          const setupCleanup = recorder.setup(scoped);
+          if (active && myGeneration === attachGeneration) {
+            registerCleanup(setupCleanup);
+          }
           if (!active || myGeneration !== attachGeneration) {
             unregisterRollback();
             rollback();

@@ -223,6 +223,32 @@ describe('capture runtime', () => {
     expect(release).toHaveBeenCalledTimes(2);
   });
 
+  test('runs registered cleanup once when stop runs during setup', () => {
+    const release = jest.fn();
+    const reentrant: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: (ctx) => {
+        ctx.onCleanup(release);
+        host.emit?.({
+          name: 'diagnostic',
+          payload: { v: 1, tab_id: 't', document_id: 'd' },
+          timestamp: 0,
+        });
+        return release;
+      },
+    };
+    const capture = createCapture({ enabled: true }, host, [reentrant]);
+    let emitCount = 0;
+    host.emit = jest.fn(() => {
+      if (emitCount++ === 0) capture.stop();
+    });
+    capture.start();
+    expect(release).toHaveBeenCalledTimes(1);
+    capture.start();
+    capture.stop();
+    expect(release).toHaveBeenCalledTimes(2);
+  });
+
   test('does not duplicate recorder setup when resetSession runs during setup', () => {
     const firstSetup = jest.fn(() => () => undefined);
     const secondSetup = jest.fn(() => () => undefined);
