@@ -1236,6 +1236,296 @@ describe('SessionReplay', () => {
         expect(takeFullSnapshotMock).not.toHaveBeenCalled();
       });
 
+      test('leaving a focused iframe for another window takes a checkout on return', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        let frameBlur: (() => void) | undefined;
+        const frameWindow = {
+          addEventListener: (_type: string, listener: () => void) => {
+            frameBlur = listener;
+          },
+          removeEventListener: jest.fn(),
+        };
+        const iframe = { tagName: 'IFRAME', contentWindow: frameWindow };
+        const documentWithIframe = {
+          ...mockDocument,
+          visibilityState: 'visible' as DocumentVisibilityState,
+          activeElement: iframe as unknown as Element,
+          hasFocus: () => false,
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: documentWithIframe,
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        sessionReplay.blurListener();
+        frameBlur?.();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+        expect(frameWindow.removeEventListener).toHaveBeenCalledWith('blur', frameBlur);
+      });
+
+      test('focus returning from an iframe to this page does not take a checkout snapshot', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        let frameBlur: (() => void) | undefined;
+        const iframe = {
+          tagName: 'IFRAME',
+          contentWindow: {
+            addEventListener: (_type: string, listener: () => void) => {
+              frameBlur = listener;
+            },
+            removeEventListener: jest.fn(),
+          },
+        };
+        const documentWithIframe = {
+          ...mockDocument,
+          visibilityState: 'visible' as DocumentVisibilityState,
+          activeElement: iframe as unknown as Element,
+          hasFocus: () => true,
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: documentWithIframe,
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        sessionReplay.blurListener();
+        frameBlur?.();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('moving from one iframe to another does not take a checkout snapshot', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        let frameBlur: (() => void) | undefined;
+        const iframe = {
+          tagName: 'IFRAME',
+          contentWindow: {
+            addEventListener: (_type: string, listener: () => void) => {
+              frameBlur = listener;
+            },
+            removeEventListener: jest.fn(),
+          },
+        };
+        const nextIframe = { tagName: 'IFRAME', contentWindow: {} };
+        const documentWithIframe = {
+          ...mockDocument,
+          visibilityState: 'visible' as DocumentVisibilityState,
+          activeElement: iframe as unknown as Element,
+          hasFocus: () => false,
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: documentWithIframe,
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        sessionReplay.blurListener();
+        documentWithIframe.activeElement = nextIframe as unknown as Element;
+        frameBlur?.();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('blur of an iframe followed by focus in the parent does not take a checkout snapshot', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        let frameBlur: (() => void) | undefined;
+        const iframe = {
+          tagName: 'IFRAME',
+          contentWindow: {
+            addEventListener: (_type: string, listener: () => void) => {
+              frameBlur = listener;
+            },
+            removeEventListener: jest.fn(),
+          },
+        };
+        const documentWithIframe = {
+          ...mockDocument,
+          visibilityState: 'visible' as DocumentVisibilityState,
+          activeElement: iframe as unknown as Element,
+          hasFocus: () => false,
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: documentWithIframe,
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        sessionReplay.blurListener();
+        documentWithIframe.activeElement = { tagName: 'BODY' } as unknown as Element;
+        frameBlur?.();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('a cross-origin iframe that rejects listeners does not throw', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const iframe = {
+          tagName: 'IFRAME',
+          get contentWindow(): Window {
+            throw new Error('cross-origin');
+          },
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: {
+            ...mockDocument,
+            visibilityState: 'visible' as DocumentVisibilityState,
+            activeElement: iframe as unknown as Element,
+          },
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        expect(() => sessionReplay.blurListener()).not.toThrow();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('a frame that rejects blur subscription does not throw', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const iframe = {
+          tagName: 'IFRAME',
+          contentWindow: {
+            addEventListener: () => {
+              throw new Error('denied');
+            },
+          },
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: {
+            ...mockDocument,
+            visibilityState: 'visible' as DocumentVisibilityState,
+            activeElement: iframe as unknown as Element,
+          },
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        expect(() => sessionReplay.blurListener()).not.toThrow();
+      });
+
+      test('stop still finishes when the focused frame rejects listener removal', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const iframe = {
+          tagName: 'IFRAME',
+          contentWindow: {
+            addEventListener: jest.fn(),
+            removeEventListener: () => {
+              throw new Error('denied');
+            },
+          },
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: {
+            ...mockDocument,
+            activeElement: iframe as unknown as Element,
+          },
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        sessionReplay.blurListener();
+
+        expect(() => sessionReplay.stop()).not.toThrow();
+      });
+
+      test('an iframe blur with no document does not take a checkout snapshot', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        let frameBlur: (() => void) | undefined;
+        const iframe = {
+          tagName: 'IFRAME',
+          contentWindow: {
+            addEventListener: (_type: string, listener: () => void) => {
+              frameBlur = listener;
+            },
+            removeEventListener: jest.fn(),
+          },
+        };
+        const scope = {
+          ...mockGlobalScope,
+          document: {
+            ...mockDocument,
+            visibilityState: 'visible' as DocumentVisibilityState,
+            activeElement: iframe as unknown as Element,
+            hasFocus: () => false,
+          },
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        };
+        const getScope = jest.spyOn(AnalyticsCore, 'getGlobalScope');
+        getScope.mockReturnValue(scope as unknown as typeof globalThis);
+
+        sessionReplay.blurListener();
+        getScope.mockReturnValue(undefined);
+        frameBlur?.();
+        getScope.mockReturnValue(scope as unknown as typeof globalThis);
+        sessionReplay.blurListener();
+        getScope.mockReturnValue({} as typeof globalThis);
+        frameBlur?.();
+        getScope.mockReturnValue(scope as unknown as typeof globalThis);
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
       test('a tab return does not checkout again when focus follows visibility', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         const takeFullSnapshotMock = jest.fn();

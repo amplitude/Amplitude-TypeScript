@@ -144,6 +144,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
    */
   private focusLeftWindow = false;
   private focusDestinationFrame: number | undefined;
+  /** Iframe that currently holds focus, so a later blur of its window is still visible. */
+  private focusedFrame: HTMLIFrameElement | undefined;
+  private focusedFrameWindow: Window | undefined;
+  private focusedFrameBlur: (() => void) | undefined;
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
   private currentPageUrl = '';
@@ -599,6 +603,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   visibilityListener = () => {
     const visibilityState = getGlobalScope()?.document?.visibilityState;
     if (visibilityState === 'hidden') {
+      this.releaseFocusedFrame();
       this.scheduleHiddenSend();
       return;
     }
@@ -608,6 +613,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // event that follows a tab return does not take a second checkout.
       this.focusLeftWindow = false;
       this.cancelFocusDestinationCheck();
+      this.releaseFocusedFrame();
       this.cancelHiddenSend();
       this.captureVisibleTab();
     }
@@ -619,6 +625,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     const focusFromOutside = this.focusLeftWindow && getGlobalScope()?.document?.visibilityState === 'visible';
     this.focusLeftWindow = false;
+    this.releaseFocusedFrame();
     // Another window of the same session stayed visible, so visibilitychange never
     // fired. One checkout replaces the replayed document; otherwise that window's
     // incremental adds share node ids and append onto this one.
@@ -679,24 +686,103 @@ export class SessionReplay implements AmplitudeSessionReplay {
   /**
    * `activeElement` is still the previous node while `blur` is firing. Check on the
    * next frame: an iframe means focus stayed in this page, and anything else means
-   * it left the window.
+   * it left the window. The parent is already blurred once an iframe is focused, so
+   * that iframe's window is watched too. Its blur is what a move to another visible
+   * window looks like.
    */
   private noteFocusDestination() {
     this.focusLeftWindow = false;
     this.cancelFocusDestinationCheck();
     const scope = getGlobalScope();
-    const inspect = () => {
-      this.focusDestinationFrame = undefined;
+    this.scheduleFocusInspect(scope, () => {
       const active = scope?.document?.activeElement;
-      if (active?.tagName !== 'IFRAME') {
-        this.focusLeftWindow = true;
+      if (active?.tagName === 'IFRAME') {
+        this.watchFocusedFrame(active as HTMLIFrameElement);
+        return;
       }
-    };
-    if (typeof scope?.requestAnimationFrame === 'function') {
-      this.focusDestinationFrame = scope.requestAnimationFrame(inspect);
+      this.releaseFocusedFrame();
+      this.focusLeftWindow = true;
+    });
+  }
+
+  /**
+   * The iframe window blurs both when focus returns to this page and when it leaves
+   * for another window. The parent will not blur a second time, so decide here.
+   */
+  private noteFrameBlur() {
+    this.cancelFocusDestinationCheck();
+    const scope = getGlobalScope();
+    const frame = this.focusedFrame;
+    this.scheduleFocusInspect(scope, () => {
+      const active = scope?.document?.activeElement;
+      const parentDocument = scope?.document;
+      const parentHasFocus = typeof parentDocument?.hasFocus === 'function' && parentDocument.hasFocus();
+      if (parentHasFocus) {
+        this.releaseFocusedFrame();
+        return;
+      }
+      if (active !== frame && active?.tagName === 'IFRAME') {
+        this.watchFocusedFrame(active as HTMLIFrameElement);
+        return;
+      }
+      if (active !== frame) {
+        this.releaseFocusedFrame();
+        return;
+      }
+      this.focusLeftWindow = true;
+    });
+  }
+
+  private watchFocusedFrame(frame: HTMLIFrameElement) {
+    this.releaseFocusedFrame();
+    let child: Window | null | undefined;
+    try {
+      child = frame.contentWindow;
+    } catch {
       return;
     }
-    inspect();
+    if (child == null || typeof child.addEventListener !== 'function') {
+      return;
+    }
+    const onBlur = () => {
+      this.noteFrameBlur();
+    };
+    try {
+      child.addEventListener('blur', onBlur);
+    } catch {
+      return;
+    }
+    this.focusedFrame = frame;
+    this.focusedFrameWindow = child;
+    this.focusedFrameBlur = onBlur;
+  }
+
+  private releaseFocusedFrame() {
+    const child = this.focusedFrameWindow;
+    const onBlur = this.focusedFrameBlur;
+    this.focusedFrame = undefined;
+    this.focusedFrameWindow = undefined;
+    this.focusedFrameBlur = undefined;
+    if (child === undefined) {
+      return;
+    }
+    try {
+      child.removeEventListener('blur', onBlur as () => void);
+    } catch {
+      // The frame can reject listener removal once it is cross-origin.
+    }
+  }
+
+  private scheduleFocusInspect(scope: ReturnType<typeof getGlobalScope>, inspect: () => void) {
+    const run = () => {
+      this.focusDestinationFrame = undefined;
+      inspect();
+    };
+    if (typeof scope?.requestAnimationFrame === 'function') {
+      this.focusDestinationFrame = scope.requestAnimationFrame(run);
+      return;
+    }
+    run();
   }
 
   private cancelFocusDestinationCheck() {
@@ -1412,6 +1498,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.cancelHiddenSend();
     this.focusLeftWindow = false;
     this.cancelFocusDestinationCheck();
+    this.releaseFocusedFrame();
     this.stopRecordingEvents();
     this.sendEvents();
   }
@@ -1432,6 +1519,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.cancelHiddenSend();
     this.focusLeftWindow = false;
     this.cancelFocusDestinationCheck();
+    this.releaseFocusedFrame();
     this.urlChangeCleanup?.();
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;

@@ -98,7 +98,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     }
     // Defaults to false per the validated amp-on-amp perf config (SR-4646): the on-focus full
     // snapshot is off unless the consumer explicitly opts in. A focus that arrives from
-    // another visible window still takes one checkout; same-page iframe focus does not.
+    // another visible window still takes one checkout, including a return from a window
+    // switch that started while an iframe in this page was focused. Same-page iframe
+    // focus does not.
     this.captureFullSnapshotOnFocus = options.captureFullSnapshotOnFocus ?? false;
     if (options.maxPersistedEventsSizeBytes !== undefined) {
       this.maxPersistedEventsSizeBytes = sanitizeByteSize(

@@ -364,7 +364,8 @@ export interface SessionReplayLocalConfig extends IConfig {
    *
    * Two windows that both stay visible never hide, so focus arriving from outside this
    * window still takes one checkout. Focus that only moved into an iframe in this page
-   * does not.
+   * does not. Leaving that iframe for another window does not blur the parent again;
+   * the return still takes one checkout.
    *
    * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
    * prior to that change.

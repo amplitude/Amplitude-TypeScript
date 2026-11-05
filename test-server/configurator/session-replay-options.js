@@ -291,7 +291,7 @@ export const SESSION_REPLAY_SECTIONS = [
         type: 'boolean',
         defaultValue: false,
         description:
-          'When true, the window focus listener forces a fresh rrweb full snapshot every time the page regains focus. When false (default), same-page focus, including iframes, does not snapshot. Focus that arrives from another visible window still takes one checkout. Browser tab switches are handled separately: hiding the tab flushes queued mutations, and showing it takes one checkout snapshot.',
+          'When true, the window focus listener forces a fresh rrweb full snapshot every time the page regains focus. When false (default), same-page focus, including iframes, does not snapshot. Focus that arrives from another visible window still takes one checkout, including when an iframe in this page had focus before the switch. Browser tab switches are handled separately: hiding the tab flushes queued mutations, and showing it takes one checkout snapshot.',
       },
       {
         key: 'enableUrlChangePolling',
