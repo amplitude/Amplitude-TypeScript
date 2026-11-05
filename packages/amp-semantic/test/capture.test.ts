@@ -280,6 +280,35 @@ describe('capture runtime', () => {
     capture.stop();
   });
 
+  test('does not duplicate recorder setup when resetSession runs before setup throws', () => {
+    host.onError = jest.fn();
+    const secondSetup = jest.fn(() => () => undefined);
+    const failing: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: () => {
+        host.emit?.({
+          name: 'diagnostic',
+          payload: { v: 1, tab_id: 't', document_id: 'd' },
+          timestamp: 0,
+        });
+        throw new Error('setup failed');
+      },
+    };
+    const second: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: secondSetup,
+    };
+    const capture = createCapture({ enabled: true }, host, [failing, second]);
+    let emitCount = 0;
+    host.emit = jest.fn(() => {
+      if (emitCount++ === 0) capture.resetSession();
+    });
+    capture.start();
+    expect(secondSetup).toHaveBeenCalledTimes(1);
+    expect(capture.isActive()).toBe(true);
+    capture.stop();
+  });
+
   test('rolls back registered resources when an extension fails during setup', () => {
     host.onError = jest.fn();
     const release = jest.fn();

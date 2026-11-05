@@ -168,6 +168,7 @@ export function createCapture<P extends object = SemanticPayloads>(
           unregisterRollback();
           rollback();
           report(error);
+          if (myGeneration !== attachGeneration) break;
         }
       }
     }
