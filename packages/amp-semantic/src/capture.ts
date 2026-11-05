@@ -32,6 +32,7 @@ export function createCapture<P extends object = SemanticPayloads>(
   let settings = copyConfig(config);
   let active = false;
   let requested = false;
+  let attachGeneration = 0;
   let sample: number | undefined;
   let cleanups: Cleanup[] = [];
   let counts: Partial<Record<SemanticFamily<P>, number>> = {};
@@ -111,6 +112,7 @@ export function createCapture<P extends object = SemanticPayloads>(
   };
   const detach = () => {
     active = false;
+    attachGeneration += 1;
     const previous = cleanups;
     cleanups = [];
     previous.reverse().forEach((cleanup) => safely(cleanup));
@@ -122,6 +124,8 @@ export function createCapture<P extends object = SemanticPayloads>(
     if (!Number.isFinite(rate) || rate <= 0 || rate > 1) return;
     if (sample === undefined) sample = (host.random ?? Math.random)();
     if (sample >= rate) return;
+    const myGeneration = attachGeneration + 1;
+    attachGeneration = myGeneration;
     active = true;
     for (const recorder of recorders) {
       if (recorder.families.some(enabled)) {
@@ -152,9 +156,10 @@ export function createCapture<P extends object = SemanticPayloads>(
           // Register rollback before setup so reentrant stop/reset can tear listeners down.
           cleanups.push(rollback);
           registerCleanup(recorder.setup(scoped));
-          if (!active) {
+          if (!active || myGeneration !== attachGeneration) {
             unregisterRollback();
             rollback();
+            if (myGeneration !== attachGeneration) break;
           }
         } catch (error) {
           unregisterRollback();
