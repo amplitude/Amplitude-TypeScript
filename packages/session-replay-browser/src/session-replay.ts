@@ -144,8 +144,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
    */
   private focusLeftWindow = false;
   private focusDestinationFrame: number | undefined;
-  /** Iframe that currently holds focus, so a later blur of its window is still visible. */
-  private focusedFrame: HTMLIFrameElement | undefined;
+  /** Iframe window that currently holds focus, so a later blur is still visible. */
   private focusedFrameWindow: Window | undefined;
   private focusedFrameBlur: (() => void) | undefined;
 
@@ -706,31 +705,59 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   /**
-   * The iframe window blurs both when focus returns to this page and when it leaves
-   * for another window. The parent will not blur a second time, so decide here.
+   * The iframe window blurs when focus returns to this page, moves into a nested
+   * iframe, or leaves for another window. The parent will not blur a second time.
+   * A nested iframe keeps the parent's active element on the outer frame, so look
+   * inside the frame before treating the blur as a window leave.
    */
   private noteFrameBlur() {
     this.cancelFocusDestinationCheck();
     const scope = getGlobalScope();
-    const frame = this.focusedFrame;
     this.scheduleFocusInspect(scope, () => {
       const active = scope?.document?.activeElement;
       const parentDocument = scope?.document;
       const parentHasFocus = typeof parentDocument?.hasFocus === 'function' && parentDocument.hasFocus();
-      if (parentHasFocus) {
+      if (parentHasFocus || active?.tagName !== 'IFRAME') {
         this.releaseFocusedFrame();
         return;
       }
-      if (active !== frame && active?.tagName === 'IFRAME') {
-        this.watchFocusedFrame(active as HTMLIFrameElement);
-        return;
-      }
-      if (active !== frame) {
-        this.releaseFocusedFrame();
+      const holder = this.focusHolder(active as HTMLIFrameElement);
+      if (holder) {
+        this.watchFocusedFrame(holder);
         return;
       }
       this.focusLeftWindow = true;
     });
+  }
+
+  /**
+   * The iframe that still holds focus, walking into nested frames. Undefined means
+   * the frame's document is visible and neither it nor a child frame is focused.
+   */
+  private focusHolder(frame: HTMLIFrameElement, seen?: Set<HTMLIFrameElement>): HTMLIFrameElement | undefined {
+    if (seen?.has(frame)) {
+      return frame;
+    }
+    const visited = seen ?? new Set<HTMLIFrameElement>();
+    visited.add(frame);
+    let doc: Document | null | undefined;
+    try {
+      doc = frame.contentDocument;
+    } catch {
+      // A cross-origin frame is still part of this page.
+      return frame;
+    }
+    if (doc == null) {
+      return frame;
+    }
+    if (typeof doc.hasFocus === 'function' && doc.hasFocus()) {
+      return frame;
+    }
+    const inner = doc.activeElement;
+    if (inner?.tagName === 'IFRAME') {
+      return this.focusHolder(inner as HTMLIFrameElement, visited);
+    }
+    return undefined;
   }
 
   private watchFocusedFrame(frame: HTMLIFrameElement) {
@@ -752,7 +779,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     } catch {
       return;
     }
-    this.focusedFrame = frame;
     this.focusedFrameWindow = child;
     this.focusedFrameBlur = onBlur;
   }
@@ -760,7 +786,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private releaseFocusedFrame() {
     const child = this.focusedFrameWindow;
     const onBlur = this.focusedFrameBlur;
-    this.focusedFrame = undefined;
     this.focusedFrameWindow = undefined;
     this.focusedFrameBlur = undefined;
     if (child === undefined) {
