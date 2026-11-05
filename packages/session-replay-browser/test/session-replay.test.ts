@@ -1268,6 +1268,49 @@ describe('SessionReplay', () => {
         expect(takeFullSnapshotMock).toHaveBeenCalledTimes(1);
       });
 
+      test('focus does not checkout when the global scope is missing', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+
+        sessionReplay.blurListener();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('focus does not checkout when the document is missing', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as typeof globalThis);
+
+        sessionReplay.blurListener();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('stop cancels a pending focus check when the global scope is gone', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: mockDocument,
+          requestAnimationFrame: () => 4,
+        } as unknown as typeof globalThis);
+        sessionReplay.blurListener();
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+
+        expect(() => sessionReplay.stop()).not.toThrow();
+      });
+
       test('still takes the on-focus full snapshot when config is not yet set', async () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         const takeFullSnapshotMock = jest.fn();
