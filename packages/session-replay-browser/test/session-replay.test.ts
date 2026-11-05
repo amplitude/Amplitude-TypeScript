@@ -1033,7 +1033,7 @@ describe('SessionReplay', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (sessionReplay as any).recordEventsInFlight = false;
       initialize.mockReset();
-      expect(addEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(addEventListenerMock).toHaveBeenCalledTimes(4);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(addEventListenerMock.mock.calls[0][0]).toEqual('blur');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
@@ -1172,6 +1172,122 @@ describe('SessionReplay', () => {
         sessionReplay.focusListener();
 
         expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+    });
+
+    describe('pageShowListener', () => {
+      const pageShow = (persisted: boolean) => ({ persisted } as PageTransitionEvent);
+
+      test('takes a full snapshot when the page is restored from the back/forward cache', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+
+        sessionReplay.pageShowListener(pageShow(true));
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledTimes(1);
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+
+      test('does nothing on a regular page load (persisted=false)', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+
+        sessionReplay.pageShowListener(pageShow(false));
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('takes the snapshot even when captureFullSnapshotOnFocus is false', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+
+        sessionReplay.pageShowListener(pageShow(true));
+
+        expect(takeFullSnapshotMock).toHaveBeenCalledWith(true);
+      });
+
+      test('does nothing when recording is not enabled', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordingEnabled = false;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+
+        sessionReplay.pageShowListener(pageShow(true));
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('does nothing when the recorder is not running', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = null;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+
+        sessionReplay.pageShowListener(pageShow(true));
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+        expect(recordEventsSpy).not.toHaveBeenCalled();
+      });
+
+      test('warns via loggerProvider when takeFullSnapshot throws', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+        const testError = new Error('rrweb snapshot failed');
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = {
+          takeFullSnapshot: jest.fn().mockImplementation(() => {
+            throw testError;
+          }),
+        };
+
+        sessionReplay.pageShowListener(pageShow(true));
+
+        expect(warnSpy).toHaveBeenCalledWith('Failed to take full snapshot on back/forward cache restore:', testError);
+      });
+
+      test('is registered on init and removed on teardown', async () => {
+        const addEventListenerMock = jest.fn();
+        const removeMock = jest.fn();
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          document: {
+            hasFocus: () => false,
+          },
+          location: {
+            href: 'http://localhost',
+          },
+          addEventListener: addEventListenerMock,
+          removeEventListener: removeMock,
+        } as unknown as typeof globalThis);
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        expect(addEventListenerMock).toHaveBeenCalledWith('pageshow', sessionReplay.pageShowListener);
+
+        addEventListenerMock.mockClear();
+        sessionReplay.shutdown();
+
+        expect(removeMock).toHaveBeenCalledWith('pageshow', sessionReplay.pageShowListener);
+        expect(addEventListenerMock).not.toHaveBeenCalledWith('pageshow', expect.anything());
       });
     });
 
@@ -3640,10 +3756,11 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3); // blur, focus, beforeunload - popstate handled by plugin cleanup
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(4); // blur, focus, pageshow, beforeunload - popstate handled by plugin cleanup
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
-      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('beforeunload');
+      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('pageshow');
+      expect(removeEventListenerMock.mock.calls[3][0]).toEqual('beforeunload');
     });
 
     test('should remove event listeners with pagehide', async () => {
@@ -3659,10 +3776,11 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3); // blur, focus, pagehide - popstate handled by plugin cleanup
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(4); // blur, focus, pageshow, pagehide - popstate handled by plugin cleanup
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
-      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('pagehide');
+      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('pageshow');
+      expect(removeEventListenerMock.mock.calls[3][0]).toEqual('pagehide');
     });
 
     test('should stop recording and send any events in queue', async () => {
