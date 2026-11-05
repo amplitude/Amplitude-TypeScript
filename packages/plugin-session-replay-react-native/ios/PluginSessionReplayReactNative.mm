@@ -3,7 +3,7 @@
 
 @interface RCT_EXTERN_MODULE(PluginSessionReplayReactNative, RCTEventEmitter)
 
-RCT_EXTERN__BLOCKING_SYNCHRONOUS_METHOD(isRecording)
+RCT_EXTERN_METHOD(isRecording:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(setup:(NSString)apiKey deviceId:(NSString)deviceId sessionId:(nonnull NSNumber)sessionId serverZone:(NSString)serverZone sampleRate:(float)sampleRate enableRemoteConfig:(BOOL)enableRemoteConfig logLevel:(int)logLevel autoStart:(BOOL)autoStart maskLevel:(NSString)maskLevel resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 

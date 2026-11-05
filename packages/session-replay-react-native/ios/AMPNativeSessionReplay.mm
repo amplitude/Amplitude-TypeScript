@@ -3,7 +3,7 @@
 
 @interface RCT_EXTERN_MODULE(AMPNativeSessionReplay, RCTEventEmitter)
 
-RCT_EXTERN__BLOCKING_SYNCHRONOUS_METHOD(isRecording)
+RCT_EXTERN_METHOD(isRecording:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(flush:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 

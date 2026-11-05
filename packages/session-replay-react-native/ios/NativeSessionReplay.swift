@@ -10,15 +10,15 @@ class NativeSessionReplay: RCTEventEmitter {
     private var hasUiChangeListeners = false
     private var recordingRequested = false
 
-    // Keep SDK lifecycle changes and the synchronous recording query serialized.
+    // SDK lifecycle changes and recording-state reads run on main.
     @objc var methodQueue: DispatchQueue { DispatchQueue.main }
 
-    @objc func isRecording() -> NSNumber {
-        let readState = {
-            self.recordingRequested && ((self.sessionReplay as? InterfaceSignalProvider)?.isProviding ?? false)
+    @objc(isRecording:reject:)
+    func isRecording(_ resolve: @escaping RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { resolve(false); return }
+            resolve(self.recordingRequested && ((self.sessionReplay as? InterfaceSignalProvider)?.isProviding ?? false))
         }
-        let recording = Thread.isMainThread ? readState() : DispatchQueue.main.sync(execute: readState)
-        return NSNumber(value: recording)
     }
 
     private lazy var uiChangeReceiver = UiChangeReceiver { [weak self] in

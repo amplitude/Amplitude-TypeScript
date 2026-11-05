@@ -18,6 +18,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   ReactContextBaseJavaModule(reactContext) {
   private lateinit var sessionReplay: SessionReplay
   @Volatile private var recordingRequested = false
+  @Volatile private var invalidated = false
 
   override fun getName(): String {
     return "PluginSessionReplayReactNative"
@@ -71,16 +72,22 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       autoStart = autoStart,
       privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
       uiChangeCallback = {
-        reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-          .emit("amplitudeSessionReplayUiChange", null)
+        if (!invalidated && reactContext.hasActiveReactInstance()) {
+          try {
+            reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+              .emit("amplitudeSessionReplayUiChange", null)
+          } catch (_: RuntimeException) {
+            // The React instance can be destroyed between the check and the emission.
+          }
+        }
       }
     )
     recordingRequested = autoStart
   }
 
-  @ReactMethod(isBlockingSynchronousMethod = true)
-  fun isRecording(): Boolean {
-    return recordingRequested && ::sessionReplay.isInitialized && sessionReplay.shouldRecord()
+  @ReactMethod
+  fun isRecording(promise: Promise) {
+    promise.resolve(recordingRequested && ::sessionReplay.isInitialized && sessionReplay.shouldRecord())
   }
 
   @ReactMethod
@@ -147,6 +154,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   override fun invalidate() {
+    invalidated = true
     recordingRequested = false
     if (::sessionReplay.isInitialized) {
       sessionReplay.shutdown()

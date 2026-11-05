@@ -30,10 +30,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @Volatile private var sessionReplay: SessionReplay? = null
   private var nativeConfig: NativeConfig? = null
   @Volatile private var shouldStart = false
+  @Volatile private var invalidated = false
 
-  @ReactMethod(isBlockingSynchronousMethod = true)
-  override fun isRecording(): Boolean {
-    return shouldStart && sessionReplay?.shouldRecord() == true
+  @ReactMethod
+  override fun isRecording(promise: Promise) {
+    promise.resolve(shouldStart && sessionReplay?.shouldRecord() == true)
   }
 
   @ReactMethod
@@ -212,6 +213,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   override fun invalidate() {
+    invalidated = true
     sessionReplay?.shutdown()
     sessionReplay = null
     nativeConfig = null
@@ -246,8 +248,14 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       autoStart = false,
       privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
       uiChangeCallback = {
-        reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-          .emit("amplitudeSessionReplayReactNativeUiChange", null)
+        if (!invalidated && reactContext.hasActiveReactInstance()) {
+          try {
+            reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+              .emit("amplitudeSessionReplayReactNativeUiChange", null)
+          } catch (_: RuntimeException) {
+            // The React instance can be destroyed between the check and the emission.
+          }
+        }
       },
     )
     sessionReplay.setCustomSessionId(config.customSessionId)

@@ -46,6 +46,17 @@ idle, even after `start()`.
 
 To use Amplitude Session Replay with Amplitude Analytics, use the [`@amplitude/plugin-session-replay-react-native`](https://www.npmjs.com/package/@amplitude/plugin-session-replay-react-native) plugin package.
 
+## Recording status
+
+`isRecording()` returns a `Promise<boolean>`. Await it to check whether native Replay
+is recording and providing UI-change signals:
+
+```js
+import { isRecording } from '@amplitude/session-replay-react-native';
+
+const recording = await isRecording();
+```
+
 ## Masking views
 
 To mask certain views, add the `AmpMaskView` tag with the mask property `amp-mask` around the section to be masked

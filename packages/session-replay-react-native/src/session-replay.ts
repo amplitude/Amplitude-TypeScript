@@ -334,7 +334,7 @@ export function addUiChangeListener(listener: () => void): () => void {
   };
 }
 
-/** Whether a native replay instance is recording and providing UI change signals. */
-export function isRecording(): boolean {
+/** Resolves whether a native replay instance is recording and providing UI change signals. */
+export async function isRecording(): Promise<boolean> {
   return NativeSessionReplay.isRecording();
 }
