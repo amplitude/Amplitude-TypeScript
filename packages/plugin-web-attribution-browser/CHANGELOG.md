@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.36-sr-bfcache-pageshow-snapshot.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.35...@amplitude/plugin-web-attribution-browser@2.2.36-sr-bfcache-pageshow-snapshot.0) (2026-11-05)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+
+
+
+
 ## [2.2.35](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.2.34...@amplitude/plugin-web-attribution-browser@2.2.35) (2026-10-30)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser

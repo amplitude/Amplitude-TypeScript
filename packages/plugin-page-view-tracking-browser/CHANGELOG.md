@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.12.1-sr-bfcache-pageshow-snapshot.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.12.0...@amplitude/plugin-page-view-tracking-browser@2.12.1-sr-bfcache-pageshow-snapshot.0) (2026-11-05)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
 # [2.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.24...@amplitude/plugin-page-view-tracking-browser@2.12.0) (2026-10-30)
 
 

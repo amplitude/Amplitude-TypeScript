@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.51.8-sr-bfcache-pageshow-snapshot.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.7...@amplitude/session-replay-browser@1.51.8-sr-bfcache-pageshow-snapshot.0) (2026-11-05)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** make debug config structured-cloneable for cross-origin iframes ([#2107](https://github.com/amplitude/Amplitude-TypeScript/issues/2107)) ([3182125](https://github.com/amplitude/Amplitude-TypeScript/commit/318212523d4de8d94f04ab2a8d7d9a4054bf7a1e))
+* **session-replay-browser:** refresh the replay baseline on tab switch ([#2099](https://github.com/amplitude/Amplitude-TypeScript/issues/2099)) ([c325c01](https://github.com/amplitude/Amplitude-TypeScript/commit/c325c01fdd86800994f324f8b2ce1ea07f7b977a))
+* **session-replay-browser:** take a full snapshot when the page is restored from bfcache ([0330b0c](https://github.com/amplitude/Amplitude-TypeScript/commit/0330b0c9f65b151705dfdb0a2d47fc0b4d90a636))
+
+
+
+
+
 ## [1.51.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.5...@amplitude/session-replay-browser@1.51.7) (2026-10-30)
 
 

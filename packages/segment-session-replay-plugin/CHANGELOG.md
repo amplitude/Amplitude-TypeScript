@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.55-sr-bfcache-pageshow-snapshot.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.54...@amplitude/segment-session-replay-plugin@0.0.55-sr-bfcache-pageshow-snapshot.0) (2026-11-05)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
 ## [0.0.54](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.53...@amplitude/segment-session-replay-plugin@0.0.54) (2026-10-30)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin

@@ -1,1 +1,1 @@
-export const VERSION = '0.1.0-beta.3';
+export const VERSION = '0.1.0-sr-bfcache-pageshow-snapshot.0';

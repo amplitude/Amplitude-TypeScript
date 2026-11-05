@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.36.7-sr-bfcache-pageshow-snapshot.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.36.6...@amplitude/plugin-session-replay-browser@1.36.7-sr-bfcache-pageshow-snapshot.0) (2026-11-05)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
 ## [1.36.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.36.4...@amplitude/plugin-session-replay-browser@1.36.6) (2026-10-30)
 
 
