@@ -1,5 +1,6 @@
 // @refresh reset
 
+import { NativeEventEmitter, type EmitterSubscription } from 'react-native';
 import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
 import { getDefaultConfig, SessionReplayConfig, SessionReplayConfigInternal } from './session-replay-config';
 import { createSessionReplayLogger } from './logger';
@@ -305,4 +306,35 @@ export async function privateInit(
 ): Promise<void> {
   logger = newLogger;
   return init(config);
+}
+
+const globalUiChangeListeners = new Set<() => void>();
+let uiChangeSubscription: EmitterSubscription | undefined;
+
+/** Subscribe to native UI changes. Returns a function that removes this subscription. */
+export function addUiChangeListener(listener: () => void): () => void {
+  // Each registration gets its own entry, even when the callback is reused.
+  const registeredListener = () => listener();
+  globalUiChangeListeners.add(registeredListener);
+  if (!uiChangeSubscription) {
+    uiChangeSubscription = new NativeEventEmitter(NativeSessionReplay).addListener(
+      'amplitudeSessionReplayReactNativeUiChange',
+      () => {
+        globalUiChangeListeners.forEach((callback) => callback());
+      },
+    );
+  }
+
+  return () => {
+    globalUiChangeListeners.delete(registeredListener);
+    if (globalUiChangeListeners.size === 0) {
+      uiChangeSubscription?.remove();
+      uiChangeSubscription = undefined;
+    }
+  };
+}
+
+/** Whether a native replay instance is recording and providing UI change signals. */
+export function isRecording(): boolean {
+  return NativeSessionReplay.isRecording();
 }

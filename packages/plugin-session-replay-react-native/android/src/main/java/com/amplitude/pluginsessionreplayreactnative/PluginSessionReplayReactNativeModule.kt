@@ -12,10 +12,12 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
   private lateinit var sessionReplay: SessionReplay
+  @Volatile private var recordingRequested = false
 
   override fun getName(): String {
     return "PluginSessionReplayReactNative"
@@ -52,6 +54,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         Mask Level: $maskLevel
     """.trimIndent())
 
+    recordingRequested = false
+    if (::sessionReplay.isInitialized) sessionReplay.shutdown()
     sessionReplay = SessionReplay(
       apiKey,
       reactContext.applicationContext,
@@ -65,8 +69,28 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         else -> ServerZone.US
       },
       autoStart = autoStart,
-      privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel)
+      privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
+      uiChangeCallback = {
+        reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+          .emit("amplitudeSessionReplayUiChange", null)
+      }
     )
+    recordingRequested = autoStart
+  }
+
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  fun isRecording(): Boolean {
+    return recordingRequested && ::sessionReplay.isInitialized && sessionReplay.shouldRecord()
+  }
+
+  @ReactMethod
+  fun addListener(eventName: String) {
+    // Required by NativeEventEmitter; the callback is owned by SessionReplay.
+  }
+
+  @ReactMethod
+  fun removeListeners(count: Double) {
+    // Required by NativeEventEmitter.
   }
 
   @ReactMethod
@@ -102,10 +126,12 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   @ReactMethod
   fun start() {
     sessionReplay.start()
+    recordingRequested = true
   }
 
   @ReactMethod
   fun stop() {
+    recordingRequested = false
     sessionReplay.stop()
   }
 
@@ -116,10 +142,12 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun teardown() {
+    recordingRequested = false
     sessionReplay.shutdown()
   }
 
   override fun invalidate() {
+    recordingRequested = false
     if (::sessionReplay.isInitialized) {
       sessionReplay.shutdown()
     }

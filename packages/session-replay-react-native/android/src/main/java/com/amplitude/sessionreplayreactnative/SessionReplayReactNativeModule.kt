@@ -10,6 +10,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 // `@ReactMethod` is required on the legacy architecture and ignored on the new
 // one, so it stays on the overrides below.
@@ -26,9 +27,24 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     val maskLevel: MaskLevel,
   )
 
-  private var sessionReplay: SessionReplay? = null
+  @Volatile private var sessionReplay: SessionReplay? = null
   private var nativeConfig: NativeConfig? = null
-  private var shouldStart = false
+  @Volatile private var shouldStart = false
+
+  @ReactMethod(isBlockingSynchronousMethod = true)
+  override fun isRecording(): Boolean {
+    return shouldStart && sessionReplay?.shouldRecord() == true
+  }
+
+  @ReactMethod
+  override fun addListener(eventName: String) {
+    // Required by NativeEventEmitter; the callback is owned by SessionReplay.
+  }
+
+  @ReactMethod
+  override fun removeListeners(count: Double) {
+    // Required by NativeEventEmitter.
+  }
 
   override fun getName(): String {
     return NAME
@@ -229,6 +245,10 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       },
       autoStart = false,
       privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
+      uiChangeCallback = {
+        reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+          .emit("amplitudeSessionReplayReactNativeUiChange", null)
+      },
     )
     sessionReplay.setCustomSessionId(config.customSessionId)
     return sessionReplay

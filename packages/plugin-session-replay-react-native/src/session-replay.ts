@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } from '@amplitude/analytics-core';
+import { NativeEventEmitter, EmitterSubscription, NativeModule } from 'react-native';
 
 import { PluginSessionReplayReactNative } from './native-module';
 import { VERSION } from './version';
@@ -109,4 +110,35 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
     }
     return PluginSessionReplayReactNative.getSessionReplayProperties();
   }
+}
+
+const globalUiChangeListeners = new Set<() => void>();
+let uiChangeSubscription: EmitterSubscription | undefined;
+
+/** Subscribe to native UI changes. Returns a function that removes this subscription. */
+export function addUiChangeListener(listener: () => void): () => void {
+  // Each registration gets its own entry, even when the callback is reused.
+  const registeredListener = () => listener();
+  globalUiChangeListeners.add(registeredListener);
+  if (!uiChangeSubscription) {
+    uiChangeSubscription = new NativeEventEmitter(PluginSessionReplayReactNative as NativeModule).addListener(
+      'amplitudeSessionReplayUiChange',
+      () => {
+        globalUiChangeListeners.forEach((callback) => callback());
+      },
+    );
+  }
+
+  return () => {
+    globalUiChangeListeners.delete(registeredListener);
+    if (globalUiChangeListeners.size === 0) {
+      uiChangeSubscription?.remove();
+      uiChangeSubscription = undefined;
+    }
+  };
+}
+
+/** Whether a native replay instance is recording and providing UI change signals. */
+export function isRecording(): boolean {
+  return PluginSessionReplayReactNative.isRecording() as boolean;
 }

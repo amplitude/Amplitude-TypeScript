@@ -1,17 +1,47 @@
 import Foundation
 import AmplitudeSessionReplay
 import AmplitudeCore
+import React
 
 @objc(AMPNativeSessionReplay)
-class NativeSessionReplay: NSObject, RCTBridgeModule {
-    static func moduleName() -> String! {
-        "AMPNativeSessionReplay"
-    }
-    
+class NativeSessionReplay: RCTEventEmitter {
     var sessionReplay: SessionReplay?
     var logger: CoreLogger?
+    private var hasUiChangeListeners = false
+    private var recordingRequested = false
+
+    // Keep SDK lifecycle changes and the synchronous recording query serialized.
+    @objc var methodQueue: DispatchQueue { DispatchQueue.main }
+
+    @objc func isRecording() -> NSNumber {
+        let readState = {
+            self.recordingRequested && ((self.sessionReplay as? InterfaceSignalProvider)?.isProviding ?? false)
+        }
+        let recording = Thread.isMainThread ? readState() : DispatchQueue.main.sync(execute: readState)
+        return NSNumber(value: recording)
+    }
+
+    private lazy var uiChangeReceiver = UiChangeReceiver { [weak self] in
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.hasUiChangeListeners else { return }
+            self.sendEvent(withName: "amplitudeSessionReplayReactNativeUiChange", body: nil)
+        }
+    }
+
+    override func supportedEvents() -> [String]! {
+        return ["amplitudeSessionReplayReactNativeUiChange"]
+    }
+
+    override func startObserving() {
+        hasUiChangeListeners = true
+    }
+
+    override func stopObserving() {
+        hasUiChangeListeners = false
+    }
     
     override init() {
+        super.init()
         print("NativeSessionReplay init")
     }
     
@@ -48,6 +78,9 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             """
         )
         
+        (sessionReplay as? InterfaceSignalProvider)?.removeInterfaceSignalReceiver(uiChangeReceiver)
+        recordingRequested = false
+        sessionReplay?.stop()
         sessionReplay = SessionReplay(
             apiKey: apiKey,
             deviceId: deviceId,
@@ -61,6 +94,9 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         )
 
         sessionReplay?.customSessionId = customSessionId
+        // Older SDKs do not expose SessionReplay as an InterfaceSignalProvider.
+        // UI change notifications require an SDK that provides this conformance.
+        (sessionReplay as? InterfaceSignalProvider)?.addInterfaceSignalReceiver(uiChangeReceiver)
 
         resolve(nil)
     }
@@ -98,6 +134,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         logger?.debug(message: "start")
+        recordingRequested = true
         sessionReplay?.start()
         resolve(nil)
     }
@@ -105,6 +142,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     @objc(stop:reject:)
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         logger?.debug(message: "stop")
+        recordingRequested = false
         sessionReplay?.stop()
         resolve(nil)
     }
@@ -123,17 +161,34 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         resolve(nil)
     }
     
-    @objc(invalidate)
-    func invalidate() {
+    override func invalidate() {
         print("invalidate")
         tearDownSessionReplay()
+        super.invalidate()
     }
 
     private func tearDownSessionReplay() {
+        recordingRequested = false
+        (sessionReplay as? InterfaceSignalProvider)?.removeInterfaceSignalReceiver(uiChangeReceiver)
         sessionReplay?.stop()
         sessionReplay = nil
         logger = nil
     }
+}
+
+private final class UiChangeReceiver: InterfaceSignalReceiver, @unchecked Sendable {
+    private let uiChangeCallback: () -> Void
+
+    init(uiChangeCallback: @escaping () -> Void) {
+        self.uiChangeCallback = uiChangeCallback
+    }
+
+    func onInterfaceChanged(signal: InterfaceChangeSignal) {
+        uiChangeCallback()
+    }
+
+    func onStartProviding() {}
+    func onStopProviding() {}
 }
 
 extension MaskLevel {
