@@ -144,10 +144,20 @@ export function createCapture<P extends object = SemanticPayloads>(
             .reverse()
             .forEach((cleanup) => safely(cleanup));
         };
+        const unregisterRollback = () => {
+          const index = cleanups.lastIndexOf(rollback);
+          if (index >= 0) cleanups.splice(index, 1);
+        };
         try {
-          registerCleanup(recorder.setup(scoped));
+          // Register rollback before setup so reentrant stop/reset can tear listeners down.
           cleanups.push(rollback);
+          registerCleanup(recorder.setup(scoped));
+          if (!active) {
+            unregisterRollback();
+            rollback();
+          }
         } catch (error) {
+          unregisterRollback();
           rollback();
           report(error);
         }

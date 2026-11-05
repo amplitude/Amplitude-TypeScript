@@ -191,6 +191,38 @@ describe('capture runtime', () => {
     capture.stop();
   });
 
+  test('rolls back recorder resources when stop runs during setup', () => {
+    const listener = jest.fn();
+    const release = jest.fn();
+    const reentrant: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: (ctx) => {
+        ctx.on('snapshot', listener);
+        ctx.onCleanup(release);
+        host.emit?.({
+          name: 'diagnostic',
+          payload: { v: 1, tab_id: 't', document_id: 'd' },
+          timestamp: 0,
+        });
+        return () => undefined;
+      },
+    };
+    const capture = createCapture({ enabled: true }, host, [reentrant]);
+    let emitCount = 0;
+    host.emit = jest.fn(() => {
+      if (emitCount++ === 0) capture.stop();
+    });
+    capture.start();
+    expect(listener).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(capture.isActive()).toBe(false);
+    capture.start();
+    capture.notify('snapshot', undefined);
+    expect(listener).toHaveBeenCalledTimes(1);
+    capture.stop();
+    expect(release).toHaveBeenCalledTimes(2);
+  });
+
   test('rolls back registered resources when an extension fails during setup', () => {
     host.onError = jest.fn();
     const release = jest.fn();
