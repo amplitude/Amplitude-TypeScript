@@ -66,10 +66,12 @@ const resolveWithNode = (context, moduleName) => {
 const defaultConfig = getDefaultConfig(projectRoot);
 
 const config = {
+  transformer: { allowOptionalDependencies: true },
   watchFolders: [
     hostAppRoot,
     path.join(workspaceRoot, 'packages/analytics-react-native'),
     path.join(workspaceRoot, 'packages/analytics-core'),
+    path.join(workspaceRoot, 'packages/plugin-session-replay-react-native'),
     // Pulled in via analytics-react-native autocapture.networkTracking.
     path.join(workspaceRoot, 'packages/plugin-network-capture-browser'),
     path.join(workspaceRoot, 'packages/analytics-react-native-test'),
