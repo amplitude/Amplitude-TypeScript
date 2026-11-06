@@ -1,4 +1,5 @@
 import { LogLevel } from '@amplitude/analytics-core';
+import { DeviceEventEmitter } from 'react-native';
 
 const nativeSetupMock = jest.fn((..._args: unknown[]) => Promise.resolve());
 
@@ -11,11 +12,52 @@ jest.mock('../src/native-module', () => ({
     start: jest.fn(() => Promise.resolve()),
     stop: jest.fn(() => Promise.resolve()),
     teardown: jest.fn(() => Promise.resolve()),
+    addListener: jest.fn(),
+    removeListeners: jest.fn(),
   },
 }));
 
 import { getDefaultConfig } from '../src/session-replay-config';
-import { SessionReplayPlugin } from '../src/session-replay';
+import { SessionReplayPlugin, addUiChangeListener } from '../src/session-replay';
+
+describe('UI change listeners', () => {
+  it('delivers repeated native changes and unsubscribes listeners independently', () => {
+    const first = jest.fn();
+    const second = jest.fn();
+    const unsubscribeFirst = addUiChangeListener(first);
+    const unsubscribeSecond = addUiChangeListener(second);
+
+    DeviceEventEmitter.emit('amplitudeSessionReplayUiChange');
+    DeviceEventEmitter.emit('amplitudeSessionReplayUiChange');
+    expect(first).toHaveBeenCalledTimes(2);
+    expect(second).toHaveBeenCalledTimes(2);
+
+    unsubscribeFirst();
+    unsubscribeFirst();
+    DeviceEventEmitter.emit('amplitudeSessionReplayUiChange');
+    expect(first).toHaveBeenCalledTimes(2);
+    expect(second).toHaveBeenCalledTimes(3);
+    unsubscribeSecond();
+    DeviceEventEmitter.emit('amplitudeSessionReplayUiChange');
+    expect(second).toHaveBeenCalledTimes(3);
+  });
+
+  it('allows independent registrations of the same callback and resubscribing after cleanup', () => {
+    const listener = jest.fn();
+    const unsubscribeFirst = addUiChangeListener(listener);
+    const unsubscribeSecond = addUiChangeListener(listener);
+    unsubscribeFirst();
+    DeviceEventEmitter.emit('amplitudeSessionReplayUiChange');
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribeSecond();
+
+    const unsubscribeThird = addUiChangeListener(listener);
+    unsubscribeFirst();
+    DeviceEventEmitter.emit('amplitudeSessionReplayUiChange');
+    expect(listener).toHaveBeenCalledTimes(2);
+    unsubscribeThird();
+  });
+});
 
 describe('Session Replay default config', () => {
   it('should have autostart default to true', () => {

@@ -27,6 +27,17 @@ await add(new SessionReplayPlugin(config)).promise;
 
 ```
 
+## Recording status
+
+`isRecording()` returns a `Promise<boolean>`. Await it to check whether native Replay
+is recording and providing UI-change signals:
+
+```js
+import { isRecording } from '@amplitude/plugin-session-replay-react-native';
+
+const recording = await isRecording();
+```
+
 ## Mask levels
 
 Control how aggressively Session Replay masks sensitive content via the `privacyConfig.maskLevel` config option:

@@ -4,6 +4,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } from '@amplitude/analytics-core';
+import { NativeEventEmitter, EmitterSubscription, NativeModule } from 'react-native';
 
 import { PluginSessionReplayReactNative } from './native-module';
 import { VERSION } from './version';
@@ -109,4 +110,40 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
     }
     return PluginSessionReplayReactNative.getSessionReplayProperties();
   }
+}
+
+const globalUiChangeListeners = new Set<() => void>();
+let uiChangeSubscription: EmitterSubscription | undefined;
+let uiChangeSubscriptionGeneration = 0;
+
+/** Subscribe to native UI changes. Returns a function that removes this subscription. */
+export function addUiChangeListener(listener: () => void): () => void {
+  // Each registration gets its own entry, even when the callback is reused.
+  const registeredListener = () => listener();
+  globalUiChangeListeners.add(registeredListener);
+  if (!uiChangeSubscription) {
+    const generation = ++uiChangeSubscriptionGeneration;
+    uiChangeSubscription = new NativeEventEmitter(PluginSessionReplayReactNative as NativeModule).addListener(
+      'amplitudeSessionReplayUiChange',
+      () => {
+        if (generation !== uiChangeSubscriptionGeneration) return;
+        globalUiChangeListeners.forEach((callback) => callback());
+      },
+    );
+  }
+
+  return () => {
+    globalUiChangeListeners.delete(registeredListener);
+    if (globalUiChangeListeners.size === 0) {
+      // Retire callbacks already queued for the previous native subscription.
+      uiChangeSubscriptionGeneration++;
+      uiChangeSubscription?.remove();
+      uiChangeSubscription = undefined;
+    }
+  };
+}
+
+/** Resolves whether a native replay instance is recording and providing UI change signals. */
+export async function isRecording(): Promise<boolean> {
+  return (await PluginSessionReplayReactNative.isRecording()) as boolean;
 }
