@@ -24,14 +24,14 @@ class NativeSessionReplay: RCTEventEmitter {
             // The SDK updates recording availability on main. Keep this read async
             // so a native query never blocks a JS caller waiting on the UI thread.
             let recording = self.stateLock.withLock {
-                !self.invalidated && self.recordingRequested && ((self.sessionReplay as? InterfaceSignalProvider)?.isProviding ?? false)
+                !self.invalidated && self.recordingRequested && (self.sessionReplay?.isProviding ?? false)
             }
             resolve(recording)
         }
     }
 
     private func attachUiChangeReceiver() {
-        guard let provider = sessionReplay as? InterfaceSignalProvider else { return }
+        guard let provider = sessionReplay else { return }
         let receiver = UiChangeReceiver { [weak self] receiver in
             guard let self = self else { return }
             self.stateLock.withLock {
@@ -49,7 +49,7 @@ class NativeSessionReplay: RCTEventEmitter {
         let (provider, receiver) = stateLock.withLock {
             let receiver = uiChangeReceiver
             uiChangeReceiver = nil
-            return (sessionReplay as? InterfaceSignalProvider, receiver)
+            return (sessionReplay, receiver)
         }
         // Never hold the state lock while calling back into the SDK.
         if let receiver = receiver { provider?.removeInterfaceSignalReceiver(receiver) }
@@ -121,8 +121,6 @@ class NativeSessionReplay: RCTEventEmitter {
         )
 
         sessionReplay?.customSessionId = customSessionId
-        // Older SDKs do not expose SessionReplay as an InterfaceSignalProvider.
-        // UI change notifications require an SDK that provides this conformance.
         attachUiChangeReceiver()
 
         resolve(nil)
