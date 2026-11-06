@@ -10,9 +10,9 @@ describe('capture runtime', () => {
   beforeEach(() => {
     host = {
       document,
+      window,
       sdk: 'test',
       getPrivacy: () => ({}),
-      window,
       emit: jest.fn(),
       getIdentity: jest.fn(() => ({ tab_id: 'tab-test', document_id: 'document-test' })),
       random: jest.fn(() => 0.25),
@@ -190,6 +190,124 @@ describe('capture runtime', () => {
       tab_id: expect.any(String),
       document_id: expect.any(String),
     });
+    capture.stop();
+  });
+
+  test('rolls back recorder resources when stop runs during setup', () => {
+    const listener = jest.fn();
+    const release = jest.fn();
+    const reentrant: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: (ctx) => {
+        ctx.on('snapshot', listener);
+        ctx.onCleanup(release);
+        host.emit?.({
+          name: 'diagnostic',
+          payload: { v: 1, tab_id: 't', document_id: 'd' },
+          timestamp: 0,
+        });
+        return () => undefined;
+      },
+    };
+    const capture = createCapture({ enabled: true }, host, [reentrant]);
+    let emitCount = 0;
+    host.emit = jest.fn(() => {
+      if (emitCount++ === 0) capture.stop();
+    });
+    capture.start();
+    expect(listener).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(capture.isActive()).toBe(false);
+    capture.start();
+    capture.notify('snapshot', undefined);
+    expect(listener).toHaveBeenCalledTimes(1);
+    capture.stop();
+    expect(release).toHaveBeenCalledTimes(2);
+  });
+
+  test('runs registered cleanup once when stop runs during setup', () => {
+    const release = jest.fn();
+    const reentrant: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: (ctx) => {
+        ctx.onCleanup(release);
+        host.emit?.({
+          name: 'diagnostic',
+          payload: { v: 1, tab_id: 't', document_id: 'd' },
+          timestamp: 0,
+        });
+        return release;
+      },
+    };
+    const capture = createCapture({ enabled: true }, host, [reentrant]);
+    let emitCount = 0;
+    host.emit = jest.fn(() => {
+      if (emitCount++ === 0) capture.stop();
+    });
+    capture.start();
+    expect(release).toHaveBeenCalledTimes(1);
+    capture.start();
+    capture.stop();
+    expect(release).toHaveBeenCalledTimes(2);
+  });
+
+  test('does not duplicate recorder setup when resetSession runs during setup', () => {
+    const firstSetup = jest.fn(() => () => undefined);
+    const secondSetup = jest.fn(() => () => undefined);
+    const reentrant: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: () => {
+        firstSetup();
+        host.emit?.({
+          name: 'diagnostic',
+          payload: { v: 1, tab_id: 't', document_id: 'd' },
+          timestamp: 0,
+        });
+        return () => undefined;
+      },
+    };
+    const second: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: secondSetup,
+    };
+    const capture = createCapture({ enabled: true }, host, [reentrant, second]);
+    let emitCount = 0;
+    host.emit = jest.fn(() => {
+      if (emitCount++ === 0) capture.resetSession();
+    });
+    capture.start();
+    expect(firstSetup).toHaveBeenCalledTimes(2);
+    expect(secondSetup).toHaveBeenCalledTimes(1);
+    expect(capture.isActive()).toBe(true);
+    capture.stop();
+  });
+
+  test('does not duplicate recorder setup when resetSession runs before setup throws', () => {
+    host.onError = jest.fn();
+    const secondSetup = jest.fn(() => () => undefined);
+    const failing: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: () => {
+        host.emit?.({
+          name: 'diagnostic',
+          payload: { v: 1, tab_id: 't', document_id: 'd' },
+          timestamp: 0,
+        });
+        throw new Error('setup failed');
+      },
+    };
+    const second: SemanticRecorder = {
+      families: ['diagnostic'],
+      setup: secondSetup,
+    };
+    const capture = createCapture({ enabled: true }, host, [failing, second]);
+    let emitCount = 0;
+    host.emit = jest.fn(() => {
+      if (emitCount++ === 0) capture.resetSession();
+    });
+    capture.start();
+    expect(secondSetup).toHaveBeenCalledTimes(1);
+    expect(capture.isActive()).toBe(true);
     capture.stop();
   });
 
