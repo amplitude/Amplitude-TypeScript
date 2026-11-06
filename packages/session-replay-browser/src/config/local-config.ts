@@ -96,7 +96,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.eagerFullSnapshotSend !== undefined) {
       this.eagerFullSnapshotSend = options.eagerFullSnapshotSend;
     }
-    // Defaults to false per the validated amp-on-amp perf config (SR-4646): the on-focus full
+    // Defaults to false: the on-focus full
     // snapshot is off unless the consumer explicitly opts in. A focus that arrives from
     // another visible window still takes one checkout, including a return from a window
     // switch that started while an iframe in this page was focused. Same-page iframe

@@ -83,8 +83,8 @@ async function focusWithoutLeavingThePage(page: Page): Promise<void> {
 // ─── captureFullSnapshotOnFocus ───────────────────────────────────────────────
 //
 // A window `focus` event fired after recording is stable forces an extra
-// takeFullSnapshot when the knob is enabled. When disabled (the SDK default post
-// SR-4646), same-page focus returns early. Focus that arrives after the window
+// takeFullSnapshot when the knob is enabled. When disabled (the SDK default),
+// same-page focus returns early. Focus that arrives after the window
 // actually blurred still takes one checkout, because two visible windows never
 // hide. We count EVENT_FULL_SNAPSHOT (type 2) events in the decoded request bodies.
 

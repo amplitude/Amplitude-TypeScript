@@ -367,8 +367,7 @@ export interface SessionReplayLocalConfig extends IConfig {
    * does not. Leaving that iframe for another window does not blur the parent again;
    * the return still takes one checkout.
    *
-   * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
-   * prior to that change.
+   * @defaultValue false. Was `true` before the on-focus snapshot default changed.
    */
   captureFullSnapshotOnFocus?: boolean;
   /**
