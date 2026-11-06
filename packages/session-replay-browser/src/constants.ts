@@ -59,6 +59,12 @@ export const MAX_INTERVAL = 10 * 1000; // 10 seconds
 // MAX_INTERVAL remain the absolute clamp bounds and partial-config cross-validation defaults.
 export const DEFAULT_FLUSH_MIN_INTERVAL_MS = 1000; // 1 second
 export const DEFAULT_FLUSH_MAX_INTERVAL_MS = 10 * 1000; // 10 seconds
+// Bounds for `deferFullSnapshot.maxWaitMs`. The default keeps the initial snapshot off the
+// page-load critical path for typical pages while guaranteeing recording still begins within a
+// few seconds on pages whose `load` event is held open by slow third-party resources. The
+// ceiling stops a typo (e.g. seconds instead of ms) from silently postponing capture forever.
+export const DEFAULT_DEFER_FULL_SNAPSHOT_MAX_WAIT_MS = 5_000;
+export const DEFER_FULL_SNAPSHOT_MAX_WAIT_CEILING_MS = 30_000;
 export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 3; // 3 days
 export const KB_SIZE = 1024;
 export const MAX_URL_LENGTH = 1000;

@@ -185,6 +185,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin({
         eagerFullSnapshotSend: false,
         captureFullSnapshotOnFocus: false,
+        deferFullSnapshot: { enabled: true, until: 'load', delayMs: 250, maxWaitMs: 8000 },
         maxPersistedEventsSizeBytes: 2000000,
         maxSingleEventSizeBytes: 1000000,
       });
@@ -196,6 +197,7 @@ describe('SessionReplayPlugin', () => {
         expect.objectContaining({
           eagerFullSnapshotSend: false,
           captureFullSnapshotOnFocus: false,
+          deferFullSnapshot: { enabled: true, until: 'load', delayMs: 250, maxWaitMs: 8000 },
           maxPersistedEventsSizeBytes: 2000000,
           maxSingleEventSizeBytes: 1000000,
         }),
@@ -212,6 +214,7 @@ describe('SessionReplayPlugin', () => {
         expect.objectContaining({
           eagerFullSnapshotSend: undefined,
           captureFullSnapshotOnFocus: undefined,
+          deferFullSnapshot: undefined,
           maxPersistedEventsSizeBytes: undefined,
           maxSingleEventSizeBytes: undefined,
         }),
