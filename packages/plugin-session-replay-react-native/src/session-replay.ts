@@ -114,6 +114,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
 
 const globalUiChangeListeners = new Set<() => void>();
 let uiChangeSubscription: EmitterSubscription | undefined;
+let uiChangeSubscriptionGeneration = 0;
 
 /** Subscribe to native UI changes. Returns a function that removes this subscription. */
 export function addUiChangeListener(listener: () => void): () => void {
@@ -121,9 +122,11 @@ export function addUiChangeListener(listener: () => void): () => void {
   const registeredListener = () => listener();
   globalUiChangeListeners.add(registeredListener);
   if (!uiChangeSubscription) {
+    const generation = ++uiChangeSubscriptionGeneration;
     uiChangeSubscription = new NativeEventEmitter(PluginSessionReplayReactNative as NativeModule).addListener(
       'amplitudeSessionReplayUiChange',
       () => {
+        if (generation !== uiChangeSubscriptionGeneration) return;
         globalUiChangeListeners.forEach((callback) => callback());
       },
     );
@@ -132,6 +135,8 @@ export function addUiChangeListener(listener: () => void): () => void {
   return () => {
     globalUiChangeListeners.delete(registeredListener);
     if (globalUiChangeListeners.size === 0) {
+      // Retire callbacks already queued for the previous native subscription.
+      uiChangeSubscriptionGeneration++;
       uiChangeSubscription?.remove();
       uiChangeSubscription = undefined;
     }
