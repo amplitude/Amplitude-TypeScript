@@ -66,12 +66,27 @@ async function blurAndFlush(page: Page): Promise<void> {
   await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
 }
 
+/**
+ * Move focus into an iframe, then fire window `focus` in the same turn.
+ * The blur's destination is that iframe, so this is not a return from another window.
+ */
+async function focusWithoutLeavingThePage(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const iframe = document.createElement('iframe');
+    iframe.src = 'about:blank';
+    document.body.appendChild(iframe);
+    iframe.focus();
+    window.dispatchEvent(new Event('focus'));
+  });
+}
+
 // ─── captureFullSnapshotOnFocus ───────────────────────────────────────────────
 //
 // A window `focus` event fired after recording is stable forces an extra
-// takeFullSnapshot when the knob is enabled. When disabled (the SDK default post
-// SR-4646), the focusListener returns early and no additional full snapshot is
-// produced. We count EVENT_FULL_SNAPSHOT (type 2) events in the decoded request bodies.
+// takeFullSnapshot when the knob is enabled. When disabled (the SDK default),
+// same-page focus returns early. Focus that arrives after the window
+// actually blurred still takes one checkout, because two visible windows never
+// hide. We count EVENT_FULL_SNAPSHOT (type 2) events in the decoded request bodies.
 
 test.describe('captureFullSnapshotOnFocus', () => {
   test('enabled (true): a focus event after stable recording produces an additional full snapshot', async ({
@@ -101,15 +116,17 @@ test.describe('captureFullSnapshotOnFocus', () => {
     await blurAndFlush(page);
     expect(countFullSnapshots(getBodies())).toBe(1);
 
-    // Focus → extra full snapshot.
-    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    // Same-page focus → extra full snapshot from the knob, not from an external return.
+    await focusWithoutLeavingThePage(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await blurAndFlush(page);
 
     expect(countFullSnapshots(getBodies())).toBe(2);
   });
 
-  test('false: a focus event after stable recording produces no additional full snapshot', async ({ page }) => {
+  test('false: a same-page focus event after stable recording produces no additional full snapshot', async ({
+    page,
+  }) => {
     await mockRemoteConfig(page, remoteConfigRecording);
     const { getBodies } = await captureBodies(page);
 
@@ -131,12 +148,40 @@ test.describe('captureFullSnapshotOnFocus', () => {
     await blurAndFlush(page);
     expect(countFullSnapshots(getBodies())).toBe(1);
 
-    // Focus is a no-op for the full-snapshot path when the knob is off.
-    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    // Focus that never left the page is a no-op for the full-snapshot path when the knob is off.
+    await focusWithoutLeavingThePage(page);
     await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
     await blurAndFlush(page);
 
     expect(countFullSnapshots(getBodies())).toBe(1);
+  });
+
+  test('false: focus returning from outside the window takes one checkout', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getBodies } = await captureBodies(page);
+
+    const requestPromise = page.waitForRequest('https://api-sr.amplitude.com/**', { timeout: 10_000 });
+
+    await page.goto(
+      buildUrl('/session-replay-browser/sr-capture-test.html', {
+        sessionId: TEST_SESSION_ID,
+        captureFullSnapshotOnFocus: false,
+        eagerFullSnapshotSend: true,
+      }),
+    );
+    await waitForReady(page);
+    await requestPromise;
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+
+    // The blur settles before focus, so the next focus is a return from outside this window.
+    await blurAndFlush(page);
+    expect(countFullSnapshots(getBodies())).toBe(1);
+
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await blurAndFlush(page);
+
+    expect(countFullSnapshots(getBodies())).toBe(2);
   });
 });
 
