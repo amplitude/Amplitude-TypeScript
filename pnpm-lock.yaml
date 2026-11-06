@@ -468,6 +468,12 @@ importers:
         specifier: ^2.4.1
         version: 2.8.1
     devDependencies:
+      '@amplitude/plugin-session-replay-react-native':
+        specifier: workspace:*
+        version: link:../plugin-session-replay-react-native
+      '@amplitude/session-replay-react-native':
+        specifier: workspace:*
+        version: link:../session-replay-react-native
       '@types/react':
         specifier: ^18.0.26
         version: 18.3.26
@@ -495,6 +501,9 @@ importers:
       '@amplitude/analytics-react-native':
         specifier: workspace:*
         version: link:../analytics-react-native
+      '@amplitude/plugin-session-replay-react-native':
+        specifier: workspace:*
+        version: link:../plugin-session-replay-react-native
       '@react-native-async-storage/async-storage':
         specifier: ^1.24.0
         version: 1.24.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.5(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@13.6.6(encoding@0.1.14)(supports-color@8.1.1))(@types/react@18.3.26)(encoding@0.1.14)(react@18.3.1)(supports-color@8.1.1))
