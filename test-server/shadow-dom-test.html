@@ -27,11 +27,11 @@
 
     <script type="module">
         import * as amplitude from '@amplitude/analytics-browser';
-        import { DataExtractor } from '@amplitude/plugin-autocapture-browser';
+        import { armSelectorConfig } from './helpers/selector-config.js';
 
         window.amplitude = amplitude;
 
-        // ?shadow=on flips the shared selector engine into shadow-piercing mode
+        // ?shadow=on flips this SDK instance's selector engine into shadow-piercing mode
         // via a config override (matches the "config override for now" rollout
         // decision). Absent/off → the default dormant, non-piercing engine.
         const params = new URLSearchParams(window.location.search);
@@ -104,20 +104,7 @@
             };
         }
 
-        if (shadowOn) {
-            // Flip the shared engine (singleton) into piercing mode BEFORE init,
-            // so the plugin's setup-time work — including the exposure
-            // observable's initial element discovery — already sees shadow mode.
-            // (Clicks read the config lazily, so they'd work either way.) Because
-            // fetchRemoteConfig is false, nothing later overrides this.
-            new DataExtractor({}).updateSelectorConfig({
-                enabled: true,
-                shadowDomEnabled: true,
-                maxShadowDomDepth: 3,
-            });
-        }
-
-        amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, 'test-user', {
+        amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY || 'shadow-dom-e2e-key', 'test-user', {
             fetchRemoteConfig: false,
             flushIntervalMillis: 300,
             flushQueueSize: 1,
@@ -129,9 +116,19 @@
                 elementInteractions: true,
             },
             logLevel: 0,
-        }).promise.then(() => {
+        }).promise.then(async () => {
             if (logOn) {
                 amplitude.add(installEventLogger());
+            }
+            // Arm piercing on this instance's selector runtime. Because fetchRemoteConfig is
+            // false, nothing later overrides it. The status flips afterwards so the e2e spec
+            // only clicks once the mode is live.
+            if (shadowOn) {
+                await armSelectorConfig(amplitude, {
+                    enabled: true,
+                    shadowDomEnabled: true,
+                    maxShadowDomDepth: 3,
+                });
             }
             document.getElementById('status').textContent = shadowOn ? 'initialized-shadow' : 'initialized';
         });

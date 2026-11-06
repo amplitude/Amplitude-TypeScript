@@ -18,14 +18,8 @@ import { autocapturePlugin } from '../src/autocapture-plugin';
 import { DataExtractor } from '../src/data-extractor';
 import { TimestampedEvent } from '../src/helpers';
 import { Observable } from '@amplitude/analytics-core';
-import {
-  createShadowGate,
-  shadowModeFromConfig,
-  SHADOW_OFF,
-  getSharedShadowGate,
-  resetSharedShadowGateForTesting,
-  type ShadowOn,
-} from '../src/shadow-mode';
+import { createShadowGate, shadowModeFromConfig, SHADOW_OFF, type ShadowOn } from '../src/shadow-mode';
+import { getSelectorRuntime } from '../src/selector-runtime';
 
 function attachOpen(host: Element, html: string): ShadowRoot {
   const root = host.attachShadow({ mode: 'open' });
@@ -39,8 +33,6 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 const ON = (maxDepth: number): ShadowOn => ({ enabled: true, maxDepth });
 
 afterEach(() => {
-  resetSharedShadowGateForTesting();
-  new DataExtractor({}).updateSelectorConfig(undefined);
   document.body.innerHTML = '';
   jest.clearAllMocks();
 });
@@ -283,15 +275,31 @@ describe('DataExtractor — latch wiring', () => {
     expect(extractor.getElementPath(inner)).toContain('>>>');
   });
 
-  it('shares one latch across separate DataExtractor instances', () => {
+  it('shares one latch across extractors bound to the same SDK config', () => {
     // autocapture-plugin and frustration-plugin build separate extractors and
-    // subscribe independently; they must never disagree about the gate.
+    // subscribe independently; setup binds both to their SDK's BrowserConfig.
+    const config = {} as BrowserConfig;
     const autocapture = new DataExtractor({});
     const frustration = new DataExtractor({});
+    autocapture.bindSelectorRuntime(config);
+    frustration.bindSelectorRuntime(config);
 
     autocapture.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth: 1 });
     expect(frustration.getShadowMode()).toEqual({ enabled: true, maxDepth: 1 });
     expect(frustration.shadowGate).toBe(autocapture.shadowGate);
+  });
+
+  it('isolates latches for extractors bound to different SDK configs', () => {
+    const autocapture = new DataExtractor({});
+    const otherInstance = new DataExtractor({});
+    autocapture.bindSelectorRuntime({} as BrowserConfig);
+    otherInstance.bindSelectorRuntime({} as BrowserConfig);
+
+    autocapture.updateSelectorConfig({ shadowDomEnabled: true, maxShadowDomDepth: 2 });
+
+    expect(autocapture.getShadowMode()).toEqual({ enabled: true, maxDepth: 2 });
+    expect(otherInstance.getShadowMode()).toEqual({ enabled: false, maxDepth: 0 });
+    expect(otherInstance.shadowGate).not.toBe(autocapture.shadowGate);
   });
 
   it('tags diagnostics once, when the gate arms', () => {
@@ -324,24 +332,27 @@ describe('autocapturePlugin — local shadowDomEnabled option', () => {
     } as unknown as ILogger;
     const config = { defaultTracking: false, loggerProvider } as unknown as BrowserConfig;
     await plugin.setup?.(config, {} as BrowserClient);
-    return plugin;
+    return { plugin, config };
   };
 
   it('arms the gate with the default depth when maxShadowDomDepth is omitted', async () => {
-    const plugin = await setupPlugin({ shadowDomEnabled: true });
-    expect(getSharedShadowGate().get()).toEqual({ enabled: true, maxDepth: DEFAULT_MAX_SHADOW_DOM_DEPTH });
+    const { plugin, config } = await setupPlugin({ shadowDomEnabled: true });
+    expect(getSelectorRuntime(config).shadowGate.get()).toEqual({
+      enabled: true,
+      maxDepth: DEFAULT_MAX_SHADOW_DOM_DEPTH,
+    });
     await plugin.teardown?.();
   });
 
   it('arms the gate with the configured maxShadowDomDepth', async () => {
-    const plugin = await setupPlugin({ shadowDomEnabled: true, maxShadowDomDepth: 3 });
-    expect(getSharedShadowGate().get()).toEqual({ enabled: true, maxDepth: 3 });
+    const { plugin, config } = await setupPlugin({ shadowDomEnabled: true, maxShadowDomDepth: 3 });
+    expect(getSelectorRuntime(config).shadowGate.get()).toEqual({ enabled: true, maxDepth: 3 });
     await plugin.teardown?.();
   });
 
   it('leaves the gate off when shadowDomEnabled is not set', async () => {
-    const plugin = await setupPlugin({ maxShadowDomDepth: 3 });
-    expect(getSharedShadowGate().get()).toBe(SHADOW_OFF);
+    const { plugin, config } = await setupPlugin({ maxShadowDomDepth: 3 });
+    expect(getSelectorRuntime(config).shadowGate.get()).toBe(SHADOW_OFF);
     await plugin.teardown?.();
   });
 });
