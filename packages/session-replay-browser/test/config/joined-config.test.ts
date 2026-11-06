@@ -140,19 +140,19 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     });
 
     describe('semantic capture configuration', () => {
-      test('remote family overrides preserve local sampling and can kill capture', async () => {
+      test('remote family overrides preserve other local families and can kill capture', async () => {
         mockRemoteConfig = {
           sr_semantic_config: { enabled: false, families: { context: false } },
         };
         const generator = await createSessionReplayJoinedConfigGenerator('static_key', {
           ...mockOptions,
-          semanticCapture: { enabled: true, sampleRate: 0.25, families: { context: true } },
+          semanticCapture: { enabled: true, sampleRate: 0.25, families: { context: true, visibility: false } },
         });
         const { joinedConfig, remoteConfig } = await generator.generateJoinedConfig();
         expect(joinedConfig.semanticCapture).toEqual({
           enabled: false,
           sampleRate: 0.25,
-          families: { context: false },
+          families: { context: false, visibility: false },
         });
         expect(remoteConfig?.sr_semantic_config?.enabled).toBe(false);
       });
