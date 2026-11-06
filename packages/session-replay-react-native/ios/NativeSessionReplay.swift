@@ -5,46 +5,54 @@ import React
 
 @objc(AMPNativeSessionReplay)
 class NativeSessionReplay: RCTEventEmitter {
-    var sessionReplay: SessionReplay?
+    private let stateLock = NSRecursiveLock()
+    private var currentSessionReplay: SessionReplay?
+    var sessionReplay: SessionReplay? {
+        get { stateLock.withLock { currentSessionReplay } }
+        set { stateLock.withLock { currentSessionReplay = newValue } }
+    }
     var logger: CoreLogger?
     private var hasUiChangeListeners = false
     private var recordingRequested = false
     private var invalidated = false
-    private var uiChangeGeneration = UUID()
     private var uiChangeReceiver: UiChangeReceiver?
-
-    // SDK lifecycle changes and recording-state reads run on main.
-    @objc var methodQueue: DispatchQueue { DispatchQueue.main }
 
     @objc(isRecording:reject:)
     func isRecording(_ resolve: @escaping RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { resolve(false); return }
-            resolve(self.recordingRequested && (self.sessionReplay?.isProviding ?? false))
+            // The SDK updates recording availability on main. Keep this read async
+            // so a native query never blocks a JS caller waiting on the UI thread.
+            let recording = self.stateLock.withLock {
+                !self.invalidated && self.recordingRequested && (self.sessionReplay?.isProviding ?? false)
+            }
+            resolve(recording)
         }
     }
 
     private func attachUiChangeReceiver() {
         guard let provider = sessionReplay else { return }
-        let generation = uiChangeGeneration
-        let receiver = UiChangeReceiver { [weak self] in
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self, !self.invalidated, self.hasUiChangeListeners,
-                      self.recordingRequested, self.uiChangeGeneration == generation else { return }
+        let receiver = UiChangeReceiver { [weak self] receiver in
+            guard let self = self else { return }
+            self.stateLock.withLock {
+                // JS cannot distinguish callbacks from an SDK instance already replaced.
+                guard !self.invalidated, self.hasUiChangeListeners, self.recordingRequested,
+                      self.uiChangeReceiver === receiver else { return }
                 self.sendEvent(withName: "amplitudeSessionReplayReactNativeUiChange", body: nil)
             }
         }
-        uiChangeReceiver = receiver
+        stateLock.withLock { uiChangeReceiver = receiver }
         provider.addInterfaceSignalReceiver(receiver)
     }
 
     private func removeUiChangeReceiver() {
-        // Retire queued and in-flight callbacks before detaching the old SDK receiver.
-        uiChangeGeneration = UUID()
-        if let receiver = uiChangeReceiver {
-            sessionReplay?.removeInterfaceSignalReceiver(receiver)
+        let (provider, receiver) = stateLock.withLock {
+            let receiver = uiChangeReceiver
+            uiChangeReceiver = nil
+            return (sessionReplay, receiver)
         }
-        uiChangeReceiver = nil
+        // Never hold the state lock while calling back into the SDK.
+        if let receiver = receiver { provider?.removeInterfaceSignalReceiver(receiver) }
     }
 
     override func supportedEvents() -> [String]! {
@@ -52,11 +60,11 @@ class NativeSessionReplay: RCTEventEmitter {
     }
 
     override func startObserving() {
-        hasUiChangeListeners = !invalidated
+        stateLock.withLock { hasUiChangeListeners = !invalidated }
     }
 
     override func stopObserving() {
-        hasUiChangeListeners = false
+        stateLock.withLock { hasUiChangeListeners = false }
     }
     
     override init() {
@@ -98,7 +106,7 @@ class NativeSessionReplay: RCTEventEmitter {
         )
         
         removeUiChangeReceiver()
-        recordingRequested = false
+        stateLock.withLock { recordingRequested = false }
         sessionReplay?.stop()
         sessionReplay = SessionReplay(
             apiKey: apiKey,
@@ -151,7 +159,7 @@ class NativeSessionReplay: RCTEventEmitter {
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         logger?.debug(message: "start")
-        recordingRequested = true
+        stateLock.withLock { recordingRequested = true }
         sessionReplay?.start()
         resolve(nil)
     }
@@ -159,7 +167,7 @@ class NativeSessionReplay: RCTEventEmitter {
     @objc(stop:reject:)
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         logger?.debug(message: "stop")
-        recordingRequested = false
+        stateLock.withLock { recordingRequested = false }
         sessionReplay?.stop()
         resolve(nil)
     }
@@ -179,15 +187,15 @@ class NativeSessionReplay: RCTEventEmitter {
     }
     
     override func invalidate() {
-        invalidated = true
-        hasUiChangeListeners = false
+        stateLock.withLock { invalidated = true }
+        stateLock.withLock { hasUiChangeListeners = false }
         print("invalidate")
         tearDownSessionReplay()
         super.invalidate()
     }
 
     private func tearDownSessionReplay() {
-        recordingRequested = false
+        stateLock.withLock { recordingRequested = false }
         removeUiChangeReceiver()
         sessionReplay?.stop()
         sessionReplay = nil
@@ -196,14 +204,14 @@ class NativeSessionReplay: RCTEventEmitter {
 }
 
 private final class UiChangeReceiver: InterfaceSignalReceiver, @unchecked Sendable {
-    private let uiChangeCallback: () -> Void
+    private let uiChangeCallback: (UiChangeReceiver) -> Void
 
-    init(uiChangeCallback: @escaping () -> Void) {
+    init(uiChangeCallback: @escaping (UiChangeReceiver) -> Void) {
         self.uiChangeCallback = uiChangeCallback
     }
 
     func onInterfaceChanged(signal: InterfaceChangeSignal) {
-        uiChangeCallback()
+        uiChangeCallback(self)
     }
 
     func onStartProviding() {}
