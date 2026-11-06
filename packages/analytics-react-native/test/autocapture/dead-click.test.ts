@@ -5,11 +5,21 @@ import { useDefaultConfig } from '../helpers/default';
 
 const pluginListeners = new Set<() => void>();
 const standaloneListeners = new Set<() => void>();
-const pluginReplay = { isRecording: jest.fn(), addUiChangeListener: jest.fn() };
-const standaloneReplay = { isRecording: jest.fn(), addUiChangeListener: jest.fn() };
 
-jest.mock('@amplitude/plugin-session-replay-react-native', () => pluginReplay);
-jest.mock('@amplitude/session-replay-react-native', () => standaloneReplay);
+// The optional Replay packages are required when the SDK module loads, which happens before top-level
+// consts are initialized. Build the mocks inside the factories and read them back with requireMock.
+jest.mock('@amplitude/plugin-session-replay-react-native', () => ({
+  isRecording: jest.fn(),
+  addUiChangeListener: jest.fn(),
+}));
+jest.mock('@amplitude/session-replay-react-native', () => ({
+  isRecording: jest.fn(),
+  addUiChangeListener: jest.fn(),
+}));
+
+type ReplayMock = { isRecording: jest.Mock; addUiChangeListener: jest.Mock };
+const pluginReplay = jest.requireMock<ReplayMock>('@amplitude/plugin-session-replay-react-native');
+const standaloneReplay = jest.requireMock<ReplayMock>('@amplitude/session-replay-react-native');
 
 // RN's Promise polyfill uses setImmediate; keep it real while controlling click deadlines.
 const settlePromises = () => new Promise<void>((resolve) => setImmediate(resolve));

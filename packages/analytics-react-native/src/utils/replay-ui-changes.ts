@@ -8,25 +8,30 @@ export interface ReplayUiChangeSource {
   isRecording(): Promise<boolean>;
 }
 
+// Metro compiles an unresolvable optional require to `require(undefined)`. Metro only lets try/catch
+// handle that error while a module is still loading; a later require (e.g. during SDK setup) is reported
+// as a fatal "requiring unknown module" error even inside try/catch. Load the optional peers once, at
+// module load time, so absent packages are always handled by the catch blocks below.
+const optionalReplayPackages: Partial<ReplayUiChangeAPI>[] = [];
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  optionalReplayPackages.push(require('@amplitude/plugin-session-replay-react-native') as Partial<ReplayUiChangeAPI>);
+} catch {
+  // Either Replay package can provide UI observation independently.
+}
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  optionalReplayPackages.push(require('@amplitude/session-replay-react-native') as Partial<ReplayUiChangeAPI>);
+} catch {
+  // Analytics also works without Replay installed.
+}
+
 /** Native modules and event names remain private to the optional Replay packages. */
 export function observeReplayUiChanges(
   listener: (source: ReplayUiChangeSource) => void,
   onError: (error: unknown) => void,
 ) {
-  const packages: Partial<ReplayUiChangeAPI>[] = [];
-  // Metro can omit absent optional peers when these literal requires are in try blocks.
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    packages.push(require('@amplitude/plugin-session-replay-react-native') as Partial<ReplayUiChangeAPI>);
-  } catch {
-    // Either Replay package can provide UI observation independently.
-  }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    packages.push(require('@amplitude/session-replay-react-native') as Partial<ReplayUiChangeAPI>);
-  } catch {
-    // Analytics also works without Replay installed.
-  }
+  const packages = optionalReplayPackages;
 
   const sources: ReplayUiChangeSource[] = [];
   const unsubscribes: (() => void)[] = [];
