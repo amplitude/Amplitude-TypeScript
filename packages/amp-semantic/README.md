@@ -4,7 +4,7 @@ Internal, composable semantic capture runtime for Amplitude. This increment adds
 
 The host supplies a document, window, and transport callback. `createCapture` accepts typed recorder factories and optional per-family budgets (200 events per session by default). With an empty recorder list it emits nothing and installs no browser listeners.
 
-The runtime owns opt-in sampling, start/stop and session reset, event version/timestamp/identity stamping, host signals, subscriptions, exception isolation, and cleanup rollback. Sampling and caps survive stop/start and reset only for a new session. Identity is allocated lazily when an event is accepted; its fallback is document-scoped memory, with no storage access.
+The runtime owns opt-in sampling, start/stop and session reset, event version/timestamp/identity stamping, host snapshot signals, exception isolation, and cleanup rollback. Sampling and caps survive stop/start and reset only for a new session. Identity is allocated lazily when an event is accepted; its fallback is document-scoped memory, with no storage access.
 
 Recorders register teardown immediately with `onCleanup` when setup can fail. `canEmit` lets them avoid expensive payload work at capacity. `dropped` returns delivery-cap diagnostics; recorders acknowledge successfully delivered diagnostics with `clearDropped`.
 
@@ -20,7 +20,7 @@ From the repository root, install dependencies and build with Node 24, `pnpm ins
 
 `createSemanticCapture(config, host)` installs the context recorder by default. The host additionally supplies `sdk`, `getPrivacy`, and optional analytics context and stylesheet-inlining configuration. Call `notify('snapshot', undefined)` after an accepted full snapshot to emit context. Starting capture alone emits nothing.
 
-`amp-semantic/context` records SDK/masking configuration, stylesheet counts, viewport, a device heuristic, language, user agent, visibility and focus snapshots, analytics SDK configuration, and dropped-event counts. The runtime stamps version, timestamp and document identity. It never captures input values or page text.
+`amp-semantic/context` records the effective mask level for the snapshot URL (including URL overrides), stylesheet counts, viewport, a device heuristic, language, user agent, visibility and focus snapshots, analytics SDK configuration, and dropped-event counts. The runtime stamps version, timestamp and document identity. It never captures input values or page text.
 
 The context budget is 200 events per session. At capacity the recorder skips stylesheet and other payload reads. Successfully delivered context acknowledges dropped-event diagnostics; failed delivery preserves them. `schema.json` describes the rrweb custom-event envelope used by the Session Replay adapter.
 
