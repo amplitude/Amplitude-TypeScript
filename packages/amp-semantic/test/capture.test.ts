@@ -11,6 +11,8 @@ describe('capture runtime', () => {
     host = {
       document,
       window,
+      sdk: 'test',
+      getPrivacy: () => ({}),
       emit: jest.fn(),
       getIdentity: jest.fn(() => ({ tab_id: 'tab-test', document_id: 'document-test' })),
       random: jest.fn(() => 0.25),
