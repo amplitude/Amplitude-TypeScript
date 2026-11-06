@@ -5,20 +5,33 @@ import { ampCapture } from '../../src/amp-capture';
 import { frustrationPlugin } from '../../src/plugins/frustration-plugin';
 import { useDefaultConfig } from '../helpers/default';
 
-const uiListeners = new Set<() => void>();
-const unsubscribeReplay = jest.fn();
-const replay = {
-  isRecording: jest.fn(() => Promise.resolve(true)),
-  addUiChangeListener: jest.fn((listener: () => void) => {
-    uiListeners.add(listener);
-    return () => {
-      uiListeners.delete(listener);
-      unsubscribeReplay();
-    };
-  }),
-};
-jest.mock('@amplitude/plugin-session-replay-react-native', () => replay);
+// The optional Replay packages are required when the SDK module loads, which happens before top-level
+// consts are initialized. Build the mock inside the factory and read it back with requireMock.
+jest.mock('@amplitude/plugin-session-replay-react-native', () => {
+  const listeners = new Set<() => void>();
+  const unsubscribe = jest.fn();
+  return {
+    uiListeners: listeners,
+    unsubscribeReplay: unsubscribe,
+    isRecording: jest.fn(() => Promise.resolve(true)),
+    addUiChangeListener: jest.fn((listener: () => void) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+        unsubscribe();
+      };
+    }),
+  };
+});
 jest.mock('@amplitude/session-replay-react-native', () => ({}));
+
+const replay = jest.requireMock<{
+  uiListeners: Set<() => void>;
+  unsubscribeReplay: jest.Mock;
+  isRecording: jest.Mock;
+  addUiChangeListener: jest.Mock;
+}>('@amplitude/plugin-session-replay-react-native');
+const { uiListeners, unsubscribeReplay } = replay;
 
 // RN's Promise polyfill uses setImmediate; keep it real while controlling click deadlines.
 const settlePromises = () => new Promise<void>((resolve) => setImmediate(resolve));
