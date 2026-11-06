@@ -1,3 +1,4 @@
+import { getEffectiveMaskLevel } from '@amplitude/session-replay-dom-privacy';
 import type { RecorderContext, SemanticRecorder } from '../types';
 
 function captureContext(context: RecorderContext): void {
@@ -20,7 +21,7 @@ function captureContext(context: RecorderContext): void {
   const caps = context.dropped();
   const emitted = context.emit('context', {
     sdk: host.sdk,
-    mask: host.getPrivacy().defaultMaskLevel ?? 'medium',
+    mask: getEffectiveMaskLevel(scope.location.href, host.getPrivacy()),
     css,
     viewport: { w: scope.innerWidth, h: scope.innerHeight },
     device,

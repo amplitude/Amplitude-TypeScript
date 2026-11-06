@@ -57,6 +57,24 @@ describe('context recorder', () => {
     expect(signals).toEqual({});
   });
 
+  test('reports the effective mask level for the snapshot URL', () => {
+    const { context, cleanup, signals } = setup();
+    context.host.getPrivacy = () => ({
+      defaultMaskLevel: 'medium',
+      urlMaskLevels: [{ match: window.location.href, maskLevel: 'conservative' }],
+    });
+    signals.snapshot?.(undefined as never);
+    expect(context.emit).toHaveBeenLastCalledWith('context', expect.objectContaining({ mask: 'conservative' }));
+
+    context.host.getPrivacy = () => ({
+      defaultMaskLevel: 'medium',
+      urlMaskLevels: [{ match: 'https://other.example/*', maskLevel: 'light' }],
+    });
+    signals.snapshot?.(undefined as never);
+    expect(context.emit).toHaveBeenLastCalledWith('context', expect.objectContaining({ mask: 'medium' }));
+    cleanup();
+  });
+
   test('captures initial hidden state and refreshes context without the visibility family', () => {
     const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
     const focused = jest.spyOn(document, 'hasFocus').mockReturnValue(false);
