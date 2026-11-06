@@ -348,18 +348,26 @@ export interface SessionReplayLocalConfig extends IConfig {
   eagerFullSnapshotSend?: boolean;
   /**
    * When true, the window `focus` listener forces a fresh rrweb full snapshot
-   * (`takeFullSnapshot`) every time the page regains focus, so the replay reflects any DOM
-   * changes that happened while the tab was backgrounded. When false (default), the on-focus
+   * (`takeFullSnapshot`) every time the page regains focus. When false (default), the on-focus
    * full snapshot is skipped entirely (recording simply continues from the existing stream).
    *
    * On pages with heavy focus churn (e.g. embedded iframes, inline editors that repeatedly
    * steal and return focus) this fires constantly, and when combined with
    * `eagerFullSnapshotSend` each focus produces an immediate network send — the primary
-   * driver of focus-driven request storms. The default-off behavior removes the snapshot (and
-   * therefore the send) at the cost of slightly staler post-focus frames.
+   * driver of focus-driven request storms.
    *
-   * @defaultValue false — reflects the validated amp-on-amp perf config (SR-4646). Was `true`
-   * prior to that change.
+   * Switching browser tabs does not depend on this flag. Hiding the document flushes
+   * mutations still waiting on the idle queue, and showing it takes one checkout snapshot
+   * so playback is not left on an older snapshot from this tab or from another tab that
+   * shares the session. `visibilitychange` fires once per tab switch, so that path stays
+   * on when focus snapshots are off.
+   *
+   * Two windows that both stay visible never hide, so focus arriving from outside this
+   * window still takes one checkout. Focus that only moved into an iframe in this page
+   * does not. Leaving that iframe for another window does not blur the parent again;
+   * the return still takes one checkout.
+   *
+   * @defaultValue false. Was `true` before the on-focus snapshot default changed.
    */
   captureFullSnapshotOnFocus?: boolean;
   /**
