@@ -20,12 +20,12 @@ class NativeSessionReplay: RCTEventEmitter {
     func isRecording(_ resolve: @escaping RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { resolve(false); return }
-            resolve(self.recordingRequested && ((self.sessionReplay as? InterfaceSignalProvider)?.isProviding ?? false))
+            resolve(self.recordingRequested && (self.sessionReplay?.isProviding ?? false))
         }
     }
 
     private func attachUiChangeReceiver() {
-        guard let provider = sessionReplay as? InterfaceSignalProvider else { return }
+        guard let provider = sessionReplay else { return }
         let generation = uiChangeGeneration
         let receiver = UiChangeReceiver { [weak self] in
             DispatchQueue.main.async { [weak self] in
@@ -42,7 +42,7 @@ class NativeSessionReplay: RCTEventEmitter {
         // Retire queued and in-flight callbacks before detaching the old SDK receiver.
         uiChangeGeneration = UUID()
         if let receiver = uiChangeReceiver {
-            (sessionReplay as? InterfaceSignalProvider)?.removeInterfaceSignalReceiver(receiver)
+            sessionReplay?.removeInterfaceSignalReceiver(receiver)
         }
         uiChangeReceiver = nil
     }
@@ -113,8 +113,6 @@ class NativeSessionReplay: RCTEventEmitter {
         )
 
         sessionReplay?.customSessionId = customSessionId
-        // Older SDKs do not expose SessionReplay as an InterfaceSignalProvider.
-        // UI change notifications require an SDK that provides this conformance.
         attachUiChangeReceiver()
 
         resolve(nil)
