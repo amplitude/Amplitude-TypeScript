@@ -1,7 +1,7 @@
 {
   "name": "@amplitude/amp-semantic",
-  "version": "0.1.0",
-  "description": "Composable semantic event capture with browser context for Amplitude",
+  "version": "0.2.0",
+  "description": "Shared package foundation for Amplitude semantic event capture",
   "license": "MIT",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
