@@ -2,6 +2,7 @@ import { setImmediate } from 'timers';
 import type { ReactNativeClient } from '@amplitude/analytics-core';
 import { AppState, Platform } from 'react-native';
 import { ampCapture } from '../../src/amp-capture';
+import { updateReactNativeConfigWithRemoteConfig } from '../../src/config/joined-config';
 import { frustrationPlugin } from '../../src/plugins/frustration-plugin';
 import { useDefaultConfig } from '../helpers/default';
 
@@ -93,6 +94,34 @@ describe('frustration plugin dead clicks', () => {
     await advance(3000);
     expect(replay.addUiChangeListener).not.toHaveBeenCalled();
     expect(track).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['deadClicks', false, false],
+    ['deadClicks', true, true],
+    ['deadClick', false, false],
+    ['deadClick', true, true],
+    ['deadClicks', { enabled: false }, false],
+    ['deadClicks', { enabled: true }, true],
+    ['deadClick', { enabled: false }, false],
+    ['deadClick', { enabled: true }, true],
+  ] as const)('honors remote %s: %j after joining config', async (key, value, enabled) => {
+    const config = useDefaultConfig({
+      autocapture: { frustrationInteractions: { deadClick: !enabled } },
+    });
+    updateReactNativeConfigWithRemoteConfig({ autocapture: { frustrationInteractions: { [key]: value } } }, config);
+    const autocapture = config.autocapture;
+    if (!autocapture || typeof autocapture !== 'object') throw new Error('Expected autocapture options');
+    const options = autocapture.frustrationInteractions;
+    if (!options || typeof options !== 'object') throw new Error('Expected frustration options');
+    plugin = frustrationPlugin({ ...options, rageClick: false, errorClick: false });
+    await plugin.setup?.(config, { track } as unknown as ReactNativeClient);
+    jest.useFakeTimers({ doNotFake: ['setImmediate', 'nextTick'] });
+    press();
+    await advance(3000);
+    expect(replay.addUiChangeListener).toHaveBeenCalledTimes(enabled ? 1 : 0);
+    const deadClickEvent = ['[Amplitude] Dead Click', expect.any(Object), expect.any(Object)];
+    expect(track.mock.calls).toEqual(enabled ? [deadClickEvent] : []);
   });
 
   it('registers before the application handler and cancels on an immediate UI response', async () => {

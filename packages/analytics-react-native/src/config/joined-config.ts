@@ -2,6 +2,7 @@ import {
   RemoteConfig,
   ReactNativeAutocaptureOptions,
   ReactNativeConfig,
+  ReactNativeFrustrationInteractionsOptions,
   NetworkTrackingOptionsRemoteConfig,
   safeJsonStringify,
   translateRemoteConfigToLocal,
@@ -10,6 +11,7 @@ import {
 
 export interface AutocaptureOptionsRemoteConfig extends ReactNativeAutocaptureOptions {
   networkTracking?: boolean | NetworkTrackingOptionsRemoteConfig;
+  frustrationInteractions?: boolean | (ReactNativeFrustrationInteractionsOptions & { deadClicks?: boolean });
 }
 
 // Remote config currently delivers browserSDK-shaped payloads to React Native.
@@ -61,6 +63,20 @@ export function updateReactNativeConfigWithRemoteConfig(
 
       if (typeof typedRemoteConfig.autocapture === 'object' && typedRemoteConfig.autocapture !== null) {
         const transformedAutocaptureRemoteConfig = { ...typedRemoteConfig.autocapture };
+
+        // Shared translation uses browser's deadClicks spelling; React Native uses deadClick.
+        const frustrationInteractions = transformedAutocaptureRemoteConfig.frustrationInteractions;
+        if (
+          typeof frustrationInteractions === 'object' &&
+          frustrationInteractions !== null &&
+          frustrationInteractions.deadClicks !== undefined
+        ) {
+          const { deadClicks, ...frustrationOptions } = frustrationInteractions;
+          transformedAutocaptureRemoteConfig.frustrationInteractions = {
+            ...frustrationOptions,
+            deadClick: deadClicks,
+          };
+        }
 
         // Handle Network Tracking config initialization
         const transformedNetworkTracking = transformNetworkTrackingRemoteConfig(
