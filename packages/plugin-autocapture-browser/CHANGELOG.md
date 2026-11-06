@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.31.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.1...@amplitude/plugin-autocapture-browser@1.31.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** guard non-element pointer targets ([#2117](https://github.com/amplitude/Amplitude-TypeScript/issues/2117)) ([099e910](https://github.com/amplitude/Amplitude-TypeScript/commit/099e91001e7ab6c9a2fb51c4b429552092ba9e91))
+
+
+
+
+
 ## [1.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.0...@amplitude/plugin-autocapture-browser@1.31.1) (2026-11-02)
 
 
