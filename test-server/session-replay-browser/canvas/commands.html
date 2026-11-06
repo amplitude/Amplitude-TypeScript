@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SR Canvas — drawing commands</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 720px;
+        margin: 32px auto;
+        padding: 0 16px;
+        line-height: 1.5;
+      }
+      canvas {
+        display: block;
+        border: 1px solid #ccc;
+        background: #111;
+      }
+      button {
+        margin-top: 12px;
+        padding: 8px 14px;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 12px;
+        overflow: auto;
+      }
+      #status {
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Canvas example: every drawing call</h1>
+    <p>
+      Passes <code>canvas.sampling: 'all'</code> through to rrweb <code>sampling.canvas</code> with
+      <code>recordCanvas</code> enabled. Pixels already on the canvas are stored on the full snapshot.
+      Draws made after recording starts are captured as canvas mutation commands.
+    </p>
+    <p>Append <code>?canvasEnabled=false</code> to run the same page with canvas capture left off.</p>
+    <p id="status">loading</p>
+    <canvas id="demo" width="320" height="180"></canvas>
+    <button id="draw" type="button">Draw another shape</button>
+    <pre id="config"></pre>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      window.sessionReplay = sessionReplay;
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'canvas-commands-device';
+      const enabledParam = params.get('canvasEnabled');
+      const canvas = {
+        enabled: enabledParam === null ? true : enabledParam === 'true',
+        sampling: 'all',
+      };
+      document.getElementById('config').textContent = JSON.stringify({ canvas }, null, 2);
+
+      const canvasEl = document.getElementById('demo');
+      const ctx = canvasEl.getContext('2d');
+      let draws = 0;
+
+      function paintScene(color, label) {
+        ctx.fillStyle = '#1b1f24';
+        ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+        ctx.fillStyle = color;
+        ctx.fillRect(24, 24, 120, 80);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(160, 36, 120, 70);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(label, 24, 150);
+      }
+
+      // Drawn before init so the full snapshot can store the current pixels.
+      paintScene('#e85d4c', 'before record');
+
+      window.drawMore = () => {
+        draws += 1;
+        paintScene(draws % 2 ? '#3d8bfd' : '#2f9e44', `draw ${draws}`);
+      };
+      document.getElementById('draw').addEventListener('click', () => window.drawMore());
+
+      void (async () => {
+        try {
+          await sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', {
+            deviceId,
+            sessionId,
+            sampleRate: 1,
+            canvas,
+          }).promise;
+        } catch (err) {
+          document.getElementById('status').textContent = 'error: ' + err.message;
+          window.srError = err.message;
+        }
+        window.srReady = true;
+        document.getElementById('status').textContent = 'ready';
+      })();
+    </script>
+  </body>
+</html>

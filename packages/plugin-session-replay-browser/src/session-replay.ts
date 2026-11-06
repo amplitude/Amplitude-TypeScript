@@ -102,6 +102,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         debugMode: this.options.debugMode,
         shouldInlineStylesheet: this.options.shouldInlineStylesheet,
         inlineImages: this.options.inlineImages,
+        canvas: this.options.canvas,
         version: { type: 'plugin', version: VERSION },
         performanceConfig: this.options.performanceConfig,
         storeType: this.options.storeType,
