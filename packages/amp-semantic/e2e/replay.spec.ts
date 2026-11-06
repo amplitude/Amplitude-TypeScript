@@ -51,13 +51,18 @@ test('real replay transport delivers only the two supported families with stable
   await expect
     .poll(async () => (await flush(page)).filter((e) => e.data.tag === 'amp-semantic/visibility').length)
     .toBe(2);
+  await expect
+    .poll(async () => (await flush(page)).filter((e) => e.data.tag === 'amp-semantic/context').length)
+    .toBe(2);
   const events = await flush(page);
   expect(events.map((e) => e.data.tag)).toEqual([
     'amp-semantic/context',
     'amp-semantic/visibility',
     'amp-semantic/visibility',
+    'amp-semantic/context',
   ]);
   expect(events[2].timestamp - events[1].timestamp).toBeGreaterThanOrEqual(90);
+  expect(events[3].data.payload.visibility_state).toBe('visible');
   for (const event of events) {
     expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
     expect(event.data.payload.tab_id).toBe(events[0].data.payload.tab_id);
