@@ -477,6 +477,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Invalidate any in-flight URL-change re-evaluations from the previous session.
     this.latestUrlChangeTargetingEvaluationId++;
     this.sessionTargetingMatch = false;
+    if (this.metadata) {
+      this.metadata = {
+        ...this.metadata,
+        sessionId,
+        targetingConditionName: undefined,
+        targetingConditionId: undefined,
+      };
+    }
     this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
     if (previousSessionId) {
       this.sendEvents(previousSessionId);
@@ -774,7 +782,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       const pageUrl = targetingParams.page?.url ?? getGlobalScope()?.location?.href ?? '';
       const pageForTargeting = targetingParams.page ?? (pageUrl !== '' ? { url: pageUrl } : undefined);
 
-      const targetingMatch = await evaluateTargetingAndStore({
+      const targetingResult = await evaluateTargetingAndStore({
         sessionId: this.identifiers.sessionId,
         targetingConfig,
         loggerProvider: this.loggerProvider,
@@ -786,6 +794,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         },
         urlChange: forceTargetingReevaluation,
       });
+      const targetingMatch = targetingResult.targetingMatch;
 
       if (
         forceTargetingReevaluation &&
@@ -801,6 +810,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // This avoids races where an older in-flight evaluation resolves false after
       // a newer evaluation already resolved true.
       this.sessionTargetingMatch = this.sessionTargetingMatch || targetingMatch;
+      if (targetingMatch) {
+        if (this.metadata) {
+          this.metadata = {
+            ...this.metadata,
+            sessionId: this.identifiers.sessionId,
+            targetingConditionName: targetingResult.targetingConditionName,
+            targetingConditionId: targetingResult.targetingConditionId,
+          };
+        }
+      }
 
       this.loggerProvider.debug(
         JSON.stringify(
