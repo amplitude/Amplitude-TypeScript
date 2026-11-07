@@ -113,6 +113,7 @@ describe('destination', () => {
       await destination.setup(config);
       set.mockClear();
       void destination.execute({ event_type: 'new' });
+      await Promise.resolve();
       expect(set).toHaveBeenCalledTimes(1);
       expect(set.mock.calls[0][1]).toHaveLength(2);
     });
@@ -1113,6 +1114,7 @@ describe('destination', () => {
       destination.queue = eventsToAdd;
       const eventsToRemove = [eventsToAdd[1]];
       destination.removeEvents(eventsToRemove);
+      await Promise.resolve();
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event1]));
     });
@@ -1138,8 +1140,30 @@ describe('destination', () => {
       };
       destination.queue = [context];
       destination.removeEvents([]);
+      await Promise.resolve();
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event]));
+    });
+
+    test('should not save when the storage provider is removed before the queued save runs', async () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      const set = jest.fn().mockResolvedValue(undefined);
+      destination.config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
+
+      destination.saveEvents();
+      destination.config.storageProvider = undefined;
+      await Promise.resolve();
+
+      expect(set).not.toHaveBeenCalled();
+      expect(destination.saveQueued).toBe(false);
     });
 
     test('should keep a queued duplicate insert_id that was not in the fulfilled list', () => {
