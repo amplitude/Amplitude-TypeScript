@@ -7,6 +7,6 @@ export type RecorderContext = Context<TestPayloads>;
 export type SemanticRecorder = Recorder<TestPayloads>;
 
 export function recorderContext() {
-  const host: SemanticHost = { document, window, emit: jest.fn() };
+  const host: SemanticHost = { document, window, sdk: 'test', getPrivacy: () => ({}), emit: jest.fn() };
   return { context: { host } };
 }
