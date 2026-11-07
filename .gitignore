@@ -5,7 +5,6 @@ node_modules/
 lib/
 *.tsbuildinfo
 coverage/
-docs/
 .idea/
 
 # macos
