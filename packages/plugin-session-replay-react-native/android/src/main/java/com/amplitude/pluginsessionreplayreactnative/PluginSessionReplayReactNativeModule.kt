@@ -10,6 +10,7 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
@@ -22,12 +23,14 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   @Volatile private var uiChangeReceiver: Any? = null
 
   private fun emitUiChange(receiver: Any) {
+    val timestamp = System.currentTimeMillis().toDouble()
     synchronized(this) {
       if (uiChangeReceiver !== receiver || invalidated || !recordingRequested ||
         !reactContext.hasActiveReactInstance()) return
       try {
+        val signal = Arguments.createMap().apply { putDouble("timestamp", timestamp) }
         reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-          .emit("amplitudeSessionReplayUiChange", null)
+          .emit("amplitudeSessionReplayUiChange", signal)
       } catch (_: RuntimeException) {
         // The React instance can be destroyed between the check and the emission.
       }

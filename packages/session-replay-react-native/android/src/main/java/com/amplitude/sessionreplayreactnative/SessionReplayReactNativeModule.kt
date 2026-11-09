@@ -9,6 +9,7 @@ import com.amplitude.core.ServerZone
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
@@ -49,12 +50,14 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   private fun emitUiChange(receiver: Any) {
+    val timestamp = System.currentTimeMillis().toDouble()
     synchronized(this) {
       if (uiChangeReceiver !== receiver || invalidated || !shouldStart ||
         !reactContext.hasActiveReactInstance()) return
       try {
+        val signal = Arguments.createMap().apply { putDouble("timestamp", timestamp) }
         reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-          .emit("amplitudeSessionReplayReactNativeUiChange", null)
+          .emit("amplitudeSessionReplayReactNativeUiChange", signal)
       } catch (_: RuntimeException) {
         // The React instance can be destroyed between the check and the emission.
       }

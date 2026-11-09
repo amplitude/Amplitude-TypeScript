@@ -5,7 +5,7 @@ import React
 
 @objc(AMPNativeSessionReplay)
 class NativeSessionReplay: RCTEventEmitter {
-    private let stateLock = NSRecursiveLock()
+    private let stateLock = NSLock()
     private var currentSessionReplay: SessionReplay?
     var sessionReplay: SessionReplay? {
         get { stateLock.withLock { currentSessionReplay } }
@@ -19,26 +19,22 @@ class NativeSessionReplay: RCTEventEmitter {
 
     @objc(isRecording:reject:)
     func isRecording(_ resolve: @escaping RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { resolve(false); return }
-            // The SDK updates recording availability on main. Keep this read async
-            // so a native query never blocks a JS caller waiting on the UI thread.
-            let recording = self.stateLock.withLock {
-                !self.invalidated && self.recordingRequested && (self.sessionReplay?.isProviding ?? false)
-            }
-            resolve(recording)
+        // SDK >= 0.16.1 synchronizes isProviding internally; read it outside our lock.
+        let (requested, replay) = stateLock.withLock {
+            (!invalidated && recordingRequested, currentSessionReplay)
         }
+        resolve(requested && (replay?.isProviding ?? false))
     }
 
     private func attachUiChangeReceiver() {
         guard let provider = sessionReplay else { return }
-        let receiver = UiChangeReceiver { [weak self] receiver in
+        let receiver = UiChangeReceiver { [weak self] receiver, timestamp in
             guard let self = self else { return }
             self.stateLock.withLock {
                 // JS cannot distinguish callbacks from an SDK instance already replaced.
                 guard !self.invalidated, self.hasUiChangeListeners, self.recordingRequested,
                       self.uiChangeReceiver === receiver else { return }
-                self.sendEvent(withName: "amplitudeSessionReplayReactNativeUiChange", body: nil)
+                self.sendEvent(withName: "amplitudeSessionReplayReactNativeUiChange", body: ["timestamp": timestamp])
             }
         }
         stateLock.withLock { uiChangeReceiver = receiver }
@@ -49,7 +45,7 @@ class NativeSessionReplay: RCTEventEmitter {
         let (provider, receiver) = stateLock.withLock {
             let receiver = uiChangeReceiver
             uiChangeReceiver = nil
-            return (sessionReplay, receiver)
+            return (currentSessionReplay, receiver)
         }
         // Never hold the state lock while calling back into the SDK.
         if let receiver = receiver { provider?.removeInterfaceSignalReceiver(receiver) }
@@ -187,8 +183,11 @@ class NativeSessionReplay: RCTEventEmitter {
     }
     
     override func invalidate() {
-        stateLock.withLock { invalidated = true }
-        stateLock.withLock { hasUiChangeListeners = false }
+        stateLock.withLock {
+            invalidated = true
+            hasUiChangeListeners = false
+            recordingRequested = false
+        }
         print("invalidate")
         tearDownSessionReplay()
         super.invalidate()
@@ -204,14 +203,14 @@ class NativeSessionReplay: RCTEventEmitter {
 }
 
 private final class UiChangeReceiver: InterfaceSignalReceiver, @unchecked Sendable {
-    private let uiChangeCallback: (UiChangeReceiver) -> Void
+    private let uiChangeCallback: (UiChangeReceiver, Double) -> Void
 
-    init(uiChangeCallback: @escaping (UiChangeReceiver) -> Void) {
+    init(uiChangeCallback: @escaping (UiChangeReceiver, Double) -> Void) {
         self.uiChangeCallback = uiChangeCallback
     }
 
     func onInterfaceChanged(signal: InterfaceChangeSignal) {
-        uiChangeCallback(self)
+        uiChangeCallback(self, signal.time.timeIntervalSince1970 * 1000)
     }
 
     func onStartProviding() {}

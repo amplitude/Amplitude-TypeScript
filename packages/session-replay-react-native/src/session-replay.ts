@@ -308,22 +308,25 @@ export async function privateInit(
   return init(config);
 }
 
-const globalUiChangeListeners = new Set<() => void>();
+const globalUiChangeListeners = new Set<(timestamp: number) => void>();
 let uiChangeSubscription: EmitterSubscription | undefined;
 let uiChangeSubscriptionGeneration = 0;
 
-/** Subscribe to native UI changes. Returns a function that removes this subscription. */
-export function addUiChangeListener(listener: () => void): () => void {
+/** Subscribe to UI changes with their Unix timestamp in milliseconds. Returns an unsubscribe function. */
+export function addUiChangeListener(listener: (timestamp: number) => void): () => void {
   // Each registration gets its own entry, even when the callback is reused.
-  const registeredListener = () => listener();
+  const registeredListener = (timestamp: number) => listener(timestamp);
   globalUiChangeListeners.add(registeredListener);
   if (!uiChangeSubscription) {
     const generation = ++uiChangeSubscriptionGeneration;
     uiChangeSubscription = new NativeEventEmitter(NativeSessionReplay).addListener(
       'amplitudeSessionReplayReactNativeUiChange',
-      () => {
+      (event?: { timestamp?: number }) => {
         if (generation !== uiChangeSubscriptionGeneration) return;
-        globalUiChangeListeners.forEach((callback) => callback());
+        // Older native binaries sent no payload. Preserve their delivery-time fallback.
+        const timestamp =
+          typeof event?.timestamp === 'number' && Number.isFinite(event.timestamp) ? event.timestamp : Date.now();
+        globalUiChangeListeners.forEach((callback) => callback(timestamp));
       },
     );
   }

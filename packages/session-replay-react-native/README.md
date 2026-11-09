@@ -115,3 +115,19 @@ them by doing the following
   <WebView source={{ uri: 'https://reactnative.dev/' }} style={{ flex: 1 }} />
 </AmpMaskView>
 ```
+
+
+## UI change timestamps
+
+`addUiChangeListener` passes the UI change time as milliseconds since the Unix epoch:
+
+```typescript
+const unsubscribe = addUiChangeListener((timestamp) => {
+  console.log('UI changed at', new Date(timestamp));
+});
+```
+
+Existing callbacks that take no arguments continue to work. On iOS, the timestamp
+comes from Session Replay's interface signal. On Android, it records when the
+native SDK invokes its UI-change callback. Older native binaries without a timestamp
+fall back to the time JavaScript receives the notification.

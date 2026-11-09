@@ -1,8 +1,8 @@
-const mockCallbacks: Array<() => void> = [];
+const mockCallbacks: Array<(event?: { timestamp?: number }) => void> = [];
 
 jest.mock('react-native', () => ({
   NativeEventEmitter: jest.fn(() => ({
-    addListener: (_event: string, callback: () => void) => {
+    addListener: (_event: string, callback: (event?: { timestamp?: number }) => void) => {
       mockCallbacks.push(callback);
       return { remove: jest.fn() };
     },
@@ -43,4 +43,31 @@ describe('UI subscription lifecycle', () => {
     queued();
     expect(listener).not.toHaveBeenCalled();
   });
+  it('preserves native timestamps instead of substituting JavaScript receipt time', () => {
+    const listener = jest.fn();
+    const remove = addUiChangeListener(listener);
+    try {
+      const timestamp = Date.now() - 5000.25;
+      mockCallbacks[0]({ timestamp });
+      expect(listener).toHaveBeenCalledWith(timestamp);
+    } finally {
+      remove();
+    }
+  });
+
+  it.each([undefined, {}, { timestamp: NaN }, { timestamp: Infinity }])(
+    'uses receipt time for an older or invalid native payload: %j',
+    (event) => {
+      const listener = jest.fn();
+      const remove = addUiChangeListener(listener);
+      const now = jest.spyOn(Date, 'now').mockReturnValue(123456);
+      try {
+        mockCallbacks[0](event);
+        expect(listener).toHaveBeenCalledWith(123456);
+      } finally {
+        now.mockRestore();
+        remove();
+      }
+    },
+  );
 });
