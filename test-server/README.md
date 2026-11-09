@@ -24,6 +24,12 @@ To run the server as HTTPS follow these steps
 ## TIPS
 * You can enable a "Workspace" in Chrome on this site, which allows you to edit the files from inside the browser
 
+## Autocapture memory leak (SDK-702)
+
+Open `/browser-sdk/autocapture-memory-leak.html` with `pnpm dev`. No API key is needed; remote config and real event uploads are disabled. The local mode imports the autocapture plugin source directly, so it tests the current checkout even if the Browser SDK bundle is stale. The published mode loads Browser SDK 2.49.0 from Amplitude's CDN.
+
+Initialize the SDK, run the three-group cycle, collect garbage in Chrome DevTools' Memory panel, then click **Report counts**. The page keeps only weak references to the test buttons. After GC, the fixed source should retain zero exposed, briefly visible, and never-visible buttons. The affected published SDK should retain the first two groups. Reload to switch modes or disable Viewport Content Updated to check the workaround; do not navigate during a run.
+
 ## nuqs SPA
 
 Run `pnpm dev:nuqs` for the [nuqs page-view example](./nuqs-spa/README.md) at http://127.0.0.1:5174/. Initialize the real SDK with a test project's API key, select `all` (default) or `pathOnly`, and observe page views from nuqs query-state updates.
