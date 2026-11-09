@@ -7,6 +7,7 @@ import { isWeb } from '../utils/platform';
 const DEAD_CLICK_TIMEOUT = 3_000;
 
 type PendingClick = {
+  time: number;
   deadline: number;
   sources: ReplayUiChangeSource[];
   changedSources: Set<ReplayUiChangeSource>;
@@ -31,10 +32,9 @@ export function createDeadClickTracker(
   const replay = isWeb()
     ? undefined
     : observeReplayUiChanges(
-        (source) => {
-          const now = Date.now();
+        (source, timestamp) => {
           pending.forEach((click) => {
-            if (click.sources.includes(source) && now <= click.deadline) {
+            if (click.sources.includes(source) && timestamp >= click.time && timestamp <= click.deadline) {
               if (click.ready) cancel(click);
               else click.changedSources.add(source);
             }
@@ -58,6 +58,7 @@ export function createDeadClickTracker(
     const sessionId = config.sessionId;
     const deviceId = config.deviceId;
     const click: PendingClick = {
+      time,
       deadline,
       sources: replay.sources,
       changedSources: new Set(),

@@ -1,6 +1,6 @@
 /** The small public Replay API needed by dead-click detection. */
 interface ReplayUiChangeAPI {
-  addUiChangeListener(listener: () => void): () => void;
+  addUiChangeListener(listener: (timestamp?: number) => void): () => void;
   isRecording(): Promise<boolean>;
 }
 
@@ -28,7 +28,7 @@ try {
 
 /** Native modules and event names remain private to the optional Replay packages. */
 export function observeReplayUiChanges(
-  listener: (source: ReplayUiChangeSource) => void,
+  listener: (source: ReplayUiChangeSource, timestamp: number) => void,
   onError: (error: unknown) => void,
 ) {
   const packages = optionalReplayPackages;
@@ -51,8 +51,11 @@ export function observeReplayUiChanges(
       },
     };
     try {
-      const unsubscribe = replay.addUiChangeListener(() => {
-        if (!removed) listener(source);
+      const unsubscribe = replay.addUiChangeListener((timestamp) => {
+        if (!removed) {
+          const changedAt = typeof timestamp === 'number' && Number.isFinite(timestamp) ? timestamp : Date.now();
+          listener(source, changedAt);
+        }
       });
       if (typeof unsubscribe !== 'function') continue;
       sources.push(source);

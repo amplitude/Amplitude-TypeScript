@@ -65,8 +65,8 @@ describe('autocapture.deadClicks with native Session Replay', () => {
     lastChangeTime = 0;
     signalSubscription = undefined;
     capture = createEventCapture();
-    signalSubscription = addUiChangeListener(() => {
-      lastChangeTime = Date.now();
+    signalSubscription = addUiChangeListener((timestamp) => {
+      lastChangeTime = timestamp;
     });
     client = new AmplitudeReactNative();
     client.add(capture.plugin);

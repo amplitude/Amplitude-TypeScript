@@ -3,8 +3,8 @@ import { AppState, Platform, type AppStateStatus } from 'react-native';
 import { createDeadClickTracker } from '../../src/autocapture/dead-click';
 import { useDefaultConfig } from '../helpers/default';
 
-const pluginListeners = new Set<() => void>();
-const standaloneListeners = new Set<() => void>();
+const pluginListeners = new Set<(timestamp?: number) => void>();
+const standaloneListeners = new Set<(timestamp?: number) => void>();
 
 // The optional Replay packages are required when the SDK module loads, which happens before top-level
 // consts are initialized. Build the mocks inside the factories and read them back with requireMock.
@@ -59,11 +59,11 @@ describe('dead click tracker with public Replay APIs', () => {
     unsubscribeStandalone = jest.fn(() => standaloneListeners.clear());
     pluginReplay.isRecording.mockReset().mockResolvedValue(true);
     standaloneReplay.isRecording.mockReset().mockResolvedValue(false);
-    pluginReplay.addUiChangeListener.mockReset().mockImplementation((listener: () => void) => {
+    pluginReplay.addUiChangeListener.mockReset().mockImplementation((listener: (timestamp?: number) => void) => {
       pluginListeners.add(listener);
       return unsubscribePlugin;
     });
-    standaloneReplay.addUiChangeListener.mockReset().mockImplementation((listener: () => void) => {
+    standaloneReplay.addUiChangeListener.mockReset().mockImplementation((listener: (timestamp?: number) => void) => {
       standaloneListeners.add(listener);
       return unsubscribeStandalone;
     });
@@ -148,6 +148,33 @@ describe('dead click tracker with public Replay APIs', () => {
     create().registerClickEvent(coordinates, properties);
     pluginReplay.isRecording.mockResolvedValue(true);
     await advance(3000);
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it('ignores delayed native UI changes that happened before the press', async () => {
+    const time = Date.now();
+    create().registerClickEvent(coordinates, properties);
+    await advance(1000);
+    pluginListeners.forEach((listener) => listener(time - 1));
+    await advance(2000);
+    expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses native time for an in-window UI change delivered while the final query is pending', async () => {
+    const time = Date.now();
+    let finish!: (value: boolean) => void;
+    pluginReplay.isRecording.mockResolvedValueOnce(true).mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    create().registerClickEvent(coordinates, properties);
+    await advance(3000);
+    jest.setSystemTime(time + 3100);
+    pluginListeners.forEach((listener) => listener(time + 2999));
+    finish(true);
+    await settlePromises();
     expect(handler).not.toHaveBeenCalled();
   });
 
