@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/element-selector",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Shared element-selector algorithm consumed by autocapture, the Amplitude dashboard, and the Chrome extension visual tagger.",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -18,7 +18,7 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "pnpm build:es5 & pnpm build:esm",
+    "build": "pnpm build:es5 && pnpm build:esm",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
     "watch": "tsc -p ./tsconfig.esm.json --watch",

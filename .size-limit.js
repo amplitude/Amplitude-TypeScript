@@ -1,21 +1,30 @@
+// @size-limit/esbuild bundles every check that does not opt out. These entries
+// are already-built files, so measure them directly with @size-limit/file.
+const fileOnly = {
+  disablePlugins: ['@size-limit/esbuild'],
+};
+
 const limits = [
   {
     // analytics-browser bundle
     path: './packages/analytics-browser/lib/scripts/amplitude-min.js.gz',
     limit: '75.5kb',
     brotli: false,
+    ...fileOnly,
   },
   {
     // session-replay standalone bundle
     path: './packages/session-replay-browser/lib/scripts/session-replay-browser-min.js.gz',
     limit: '150kb',
     brotli: false,
+    ...fileOnly,
   },
   {
     // unified SDK bundle
     path: './packages/unified/lib/scripts/amplitude-min.umd.js.gz',
     limit: '235kb',
     brotli: false,
+    ...fileOnly,
   },
   {
     // @amplitude/element-selector — ESM library output (size-limit gzips on the fly).
@@ -33,6 +42,20 @@ const limits = [
     path: './packages/element-selector/lib/esm/index.js',
     limit: '7kb',
     brotli: false,
+    ...fileOnly,
+  },
+  {
+    // analytics-browser lite CDN bundle
+    name: '@amplitude/analytics-browser/lite (gzipped CDN bundle)',
+    path: './packages/analytics-browser/lib/scripts/amplitude-lite-min.js.gz',
+    // NOTE TO CONTRIBUTORS:
+    // This bundle is meant to be a lightweight version of analytics-browser
+    // that doesn't include autocapture ootb. If the bundle size went up,
+    // please make sure you know why it went up before increasing the limit
+    // and make sure there aren't any unexpected dependencies or features.
+    limit: '23kb',
+    brotli: false,
+    ...fileOnly,
   },
 ]
 

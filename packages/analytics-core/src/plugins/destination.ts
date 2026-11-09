@@ -106,7 +106,7 @@ export class Destination implements DestinationPlugin {
   diagnosticsClient: IDiagnosticsClient | undefined;
   inFlightDelayedEvents: Record<string, boolean> = {};
 
-  constructor(context?: { diagnosticsClient: IDiagnosticsClient }) {
+  constructor(context?: { diagnosticsClient: IDiagnosticsClient | undefined }) {
     this.diagnosticsClient = context?.diagnosticsClient;
   }
 

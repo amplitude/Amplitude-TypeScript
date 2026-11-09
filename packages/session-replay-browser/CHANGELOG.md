@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.51.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.7...@amplitude/session-replay-browser@1.51.8) (2026-11-06)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** make debug config structured-cloneable for cross-origin iframes ([#2107](https://github.com/amplitude/Amplitude-TypeScript/issues/2107)) ([3182125](https://github.com/amplitude/Amplitude-TypeScript/commit/318212523d4de8d94f04ab2a8d7d9a4054bf7a1e))
+* **session-replay-browser:** refresh the replay baseline on tab switch ([#2099](https://github.com/amplitude/Amplitude-TypeScript/issues/2099)) ([c325c01](https://github.com/amplitude/Amplitude-TypeScript/commit/c325c01fdd86800994f324f8b2ce1ea07f7b977a))
+* **session-replay-browser:** refresh the replay baseline on tab switch ([#2123](https://github.com/amplitude/Amplitude-TypeScript/issues/2123)) ([0aaecc3](https://github.com/amplitude/Amplitude-TypeScript/commit/0aaecc314fd28e1713c6a317ee773302850a0630))
+
+
+
+
+
+## [1.51.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.5...@amplitude/session-replay-browser@1.51.7) (2026-10-30)
+
+
+### Bug Fixes
+
+* **session-replay:** upgrade rrweb to 2.1.5 ([#2084](https://github.com/amplitude/Amplitude-TypeScript/issues/2084)) ([491914d](https://github.com/amplitude/Amplitude-TypeScript/commit/491914d6922be10b8a3f7117b8271314265a6c8e))
+
+
+
+
+
 ## [1.51.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.5...@amplitude/session-replay-browser@1.51.6) (2026-10-22)
 
 

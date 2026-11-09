@@ -16,6 +16,7 @@ config.watchFolders = [
   path.join(packagesRoot, 'plugin-experiment-react-native'),
   path.join(packagesRoot, 'plugin-page-view-tracking-browser'),
   path.join(packagesRoot, 'plugin-network-capture-browser'),
+  path.join(packagesRoot, 'plugin-session-replay-react-native'),
 ];
 config.resolver.nodeModulesPaths = [path.resolve(projectRoot, 'node_modules')];
 

@@ -7,7 +7,8 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2018,
-    project: 'packages/*/tsconfig.json',
+    // Use each file's nearest TSConfig to avoid loading unrelated package projects.
+    project: true,
     sourceType: 'module',
     tsconfigRootDir: __dirname,
   },

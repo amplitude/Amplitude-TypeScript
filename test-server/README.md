@@ -120,3 +120,7 @@ object. It does not merge individual engagement timings with local timings.
 Engaged-time tracking only supports the default `trackOn` (`undefined`). Custom callbacks (including `() => true`) and `attribution` retain ordinary page-view tracking without engagement.
 
 Engaged page views and their snapshots omit `user_properties`. Send user-property updates separately with `identify()`. A delayed page view may arrive after newer events when the service expires it; carrying older user-property updates would overwrite newer values in ingestion order.
+
+## nuqs SPA
+
+Run `pnpm dev:nuqs` for the [nuqs page-view example](./nuqs-spa/README.md) at http://127.0.0.1:5174/. Initialize the real SDK with a test project's API key, select `all` (default) or `pathOnly`, and observe page views from nuqs query-state updates.
