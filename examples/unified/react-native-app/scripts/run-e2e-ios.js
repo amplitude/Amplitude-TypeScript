@@ -41,10 +41,14 @@ const waitForMetro = async () => {
 const runMaestroTest = () =>
   new Promise((resolve, reject) => {
     // Keep the executable and arguments fixed; never interpret a shell command.
-    const child = spawn('maestro', ['test', '.maestro/guides-and-surveys.yaml'], {
-      cwd: projectRoot,
-      stdio: 'inherit',
-    });
+    const child = spawn(
+      'maestro',
+      ['test', '.maestro/guides-and-surveys.yaml'],
+      {
+        cwd: projectRoot,
+        stdio: 'inherit',
+      },
+    );
     child.on('error', reject);
     child.on('exit', (code, signal) => {
       if (code === 0) {
