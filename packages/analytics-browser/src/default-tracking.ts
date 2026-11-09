@@ -12,6 +12,7 @@ import {
   CustomEnrichmentOptions,
   PerformanceTrackingOptions,
   WebVitalsOptions,
+  EngagedTimeOptions,
   isChromeExtension,
   normalizeNetworkCaptureRules,
 } from '@amplitude/analytics-core';
@@ -274,7 +275,10 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
         eventType = config.defaultTracking.pageViews.eventType;
       }
       const pageViews = config.defaultTracking.pageViews;
-      if ('trackEngagedTime' in pageViews) {
+      if (
+        'trackEngagedTime' in pageViews &&
+        !(typeof config.autocapture === 'object' && config.autocapture.engagedTimeTracking !== undefined)
+      ) {
         engagementOptions = { trackEngagedTime: pageViews.trackEngagedTime };
       }
     }
@@ -287,6 +291,14 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
     pageCounter,
     ...engagementOptions,
   };
+};
+
+/** Engagement is opt-in, even when autocapture is true, and independent of pageViews. */
+export const getEngagedTimeTrackingConfig = (config: BrowserOptions): EngagedTimeOptions | undefined => {
+  const value = typeof config.autocapture === 'object' ? config.autocapture.engagedTimeTracking : undefined;
+  if (value === true) return {};
+  if (value && typeof value === 'object') return value;
+  return undefined;
 };
 
 export const getAttributionTrackingConfig = (config: BrowserOptions): AttributionOptions => {

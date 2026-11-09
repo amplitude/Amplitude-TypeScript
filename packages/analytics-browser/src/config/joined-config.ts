@@ -28,6 +28,7 @@ export interface PageTrackingOptionsRemoteConfig {
 }
 
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
+  engagedTimeTracking?: boolean | EngagedTimeOptionsRemoteConfig;
   pageViews?: boolean | PageTrackingOptionsRemoteConfig;
   elementInteractions?: boolean | ElementInteractionsOptionsRemoteConfig;
   networkTracking?: boolean | NetworkTrackingOptionsRemoteConfig;

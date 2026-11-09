@@ -36,6 +36,7 @@ import {
 import {
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
+  getEngagedTimeTrackingConfig,
   getElementInteractionsConfig,
   getNetworkTrackingConfig,
   isAttributionTrackingEnabled,
@@ -59,6 +60,7 @@ import { getRuntimeEnvironment } from './utils/environment';
 import { BROWSER_PLATFORM, Context } from './plugins/context';
 import { useBrowserConfig, createTransport, shouldFetchRemoteConfig } from './config';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
+import { engagedTimeTrackingPlugin } from '@amplitude/plugin-engaged-time-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT, DEFAULT_SERVER_ZONE } from './constants';
@@ -400,6 +402,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
       this.config.loggerProvider.debug('Adding custom enrichment plugin');
       await this.add(customEnrichmentPlugin()).promise;
+    }
+
+    // Listen independently of pageViews, including when automatic page views are disabled.
+    // Install after page-view conversion/counters and URL enrichment so snapshots retain their context.
+    const engagedTimeOptions = getEngagedTimeTrackingConfig(this.config);
+    if (engagedTimeOptions) {
+      await this.add(engagedTimeTrackingPlugin(engagedTimeOptions)).promise;
     }
 
     this.initializing = false;

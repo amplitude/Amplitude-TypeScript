@@ -222,8 +222,7 @@
                   snapshot sends the same duration in the request's top-level <code>timeout</code> field, renewing the
                   service fallback deadline from the last accepted heartbeat. If the SDK cannot deliver a final
                   snapshot, the service finalizes the latest stored snapshot after that deadline. Heartbeats do not
-                  reset the SDK inactivity timer. The next interaction after SDK finalization starts a new logical page
-                  view.
+                  reset the SDK inactivity timer. After finalization, tracking waits for the next page-view event.
                 </td>
               </tr>
             </tbody>
@@ -242,6 +241,10 @@
       <section>
         <h2>Run the SDK</h2>
         <form id="settings">
+          <label
+            ><input id="custom-page-view" type="checkbox" /> Use custom page_view events with automatic page views
+            disabled</label
+          >
           <div class="controls">
             <label>Activity window (ms)<input id="threshold" type="number" min="1" value="5000" required /></label>
             <label>Heartbeat (ms)<input id="heartbeat" type="number" min="1" value="15000" required /></label>

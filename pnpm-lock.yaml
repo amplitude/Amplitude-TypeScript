@@ -309,6 +309,9 @@ importers:
       '@amplitude/plugin-custom-enrichment-browser':
         specifier: 1.0.0
         version: 1.0.0(@amplitude/analytics-core@packages+analytics-core)
+      '@amplitude/plugin-engaged-time-tracking-browser':
+        specifier: workspace:*
+        version: link:../plugin-engaged-time-tracking-browser
       '@amplitude/plugin-event-property-attribution-browser':
         specifier: workspace:*
         version: link:../plugin-event-property-attribution-browser
@@ -646,6 +649,37 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2(rollup@2.80.0)
 
+  packages/plugin-engaged-time-tracking-browser:
+    dependencies:
+      '@amplitude/analytics-core':
+        specifier: workspace:*
+        version: link:../analytics-core
+      tslib:
+        specifier: ^2.4.1
+        version: 2.8.1
+    devDependencies:
+      '@rollup/plugin-commonjs':
+        specifier: ^23.0.4
+        version: 23.0.7(rollup@2.80.0)
+      '@rollup/plugin-node-resolve':
+        specifier: ^15.0.1
+        version: 15.3.1(rollup@2.80.0)
+      '@rollup/plugin-typescript':
+        specifier: ^10.0.1
+        version: 10.0.1(rollup@2.80.0)(tslib@2.8.1)(typescript@4.9.5)
+      rollup:
+        specifier: ^2.80.0
+        version: 2.80.0
+      rollup-plugin-execute:
+        specifier: ^1.1.1
+        version: 1.1.1
+      rollup-plugin-gzip:
+        specifier: ^3.1.0
+        version: 3.1.2(rollup@2.80.0)
+      rollup-plugin-terser:
+        specifier: ^7.0.2
+        version: 7.0.2(rollup@2.80.0)
+
   packages/plugin-event-property-attribution-browser:
     dependencies:
       '@amplitude/analytics-core':
@@ -813,6 +847,9 @@ importers:
       '@amplitude/analytics-core':
         specifier: workspace:*
         version: link:../analytics-core
+      '@amplitude/plugin-engaged-time-tracking-browser':
+        specifier: workspace:*
+        version: link:../plugin-engaged-time-tracking-browser
       tslib:
         specifier: ^2.4.1
         version: 2.8.1
@@ -1289,9 +1326,6 @@ packages:
 
   '@amplitude/analytics-core@2.50.0':
     resolution: {integrity: sha512-d8/U5aAHAs6XcpvQYpStxBxMxSwjDajZ0f6wMSwPCfxDGEWqcFaYuRKauh+vrn89D6gWcKi1VZ/tKCyhVby9sg==}
-
-  '@amplitude/analytics-core@2.61.0':
-    resolution: {integrity: sha512-emwBT39vq/kjaXt2HoRkeSG4shjLmDgrZUDpIXCQdgI3Xvi9GwjMG3T6xjtjf+/THCB4NIhHrJhqbqx7tq+hMw==}
 
   '@amplitude/analytics-types@1.4.0':
     resolution: {integrity: sha512-RiMPHBqdrJ8ktTqG+Wzj2htnN/PCG9jGZG0SXtTFnWwVvcAJYbYm55/nrP1TTyrx1OlLhvF2VG3lVUP/xGAU8w==}
@@ -10717,14 +10751,6 @@ snapshots:
   '@amplitude/analytics-core@2.50.0':
     dependencies:
       '@amplitude/analytics-connector': 1.6.4
-      '@types/zen-observable': 0.8.3
-      safe-json-stringify: 1.2.0
-      tslib: 2.8.1
-      zen-observable: 0.10.0
-
-  '@amplitude/analytics-core@2.61.0':
-    dependencies:
-      '@amplitude/analytics-connector': 1.7.0
       '@types/zen-observable': 0.8.3
       safe-json-stringify: 1.2.0
       tslib: 2.8.1

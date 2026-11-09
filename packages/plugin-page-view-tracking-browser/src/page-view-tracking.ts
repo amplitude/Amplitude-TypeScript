@@ -19,7 +19,7 @@ import {
   getSdkInitializationOffset,
 } from '@amplitude/analytics-core';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
-import { PageEngagement } from './page-engagement';
+import { PageEngagement } from '@amplitude/plugin-engaged-time-tracking-browser';
 
 export const defaultPageViewEvent = '[Amplitude] Page Viewed';
 export { PAGE_VIEW_SESSION_STORAGE_KEY } from '@amplitude/analytics-core';
@@ -245,7 +245,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
     execute: async (event: Event) => {
       // A heartbeat reuses the enriched original page view, including its counter.
-      if (engagement && event.delay) return event;
+      if (event.extra?.pageEngagementSnapshot || (engagement && event.delay)) return event;
       if (trackOn === 'attribution' && isCampaignEvent(event)) {
         /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
         loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');

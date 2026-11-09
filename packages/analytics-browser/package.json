@@ -52,6 +52,7 @@
     "@amplitude/analytics-core": "workspace:*",
     "@amplitude/plugin-autocapture-browser": "workspace:*",
     "@amplitude/plugin-custom-enrichment-browser": "1.0.0",
+    "@amplitude/plugin-engaged-time-tracking-browser": "workspace:*",
     "@amplitude/plugin-event-property-attribution-browser": "workspace:*",
     "@amplitude/plugin-network-capture-browser": "workspace:*",
     "@amplitude/plugin-page-url-enrichment-browser": "workspace:*",

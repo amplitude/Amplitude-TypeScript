@@ -9,6 +9,7 @@ export interface PageTrackingOptions {
    * Engaged page views omit user_properties; send user-property updates with a separate identify call.
    * @defaultValue `false`
    * @experimental This feature is experimental and may not be stable.
+   * @deprecated Use autocapture.engagedTimeTracking instead. An explicit engagedTimeTracking value takes precedence.
    */
   trackEngagedTime?: boolean | EngagedTimeOptions;
 }
@@ -18,6 +19,11 @@ export interface PageTrackingOptions {
  * @experimental This feature is experimental and may not be stable.
  */
 export interface EngagedTimeOptions {
+  /**
+   * Event type for the independent engaged-time plugin. Defaults to `[Amplitude] Page Viewed`.
+   * Does not enable page-view autocapture. The deprecated pageViews.trackEngagedTime option uses pageViews.eventType.
+   */
+  pageViewEventType?: string;
   /** Rolling activity window in milliseconds. Defaults to 5,000. */
   activityWindowMillis?: number;
   /** Snapshot cadence in milliseconds. Defaults to 15,000; must be shorter than inactivityTimeoutMillis. */

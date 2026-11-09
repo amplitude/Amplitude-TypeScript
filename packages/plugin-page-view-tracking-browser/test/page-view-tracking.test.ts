@@ -132,6 +132,20 @@ describe('pageViewTrackingPlugin', () => {
   });
 
   describe('setup', () => {
+    test('does not recount snapshots from the independent engagement plugin', async () => {
+      const plugin = pageViewTrackingPlugin();
+      const amplitude = createMockBrowserClient();
+      await plugin.setup!(mockConfig, amplitude);
+      const counter = mockConfig.pageCounter;
+      const snapshot = {
+        event_type: defaultPageViewEvent,
+        extra: { pageEngagementSnapshot: true },
+        delay: { id: 'independent-view', timeout: 180_000 },
+      };
+      expect(await plugin.execute!(snapshot)).toBe(snapshot);
+      expect(mockConfig.pageCounter).toBe(counter);
+      await plugin.teardown!();
+    });
     test('engaged-time opt-in falls back to ordinary page views without a browser scope', async () => {
       jest.mocked(getGlobalScope).mockReturnValueOnce(undefined);
       const plugin = pageViewTrackingPlugin({ trackEngagedTime: true });
