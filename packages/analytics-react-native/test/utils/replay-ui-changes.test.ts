@@ -36,6 +36,25 @@ describe('optional Replay UI adapters', () => {
     subscription.remove();
   });
 
+  it('passes a native timestamp through to consumers', () => {
+    let emit: (timestamp?: number) => void = () => undefined;
+    jest.doMock('@amplitude/plugin-session-replay-react-native', () => ({
+      isRecording: () => Promise.resolve(true),
+      addUiChangeListener: (callback: (timestamp?: number) => void) => {
+        emit = callback;
+        return () => undefined;
+      },
+    }));
+    jest.doMock('@amplitude/session-replay-react-native', () => ({}));
+    const { subscription, listener } = observe();
+    try {
+      emit(123456.75);
+      expect(listener).toHaveBeenCalledWith(subscription.sources[0], 123456.75);
+    } finally {
+      subscription.remove();
+    }
+  });
+
   it('guards removed subscriptions and still cleans up the second peer if the first cleanup throws', async () => {
     let emit: () => void = () => undefined;
     const unsubscribeSecond = jest.fn();
