@@ -5,6 +5,7 @@ import { FakeBrowserClient } from './utils/fake-browser-client';
 const {
   add,
   createInstance,
+  createNetworkRequestEvent,
   extendSession,
   flush,
   getDeviceId,
@@ -51,6 +52,7 @@ describe('index', () => {
   test('should expose apis', () => {
     expect(typeof add).toBe('function');
     expect(typeof createInstance).toBe('function');
+    expect(typeof createNetworkRequestEvent).toBe('function');
     expect(typeof extendSession).toBe('function');
     expect(typeof flush).toBe('function');
     expect(typeof groupIdentify).toBe('function');

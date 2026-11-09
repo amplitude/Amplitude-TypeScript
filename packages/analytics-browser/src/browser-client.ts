@@ -1,45 +1,24 @@
 import {
-  AmplitudeCore,
-  Destination,
-  Identify,
-  returnWrapper,
-  Revenue,
-  UUID,
-  getAnalyticsConnector,
-  setConnectorDeviceId,
-  setConnectorUserId,
-  isNewSession,
-  IdentityEventSender,
-  getQueryParams,
-  Event,
-  EventOptions,
-  IIdentify,
-  IRevenue,
-  TransportTypeOrOptions,
-  OfflineDisabled,
   Result,
   BrowserOptions,
   BrowserConfig,
   BrowserClient,
   AnalyticsClient,
-  AnalyticsIdentity,
   IRemoteConfigClient,
   RemoteConfigClient,
   RemoteConfig,
   Source,
   DiagnosticsClient,
-  createIdentifyEvent,
-  Logger,
   safeJsonStringify,
-  LogLevel,
+  AttributionOptions,
+  ServerZoneType,
+  ILogger,
 } from '@amplitude/analytics-core';
 import {
-  getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   getElementInteractionsConfig,
   getNetworkTrackingConfig,
   isAttributionTrackingEnabled,
-  isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
   isElementInteractionsEnabled,
@@ -54,16 +33,11 @@ import {
   isPageUrlEnrichmentEnabled,
   isCustomEnrichmentEnabled,
 } from './default-tracking';
-import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { getRuntimeEnvironment } from './utils/environment';
-import { BROWSER_PLATFORM, Context } from './plugins/context';
-import { useBrowserConfig, createTransport, shouldFetchRemoteConfig } from './config';
+import { BROWSER_PLATFORM } from './plugins/context';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
-import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT, DEFAULT_SERVER_ZONE } from './constants';
-import { detNotify } from './det-notification';
-import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { updateBrowserConfigWithRemoteConfig } from './config/joined-config';
 import { autocapturePlugin, frustrationPlugin, performancePlugin } from '@amplitude/plugin-autocapture-browser';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
@@ -75,644 +49,264 @@ import { VERSION } from './version';
 import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
 import { customEnrichmentPlugin } from '@amplitude/plugin-custom-enrichment-browser';
 import { isEventPropertyAttributionEnabled, isUserPropertyAttributionEnabled } from './attribution/tracking-methods';
-
-const UNSPECIFIED_SESSION_ID = -1;
+import { AmplitudeBrowserLite, AutocaptureAdapter } from './browser-client-lite';
 
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
  * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
  */
-export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, AnalyticsClient {
+export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserClient, AnalyticsClient {
+  // The ES5 helper for a class that extends another derived class includes an
+  // unreachable `|| this` branch. Ignore that generated constructor.
+  /* istanbul ignore next */
+  constructor() {
+    super();
+  }
+
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
-
-  // Backdoor to set diagnostics sample rate
-  // by calling amplitude._setDiagnosticsSampleRate(1); before amplitude.init()
-  _diagnosticsSampleRate = 0;
-
-  init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
-    let userId: string | undefined;
-    let options: BrowserOptions | undefined;
-    if (arguments.length > 2) {
-      userId = userIdOrOptions as string | undefined;
-      options = maybeOptions;
-    } else {
-      if (typeof userIdOrOptions === 'string') {
-        userId = userIdOrOptions;
-        options = undefined;
-      } else {
-        userId = userIdOrOptions?.userId;
-        options = userIdOrOptions;
-      }
+  attributionTrackingOptions: AttributionOptions | undefined;
+  private diagnosticsClient: DiagnosticsClient | undefined;
+  diagnosticsSampleRate = 0;
+  enableDiagnostics = true;
+  private _autocaptureAdapter: AutocaptureAdapter | null = null;
+  protected autocaptureAdapter(): AutocaptureAdapter | null {
+    if (this._autocaptureAdapter) {
+      return this._autocaptureAdapter;
     }
-    return returnWrapper(this._init({ ...options, userId, apiKey }));
-  }
-  protected async _init(options: BrowserOptions & { apiKey: string }) {
-    // Step 1: Block concurrent initialization
-    if (this.initializing) {
-      return;
-    }
-    this.initializing = true;
+    this._autocaptureAdapter = {
+      addPlugins: async () => {
+        if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
+          this.config.loggerProvider.debug('Adding file download tracking plugin');
+          await this.add(fileDownloadTracking()).promise;
+        }
 
-    // Step 2: Create browser config
-    // Step 2.1: Determine if we should fetch remote config BEFORE creating browser config
-    // This allows us to get diagnostics settings before creating the DiagnosticsClient
-    const fetchRemoteConfig = shouldFetchRemoteConfig(options);
+        if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
+          this.config.loggerProvider.debug('Adding form interaction plugin');
+          await this.add(formInteractionTracking()).promise;
+        }
 
-    // Set up early dependencies needed for remote config client
-    // These use options directly or fall back to defaults
-    const loggerProvider = options.loggerProvider ?? new Logger();
-    if (!options.loggerProvider) {
-      loggerProvider.enable(options.logLevel ?? LogLevel.Warn);
-    }
-    const serverZone = options.serverZone ?? DEFAULT_SERVER_ZONE;
+        // Default trackOn: add URL properties before page-view tracking saves engagement snapshots.
+        // Attribution: run page-view tracking first to convert $identify into a page view,
+        // since URL enrichment skips $identify events. Keep custom callbacks in their existing order.
+        const enrichBeforePageTracking = getPageViewTrackingConfig(this.config).trackOn === undefined;
+        if (enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
+          this.config.loggerProvider.debug('Adding referrer page url plugin');
+          await this.add(pageUrlEnrichmentPlugin()).promise;
+        }
 
-    let remoteConfigClient: IRemoteConfigClient | undefined;
-    let diagnosticsSampleRate = this._diagnosticsSampleRate;
-    let enableDiagnostics = options.enableDiagnostics ?? true;
-
-    // Step 2.2: Fetch diagnostics config FIRST to get sample rate for DiagnosticsClient
-    // We want to create DiagnosticsClient as early as possible so it can track more data
-    /* istanbul ignore next */
-    if (fetchRemoteConfig) {
-      remoteConfigClient = new RemoteConfigClient(
-        options.apiKey,
-        loggerProvider,
-        serverZone,
-        /* istanbul ignore next */ options.remoteConfig?.serverUrl,
-      );
-
-      // Fetch diagnostics config first to get sample rate
-      await new Promise<void>((resolve) => {
-        // Disable coverage for this line because remote config client will always be defined in this case.
-        // istanbul ignore next
-        remoteConfigClient?.subscribe(
-          'configs.diagnostics.browserSDK',
-          'all',
-          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-            loggerProvider.debug(
-              'Diagnostics remote configuration received:',
-              JSON.stringify(
-                {
-                  remoteConfig,
-                  source,
-                  lastFetch,
-                },
-                null,
-                2,
-              ),
-            );
-            if (remoteConfig) {
-              // Validate and set sampleRate (must be a valid number)
-              const sampleRate = remoteConfig.sampleRate as number;
-              if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
-                diagnosticsSampleRate = sampleRate;
-              }
-
-              // Validate and set enabled (must be a boolean)
-              const enabled = remoteConfig.enabled as boolean;
-              if (typeof enabled === 'boolean') {
-                enableDiagnostics = enabled;
-              }
-            }
-            resolve();
-          },
-        );
-      });
-    }
-
-    // Step 2.3: Initialize diagnostics client as early as possible
-    // Now we have the sample rate from remote config (if fetched)
-    const diagnosticsClient = new DiagnosticsClient(options.apiKey, loggerProvider, serverZone, {
-      enabled: enableDiagnostics,
-      sampleRate: diagnosticsSampleRate,
-    });
-    diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
-    diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
-    diagnosticsClient.setTag('web_environment', getRuntimeEnvironment());
-    if (typeof navigator !== 'undefined') {
-      diagnosticsClient.setTag('user_agent', navigator.userAgent);
-    }
-
-    // Step 2.4: Create browser config with diagnosticsClient and earlyConfig
-    // earlyConfig ensures consistent logger/serverZone/diagnostics settings across all components
-    const browserOptions = await useBrowserConfig(options.apiKey, options, this, diagnosticsClient, {
-      loggerProvider,
-      serverZone,
-      enableDiagnostics,
-      diagnosticsSampleRate,
-    });
-
-    // Step 2.5: Fetch analytics SDK remote config
-    // This is fetched after DiagnosticsClient is created so diagnostics can track any issues
-    /* istanbul ignore next */
-    if (fetchRemoteConfig && remoteConfigClient) {
-      await new Promise<void>((resolve) => {
-        // Disable coverage for this line because remote config client will always be defined in this case.
-        // istanbul ignore next
-        remoteConfigClient?.subscribe(
-          'configs.analyticsSDK.browserSDK',
-          'all',
-          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-            browserOptions.loggerProvider.debug(
-              'Remote configuration received:',
-              JSON.stringify(
-                {
-                  remoteConfig,
-                  source,
-                  lastFetch,
-                },
-                null,
-                2,
-              ),
-            );
-            if (remoteConfig) {
-              updateBrowserConfigWithRemoteConfig(remoteConfig, browserOptions);
-            }
-            // Resolve the promise on first callback (initial config)
-            resolve();
-          },
-        );
-      });
-    }
-
-    await super._init(browserOptions);
-    this.logBrowserOptions(browserOptions);
-
-    this.config.remoteConfigClient = remoteConfigClient;
-
-    const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
-
-    // Add web attribution plugin
-    if (
-      isAttributionTrackingEnabled(this.config.defaultTracking) &&
-      isUserPropertyAttributionEnabled(attributionTrackingOptions)
-    ) {
-      if (this.config.optOut) {
-        this.timeline.addOptOutListener(async (optOut) => {
-          if (!optOut) {
-            this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
-            await this.webAttribution.init();
-          }
-        });
-      }
-      this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
-      // Fetch the current campaign, check if need to track web attribution later
-      await this.webAttribution.init();
-    }
-
-    // Step 3: Set session ID
-    // Priority 1: `options.sessionId`
-    // Priority 2: sessionId from url if it's Number and ampTimestamp is valid
-    // Priority 3: last known sessionId from user identity storage
-    // Default: `Date.now()`
-    // Session ID is handled differently than device ID and user ID due to session events
-    const queryParams = getQueryParams();
-
-    // Check if ampTimestamp is present and valid
-    const ampTimestamp = queryParams.ampTimestamp ? Number(queryParams.ampTimestamp) : undefined;
-    const isWithinTimeLimit = ampTimestamp ? Date.now() < ampTimestamp : true;
-
-    // check if we need to set the sessionId
-    const querySessionId =
-      isWithinTimeLimit && !Number.isNaN(Number(queryParams.ampSessionId))
-        ? Number(queryParams.ampSessionId)
-        : undefined;
-
-    let deferredSessionId = this.config.deferredSessionId;
-    if (deferredSessionId === UNSPECIFIED_SESSION_ID && !this.config.optOut) {
-      deferredSessionId = Date.now();
-    }
-
-    this.setSessionId(options.sessionId ?? querySessionId ?? deferredSessionId ?? this.config.sessionId);
-
-    if (this.config.optOut) {
-      this.timeline.addOptOutListener(async (optOut) => {
-        if (!optOut && this.config.deferredSessionId) {
-          if (this.config.deferredSessionId === UNSPECIFIED_SESSION_ID) {
-            this.setSessionId(undefined);
+        // Add page view plugin
+        if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
+          if (!this.config.optOut) {
+            this.config.loggerProvider.debug('Adding page view tracking plugin');
+            await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
           } else {
-            this.setSessionId(this.config.deferredSessionId);
+            this.timeline.addOptOutListener(async (optOut) => {
+              /* istanbul ignore if */
+              if (optOut) {
+                return;
+              }
+              this.config.loggerProvider.debug('Adding page view tracking plugin');
+              await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+            });
           }
         }
-      });
-    }
 
-    // Set up the analytics connector to integrate with the experiment SDK.
-    // Send events from the experiment SDK and forward identifies to the
-    // identity store.
-    const connector = getAnalyticsConnector(this.config.instanceName);
-    connector.identityStore.setIdentity({
-      userId: this.config.userId,
-      deviceId: this.config.deviceId,
-    });
+        if (
+          this.attributionTrackingOptions &&
+          isAttributionTrackingEnabled(this.config.defaultTracking) &&
+          isEventPropertyAttributionEnabled(this.attributionTrackingOptions)
+        ) {
+          this.config.loggerProvider.debug('Adding event property attribution plugin');
+          await this.add(eventPropertyTrackingPlugin(this.attributionTrackingOptions)).promise;
+        }
 
-    // Step 4: Install plugins
-    // Do not track any events before this
-    if (this.config.offline !== OfflineDisabled) {
-      await this.add(networkConnectivityCheckerPlugin()).promise;
-    }
-    await this.add(new Destination({ diagnosticsClient })).promise;
-    await this.add(new Context()).promise;
-    await this.add(new IdentityEventSender()).promise;
+        if (isElementInteractionsEnabled(this.config.autocapture)) {
+          this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
+          const opts = this.diagnosticsClient ? { diagnosticsClient: this.diagnosticsClient } : undefined;
+          await this.add(autocapturePlugin(getElementInteractionsConfig(this.config), opts)).promise;
+        }
 
-    // Notify if DET is enabled
-    detNotify(this.config);
+        if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
+          this.config.loggerProvider.debug('Adding frustration interactions plugin');
+          await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
+        }
 
-    if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding file download tracking plugin');
-      await this.add(fileDownloadTracking()).promise;
-    }
+        if (isNetworkTrackingEnabled(this.config.autocapture)) {
+          this.config.loggerProvider.debug('Adding network tracking plugin');
+          await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
+        }
 
-    if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
-      this.config.loggerProvider.debug('Adding form interaction plugin');
-      await this.add(formInteractionTracking()).promise;
-    }
+        if (isWebVitalsEnabled(this.config.autocapture)) {
+          this.config.loggerProvider.debug('Adding web vitals plugin');
+          await this.add(webVitalsPlugin(getWebVitalsConfig(this.config))).promise;
+        }
 
-    // Default trackOn: add URL properties before page-view tracking saves engagement snapshots.
-    // Attribution: run page-view tracking first to convert $identify into a page view,
-    // since URL enrichment skips $identify events. Keep custom callbacks in their existing order.
-    const enrichBeforePageTracking = getPageViewTrackingConfig(this.config).trackOn === undefined;
-    if (enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding referrer page url plugin');
-      await this.add(pageUrlEnrichmentPlugin()).promise;
-    }
+        if (isPerformanceTrackingEnabled(this.config.autocapture)) {
+          this.config.loggerProvider.debug('Adding performance tracking plugin');
+          await this.add(performancePlugin(getPerformanceTrackingConfig(this.config))).promise;
+        }
 
-    // Add page view plugin
-    if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
-      if (!this.config.optOut) {
-        this.config.loggerProvider.debug('Adding page view tracking plugin');
-        await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
-      } else {
-        this.timeline.addOptOutListener(async (optOut) => {
-          /* istanbul ignore if */
-          if (optOut) {
-            return;
+        if (!enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
+          this.config.loggerProvider.debug('Adding referrer page url plugin');
+          await this.add(pageUrlEnrichmentPlugin()).promise;
+        }
+
+        if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
+          this.config.loggerProvider.debug('Adding custom enrichment plugin');
+          await this.add(customEnrichmentPlugin()).promise;
+        }
+      },
+
+      trackCampaignEventIfNeeded: (lastEventId?: number, promises?: Promise<Result>[]) => {
+        if (
+          !this.webAttribution ||
+          !this.webAttribution.shouldTrackNewCampaign ||
+          !isUserPropertyAttributionEnabled(this.webAttribution.options)
+        ) {
+          return false;
+        }
+
+        const campaignEvent = this.webAttribution.generateCampaignEvent(lastEventId);
+        if (promises) {
+          promises.push(this.track(campaignEvent).promise);
+        } else {
+          this.track(campaignEvent);
+        }
+        this.config.loggerProvider.log('Tracking attribution.');
+        return true;
+      },
+
+      addAttributionTrackingPlugin: async () => {
+        // Add web attribution plugin
+        if (
+          this.attributionTrackingOptions !== undefined &&
+          isAttributionTrackingEnabled(this.config.defaultTracking) &&
+          isUserPropertyAttributionEnabled(this.attributionTrackingOptions)
+        ) {
+          const attributionTrackingOptions = this.attributionTrackingOptions;
+          if (this.config.optOut) {
+            this.timeline.addOptOutListener(async (optOut) => {
+              if (!optOut) {
+                this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+                await this.webAttribution.init();
+              }
+            });
           }
-          this.config.loggerProvider.debug('Adding page view tracking plugin');
-          await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+          this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+          // Fetch the current campaign, check if need to track web attribution later
+          await this.webAttribution.init();
+        }
+      },
+
+      getDiagnosticsClient: async (
+        options: BrowserOptions & { apiKey: string },
+        loggerProvider: ILogger,
+        serverZone: ServerZoneType,
+        enableDiagnostics: boolean,
+        diagnosticsSampleRate: number,
+      ): Promise<DiagnosticsClient> => {
+        const diagnosticsClient = new DiagnosticsClient(options.apiKey, loggerProvider, serverZone, {
+          enabled: enableDiagnostics,
+          sampleRate: diagnosticsSampleRate,
         });
-      }
-    }
-
-    if (
-      isAttributionTrackingEnabled(this.config.defaultTracking) &&
-      isEventPropertyAttributionEnabled(attributionTrackingOptions)
-    ) {
-      this.config.loggerProvider.debug('Adding event property attribution plugin');
-      await this.add(eventPropertyTrackingPlugin(attributionTrackingOptions)).promise;
-    }
-
-    if (isElementInteractionsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
-      await this.add(autocapturePlugin(getElementInteractionsConfig(this.config), { diagnosticsClient })).promise;
-    }
-
-    if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding frustration interactions plugin');
-      await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
-    }
-
-    if (isNetworkTrackingEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding network tracking plugin');
-      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
-    }
-
-    if (isWebVitalsEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding web vitals plugin');
-      await this.add(webVitalsPlugin(getWebVitalsConfig(this.config))).promise;
-    }
-
-    if (isPerformanceTrackingEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding performance tracking plugin');
-      await this.add(performancePlugin(getPerformanceTrackingConfig(this.config))).promise;
-    }
-
-    if (!enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
-      this.config.loggerProvider.debug('Adding referrer page url plugin');
-      await this.add(pageUrlEnrichmentPlugin()).promise;
-    }
-
-    if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
-      this.config.loggerProvider.debug('Adding custom enrichment plugin');
-      await this.add(customEnrichmentPlugin()).promise;
-    }
-
-    this.initializing = false;
-
-    // Step 6: Run queued dispatch functions
-    await this.runQueuedFunctions('dispatchQ');
-
-    // Step 7: Add the event receiver after running remaining queued functions.
-    connector.eventBridge.setEventReceiver((event) => {
-      const { time, ...cleanEventProperties } = event.eventProperties || {};
-      const eventOptions: EventOptions = {
-        ...(typeof time === 'number' && { time }),
-        ...(event.groups && { groups: event.groups }),
-      };
-      void this.track(
-        event.eventType,
-        cleanEventProperties,
-        Object.keys(eventOptions).length ? eventOptions : undefined,
-      );
-    });
-  }
-
-  getUserId() {
-    return this.config?.userId;
-  }
-
-  setUserId(userId: string | undefined) {
-    if (!this.config) {
-      this.q.push(this.setUserId.bind(this, userId));
-      return;
-    }
-    this.config.loggerProvider.debug('function setUserId: ', userId);
-    if (userId !== this.config.userId || userId === undefined) {
-      this.config.userId = userId;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      this.timeline.onIdentityChanged({ userId: userId });
-      setConnectorUserId(userId, this.config.instanceName);
-    }
-  }
-
-  getDeviceId() {
-    return this.config?.deviceId;
-  }
-
-  setDeviceId(deviceId: string) {
-    if (!this.config) {
-      this.q.push(this.setDeviceId.bind(this, deviceId));
-      return;
-    }
-    this.config.loggerProvider.debug('function setDeviceId: ', deviceId);
-    if (deviceId !== this.config.deviceId) {
-      this.config.deviceId = deviceId;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      this.timeline.onIdentityChanged({ deviceId: deviceId });
-      setConnectorDeviceId(deviceId, this.config.instanceName);
-    }
-  }
-
-  reset() {
-    this.setDeviceId(UUID());
-    this.setUserId(undefined);
-    this.timeline.onReset();
-  }
-
-  getIdentity() {
-    return {
-      deviceId: this.config?.deviceId,
-      userId: this.config?.userId,
-      userProperties: this.userProperties,
-    };
-  }
-
-  setIdentity(identity: Partial<AnalyticsIdentity>) {
-    // Handle userId change
-    if ('userId' in identity) {
-      this.setUserId(identity.userId);
-    }
-
-    // Handle deviceId change
-    if ('deviceId' in identity && identity.deviceId) {
-      this.setDeviceId(identity.deviceId);
-    }
-
-    // Handle userProperties change - auto-send identify
-    if ('userProperties' in identity) {
-      this.userProperties = identity.userProperties;
-      // Auto-send identify event with $set operations
-      const identifyObj = new Identify();
-      // istanbul ignore next
-      const userProperties = identity.userProperties ?? {};
-      for (const [key, value] of Object.entries(userProperties)) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        identifyObj.set(key, value);
-      }
-      // The identify event processing in core-client already calls onIdentityChanged,
-      // so we don't need to call it explicitly here to avoid duplicate notifications.
-      this.identify(identifyObj);
-    }
-  }
-
-  getOptOut(): boolean | undefined {
-    return this.config?.optOut;
-  }
-
-  getSessionId() {
-    return this.config?.sessionId;
-  }
-
-  setSessionId(sessionId: number | undefined) {
-    const promises: Promise<Result>[] = [];
-    if (!this.config) {
-      this.q.push(this.setSessionId.bind(this, sessionId));
-      return returnWrapper(Promise.resolve());
-    }
-    // do not start a new session if optOut is true
-    if (this.config.optOut) {
-      // save the sessionId to storage to be used when optOut is false
-      this.config.deferredSessionId = sessionId ?? UNSPECIFIED_SESSION_ID;
-      return returnWrapper(Promise.resolve());
-    }
-
-    // default sessionId to current time
-    if (sessionId === undefined) {
-      sessionId = Date.now();
-    }
-
-    // Prevents starting a new session with the same session ID
-    if (sessionId === this.config.sessionId) {
-      return returnWrapper(Promise.resolve());
-    }
-
-    this.config.loggerProvider.debug('function setSessionId: ', sessionId);
-
-    const previousSessionId = this.getSessionId();
-    if (previousSessionId !== sessionId) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      this.timeline.onSessionIdChanged(sessionId);
-    }
-
-    const lastEventTime = this.config.lastEventTime;
-    let lastEventId = this.config.lastEventId ?? -1;
-
-    this.config.sessionId = sessionId;
-    this.config.lastEventTime = undefined;
-    this.config.pageCounter = 0;
-
-    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
-      if (previousSessionId && lastEventTime) {
-        promises.push(
-          this.track(DEFAULT_SESSION_END_EVENT, undefined, {
-            device_id: this.previousSessionDeviceId,
-            event_id: ++lastEventId,
-            session_id: previousSessionId,
-            time: lastEventTime + 1,
-            user_id: this.previousSessionUserId,
-          }).promise,
-        );
-      }
-      this.config.lastEventTime = this.config.sessionId;
-    }
-
-    // Fire web attribution event when enable webAttribution tracking
-    // 1. has new campaign (call setSessionId from init function)
-    // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
-    const isCampaignEventTracked = this.trackCampaignEventIfNeeded(++lastEventId, promises);
-
-    // track the identify event if an Identify object is provided in the config
-    if (this.config.identify) {
-      promises.push(this.track(createIdentifyEvent(this.config.identify)).promise);
-    }
-
-    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
-      promises.push(
-        this.track(DEFAULT_SESSION_START_EVENT, undefined, {
-          event_id: isCampaignEventTracked ? ++lastEventId : lastEventId,
-          session_id: this.config.sessionId,
-          time: this.config.lastEventTime,
-        }).promise,
-      );
-    }
-
-    this.previousSessionDeviceId = this.config.deviceId;
-    this.previousSessionUserId = this.config.userId;
-    return returnWrapper(Promise.all(promises));
-  }
-
-  extendSession() {
-    if (!this.config) {
-      this.q.push(this.extendSession.bind(this));
-      return;
-    }
-    this.config.lastEventTime = Date.now();
-  }
-
-  setTransport(transport: TransportTypeOrOptions) {
-    if (!this.config) {
-      this.q.push(this.setTransport.bind(this, transport));
-      return;
-    }
-    this.config.transportProvider = createTransport(transport);
-  }
-
-  identify(identify: IIdentify, eventOptions?: EventOptions) {
-    if (isInstanceProxy(identify)) {
-      const queue = identify._q;
-      identify._q = [];
-      identify = convertProxyObjectToRealObject(new Identify(), queue);
-    }
-    if (eventOptions?.user_id) {
-      this.setUserId(eventOptions.user_id);
-    }
-    if (eventOptions?.device_id) {
-      this.setDeviceId(eventOptions.device_id);
-    }
-    return super.identify(identify, eventOptions);
-  }
-
-  groupIdentify(groupType: string, groupName: string | string[], identify: IIdentify, eventOptions?: EventOptions) {
-    if (isInstanceProxy(identify)) {
-      const queue = identify._q;
-      identify._q = [];
-      identify = convertProxyObjectToRealObject(new Identify(), queue);
-    }
-    return super.groupIdentify(groupType, groupName, identify, eventOptions);
-  }
-
-  revenue(revenue: IRevenue, eventOptions?: EventOptions) {
-    if (isInstanceProxy(revenue)) {
-      const queue = revenue._q;
-      revenue._q = [];
-      revenue = convertProxyObjectToRealObject(new Revenue(), queue);
-    }
-    return super.revenue(revenue, eventOptions);
-  }
-
-  private trackCampaignEventIfNeeded(lastEventId?: number, promises?: Promise<Result>[]) {
-    if (
-      !this.webAttribution ||
-      !this.webAttribution.shouldTrackNewCampaign ||
-      !isUserPropertyAttributionEnabled(this.webAttribution.options)
-    ) {
-      return false;
-    }
-
-    const campaignEvent = this.webAttribution.generateCampaignEvent(lastEventId);
-    if (promises) {
-      promises.push(this.track(campaignEvent).promise);
-    } else {
-      this.track(campaignEvent);
-    }
-    this.config.loggerProvider.log('Tracking attribution.');
-    return true;
-  }
-
-  async process(event: Event) {
-    const currentTime = Date.now();
-    const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
-    const shouldSetSessionIdOnNewCampaign =
-      this.webAttribution && this.webAttribution.shouldSetSessionIdOnNewCampaign();
-
-    if (
-      event.event_type !== DEFAULT_SESSION_START_EVENT &&
-      event.event_type !== DEFAULT_SESSION_END_EVENT &&
-      (!event.session_id || event.session_id === this.getSessionId())
-    ) {
-      if (isEventInNewSession || shouldSetSessionIdOnNewCampaign) {
-        this.setSessionId(currentTime);
-        if (shouldSetSessionIdOnNewCampaign) {
-          this.config.loggerProvider.log('Created a new session for new campaign.');
+        this.diagnosticsClient = diagnosticsClient;
+        diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
+        diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
+        diagnosticsClient.setTag('web_environment', getRuntimeEnvironment());
+        if (typeof navigator !== 'undefined') {
+          diagnosticsClient.setTag('user_agent', navigator.userAgent);
         }
-      } else if (!isEventInNewSession) {
-        // Web attribution should be tracked during the middle of a session
-        // if there has been a chance in the campaign information.
-        this.trackCampaignEventIfNeeded();
-      }
-    }
+        return diagnosticsClient;
+      },
 
-    return super.process(event);
-  }
+      getRemoteConfigClient: async (
+        options: BrowserOptions & { apiKey: string },
+        loggerProvider: ILogger,
+        serverZone: ServerZoneType,
+      ): Promise<IRemoteConfigClient> => {
+        const remoteConfigClient = new RemoteConfigClient(
+          options.apiKey,
+          loggerProvider,
+          serverZone,
+          /* istanbul ignore next */ options.remoteConfig?.serverUrl,
+        );
 
-  private logBrowserOptions(browserConfig: BrowserOptions & { apiKey: string }) {
-    try {
-      const browserConfigCopy = {
-        ...browserConfig,
-        apiKey: browserConfig.apiKey.substring(0, 10) + '********',
-      };
-      this.config.loggerProvider.debug(
-        'Initialized Amplitude with BrowserConfig:',
-        safeJsonStringify(browserConfigCopy),
-      );
-    } catch (e) {
-      /* istanbul ignore next */
-      this.config.loggerProvider.error('Error logging browser config', e);
-    }
-  }
+        // Fetch diagnostics config first to get sample rate
+        await new Promise<void>((resolve) => {
+          // Disable coverage for this line because remote config client will always be defined in this case.
+          // istanbul ignore next
+          remoteConfigClient?.subscribe(
+            'configs.diagnostics.browserSDK',
+            'all',
+            (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+              loggerProvider.debug(
+                'Diagnostics remote configuration received:',
+                safeJsonStringify(
+                  {
+                    remoteConfig,
+                    source,
+                    lastFetch,
+                  },
+                  null,
+                  2,
+                ),
+              );
+              if (remoteConfig) {
+                // Validate and set sampleRate (must be a valid number)
+                const sampleRate = remoteConfig.sampleRate as number;
+                if (typeof sampleRate === 'number' && !isNaN(sampleRate)) {
+                  this.diagnosticsSampleRate = sampleRate;
+                }
 
-  /**
-   * @experimental
-   * WARNING: This method is for internal testing only and is not part of the public API.
-   * It may be changed or removed at any time without notice.
-   *
-   * Sets the diagnostics sample rate before amplitude.init()
-   * @param sampleRate - The sample rate to set
-   */
-  _setDiagnosticsSampleRate(sampleRate: number): void {
-    if (sampleRate > 1 || sampleRate < 0) {
-      return;
-    }
-    // Set diagnostics sample rate before initializing the config
-    if (!this.config) {
-      this._diagnosticsSampleRate = sampleRate;
-      return;
-    }
+                // Validate and set enabled (must be a boolean)
+                const enabled = remoteConfig.enabled as boolean;
+                if (typeof enabled === 'boolean') {
+                  this.enableDiagnostics = enabled;
+                }
+              }
+              resolve();
+            },
+          );
+        });
+
+        return remoteConfigClient;
+      },
+
+      fetchRemoteConfig: async (remoteConfigClient: IRemoteConfigClient, browserOptions: BrowserConfig) => {
+        await new Promise<void>((resolve) => {
+          // Disable coverage for this line because remote config client will always be defined in this case.
+          // istanbul ignore next
+          remoteConfigClient?.subscribe(
+            'configs.analyticsSDK.browserSDK',
+            'all',
+            (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+              browserOptions.loggerProvider?.debug(
+                'Remote configuration received:',
+                safeJsonStringify(
+                  {
+                    remoteConfig,
+                    source,
+                    lastFetch,
+                  },
+                  null,
+                  2,
+                ),
+              );
+              if (remoteConfig) {
+                updateBrowserConfigWithRemoteConfig(remoteConfig, browserOptions);
+              }
+              // Resolve the promise on first callback (initial config)
+              resolve();
+            },
+          );
+        });
+      },
+    };
+    return this._autocaptureAdapter;
   }
 }

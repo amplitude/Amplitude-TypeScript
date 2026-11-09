@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SDK-412 · Non-Element pointerdown targets</title>
+    <style>
+      body {
+        font: 16px/1.5 system-ui, sans-serif;
+        max-width: 1120px;
+        margin: 30px auto;
+        padding: 0 24px;
+        color: #172333;
+        background: #f5f7fb;
+      }
+      h1 {
+        font-size: 28px;
+        margin-bottom: 6px;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      section {
+        background: white;
+        border: 1px solid #d7deea;
+        border-radius: 10px;
+        padding: 18px 22px;
+        margin-top: 18px;
+      }
+      button {
+        padding: 10px 16px;
+        font: inherit;
+        cursor: pointer;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid #e1e6ef;
+        padding: 10px;
+      }
+      th {
+        background: #f2f5fa;
+      }
+      code,
+      pre {
+        font: 13px/1.5 ui-monospace, monospace;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 8px 0;
+      }
+      .error {
+        color: #b42318;
+      }
+      .ok {
+        color: #067647;
+      }
+      #fixture {
+        position: fixed;
+        left: -10000px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>SDK-412 · Non-Element pointerdown targets</h1>
+    <p>Imports the local helper, DataExtractor and frustration plugin. No API key or telemetry requests.</p>
+    <pre id="browser"></pre>
+    <button id="run">Run reproduction</button>
+    <span id="status">Loading local SDK modules…</span>
+    <section>
+      <h2>Native input probe · no dispatchEvent</h2>
+      <p>
+        Temporarily hide the HTML root, then physically click the blank viewport. The next pointerdown restores the page
+        and records its target and isTrusted. This probes browser behavior when no rendered content can be hit; it does
+        not establish the reporter's production trigger.
+      </p>
+      <button id="native-probe">Hide HTML root, then click the blank page</button>
+      <pre id="native-result">Not run</pre>
+    </section>
+    <section>
+      <h2>Original helper · uncaught console reproduction</h2>
+      <p>
+        This button runs a frozen copy of the helper before the fix, with no catch around the event listener. Open
+        DevTools Console to see the browser report the uncaught TypeError. The tables below always use the current local
+        SDK source.
+      </p>
+      <button id="uncaught">Dispatch document pointerdown · original helper</button>
+      <pre id="uncaught-result">Not run</pre>
+    </section>
+    <section>
+      <h2>1. Actual event.target → local isElementPointerCursor</h2>
+      <p>Each target dispatches a real PointerEvent. The listener catches errors only to display them here.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Dispatched on</th>
+            <th>Observed target</th>
+            <th>Helper result / native browser error</th>
+          </tr>
+        </thead>
+        <tbody id="helper-results"></tbody>
+      </table>
+    </section>
+    <section>
+      <h2>2. Current DataExtractor boundary</h2>
+      <p>Same pointerdown events, enriched as internal <code>'click'</code> with cursor capture enabled.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Target</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="extractor-results"></tbody>
+      </table>
+    </section>
+    <section>
+      <h2>3. Actual frustration plugin · document pointerdown</h2>
+      <pre id="plugin-results">Not run</pre>
+    </section>
+    <div id="fixture">
+      <button id="control" style="cursor: pointer">Text target</button
+      ><svg id="svg-control" style="cursor: pointer"></svg>
+    </div>
+    <script type="module" src="./non-element-target.js"></script>
+  </body>
+</html>

@@ -87,10 +87,10 @@ jobs:
         include:
           - platform: ios
             new-arch: 'true'
-            runs-on: macos-14
+            runs-on: macos-15
           - platform: ios
             new-arch: 'false'
-            runs-on: macos-14
+            runs-on: macos-15
           - platform: android
             new-arch: 'true'
             runs-on: ubuntu-latest

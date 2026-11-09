@@ -29,7 +29,12 @@ export const {
 } = client;
 export { AmplitudeBrowser } from './browser-client';
 export { runQueuedFunctions } from './utils/snippet-helper';
-export { Revenue, Identify } from '@amplitude/analytics-core';
+export {
+  Revenue,
+  Identify,
+  createNetworkRequestEvent,
+  type NetworkRequestEventProperties,
+} from '@amplitude/analytics-core';
 
 export { trackVideo, type VideoCaptureOptions } from './video-capture/video-capture';
 

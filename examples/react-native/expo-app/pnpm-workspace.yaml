@@ -2,6 +2,31 @@ packages:
   - '.'
   - '../../../packages/*'
 
+overrides:
+  # Vite bundles launch-editor; keep its Windows command-injection fixes.
+  vite@7: ^7.3.7
+  js-yaml@3: ^3.15.2
+  js-yaml@4: ^4.3.2
+  '@babel/plugin-transform-modules-systemjs@7': ^7.29.8
+  node-forge@1: ^1.4.2
+  follow-redirects@1: ^1.16.2
+  fast-xml-parser@4: ^4.5.7
+  metro-babel-transformer: 0.81.5
+  metro-source-map: 0.81.5
+
+allowBuilds:
+  esbuild: true
+  msw: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - '@amplitude/rrdom@2.1.5'
+  - '@amplitude/rrweb-plugin-console-record@2.1.5'
+  - '@amplitude/rrweb-record@2.1.5'
+  - '@amplitude/rrweb-snapshot@2.1.5'
+  - '@amplitude/rrweb-types@2.1.5'
+  - '@amplitude/rrweb@2.1.5'
+
 # Metro cannot resolve packages from pnpm's symlinked .pnpm store, so use a
 # flat node_modules layout. The workspace example at examples/react-native/app
 # uses the same approach through the repo-root pnpm-workspace.yaml.

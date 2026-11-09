@@ -10,13 +10,13 @@ const isAnalyticsBrowser = location.includes('analytics-browser');
 // Minified JS files to upload (gzipped)
 const jsFiles = ['amplitude-min.js.gz', 'amplitude-min.umd.js.gz'];
 if (isAnalyticsBrowser) {
-  jsFiles.push('amplitude-gtm-min.js.gz');
+  jsFiles.push('amplitude-gtm-min.js.gz', 'amplitude-lite-min.js.gz');
 }
 
 // Source map files to upload (for stack trace unminification)
 const sourceMapFiles = ['amplitude-min.js.map'];
 if (isAnalyticsBrowser) {
-  sourceMapFiles.push('amplitude-gtm-min.js.map');
+  sourceMapFiles.push('amplitude-gtm-min.js.map', 'amplitude-lite-min.js.map');
 }
 
 let deployedCount = 0;
@@ -35,9 +35,8 @@ async function uploadFile(file, contentType, contentEncoding) {
 
   totalFiles++;
   const body = fs.readFileSync(filePath);
-  const isGtm = file.includes('-gtm-');
-  const suffix = isGtm ? `-gtm` : ``;
-  const replacement = isGtm ? `amplitude-gtm` : `amplitude`;
+  const suffix = file.includes('-gtm-') ? '-gtm' : file.includes('-lite-') ? '-lite' : '';
+  const replacement = `amplitude${suffix}`;
   const key = `libs/${file.replace(replacement, `${getName()}${suffix}-${getVersion()}`)}`;
   const client = new S3Client();
 
