@@ -165,11 +165,86 @@ describe('createMutationObservable — shadow fan-out', () => {
 
 describe('createExposureObservable — shadow mutation path', () => {
   let mockIntersectionObserver: { observe: jest.Mock; unobserve: jest.Mock; disconnect: jest.Mock };
+  let intersectionCallback: (entries: IntersectionObserverEntry[]) => void;
 
   beforeEach(() => {
     mockIntersectionObserver = { observe: jest.fn(), unobserve: jest.fn(), disconnect: jest.fn() };
-    (global as any).IntersectionObserver = jest.fn(() => mockIntersectionObserver);
+    (global as any).IntersectionObserver = jest.fn((callback) => {
+      intersectionCallback = callback;
+      return mockIntersectionObserver;
+    });
     document.body.innerHTML = '';
+  });
+
+  it.each([false, true])('unobserves removed subtrees, including shadow DOM: %s', async (shadow) => {
+    const wrapper = document.createElement('div');
+    const button = document.createElement('button');
+    button.className = 'track-me';
+    (shadow ? wrapper.attachShadow({ mode: 'open' }) : wrapper).appendChild(button);
+    document.body.appendChild(wrapper);
+    const gate = shadow ? armedGate(1) : offGate();
+    const mutations = createMutationObservable(gate).map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const onExposure = jest.fn();
+    const subscription = createExposureObservable(mutations, ['.track-me'], gate).subscribe(onExposure);
+    await Promise.resolve();
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(button);
+
+    // Cleanup must not depend on whether the detached node still matches.
+    button.className = '';
+    wrapper.remove();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(button);
+    expect(onExposure).toHaveBeenCalledWith(expect.objectContaining({ target: button, isIntersecting: false }));
+    subscription.unsubscribe();
+  });
+
+  it('preserves observation when a node moves within the document', async () => {
+    const button = document.createElement('button');
+    button.className = 'track-me';
+    const wrapper = document.createElement('div');
+    document.body.append(button, wrapper);
+    const mutations = createMutationObservable().map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const onExposure = jest.fn();
+    const subscription = createExposureObservable(mutations, ['.track-me']).subscribe(onExposure);
+    await Promise.resolve();
+    mockIntersectionObserver.unobserve.mockClear();
+
+    wrapper.appendChild(button);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.unobserve).not.toHaveBeenCalled();
+    expect(onExposure).not.toHaveBeenCalled();
+    subscription.unsubscribe();
+  });
+
+  it('unobserves nodes added and removed in the same light-DOM mutation batch', async () => {
+    const mutations = createMutationObservable().map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const onExposure = jest.fn();
+    const subscription = createExposureObservable(mutations, ['button']).subscribe(onExposure);
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    button.remove();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(button);
+    expect(onExposure).toHaveBeenCalledWith(expect.objectContaining({ target: button, isIntersecting: false }));
+    subscription.unsubscribe();
+  });
+
+  it('ignores stale intersection entries for removed elements', async () => {
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    const mutations = createMutationObservable().map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const listener = jest.fn();
+    const subscription = createExposureObservable(mutations, ['button']).subscribe(listener);
+    button.remove();
+    await Promise.resolve();
+    await Promise.resolve();
+    listener.mockClear();
+    intersectionCallback([{ target: button, isIntersecting: true } as unknown as IntersectionObserverEntry]);
+    expect(listener).not.toHaveBeenCalled();
+    subscription.unsubscribe();
   });
 
   it('uses light-DOM querySelectorAll for added nodes when shadow is disabled', () => {

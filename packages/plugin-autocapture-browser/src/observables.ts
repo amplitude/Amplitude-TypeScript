@@ -221,10 +221,28 @@ export const createExposureObservable = (
       };
     }
 
+    const observedElements = new WeakSet<Element>();
+    const observeElement = (element: Element) => {
+      observedElements.add(element);
+      intersectionObserver.observe(element);
+    };
+    const unobserveElement = (element: Element) => {
+      if (!observedElements.has(element) || element.isConnected) {
+        return;
+      }
+      observedElements.delete(element);
+      intersectionObserver.unobserve(element);
+      // Release trackExposure's scroll candidates and cancel any pending dwell.
+      observer.next({ target: element, isIntersecting: false } as unknown as Event);
+    };
+
     const intersectionObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          observer.next(entry as unknown as Event);
+          // Entries queued before unobserve must not re-add detached candidates.
+          if (entry.target.isConnected) {
+            observer.next(entry as unknown as Event);
+          }
         });
       },
       {
@@ -240,10 +258,10 @@ export const createExposureObservable = (
 
     const observeMatchingElementsLight = (root: ParentNode) => {
       if (root instanceof Element && root.matches(selectorString)) {
-        intersectionObserver.observe(root);
+        observeElement(root);
       }
       root.querySelectorAll(selectorString).forEach((element) => {
-        intersectionObserver.observe(element);
+        observeElement(element);
       });
     };
 
@@ -254,7 +272,7 @@ export const createExposureObservable = (
       }
       try {
         querySelectorAllDeep(root, selectorString, readGate(shadowGate)).forEach((element) => {
-          intersectionObserver.observe(element);
+          observeElement(element);
         });
       } catch {
         // Skip this root; discovery continues elsewhere.
@@ -283,7 +301,7 @@ export const createExposureObservable = (
       Array.from(elements).forEach((element) => {
         // unobserve first so already-watched nodes get a fresh intersection callback
         intersectionObserver.unobserve(element);
-        intersectionObserver.observe(element);
+        observeElement(element);
       });
     };
 
@@ -297,7 +315,7 @@ export const createExposureObservable = (
       }
     });
 
-    const mutationSubscription = mutationObservable.subscribe(({ event }) =>
+    const mutationSubscription = mutationObservable.subscribe(({ event }) => {
       event.forEach(({ addedNodes }) =>
         addedNodes.forEach((node) => {
           if (node instanceof DocumentFragment) {
@@ -313,15 +331,25 @@ export const createExposureObservable = (
           }
           try {
             if (node.matches(selectorString)) {
-              intersectionObserver.observe(node);
+              observeElement(node);
             }
           } catch {
             // Malformed selector — skip the self-match, still try descendants.
           }
           observeMatchesInShadow(node);
         }),
-      ),
-    );
+      );
+      // Process removals last: a node can be added and removed in the same batch.
+      event.forEach(({ removedNodes }) => {
+        removedNodes?.forEach((node) => {
+          if (!(node instanceof Element) || node.isConnected) {
+            return;
+          }
+          unobserveElement(node);
+          querySelectorAllDeep(node, '*', shadowGate ? readGate(shadowGate) : undefined).forEach(unobserveElement);
+        });
+      });
+    });
 
     return () => {
       registerRescan?.(undefined);
