@@ -38,9 +38,10 @@ const waitForMetro = async () => {
   throw new Error('Metro did not become ready on port 8081 within 30 seconds.');
 };
 
-const run = (command, args) =>
+const runMaestroTest = () =>
   new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
+    // Keep the executable and arguments fixed; never interpret a shell command.
+    const child = spawn('maestro', ['test', '.maestro/guides-and-surveys.yaml'], {
       cwd: projectRoot,
       stdio: 'inherit',
     });
@@ -52,7 +53,7 @@ const run = (command, args) =>
       }
       reject(
         new Error(
-          `${command} exited with ${
+          `maestro exited with ${
             signal ? `signal ${signal}` : `code ${code}`
           }.`,
         ),
@@ -92,7 +93,7 @@ const main = async () => {
       );
     }
 
-    await run('maestro', ['test', '.maestro/guides-and-surveys.yaml']);
+    await runMaestroTest();
   } finally {
     if (metro) {
       metro.kill('SIGTERM');
