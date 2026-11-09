@@ -218,6 +218,39 @@ describe('createExposureObservable — shadow mutation path', () => {
     subscription.unsubscribe();
   });
 
+  it('unobserves nested shadow targets discovered with a fresh subtree depth budget', async () => {
+    const outerHost = document.createElement('div');
+    const outerRoot = outerHost.attachShadow({ mode: 'open' });
+    document.body.appendChild(outerHost);
+    const gate = armedGate(1);
+    const mutations = createMutationObservable(gate).map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const listener = jest.fn();
+    const subscription = createExposureObservable(mutations, ['.track-me'], gate).subscribe(listener);
+    await Promise.resolve();
+
+    // This insertion is visible to the outer root's MutationObserver. Discovery
+    // starts a fresh one-boundary walk at innerHost, reaching a target two shadow
+    // boundaries below outerHost despite the gate's maxDepth of one.
+    const innerHost = document.createElement('div');
+    const innerRoot = innerHost.attachShadow({ mode: 'open' });
+    const button = document.createElement('button');
+    button.className = 'track-me';
+    innerRoot.appendChild(button);
+    outerRoot.appendChild(innerHost);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(button);
+    intersectionCallback([{ target: button, isIntersecting: true } as unknown as IntersectionObserverEntry]);
+    listener.mockClear();
+
+    outerHost.remove();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(button);
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ target: button, isIntersecting: false }));
+    subscription.unsubscribe();
+  });
+
   it('unobserves nodes added and removed in the same light-DOM mutation batch', async () => {
     const mutations = createMutationObservable().map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
     const onExposure = jest.fn();

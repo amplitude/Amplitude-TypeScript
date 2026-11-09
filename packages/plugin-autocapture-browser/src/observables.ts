@@ -236,6 +236,25 @@ export const createExposureObservable = (
       observer.next({ target: element, isIntersecting: false } as unknown as Event);
     };
 
+    const unobserveRemovedTree = (root: Element) => {
+      // Each inserted subtree can start a fresh discovery budget. Cleanup must
+      // therefore walk all descendants, without discovery's depth or node caps.
+      const pending = [root];
+      while (pending.length) {
+        const element = pending.pop() as Element;
+        unobserveElement(element);
+        for (let i = 0; i < element.children.length; i++) {
+          pending.push(element.children[i]);
+        }
+        const shadowRoot = element.shadowRoot;
+        if (shadowRoot) {
+          for (let i = 0; i < shadowRoot.children.length; i++) {
+            pending.push(shadowRoot.children[i]);
+          }
+        }
+      }
+    };
+
     const intersectionObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -345,8 +364,7 @@ export const createExposureObservable = (
           if (!(node instanceof Element) || node.isConnected) {
             return;
           }
-          unobserveElement(node);
-          querySelectorAllDeep(node, '*', shadowGate ? readGate(shadowGate) : undefined).forEach(unobserveElement);
+          unobserveRemovedTree(node);
         });
       });
     });
