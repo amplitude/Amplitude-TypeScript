@@ -72,28 +72,44 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         Mask Level: $maskLevel
     """.trimIndent())
 
-    synchronized(this) { uiChangeReceiver = null }
-    val receiver = Any()
-    recordingRequested = false
+    synchronized(this) {
+      uiChangeReceiver = null
+      recordingRequested = false
+    }
     if (::sessionReplay.isInitialized) sessionReplay.shutdown()
-    sessionReplay = SessionReplay(
-      apiKey,
-      reactContext.applicationContext,
-      deviceId ?: "",
-      sessionId.toLong(),
-      logger = LogcatLogger.logger,
-      sampleRate = sampleRate,
-      enableRemoteConfig = enableRemoteConfig,
-      serverZone = when (serverZone) {
-        "EU" -> ServerZone.EU
-        else -> ServerZone.US
-      },
-      autoStart = autoStart,
-      privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
-      uiChangeCallback = { emitUiChange(receiver) }
-    )
-    synchronized(this) { uiChangeReceiver = receiver }
-    recordingRequested = autoStart
+    val receiver = Any()
+    synchronized(this) {
+      if (invalidated) return
+      uiChangeReceiver = receiver
+      recordingRequested = autoStart
+    }
+    // Capture may report a UI change before its constructor/start call returns.
+    try {
+      sessionReplay = SessionReplay(
+        apiKey,
+        reactContext.applicationContext,
+        deviceId ?: "",
+        sessionId.toLong(),
+        logger = LogcatLogger.logger,
+        sampleRate = sampleRate,
+        enableRemoteConfig = enableRemoteConfig,
+        serverZone = when (serverZone) {
+          "EU" -> ServerZone.EU
+          else -> ServerZone.US
+        },
+        autoStart = autoStart,
+        privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
+        uiChangeCallback = { emitUiChange(receiver) }
+      )
+    } catch (error: Exception) {
+      synchronized(this) {
+        if (uiChangeReceiver === receiver) {
+          uiChangeReceiver = null
+          recordingRequested = false
+        }
+      }
+      throw error
+    }
   }
 
   @ReactMethod
@@ -143,8 +159,20 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun start() {
-    sessionReplay.start()
-    recordingRequested = true
+    val (receiver, previousRequest) = synchronized(this) {
+      if (invalidated) return
+      val previousRequest = recordingRequested
+      recordingRequested = true
+      Pair(uiChangeReceiver, previousRequest)
+    }
+    try {
+      sessionReplay.start()
+    } catch (error: Exception) {
+      synchronized(this) {
+        if (!invalidated && uiChangeReceiver === receiver) recordingRequested = previousRequest
+      }
+      throw error
+    }
   }
 
   @ReactMethod
