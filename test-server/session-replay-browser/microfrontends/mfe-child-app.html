@@ -8,7 +8,8 @@
         margin: 0;
         font-family: system-ui, sans-serif;
         background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-        min-height: 100vh;
+        /* Avoid min-height: 100vh inside iframes — it inflates the embed and pushes the parent shell out of the replay viewport. */
+        min-height: 0;
         padding: 16px;
         box-sizing: border-box;
       }

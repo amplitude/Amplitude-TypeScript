@@ -8,6 +8,23 @@ body {
   background: #312e81;
   color: #e0e7ff;
   padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(49, 46, 129, 0.35);
+}
+#parent-shell-marker {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1001;
+  background: #dc2626;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-bottom-left-radius: 8px;
+  pointer-events: none;
 }
 .shell-header h1 {
   margin: 0 0 8px;
@@ -51,7 +68,8 @@ body {
 .mfe-slot iframe {
   display: block;
   width: 100%;
-  min-height: 280px;
+  height: 320px;
+  max-height: 45vh;
   border: 0;
 }
 #status {

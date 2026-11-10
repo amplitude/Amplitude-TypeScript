@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="./mfe-parent-styles.css" />
   </head>
   <body>
+    <div id="parent-shell-marker">PARENT SHELL — in replay</div>
     <header class="shell-header">
       <span class="tag">Case 01</span>
       <h1>Same-origin microfrontend — parent SDK only</h1>
@@ -22,7 +23,10 @@
         <summary>What to verify in replay</summary>
         <p>
           Same-origin iframe with <strong>no</strong> SDK in the child. rrweb may inline the iframe document when
-          accessible; if the nested area is blank, compare with Case 03.
+          accessible; if the nested area is blank, compare with Case 03. If the replay looks like <em>only</em> the
+          child, scrub to <strong>00:00</strong> and scroll up — automation often leaves the viewport scrolled into the
+          iframe. Cross-origin runs (<code>127.0.0.1</code> parent + <code>localhost</code> child) should show an
+          opaque/blank iframe with the parent shell visible.
         </p>
       </details>
     </main>
