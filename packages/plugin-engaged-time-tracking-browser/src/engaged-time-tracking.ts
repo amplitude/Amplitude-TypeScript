@@ -1,13 +1,16 @@
 import {
+  AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET,
   BrowserClient,
   BrowserConfig,
   CampaignParser,
   EngagedTimeOptions,
   EnrichmentPlugin,
   Event,
+  getDecodeURI,
   getGlobalScope,
   getOrCreatePageViewId,
   getPageTitle,
+  getSdkInitializationOffset,
   omitUndefined,
   PageTrackingHistoryChanges,
   replaceSensitiveString,
@@ -54,6 +57,7 @@ export const engagedTimeTrackingPlugin = (
       if (!scope?.document) return;
       installed = true;
       currentHref = scope.location.href;
+      const sdkInitializationOffset = getSdkInitializationOffset(config.apiKey);
       const doc = scope.document as Document & { prerendering?: boolean };
       const listen = (target: EventTarget, type: string, listener: EventListener) => {
         target.addEventListener(type, listener);
@@ -84,10 +88,13 @@ export const engagedTimeTrackingPlugin = (
           event_properties: {
             ...properties,
             '[Amplitude] Page Domain': scope.location.hostname,
-            '[Amplitude] Page Location': href,
-            '[Amplitude] Page Path': scope.location.pathname,
+            '[Amplitude] Page Location': getDecodeURI(href),
+            '[Amplitude] Page Path': getDecodeURI(scope.location.pathname),
             '[Amplitude] Page Title': getPageTitle(replaceSensitiveString),
-            '[Amplitude] Page URL': href.split('?')[0],
+            '[Amplitude] Page URL': getDecodeURI(href).split('?')[0],
+            '[Amplitude] Min Page Y': Math.floor(scope.scrollY),
+            '[Amplitude] Viewport Width': scope.innerWidth,
+            [AMPLITUDE_EVENT_PROP_SDK_INITIALIZATION_OFFSET]: sdkInitializationOffset,
             '[Amplitude] Page View ID': pageViewId,
           },
         };

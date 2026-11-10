@@ -42,6 +42,8 @@ describe('independent engaged-time tracking', () => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
     Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
     history.replaceState({}, '', '/article-a');
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0 });
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 });
     config = { loggerProvider: new Logger(), optOut: false } as unknown as BrowserConfig;
     client = createMockBrowserClient();
     sent = [];
@@ -208,6 +210,8 @@ describe('independent engaged-time tracking', () => {
     await jest.advanceTimersByTimeAsync(101);
     const count = sent.length;
     const firstId = latest().insert_id;
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 200 });
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 800 });
     document.dispatchEvent(new Event('keydown'));
     document.dispatchEvent(new Event('keydown'));
     window.dispatchEvent(new Event('focus'));
@@ -215,7 +219,11 @@ describe('independent engaged-time tracking', () => {
     expect(sent).toHaveLength(count + 1);
     expect(latest().event_type).toBe('page_view');
     expect(latest().insert_id).not.toBe(firstId);
-    expect(latest().event_properties).toMatchObject({ article_id: 'article-a' });
+    expect(latest().event_properties).toMatchObject({
+      article_id: 'article-a',
+      '[Amplitude] Min Page Y': 200,
+      '[Amplitude] Viewport Width': 800,
+    });
     const renewedId = latest().insert_id;
     window.dispatchEvent(new Event('pagehide'));
     expect(await plugin.execute!(page())).toBeNull();
