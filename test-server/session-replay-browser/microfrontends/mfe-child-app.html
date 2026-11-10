@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MFE Child App</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
+        min-height: 100vh;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      .banner {
+        background: #222;
+        color: #feca57;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        margin-bottom: 12px;
+      }
+      .panel {
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 8px;
+        padding: 16px;
+        max-width: 480px;
+      }
+      button {
+        background: #341f97;
+        color: #fff;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin: 4px 4px 4px 0;
+        font-size: 14px;
+      }
+      button:hover {
+        background: #5f27cd;
+      }
+      input[type='text'] {
+        width: 100%;
+        max-width: 280px;
+        padding: 8px;
+        margin: 8px 0;
+        border: 2px solid #341f97;
+        border-radius: 4px;
+      }
+      #counter-value {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #341f97;
+      }
+      #status {
+        font-family: ui-monospace, monospace;
+        font-size: 12px;
+        margin-top: 12px;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner" id="mfe-banner">MICROFRONTEND CHILD APP</div>
+    <div class="panel" id="mfe-panel">
+      <p id="mfe-description">Interact here so replays show nested-frontend activity.</p>
+      <div id="counter-value">0</div>
+      <button type="button" id="increment-btn">Increment counter</button>
+      <button type="button" id="mutate-dom-btn">Add DOM node</button>
+      <br />
+      <input type="text" id="mfe-input" placeholder="Type in nested MFE…" />
+      <div id="dynamic-nodes"></div>
+    </div>
+    <div id="status">loading</div>
+
+    <script>
+      window.receivedStartSignal = false;
+      window.receivedStopSignal = false;
+      window.addEventListener('message', function (event) {
+        if (event.data && event.data.type === 'amplitude-sr-iframe') {
+          if (event.data.action === 'start') window.receivedStartSignal = true;
+          if (event.data.action === 'stop') window.receivedStopSignal = true;
+        }
+      });
+      window.childModeDetected = window.parent !== window;
+    </script>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'mfe-child-device';
+      const withSdk = params.get('withSdk') !== 'false';
+      const crossOrigin = params.get('crossOrigin') === 'true';
+      const apiKey =
+        params.get('apiKey') || import.meta.env.VITE_AMPLITUDE_API_KEY || 'd90c5cf09ca2546a1626272906b99a76';
+      const label = params.get('label');
+      if (label) {
+        document.getElementById('mfe-banner').textContent = label;
+      }
+
+      let count = 0;
+      document.getElementById('increment-btn').addEventListener('click', () => {
+        count += 1;
+        document.getElementById('counter-value').textContent = String(count);
+        window.mfeCounter = count;
+      });
+      document.getElementById('mutate-dom-btn').addEventListener('click', () => {
+        const el = document.createElement('p');
+        el.className = 'mfe-dynamic-line';
+        el.textContent = 'Dynamic node #' + (document.querySelectorAll('.mfe-dynamic-line').length + 1);
+        document.getElementById('dynamic-nodes').appendChild(el);
+      });
+
+      const statusEl = document.getElementById('status');
+
+      void (async () => {
+        if (!withSdk) {
+          window.srReady = true;
+          window.srSkipped = true;
+          statusEl.textContent = 'ready (no SDK on child — parent-only recording)';
+          return;
+        }
+
+        try {
+          const initOptions = {
+            deviceId,
+            sessionId,
+            sampleRate: 1,
+          };
+          if (crossOrigin) {
+            initOptions.crossOriginIframes = { enabled: true };
+          }
+          await sessionReplay.init(apiKey, initOptions).promise;
+          window.sessionReplay = sessionReplay;
+        } catch (err) {
+          statusEl.textContent = 'error: ' + err.message;
+          window.srError = err.message;
+          return;
+        }
+
+        window.srReady = true;
+        statusEl.textContent = crossOrigin
+          ? 'ready (child SDK, crossOriginIframes enabled)'
+          : 'ready (child SDK, default config)';
+      })();
+    </script>
+  </body>
+</html>

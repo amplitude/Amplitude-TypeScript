@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Case 05 — Child SDK without crossOrigin flag</title>
+    <link rel="stylesheet" href="./mfe-parent-styles.css" />
+  </head>
+  <body>
+    <header class="shell-header">
+      <span class="tag">Case 05</span>
+      <h1>Parent crossOrigin enabled — child SDK omits flag</h1>
+    </header>
+    <main class="shell-main">
+      <div class="parent-panel">Parent has <code>crossOriginIframes.enabled</code>; child runs standalone SR init.</div>
+      <div class="mfe-slot" id="mfe-slot"></div>
+      <div id="status">loading</div>
+    </main>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'mfe-parent-device';
+      const apiKey =
+        params.get('apiKey') || import.meta.env.VITE_AMPLITUDE_API_KEY || 'd90c5cf09ca2546a1626272906b99a76';
+      const childSrc = params.get('childSrc') ?? '/session-replay-browser/microfrontends/mfe-child-app.html';
+
+      void (async () => {
+        const statusEl = document.getElementById('status');
+        try {
+          await sessionReplay.init(apiKey, {
+            deviceId,
+            sessionId,
+            sampleRate: 1,
+            crossOriginIframes: { enabled: true },
+          }).promise;
+        } catch (err) {
+          statusEl.textContent = 'error: ' + err.message;
+          return;
+        }
+
+        const iframe = document.createElement('iframe');
+        iframe.id = 'mfe-child-frame';
+        iframe.src =
+          childSrc +
+          '?withSdk=true&crossOrigin=false&label=' +
+          encodeURIComponent('Child SR, no crossOrigin flag') +
+          '&sessionId=' +
+          sessionId +
+          '&deviceId=' +
+          encodeURIComponent(deviceId);
+        document.getElementById('mfe-slot').appendChild(iframe);
+        window.srReady = true;
+        statusEl.textContent = 'ready — child SDK without crossOriginIframes';
+      })();
+    </script>
+  </body>
+</html>

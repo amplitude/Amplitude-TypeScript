@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Session Replay — Microfrontend manual test cases</title>
+    <link rel="stylesheet" href="./mfe-parent-styles.css" />
+    <style>
+      .case-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .case-list li {
+        margin: 12px 0;
+        padding: 12px 16px;
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid #c7d2fe;
+      }
+      .case-list a {
+        color: #4338ca;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .case-list a:hover {
+        text-decoration: underline;
+      }
+      .case-list p {
+        margin: 6px 0 0;
+        font-size: 14px;
+        color: #475569;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="shell-header">
+      <h1>Microfrontend session replay — manual capture cases</h1>
+      <p style="margin: 0; font-size: 14px; opacity: 0.9">
+        Run <code>pnpm dev</code> from the repo root, open a case below with your project API key
+        (<code>VITE_AMPLITUDE_API_KEY</code> or <code>?apiKey=</code>), interact on parent and nested UI, then verify
+        replays in Amplitude.
+      </p>
+    </header>
+    <main class="shell-main">
+      <ul class="case-list">
+        <li>
+          <a href="./case-01-same-origin-parent-only.html">Case 01 — Same-origin iframe, SDK on parent only</a>
+          <p>Typical shell + MFE iframe when only the host initializes session replay (default options).</p>
+        </li>
+        <li>
+          <a href="./case-02-same-origin-dual-sdk-no-cross-origin.html">Case 02 — Same-origin, SDK on parent and child</a>
+          <p>Both frames load the SDK without <code>crossOriginIframes</code> (duplicate / non-merged recording).</p>
+        </li>
+        <li>
+          <a href="./case-03-cross-origin-coordinated.html">Case 03 — Cross-origin coordinated (recommended setup)</a>
+          <p>Parent and child with <code>crossOriginIframes.enabled: true</code>; baseline for correct nested capture.</p>
+        </li>
+        <li>
+          <a href="../sr-cross-origin-iframe-parent.html">Existing — Cross-origin iframe parent (CI reference)</a>
+          <p>Original minimal parent/child pair used by Playwright e2e tests.</p>
+        </li>
+        <li>
+          <a href="./case-04-cross-origin-parent-only-sdk.html">Case 04 — crossOrigin enabled on parent, no SDK in child</a>
+          <p>Mirrors misconfiguration: coordinator on but child micro-app never loads the SDK.</p>
+        </li>
+        <li>
+          <a href="./case-05-cross-origin-child-missing-flag.html">Case 05 — Parent has crossOrigin; child SDK without flag</a>
+          <p>Child loads session replay but omits <code>crossOriginIframes.enabled</code>.</p>
+        </li>
+        <li>
+          <a href="./case-06-analytics-plugin-parent-iframe.html">Case 06 — Analytics + SR plugin on parent, bare iframe child</a>
+          <p>Customer-style Browser SDK + plugin on shell; nested app has no Amplitude.</p>
+        </li>
+        <li>
+          <a href="./case-07-late-mounted-iframe.html">Case 07 — Iframe mounted after session replay starts</a>
+          <p>Dynamic MFE load after init (MutationObserver / checkout timing).</p>
+        </li>
+        <li>
+          <a href="./case-08-nested-iframes.html">Case 08 — Nested iframes (shell → MFE → widget)</a>
+          <p>Three-level iframe tree with coordinated cross-origin on each document that runs the SDK.</p>
+        </li>
+        <li>
+          <a href="./case-09-web-component-shadow-mfe.html">Case 09 — Web component microfrontend (open shadow DOM)</a>
+          <p>In-page MFE via custom element, not an iframe.</p>
+        </li>
+        <li>
+          <a href="./case-10-sandboxed-iframe.html">Case 10 — Sandboxed iframe without allow-same-origin</a>
+          <p>Opaque child frame; often appears blank in parent-only replay.</p>
+        </li>
+        <li>
+          <a href="./case-11-coordinate-children-false.html">Case 11 — coordinateChildren: false</a>
+          <p>Parent does not send start signals; child SDK may never record in sync.</p>
+        </li>
+        <li>
+          <a href="./case-12-in-page-script-mount.html">Case 12 — Script-mounted MFE (no iframe)</a>
+          <p>Host loads micro-UI into a div (module federation–style mount without iframe).</p>
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>
