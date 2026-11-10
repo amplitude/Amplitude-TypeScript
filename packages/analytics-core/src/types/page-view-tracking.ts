@@ -21,7 +21,8 @@ export interface PageTrackingOptions {
 export interface EngagedTimeOptions {
   /**
    * Event type for the independent engaged-time plugin. Defaults to `[Amplitude] Page Viewed`.
-   * Does not enable page-view autocapture. The deprecated pageViews.trackEngagedTime option uses pageViews.eventType.
+   * Automatic lifecycle events, including inactivity renewal, use this name.
+   * The deprecated pageViews.trackEngagedTime option uses pageViews.eventType.
    */
   pageViewEventType?: string;
   /** Rolling activity window in milliseconds. Defaults to 5,000. */

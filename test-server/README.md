@@ -18,7 +18,7 @@ Open `/browser-sdk/engaged-time.html` after building the packages and starting V
 default local receiver acknowledges requests without simulating delayed ingestion.
 Select Amplitude US and supply a project API key to test the actual delayed service.
 Select the custom page-view checkbox to disable automatic page views and send
-`page_view` events with article properties on start and navigation.
+`page_view` lifecycle events without a second default event source.
 
 The defaults are a 5,000 ms rolling activity window, 15,000 ms heartbeat, and
 180,000 ms (3 minutes) page inactivity timeout. This is one setting used for two paths:
@@ -43,12 +43,12 @@ Use the default settings (5 seconds / 15 seconds / 3 minutes) to check:
    one final copy in `instant_events`.
 2. Move, scroll, or type before expiry: the same logical page resumes.
 3. Switch tabs or applications: engagement pauses immediately. Return before
-   expiry to resume. After expiry, the next page-view event starts a new logical view.
+   expiry to resume. After expiry, renewed activity automatically generates a new logical view with the configured event name.
 4. Navigate to another article: the old view finalizes with its original URL and
    the next page-view event starts a new delay group. Leaving the
    document finalizes even when it enters BFCache. Returning through Back/Forward
-   waits for a new page-view event before tracking again. Switching tabs still only pauses engagement.
-5. Opt out: local engagement state is discarded. Opt in and send a new page-view event to start anew.
+   automatically starts a new view once visible and focused. Switching tabs still only pauses engagement.
+5. Opt out: local engagement state is discarded. Opt in and interact to start anew.
 6. Finish tracking: the final copy is sent and page listeners are removed.
 
 The inspector counts outgoing payloads, not ingested analytics events. Local mode
@@ -125,8 +125,11 @@ Engaged page views and their snapshots omit `user_properties`. Send user-propert
 
 `engagedTimeTracking` and `pageViews` are independent. `true` or `{}` matches only
 `[Amplitude] Page Viewed`; specify `pageViewEventType` to match a custom or renamed
-event. Engagement never enables automatic page views or generates replacement
-views on activity. Continue sending the customer's existing `page_view` events.
+event. Engagement preserves the original lifecycle behavior: initialization and
+valid navigation produce views, and renewed activity after inactivity creates a
+fresh view with the configured event type. An active view resumes without an extra
+PV. **Highlight: custom page views automatically renew too; PV counts can increase.**
+Sending a manual PV for the same automatic transition can create another logical view.
 The deprecated `pageViews.trackEngagedTime` configuration remains supported, but
 an explicit `engagedTimeTracking` value takes precedence, including `false`.
 See [the plugin README](../packages/plugin-engaged-time-tracking-browser/README.md)

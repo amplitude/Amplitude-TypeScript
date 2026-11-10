@@ -161,8 +161,8 @@ export interface AutocaptureOptions {
   /**
    * Attach cumulative engaged time to matching page-view events using delayed ingestion.
    * True uses `[Amplitude] Page Viewed`; an options object can specify a custom pageViewEventType.
-   * Independent of pageViews: enabling this option never creates page-view events.
-   * After inactivity or another lifecycle boundary, tracking waits for the next matching event.
+   * Independent of pageViews: lifecycle page views use the configured event name.
+   * After inactivity, renewed activity creates a fresh page view with new IDs, including for custom event names.
    * Engaged events omit user_properties; use a separate identify call for user-property updates.
    * @defaultValue `false`
    * @experimental This feature is experimental and may not be stable.

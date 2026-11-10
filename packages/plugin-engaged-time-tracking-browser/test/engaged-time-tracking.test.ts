@@ -1,5 +1,7 @@
 import {
+  BASE_CAMPAIGN,
   BeforePlugin,
+  CampaignParser,
   BrowserConfig,
   Event as AnalyticsEvent,
   Logger,
@@ -28,8 +30,9 @@ describe('independent engaged-time tracking', () => {
   });
   const setup = async (
     options: Parameters<typeof engagedTimeTrackingPlugin>[0] = { pageViewEventType: 'page_view' },
+    source: Parameters<typeof engagedTimeTrackingPlugin>[1] = { autoTrackPageViews: false },
   ) => {
-    plugin = engagedTimeTrackingPlugin(options);
+    plugin = engagedTimeTrackingPlugin(options, source);
     await plugin.setup!(config, client);
   };
   const latest = () => sent[sent.length - 1];
@@ -61,17 +64,82 @@ describe('independent engaged-time tracking', () => {
     jest.useRealTimers();
   });
 
-  test('defaults to the standard event type without creating events', async () => {
+  test('defaults to the standard event type and generates the initial view', async () => {
     plugin = engagedTimeTrackingPlugin();
     await plugin.setup!(config, client);
-    expect(client.track.mock.calls).toHaveLength(0);
-    const custom = page();
-    expect(await plugin.execute!(custom)).toBe(custom);
-    expect(await plugin.execute!(page('[Amplitude] Page Viewed'))).toBeNull();
     await jest.advanceTimersByTimeAsync(1);
     expect(sent).toHaveLength(1);
     expect(latest().event_type).toBe('[Amplitude] Page Viewed');
+    const custom = page();
+    expect(await plugin.execute!(custom)).toBe(custom);
   });
+
+  test('generates custom page views on initialization and navigation, but not active focus', async () => {
+    await setup({ pageViewEventType: 'page_view' }, {});
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(1);
+    const initial = latest();
+    window.dispatchEvent(new Event('focus'));
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(1);
+    history.pushState({}, '', '/article-b');
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(3);
+    expect(latest().event_type).toBe('page_view');
+    expect(latest().insert_id).not.toBe(initial.insert_id);
+    expect(latest().event_properties).toMatchObject({
+      '[Amplitude] Page Path': '/article-b',
+      '[Amplitude] Page Counter': 2,
+    });
+  });
+
+  test('pathOnly ignores query-only changes and replaceState, then tracks a new path', async () => {
+    await setup({ pageViewEventType: 'page_view' }, { trackHistoryChanges: 'pathOnly' });
+    await jest.advanceTimersByTimeAsync(1);
+    history.pushState({}, '', '/article-a?q=1');
+    history.replaceState({}, '', '/article-a?q=2');
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(1);
+    history.pushState({}, '', '/article-b');
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(3);
+  });
+
+  test('defers initialization during prerendering and starts once on activation', async () => {
+    Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
+    await setup({ pageViewEventType: 'page_view' }, {});
+    document.dispatchEvent(new Event('keydown'));
+    expect(sent).toHaveLength(0);
+    Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
+    document.dispatchEvent(new Event('prerenderingchange'));
+    document.dispatchEvent(new Event('prerenderingchange'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(1);
+  });
+
+  test.each(['reset', 'opt-out', 'teardown'] as const)(
+    'cancels generated views awaiting campaign lookup on %s',
+    async (boundary) => {
+      let release!: () => void;
+      jest.spyOn(CampaignParser.prototype, 'parse').mockImplementationOnce(async () => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        return { ...BASE_CAMPAIGN };
+      });
+      await setup({ pageViewEventType: 'page_view' }, {});
+      if (boundary === 'reset') await plugin.onReset!();
+      if (boundary === 'opt-out') {
+        config.optOut = true;
+        await plugin.onOptOutChanged!(true);
+      }
+      if (boundary === 'teardown') await plugin.teardown!();
+      release();
+      await jest.advanceTimersByTimeAsync(1);
+      expect(sent).toHaveLength(0);
+    },
+  );
 
   test('snapshots custom events and preserves their identity and business properties', async () => {
     await setup({ pageViewEventType: 'page_view', activityWindowMillis: 2000, heartbeatIntervalMillis: 1000 });
@@ -109,8 +177,8 @@ describe('independent engaged-time tracking', () => {
     expect(sent[2].insert_id).toBeTruthy();
   });
 
-  test.each(['pushState', 'replaceState', 'popstate'] as const)(
-    'finalizes on %s without generating a replacement',
+  test.each(['pushState', 'popstate'] as const)(
+    'finalizes on %s and defers the replacement to the coordinated source',
     async (method) => {
       await setup();
       await plugin.execute!(page());
@@ -134,21 +202,27 @@ describe('independent engaged-time tracking', () => {
     },
   );
 
-  test('waits for a new matching event after inactivity and BFCache restoration', async () => {
+  test('renews once on activity after inactivity and after BFCache restore with the configured name', async () => {
     await setup({ pageViewEventType: 'page_view', inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 });
     await plugin.execute!(page());
     await jest.advanceTimersByTimeAsync(101);
     const count = sent.length;
+    const firstId = latest().insert_id;
+    document.dispatchEvent(new Event('keydown'));
     document.dispatchEvent(new Event('keydown'));
     window.dispatchEvent(new Event('focus'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(count + 1);
+    expect(latest().event_type).toBe('page_view');
+    expect(latest().insert_id).not.toBe(firstId);
+    expect(latest().event_properties).toMatchObject({ article_id: 'article-a' });
+    const renewedId = latest().insert_id;
     window.dispatchEvent(new Event('pagehide'));
     expect(await plugin.execute!(page())).toBeNull();
     window.dispatchEvent(new Event('pageshow'));
-    await jest.advanceTimersByTimeAsync(101);
-    expect(sent).toHaveLength(count);
-    expect(await plugin.execute!(page())).toBeNull();
     await jest.advanceTimersByTimeAsync(1);
-    expect(sent).toHaveLength(count + 1);
+    expect(latest().event_type).toBe('page_view');
+    expect(latest().insert_id).not.toBe(renewedId);
   });
 
   test('drops active state at opt-out, including when initially opted out', async () => {
@@ -183,10 +257,8 @@ describe('independent engaged-time tracking', () => {
       expect(await plugin.execute!(pending!)).toBeNull();
       document.dispatchEvent(new Event('keydown'));
       await jest.advanceTimersByTimeAsync(1);
-      expect(sent).toHaveLength(count);
-      await plugin.execute!(page());
-      await jest.advanceTimersByTimeAsync(1);
       expect(sent).toHaveLength(count + 1);
+      expect(latest().event_type).toBe('page_view');
     },
   );
 

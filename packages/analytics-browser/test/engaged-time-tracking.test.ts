@@ -132,10 +132,11 @@ describe('engagedTimeTracking through the Browser SDK', () => {
   });
   test('tracks custom events with pageViews disabled and retains page context across navigation', async () => {
     await init({ pageViewEventType: 'page_view' });
-    expect(send).not.toHaveBeenCalled();
-    await track('page_view', { article_id: 'article-a' });
     expect(events()).toHaveLength(1);
-    expect(events()[0]).toMatchObject({
+    expect(events()[0].event_type).toBe('page_view');
+    await track('page_view', { article_id: 'article-a' });
+    expect(events()).toHaveLength(3);
+    expect(events()[2]).toMatchObject({
       event_type: 'page_view',
       delay: { timeout: 180_000 },
       event_properties: {
@@ -144,11 +145,11 @@ describe('engagedTimeTracking through the Browser SDK', () => {
         '[Amplitude] Engaged Time': expect.any(Number),
       },
     });
-    const original = events()[0];
+    const original = events()[2];
     history.pushState({}, '', '/article-b');
     await jest.advanceTimersByTimeAsync(20);
-    expect(events()).toHaveLength(2);
-    expect(events()[1]).toMatchObject({
+    expect(events()).toHaveLength(5);
+    expect(events()[3]).toMatchObject({
       insert_id: original.insert_id,
       time: original.time,
       delay: { id: original.delay!.id, timeout: undefined },
@@ -157,19 +158,22 @@ describe('engagedTimeTracking through the Browser SDK', () => {
     document.dispatchEvent(new Event('keydown'));
     window.dispatchEvent(new Event('focus'));
     await jest.advanceTimersByTimeAsync(1000);
-    expect(events()).toHaveLength(2);
+    expect(events()).toHaveLength(5);
+    expect(events()[4].event_properties).not.toHaveProperty('article_id');
     await track('page_view', { article_id: 'article-b' });
-    expect(events()).toHaveLength(3);
-    expect(events()[2].delay!.id).not.toBe(original.delay!.id);
+    expect(events()).toHaveLength(7);
+    expect(events()[6].delay!.id).not.toBe(original.delay!.id);
   });
   test('true matches only the default event name without installing automatic page views', async () => {
     await init(true);
-    expect(send).not.toHaveBeenCalled();
+    expect(events()).toHaveLength(1);
+    expect(events()[0].event_type).toBe('[Amplitude] Page Viewed');
     expect(client.timeline.plugins.some((p) => p.name === '@amplitude/plugin-page-view-tracking-browser')).toBe(false);
     await track('page_view');
-    expect(events()[0].delay).toBeUndefined();
+    expect(events()[1].delay).toBeUndefined();
     await track('[Amplitude] Page Viewed');
-    expect(events()[1].delay).toBeDefined();
+    expect(events()).toHaveLength(4);
+    expect(events()[3].delay).toBeDefined();
   });
   test('works with the default page-view plugin and counts each view once', async () => {
     await init(true, true);
@@ -197,9 +201,9 @@ describe('engagedTimeTracking through the Browser SDK', () => {
   });
   test('does not treat a renamed automatic page view as the default name', async () => {
     await init(true, { eventType: 'renamed_page' });
-    expect(events()).toHaveLength(1);
-    expect(events()[0]).toMatchObject({ event_type: 'renamed_page' });
-    expect(events()[0].delay).toBeUndefined();
+    expect(events()).toHaveLength(2);
+    expect(events().find((event) => event.event_type === 'renamed_page')!.delay).toBeUndefined();
+    expect(events().find((event) => event.event_type === '[Amplitude] Page Viewed')!.delay).toBeDefined();
   });
   test('tracks an explicitly selected renamed automatic event', async () => {
     await init({ pageViewEventType: 'renamed_page' }, { eventType: 'renamed_page' });
@@ -215,6 +219,38 @@ describe('engagedTimeTracking through the Browser SDK', () => {
     expect(events()).toHaveLength(1);
     expect(events()[0].delay).toBeDefined();
   });
+  test.each(['[Amplitude] Page Viewed', 'page_view'])(
+    'renews %s once after inactivity with fresh IDs and retained article properties',
+    async (eventType) => {
+      await init(
+        { pageViewEventType: eventType, inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 },
+        eventType === '[Amplitude] Page Viewed',
+      );
+      await track(eventType, { article_id: 'article-a' });
+      const original = events()[events().length - 1];
+      await jest.advanceTimersByTimeAsync(101);
+      const count = events().length;
+      document.dispatchEvent(new Event('keydown'));
+      document.dispatchEvent(new Event('keydown'));
+      window.dispatchEvent(new Event('focus'));
+      await jest.advanceTimersByTimeAsync(15);
+      expect(events()).toHaveLength(count + 1);
+      const renewed = events()[count];
+      expect(renewed.event_type).toBe(eventType);
+      expect(renewed.insert_id).not.toBe(original.insert_id);
+      expect(renewed.time).toBeGreaterThan(original.time!);
+      expect(renewed.delay!.id).not.toBe(original.delay!.id);
+      expect(renewed.event_properties).toMatchObject({ article_id: 'article-a' });
+      expect((renewed.event_properties as Record<string, unknown>)['[Amplitude] Page View ID']).not.toBe(
+        (original.event_properties as Record<string, unknown>)['[Amplitude] Page View ID'],
+      );
+      const beforeFocus = events().length;
+      window.dispatchEvent(new Event('focus'));
+      await jest.advanceTimersByTimeAsync(1);
+      expect(events()).toHaveLength(beforeFocus);
+    },
+  );
+
   test('keeps identify separate and strips user properties from delayed custom events', async () => {
     await init({ pageViewEventType: 'page_view' });
     client.track({ event_type: 'page_view', user_properties: { $set: { plan: 'old' } } });
@@ -234,7 +270,7 @@ describe('engagedTimeTracking through the Browser SDK', () => {
         name: 'hold-custom-view',
         type: 'enrichment',
         async execute(event) {
-          if (!held && event.event_type === 'page_view' && !event.delay) {
+          if (!held && event.insert_id === 'held' && !event.delay) {
             held = true;
             await new Promise<void>((resolve) => {
               release = resolve;
@@ -244,7 +280,8 @@ describe('engagedTimeTracking through the Browser SDK', () => {
         },
       }).promise;
       await init({ pageViewEventType: 'page_view' });
-      await track('page_view');
+      client.track({ event_type: 'page_view', insert_id: 'held' });
+      await jest.advanceTimersByTimeAsync(20);
       expect(held).toBe(true);
       if (boundary === 'identity') client.setUserId('new-user');
       if (boundary === 'session') client.setSessionId(200_000);
@@ -253,12 +290,14 @@ describe('engagedTimeTracking through the Browser SDK', () => {
         client.setOptOut(true);
         client.setOptOut(false);
       }
+      await jest.advanceTimersByTimeAsync(20);
+      const count = events().length;
       release();
       await jest.advanceTimersByTimeAsync(20);
-      expect(send).not.toHaveBeenCalled();
+      expect(events()).toHaveLength(count);
       await track('page_view');
-      expect(events()).toHaveLength(1);
-      expect(events()[0].delay).toBeDefined();
+      expect(events()).toHaveLength(count + 1);
+      expect(events()[count].delay).toBeDefined();
     },
   );
 });

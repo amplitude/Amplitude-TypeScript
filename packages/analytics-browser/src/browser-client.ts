@@ -404,11 +404,21 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await this.add(customEnrichmentPlugin()).promise;
     }
 
-    // Listen independently of pageViews, including when automatic page views are disabled.
-    // Install after page-view conversion/counters and URL enrichment so snapshots retain their context.
+    // Keep a single initial/navigation source when the default plugin produces the same event type.
+    // Engagement still owns renewal after inactivity, identity/session boundaries, and BFCache restore.
     const engagedTimeOptions = getEngagedTimeTrackingConfig(this.config);
     if (engagedTimeOptions) {
-      await this.add(engagedTimeTrackingPlugin(engagedTimeOptions)).promise;
+      const pageViewOptions = getPageViewTrackingConfig(this.config);
+      const sharedSource =
+        isPageViewTrackingEnabled(this.config.defaultTracking) &&
+        (pageViewOptions.eventType ?? '[Amplitude] Page Viewed') ===
+          (engagedTimeOptions.pageViewEventType ?? '[Amplitude] Page Viewed');
+      await this.add(
+        engagedTimeTrackingPlugin(engagedTimeOptions, {
+          autoTrackPageViews: !sharedSource,
+          trackHistoryChanges: pageViewOptions.trackHistoryChanges,
+        }),
+      ).promise;
     }
 
     this.initializing = false;
