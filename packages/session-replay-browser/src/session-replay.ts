@@ -489,7 +489,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     const isSessionChange = previousSessionId !== sessionId;
     if (isSessionChange && this.config?.semanticCapture?.enabled && this.semanticAdapter) {
-      this.stopRecordingEvents();
+      // Keep rrweb recording through the async config/targeting pass, as it does
+      // without semantic capture. Only detach the old session's semantic runtime.
+      this.semanticAdapter.stop();
     }
 
     // Drop any beacon-buffered events from the previous session BEFORE installing the
@@ -1245,7 +1247,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
           inlineStylesheet: config.shouldInlineStylesheet,
           emit: (event) => {
             if (this.recordCancelCallback && this.recordFunction) {
-              this.recordFunction.addCustomEvent(`amp-semantic/${event.name}`, event.payload);
+              try {
+                this.recordFunction.addCustomEvent(`amp-semantic/${event.name}`, event.payload);
+              } catch (error) {
+                this.loggerProvider.debug('Error while adding semantic replay capture event:', error);
+              }
             }
           },
           onError: (error) => this.loggerProvider.debug('Semantic capture error:', error),

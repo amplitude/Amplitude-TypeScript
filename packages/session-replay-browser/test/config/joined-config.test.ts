@@ -185,6 +185,20 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         const { joinedConfig } = await joinedConfigGenerator.generateJoinedConfig();
         expect(joinedConfig.semanticCapture).toEqual({ enabled: false, families: { context: true } });
       });
+
+      test.each([NaN, Infinity, -0.1, 1.1])('invalid remote semantic sampleRate %s disables capture', async (rate) => {
+        mockRemoteConfig = { sr_semantic_config: { enabled: true, sampleRate: rate } };
+        const { joinedConfig } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(joinedConfig.semanticCapture?.sampleRate).toBe(0);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('Invalid semantic sampleRate'));
+      });
+
+      test.each([0, 1])('valid remote semantic sampleRate %s is retained', async (rate) => {
+        mockRemoteConfig = { sr_semantic_config: { enabled: true, sampleRate: rate } };
+        const { joinedConfig } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(joinedConfig.semanticCapture?.sampleRate).toBe(rate);
+      });
     });
 
     describe('with successful sampling config fetch', () => {
