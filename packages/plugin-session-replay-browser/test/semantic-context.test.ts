@@ -1,3 +1,4 @@
+import * as analyticsCore from '@amplitude/analytics-core';
 import { semanticAutocaptureFamilies } from '../src/semantic-context';
 
 describe('semantic analytics context', () => {
@@ -8,12 +9,70 @@ describe('semantic analytics context', () => {
       'formInteractions',
       'pageViews',
       'sessions',
+      'pageUrlEnrichment',
+      'networkTracking',
       'elementInteractions',
       'webVitals',
       'frustrationInteractions',
     ]);
     expect(semanticAutocaptureFamilies(false)).toEqual([]);
-    expect(semanticAutocaptureFamilies(undefined)).toEqual([]);
+    expect(semanticAutocaptureFamilies(undefined)).toEqual([
+      'attribution',
+      'fileDownloads',
+      'formInteractions',
+      'pageViews',
+      'sessions',
+      'pageUrlEnrichment',
+    ]);
+  });
+
+  test('partial autocapture keeps defaults and reports opt-in families', () => {
+    expect(semanticAutocaptureFamilies({ pageViews: false, elementInteractions: true, networkTracking: {} })).toEqual([
+      'attribution',
+      'fileDownloads',
+      'formInteractions',
+      'sessions',
+      'pageUrlEnrichment',
+      'networkTracking',
+      'elementInteractions',
+    ]);
+  });
+
+  test('reports explicitly enabled web vitals and performance tracking', () => {
+    const families = semanticAutocaptureFamilies({ webVitals: true, performanceTracking: {} });
+    expect(families).toContain('webVitals');
+    expect(families).toContain('performanceTracking');
+  });
+
+  test('Chrome extensions require explicit opt-in for default-on families', () => {
+    const extension = jest.spyOn(analyticsCore, 'isChromeExtension').mockReturnValue(true);
+    try {
+      expect(semanticAutocaptureFamilies(undefined)).toEqual([]);
+      expect(semanticAutocaptureFamilies({ sessions: true, pageUrlEnrichment: true })).toEqual([
+        'sessions',
+        'pageUrlEnrichment',
+      ]);
+    } finally {
+      extension.mockRestore();
+    }
+  });
+
+  test('uses effective default tracking for default-on event families', () => {
+    expect(
+      semanticAutocaptureFamilies(false, {
+        attribution: false,
+        fileDownloads: false,
+        formInteractions: false,
+        pageViews: false,
+        sessions: true,
+      }),
+    ).toEqual(['sessions']);
+    expect(semanticAutocaptureFamilies({ pageUrlEnrichment: false }, { fileDownloads: false })).toEqual([
+      'attribution',
+      'formInteractions',
+      'pageViews',
+      'sessions',
+    ]);
   });
 
   test.each([
