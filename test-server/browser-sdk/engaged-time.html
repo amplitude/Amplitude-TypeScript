@@ -209,8 +209,8 @@
                 <td>15 s</td>
                 <td>Yes, SDK option</td>
                 <td>
-                  Sends the cumulative page-view snapshot. It does not reset the inactivity deadline. Reach requested
-                  the cadence; customer control was not confirmed.
+                  Sends the cumulative page-view snapshot. It does not reset the inactivity deadline. The cadence is
+                  configurable independently of the inactivity timeout.
                 </td>
               </tr>
               <tr>
@@ -222,8 +222,8 @@
                   snapshot sends the same duration in the request's top-level <code>timeout</code> field, renewing the
                   service fallback deadline from the last accepted heartbeat. If the SDK cannot deliver a final
                   snapshot, the service finalizes the latest stored snapshot after that deadline. Heartbeats do not
-                  reset the SDK inactivity timer. The next interaction after SDK finalization starts a new logical page
-                  view.
+                  reset the SDK inactivity timer. After finalization, renewed activity creates a fresh page view with
+                  the configured event name, including custom names.
                 </td>
               </tr>
             </tbody>
@@ -242,6 +242,10 @@
       <section>
         <h2>Run the SDK</h2>
         <form id="settings">
+          <label
+            ><input id="custom-page-view" type="checkbox" /> Use custom page_view lifecycle events (default PageView
+            plugin disabled)</label
+          >
           <div class="controls">
             <label>Activity window (ms)<input id="threshold" type="number" min="1" value="5000" required /></label>
             <label>Heartbeat (ms)<input id="heartbeat" type="number" min="1" value="15000" required /></label>

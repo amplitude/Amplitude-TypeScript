@@ -18,7 +18,8 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
         sessions: false,
         fileDownloads: false,
         formInteractions: false,
-        pageViews: { trackEngagedTime: true },
+        pageViews: true,
+        engagedTimeTracking: true,
         pageUrlEnrichment: false,
       },
       fetchRemoteConfig: false,
@@ -50,6 +51,7 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
     }).promise;
   });
   afterEach(async () => {
+    await client.remove('@amplitude/plugin-engaged-time-tracking-browser').promise;
     await client.remove('@amplitude/plugin-page-view-tracking-browser').promise;
     await jest.advanceTimersByTimeAsync(20);
     await client.flush().promise;
@@ -91,13 +93,17 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
       expect(send).not.toHaveBeenCalled();
       document.dispatchEvent(new Event('keydown'));
       await jest.advanceTimersByTimeAsync(20);
+      expect(events()).toHaveLength(0);
+      client.track('[Amplitude] Page Viewed');
+      await jest.advanceTimersByTimeAsync(20);
       expect(events()).toHaveLength(1);
       expect(events()[0]).toMatchObject({
         device_id: client.getDeviceId(),
         user_id: client.getUserId(),
         session_id: client.getSessionId(),
       });
-      expect((events()[0].event_properties as Record<string, unknown>)['[Amplitude] Page Counter']).toBe(1);
+      // The unchanged PageView source counted the canceled source event, then this fresh view.
+      expect((events()[0].event_properties as Record<string, unknown>)['[Amplitude] Page Counter']).toBe(2);
     },
   );
 

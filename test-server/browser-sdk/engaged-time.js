@@ -6,6 +6,7 @@ let requests = 0;
 let finals = 0;
 let article = 1;
 let optedOut = false;
+let customPageView = false;
 function visibility() {
   element('visibility').textContent = `${document.visibilityState} / ${document.hasFocus() ? 'focused' : 'blurred'}`;
 }
@@ -58,6 +59,7 @@ element('settings').onsubmit = async (event) => {
   const timeout = Number(input('timeout').value);
   const live = input('destination').value === 'live';
   const apiKey = input('api-key').value.trim();
+  customPageView = input('custom-page-view').checked;
   if (
     ![threshold, pulse, timeout].every((value) => Number.isFinite(value) && value > 0 && value <= 2147483647) ||
     pulse >= timeout ||
@@ -76,12 +78,12 @@ element('settings').onsubmit = async (event) => {
     autocapture: {
       attribution: false,
       sessions: false,
-      pageViews: {
-        trackEngagedTime: {
-          activityWindowMillis: threshold,
-          heartbeatIntervalMillis: pulse,
-          inactivityTimeoutMillis: timeout,
-        },
+      pageViews: !customPageView,
+      engagedTimeTracking: {
+        ...(customPageView ? { pageViewEventType: 'page_view' } : {}),
+        activityWindowMillis: threshold,
+        heartbeatIntervalMillis: pulse,
+        inactivityTimeoutMillis: timeout,
       },
       fileDownloads: false,
       formInteractions: false,
@@ -120,6 +122,7 @@ element('settings').onsubmit = async (event) => {
   element('start').disabled = true;
   try {
     await sdk.init(live ? apiKey : 'local-engaged-time-demo', options).promise;
+    if (customPageView) sdk.track('page_view', { article_id: String(article) });
     element('status').textContent = `SDK running · ${live ? 'Amplitude US' : 'local receiver'}`;
     for (const id of ['navigate', 'flush', 'optout', 'stop']) element(id).disabled = false;
     for (const control of element('settings').querySelectorAll('input, select, button')) control.disabled = true;
@@ -132,6 +135,7 @@ element('navigate').onclick = () => {
   article += 1;
   document.title = `Article ${article} · Engaged time`;
   history.pushState({}, '', `?article=${article}`);
+  if (customPageView) sdk.track('page_view', { article_id: String(article) });
   element('article-title').textContent = `Article ${article} · Another page view`;
 };
 element('flush').onclick = () => {
@@ -146,6 +150,7 @@ element('optout').onclick = () => {
     : 'SDK running · interact to start a new view';
 };
 element('stop').onclick = async () => {
+  await sdk.remove('@amplitude/plugin-engaged-time-tracking-browser').promise;
   await sdk.remove('@amplitude/plugin-page-view-tracking-browser').promise;
   await sdk.flush().promise;
   element('status').textContent = 'Page tracking stopped · reload to run again';

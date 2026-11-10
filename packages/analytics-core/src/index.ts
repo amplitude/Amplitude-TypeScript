@@ -126,12 +126,8 @@ export {
   DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,
   DEFAULT_DEAD_CLICK_WINDOW_MS,
 } from './types/frustration-interactions';
-export {
-  EngagedTimeOptions,
-  PageTrackingOptions,
-  PageTrackingTrackOn,
-  PageTrackingHistoryChanges,
-} from './types/page-view-tracking';
+export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
+export { EngagedTimeOptions } from './types/engaged-time-tracking';
 export { FormInteractionsOptions } from './types/form-interactions';
 export { Status } from './types/status';
 
