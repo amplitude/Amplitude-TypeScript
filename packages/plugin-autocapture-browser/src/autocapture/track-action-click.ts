@@ -3,6 +3,7 @@ import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics
 import {
   ElementBasedTimestampedEvent,
   filterOutNonTrackableEvents,
+  getClickPageCoordinates,
   getClosestElement,
   shouldTrackEvent,
   TimestampedEvent,
@@ -83,10 +84,12 @@ export function trackActionClick({
 
   return actionClickObservable.subscribe((actionClick) => {
     if (!actionClick) return;
+    const click = actionClick as ElementBasedTimestampedEvent<MouseEvent>;
     /* istanbul ignore next */
-    amplitude?.track(
-      AMPLITUDE_ELEMENT_CLICKED_EVENT,
-      getEventProperties('click', (actionClick as ElementBasedTimestampedEvent<MouseEvent>).closestTrackedAncestor),
-    );
+    amplitude?.track(AMPLITUDE_ELEMENT_CLICKED_EVENT, {
+      ...getEventProperties('click', click.closestTrackedAncestor),
+      // Pointer position in page pixels, for click maps. Omitted for keyboard / synthetic clicks.
+      ...getClickPageCoordinates(click.event),
+    });
   });
 }

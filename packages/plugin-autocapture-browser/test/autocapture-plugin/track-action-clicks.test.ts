@@ -191,6 +191,27 @@ describe('action clicks:', () => {
       });
     });
 
+    test('should add page coordinates to action click for a pointer click', async () => {
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      const click = new MouseEvent('click', { detail: 1 });
+      Object.defineProperty(click, 'pageX', { value: 40.6 });
+      Object.defineProperty(click, 'pageY', { value: 1800.2 });
+      document.getElementById('addDivButton')?.dispatchEvent(click);
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.objectContaining({
+          '[Amplitude] Element ID': 'addDivButton',
+          '[Amplitude] Page X': 41,
+          '[Amplitude] Page Y': 1800,
+        }),
+      );
+    });
+
     test('should not trigger duplicate events if the immediate click target is in the action click allowlist', async () => {
       await plugin?.setup?.(config as BrowserConfig, instance);
 

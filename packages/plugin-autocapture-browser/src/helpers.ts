@@ -8,6 +8,7 @@ import {
 } from '@amplitude/analytics-core';
 import { collectOpenShadowRoots, segmentWalk, walkComposedAncestors } from '@amplitude/element-selector';
 import { SHADOW_OFF, type ShadowMode } from './shadow-mode';
+import { AMPLITUDE_EVENT_PROP_PAGE_X, AMPLITUDE_EVENT_PROP_PAGE_Y } from './constants';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
@@ -351,6 +352,29 @@ export const asyncLoadScript = (url: string) => {
 export function generateUniqueId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
+
+/**
+ * Returns the pointer's page coordinates for a click event, keyed by the
+ * `[Amplitude] Page X` / `[Amplitude] Page Y` event property names.
+ *
+ * Returns an empty object when the click has no pointer position:
+ * - keyboard activations (Enter/Space on a button) and programmatic
+ *   `element.click()` calls dispatch a click with `detail === 0`
+ * - plain `Event`s (e.g. `dispatchEvent(new Event('click'))`) have no coordinates
+ */
+export const getClickPageCoordinates = (event: Event | MouseEvent | null | undefined): Record<string, number> => {
+  if (!event || typeof (event as MouseEvent).detail !== 'number' || (event as MouseEvent).detail === 0) {
+    return {};
+  }
+  const { pageX, pageY } = event as MouseEvent;
+  if (typeof pageX !== 'number' || typeof pageY !== 'number' || !isFinite(pageX) || !isFinite(pageY)) {
+    return {};
+  }
+  return {
+    [AMPLITUDE_EVENT_PROP_PAGE_X]: Math.round(pageX),
+    [AMPLITUDE_EVENT_PROP_PAGE_Y]: Math.round(pageY),
+  };
+};
 
 export const filterOutNonTrackableEvents = (event: ElementBasedTimestampedEvent<ElementBasedEvent>): boolean => {
   // Filter out changeEvent events with no target
