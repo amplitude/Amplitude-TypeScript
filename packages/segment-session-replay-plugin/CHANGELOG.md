@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.56-claudeconfident-mccarthy-373nfy.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.53...@amplitude/segment-session-replay-plugin@0.0.56-claudeconfident-mccarthy-373nfy.0) (2026-11-10)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
 ## [0.0.55](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.54...@amplitude/segment-session-replay-plugin@0.0.55) (2026-11-06)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin

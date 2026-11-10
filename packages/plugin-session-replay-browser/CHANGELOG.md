@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.36.8-claudeconfident-mccarthy-373nfy.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.36.4...@amplitude/plugin-session-replay-browser@1.36.8-claudeconfident-mccarthy-373nfy.0) (2026-11-10)
+
+
+### Bug Fixes
+
+* **session-replay:** upgrade rrweb to 2.1.5 ([#2084](https://github.com/amplitude/Amplitude-TypeScript/issues/2084)) ([491914d](https://github.com/amplitude/Amplitude-TypeScript/commit/491914d6922be10b8a3f7117b8271314265a6c8e))
+
+
+
+
+
 ## [1.36.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.36.6...@amplitude/plugin-session-replay-browser@1.36.7) (2026-11-06)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

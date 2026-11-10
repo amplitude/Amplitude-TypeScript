@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.3-claudeconfident-mccarthy-373nfy.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.1.43...@amplitude/unified@1.2.3-claudeconfident-mccarthy-373nfy.0) (2026-11-10)
+
+**Note:** Version bump only for package @amplitude/unified
+
+
+
+
+
 ## [1.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/unified@1.2.1...@amplitude/unified@1.2.2) (2026-11-06)
 
 **Note:** Version bump only for package @amplitude/unified

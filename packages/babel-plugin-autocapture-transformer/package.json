@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/babel-plugin-autocapture-transformer",
-  "version": "0.1.2",
+  "version": "0.1.3-claudeconfident-mccarthy-373nfy.0",
   "description": "Babel plugin that transforms JSX for Amplitude autocapture at compile time.",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",

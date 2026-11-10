@@ -1,1 +1,1 @@
-export const VERSION = '1.5.83';
+export const VERSION = '1.6.0-claudeconfident-mccarthy-373nfy.0';
