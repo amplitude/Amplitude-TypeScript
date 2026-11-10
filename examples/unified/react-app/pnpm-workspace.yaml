@@ -1,0 +1,7 @@
+packages:
+  - '.'
+
+overrides:
+  js-yaml@3: ^3.15.2
+  js-yaml@4: ^4.3.2
+  svgo@2: ^2.8.4

@@ -1,0 +1,118 @@
+body {
+  margin: 0;
+  font: 14px system-ui, sans-serif;
+  color: #22332c;
+  background: #f6f8f6;
+}
+main {
+  max-width: 720px;
+  margin: auto;
+  padding: 24px 16px;
+}
+h1 {
+  font-size: 24px;
+}
+p {
+  line-height: 1.5;
+}
+fieldset {
+  min-width: 0;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid #ccd6ce;
+  border-radius: 6px;
+}
+form fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+label {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+form label {
+  margin: 0;
+}
+button,
+select {
+  font: inherit;
+  padding: 8px;
+  border: 1px solid #b7c6bc;
+  border-radius: 4px;
+  background: white;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:hover {
+  background: #e3eee7;
+}
+button:disabled,
+fieldset:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid #318a69;
+  outline-offset: 2px;
+}
+
+.action {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+.action code,
+.action small {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.action small,
+.control-help {
+  font-size: 12px;
+  margin-bottom: 0;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  margin: 18px 0;
+}
+table {
+  width: 100%;
+  min-width: 540px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+caption {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  color: #53685b;
+}
+th,
+td {
+  padding: 12px;
+  border: 1px solid #ccd6ce;
+  text-align: left;
+  vertical-align: top;
+}
+thead th {
+  background: #eaf0ec;
+}
+thead th:first-child {
+  width: 50%;
+}
+th[scope='row'] {
+  font-weight: normal;
+}
+thead .active-mode {
+  border-bottom: 3px solid #318a69;
+}

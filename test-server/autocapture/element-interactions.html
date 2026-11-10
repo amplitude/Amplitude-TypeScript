@@ -178,6 +178,19 @@
               <td>Editable elements</td>
             </tr>
             <tr>
+              <td>
+                <div contenteditable="true" class="role-element">
+                  <button class="btn">Nested button</button>
+                  <span>user-entered note</span>
+                  <span contenteditable="false"><button class="btn">Static label</button></span>
+                </div>
+                <p contenteditable="true">EDIT ME!</p>
+              </td>
+              <td class="center">Yes</td>
+              <td>Descendant inherits editability. Omit Element Text unless inside <code>contenteditable="false"</code></td>
+            </tr>
+            
+            <tr>
               <td><div class="role-element">Div</div></td>
               <td class="center">Sometimes</td>
               <td>Only if it has click handler or ARIA role</td>

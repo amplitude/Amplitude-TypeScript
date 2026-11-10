@@ -34,3 +34,5 @@ export const {
 
 export { AmpMaskView } from '@amplitude/plugin-session-replay-react-native';
 export { Identify, Revenue, Types } from '@amplitude/analytics-react-native';
+
+export { createNetworkRequestEvent, type NetworkRequestEventProperties } from '@amplitude/analytics-react-native';

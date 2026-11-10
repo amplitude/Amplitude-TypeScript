@@ -3,6 +3,39 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.31.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.1...@amplitude/plugin-autocapture-browser@1.31.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** guard non-element pointer targets ([#2117](https://github.com/amplitude/Amplitude-TypeScript/issues/2117)) ([099e910](https://github.com/amplitude/Amplitude-TypeScript/commit/099e91001e7ab6c9a2fb51c4b429552092ba9e91))
+
+
+
+
+
+## [1.31.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.0...@amplitude/plugin-autocapture-browser@1.31.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** do not capture element text for 'contenteditable' ([#2066](https://github.com/amplitude/Amplitude-TypeScript/issues/2066)) ([c56d5f1](https://github.com/amplitude/Amplitude-TypeScript/commit/c56d5f129270dce6698341685b5b38d0ae385b3e))
+
+
+
+
+
+# [1.31.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.4...@amplitude/plugin-autocapture-browser@1.31.0) (2026-10-30)
+
+
+### Features
+
+* **analytics-browser:** add page context and SDK initialization offset ([#2067](https://github.com/amplitude/Amplitude-TypeScript/issues/2067)) ([cc7389f](https://github.com/amplitude/Amplitude-TypeScript/commit/cc7389fd5a3547f46d078ebd7971134f1c9f2411))
+
+
+
+
+
 ## [1.30.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.3...@amplitude/plugin-autocapture-browser@1.30.4) (2026-10-20)
 
 

@@ -17,7 +17,7 @@ test('should return non undefined sessionReplay and experiment after initAll() b
   expect(experiment()).toBeDefined();
 });
 
-test('should export unified public types from the package entry point', () => {
+test('should export unified public APIs and types from the package entry point', () => {
   const sharedOptions: UnifiedSharedOptions = {
     serverZone: 'US',
   };
@@ -27,6 +27,7 @@ test('should export unified public types from the package entry point', () => {
   };
   const client: UnifiedClient = amplitude.createInstance();
 
+  expect(typeof amplitude.createNetworkRequestEvent).toBe('function');
   expect(options).toBeDefined();
   expect(client).toBeDefined();
 });

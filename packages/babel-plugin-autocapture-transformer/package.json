@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/babel-plugin-autocapture-transformer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Babel plugin that transforms JSX for Amplitude autocapture at compile time.",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -18,7 +18,7 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "pnpm build:es5 & pnpm build:esm",
+    "build": "pnpm build:es5 && pnpm build:esm",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
     "watch": "tsc -p ./tsconfig.esm.json --watch",

@@ -1,5 +1,7 @@
 import {
+  isElementPointerCursor,
   isTextNode,
+  isContentEditableElement,
   isNonSensitiveElement,
   parseAttributesToMask,
   isEmpty,
@@ -52,6 +54,44 @@ describe('autocapture-plugin helpers', () => {
     jest.clearAllMocks();
   });
 
+  describe('isElementPointerCursor', () => {
+    test.each([
+      ['Document', document],
+      ['Window', window],
+      ['Text', document.createTextNode('text')],
+      ['null', null],
+    ])('does not read computed style for %s targets', (_name, target) => {
+      const getComputedStyle = jest.spyOn(window, 'getComputedStyle');
+      try {
+        expect(isElementPointerCursor(target, 'click')).toBe(false);
+        expect(getComputedStyle).not.toHaveBeenCalled();
+      } finally {
+        getComputedStyle.mockRestore();
+      }
+    });
+
+    test.each([document.createElement('button'), document.createElementNS('http://www.w3.org/2000/svg', 'svg')])(
+      'reads pointer style for HTML and SVG elements',
+      (element) => {
+        document.body.appendChild(element);
+        element.style.cursor = 'pointer';
+        expect(isElementPointerCursor(element, 'click')).toBe(true);
+        element.style.cursor = 'default';
+        expect(isElementPointerCursor(element, 'click')).toBe(false);
+      },
+    );
+
+    test('does not read computed style for change events', () => {
+      const getComputedStyle = jest.spyOn(window, 'getComputedStyle');
+      try {
+        expect(isElementPointerCursor(document.createElement('input'), 'change')).toBe(false);
+        expect(getComputedStyle).not.toHaveBeenCalled();
+      } finally {
+        getComputedStyle.mockRestore();
+      }
+    });
+  });
+
   describe('isTextNode', () => {
     test('should return false when node is not a text node', () => {
       const node = document.createElement('a');
@@ -69,6 +109,15 @@ describe('autocapture-plugin helpers', () => {
       const node = document.createTextNode('text');
       const result = isTextNode(node);
       expect(result).toEqual(true);
+    });
+  });
+
+  describe('isContentEditableElement', () => {
+    test('should return false when element is not an HTMLElement', () => {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('contenteditable', 'true');
+
+      expect(isContentEditableElement(svg)).toEqual(false);
     });
   });
 
@@ -98,6 +147,15 @@ describe('autocapture-plugin helpers', () => {
 
       element.setAttribute('contenteditable', 'True');
       expect(isNonSensitiveElement(element)).toEqual(false);
+
+      element.setAttribute('contenteditable', '');
+      expect(isNonSensitiveElement(element)).toEqual(false);
+
+      element.setAttribute('contenteditable', 'plaintext-only');
+      expect(isNonSensitiveElement(element)).toEqual(false);
+
+      element.setAttribute('contenteditable', 'false');
+      expect(isNonSensitiveElement(element)).toEqual(true);
     });
   });
 

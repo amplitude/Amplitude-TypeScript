@@ -7,5 +7,5 @@ module.exports = {
   setupFiles: ['./test/setup.js'],
   rootDir: '.',
   testEnvironment: 'jsdom',
-  coveragePathIgnorePatterns: ['snippet-index.ts', 'global-scope.ts'],
+  coveragePathIgnorePatterns: ['snippet-index.ts', 'snippet-index-lite.ts', 'global-scope.ts'],
 };

@@ -15,11 +15,15 @@ const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 
 export type shouldTrackEvent = (actionType: ActionType, element: Element) => boolean;
 
-export const isElementPointerCursor = (element: Element, actionType: ActionType): boolean => {
+export const isElementPointerCursor = (element: EventTarget | null, actionType: ActionType): boolean => {
+  // DOM events can target Document, Window, or Text nodes as well as elements.
+  if (actionType !== 'click' || !(element instanceof Element)) {
+    return false;
+  }
   /* istanbul ignore next */
   const computedStyle = window?.getComputedStyle?.(element);
   /* istanbul ignore next */
-  return computedStyle?.getPropertyValue('cursor') === 'pointer' && actionType === 'click';
+  return computedStyle?.getPropertyValue('cursor') === 'pointer';
 };
 
 export const isUrlAllowed = (autocaptureOptions: ElementInteractionsOptions): boolean => {
@@ -98,13 +102,36 @@ export const isTextNode = (node: Node) => {
   return !!node && node.nodeType === 3;
 };
 
+/**
+ * True when `element` is effectively editable. Editability is inherited: the nearest
+ * ancestor with a `contenteditable` attribute wins. Any value other than `"false"`
+ * (e.g. `""`, `"true"`, `"plaintext-only"`) is editable, so a nested button, span, or
+ * heading inside an editing host is editable unless a closer `contenteditable="false"`
+ * boundary opts that subtree out.
+ *
+ * The walk stays on `parentElement`, which stops at a shadow root. Editability does
+ * not inherit across shadow boundaries.
+ */
+export const isContentEditableElement = (element: Element): boolean => {
+  if (!(element instanceof HTMLElement)) return false;
+  const contentEditable = element.getAttribute('contenteditable');
+  if (contentEditable === null) {
+    return false;
+  }
+  return contentEditable.toLowerCase() !== 'false';
+};
+
+export const isElementWithinContentEditableElement = (element: Element): boolean => {
+  if (isContentEditableElement(element)) return true;
+  const closestContentEditable = element.closest('[contenteditable]');
+  return closestContentEditable ? isContentEditableElement(closestContentEditable) : false;
+};
+
 export const isNonSensitiveElement = (element: Element) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  const isContentEditable =
-    element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
 
-  return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
+  return !SENSITIVE_TAGS.includes(tag) && !isContentEditableElement(element);
 };
 
 /**

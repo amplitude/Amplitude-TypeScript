@@ -135,3 +135,7 @@ go directly to the SDK's installed destinations, without rerunning PageView or
 URL enrichment on heartbeat.
 See [the plugin README](../packages/plugin-engaged-time-tracking-browser/README.md)
 for standalone installation and lifecycle behavior.
+
+## nuqs SPA
+
+Run `pnpm dev:nuqs` for the [nuqs page-view example](./nuqs-spa/README.md) at http://127.0.0.1:5174/. Initialize the real SDK with a test project's API key, select `all` (default) or `pathOnly`, and observe page views from nuqs query-state updates.

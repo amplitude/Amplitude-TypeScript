@@ -6,6 +6,7 @@ const android = require('@react-native-community/cli-platform-android');
 // module) are linked on both iOS and Android.
 const nativePackages = [
   '@amplitude/analytics-react-native',
+  '@amplitude/plugin-session-replay-react-native',
   '@react-native-async-storage/async-storage',
 ];
 
