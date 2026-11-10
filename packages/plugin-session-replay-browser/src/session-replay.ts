@@ -96,7 +96,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         semanticCapture: this.options.semanticCapture,
         semanticAnalyticsContext: {
           present: true,
-          autocapture: semanticAutocaptureFamilies(this.config.autocapture),
+          autocapture: semanticAutocaptureFamilies(this.config.autocapture, this.config.defaultTracking),
         },
         privacyConfig: {
           blockSelector: this.options.privacyConfig?.blockSelector,
