@@ -99,6 +99,22 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
+  ../../../packages/amp-semantic:
+    dependencies:
+      '@amplitude/session-replay-dom-privacy':
+        specifier: workspace:*
+        version: link:../session-replay-dom-privacy
+      tslib:
+        specifier: ^2.4.1
+        version: 2.9.1
+    devDependencies:
+      ajv:
+        specifier: ^8.17.1
+        version: 8.20.0
+      rimraf:
+        specifier: ^3.0.2
+        version: 3.0.2
+
   ../../../packages/analytics-browser:
     dependencies:
       '@amplitude/analytics-core':
@@ -3793,6 +3809,9 @@ packages:
   ajv@8.11.0:
     resolution: {integrity: sha512-wGgprdCvMalC0BztXvitD2hC04YffAvtsUn93JbGXYLAtCUO4xd17mCCZQxUOItiBwZvJScWo8NIvQMQ71rdpg==}
 
+  ajv@8.20.0:
+    resolution: {integrity: sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==}
+
   anser@1.4.10:
     resolution: {integrity: sha512-hCv9AqTQ8ycjpSd3upOJd7vFwW1JaoYQ7tpham03GJ1ca8/65rqn0RpaWpItOAd6ylW9wAw6luXYPJIyPFVOww==}
 
@@ -4764,6 +4783,9 @@ packages:
   fast-string-width@3.0.2:
     resolution: {integrity: sha512-gX8LrtNEI5hq8DVUfRQMbr5lpaS4nMIWV+7XEbXk2b8kiQIizgnlr12B4dA3ZEx3308ze0O4Q1R+cHts8kyUJg==}
 
+  fast-uri@3.1.9:
+    resolution: {integrity: sha512-hS/0Wt3Ya043oKXs0sIxrMpKQITXhMLIrVAKKXi4gozGC9v7YRWVnXIZzjNPTO02M9BdxLCWqK1yRXgNziVyJQ==}
+
   fast-wrap-ansi@0.2.2:
     resolution: {integrity: sha512-7F2Fl+TjRSenLqlU3UjSH0iyqopqoZIu7eZVpEirP2g1GtWa2G/ecEmBdgz31+Mxr+ELclgg6sokpSFIQiZ02Q==}
 
@@ -5115,6 +5137,7 @@ packages:
   image-size@0.6.3:
     resolution: {integrity: sha512-47xSUiQioGaB96nqtp5/q55m0aBQSQdyIloMOc/x+QVTDZLNmXE892IIDrJ0hM1A5vcNUDD5tDffkSP5lCaIIA==}
     engines: {node: '>=4.0'}
+    deprecated: Please migrate to image-size@2.x
     hasBin: true
 
   image-size@1.2.1:
@@ -6485,8 +6508,8 @@ packages:
     resolution: {integrity: sha512-Uu7ii+FQy4Qf82G4xu7ShHhjhGahEpCWc3x8UavY3CTcWV+ufmmCtwkr7ZKsX42jdL0kr1B5FKUeqJvAn51jzQ==}
     hasBin: true
 
-  qs@6.14.1:
-    resolution: {integrity: sha512-4EK3+xJl8Ts67nLYNwqw/dsFVnCf+qR7RgXSK9jEEm9unao3njwMDdmsdvoKBKHzxd7tCYz5e5M+SnMjdtXGQQ==}
+  qs@6.17.1:
+    resolution: {integrity: sha512-jd3COkaKVgGUW+ZHyEHCG9bH7RoaaiWuMgzsIBjUMVjLAaWGWpoUAVwljVvBHxRu/2qEHnadLGZrkutYUBPQJA==}
     engines: {node: '>=0.6'}
 
   query-string@7.1.3:
@@ -6903,8 +6926,8 @@ packages:
     resolution: {integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==}
     engines: {node: '>= 0.4'}
 
-  side-channel-list@1.0.0:
-    resolution: {integrity: sha512-FCLHtRD/gnpCiCHEiJLOwdmFP+wzCmDEkc9y7NsYxeF4u7Btsn1ZuwgwJGxImImHicJArLP4R0yX4c2KCrMrTA==}
+  side-channel-list@1.0.1:
+    resolution: {integrity: sha512-mjn/0bi/oUURjc5Xl7IaWi/OJJJumuoJFQJfDDyO46+hBWsfaVM65TBHq2eoZBhzl9EchxOijpkbRC8SVBQU0w==}
     engines: {node: '>= 0.4'}
 
   side-channel-map@1.0.1:
@@ -6915,8 +6938,8 @@ packages:
     resolution: {integrity: sha512-WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A==}
     engines: {node: '>= 0.4'}
 
-  side-channel@1.1.0:
-    resolution: {integrity: sha512-ZX99e6tRweoUXqR+VBrslhda51Nh5MTQwou5tnUDgbtyM0dBgmhEDtWGP/xbKn6hqfPRHujUNwz5fy/wbbhnpw==}
+  side-channel@1.1.1:
+    resolution: {integrity: sha512-6x6dK6zJdpTzF4sQeNYxwtvBzf6Eg4GtlesS94HOvTudUeyK2WXAaIfmDgsyslYrRBeFIlsi54AYsFGUuhmvrQ==}
     engines: {node: '>= 0.4'}
 
   signal-exit@3.0.7:
@@ -6943,10 +6966,6 @@ packages:
   slugify@1.6.9:
     resolution: {integrity: sha512-vZ7rfeehZui7wQs438JXBckYLkIIdfHOXsaVEUMyS5fHo1483l1bMdo0EDSWYclY0yZKFOipDy4KHuKs6ssvdg==}
     engines: {node: '>=8.0.0'}
-
-  source-map-js@1.2.1:
-    resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
-    engines: {node: '>=0.10.0'}
 
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
@@ -7810,13 +7829,13 @@ snapshots:
     dependencies:
       '@aws-crypto/util': 5.2.0
       '@aws-sdk/types': 3.973.9
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-crypto/crc32c@5.2.0':
     dependencies:
       '@aws-crypto/util': 5.2.0
       '@aws-sdk/types': 3.973.9
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-crypto/sha1-browser@5.2.0':
     dependencies:
@@ -7825,7 +7844,7 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@aws-sdk/util-locate-window': 3.965.5
       '@smithy/util-utf8': 2.3.0
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-crypto/sha256-browser@5.2.0':
     dependencies:
@@ -7835,23 +7854,23 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@aws-sdk/util-locate-window': 3.965.5
       '@smithy/util-utf8': 2.3.0
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-crypto/sha256-js@5.2.0':
     dependencies:
       '@aws-crypto/util': 5.2.0
       '@aws-sdk/types': 3.973.9
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-crypto/supports-web-crypto@5.2.0':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-crypto/util@5.2.0':
     dependencies:
       '@aws-sdk/types': 3.973.9
       '@smithy/util-utf8': 2.3.0
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/client-s3@3.1053.0':
     dependencies:
@@ -7872,7 +7891,7 @@ snapshots:
       '@smithy/fetch-http-handler': 5.4.4
       '@smithy/node-http-handler': 4.7.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/core@3.974.13':
     dependencies:
@@ -7883,12 +7902,12 @@ snapshots:
       '@smithy/signature-v4': 5.4.4
       '@smithy/types': 4.14.2
       bowser: 2.14.1
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/crc64-nvme@3.972.9':
     dependencies:
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/credential-provider-env@3.972.39':
     dependencies:
@@ -7896,7 +7915,7 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/credential-provider-http@3.972.41':
     dependencies:
@@ -7906,7 +7925,7 @@ snapshots:
       '@smithy/fetch-http-handler': 5.4.4
       '@smithy/node-http-handler': 4.7.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/credential-provider-ini@3.972.43':
     dependencies:
@@ -7922,7 +7941,7 @@ snapshots:
       '@smithy/core': 3.24.4
       '@smithy/credential-provider-imds': 4.3.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/credential-provider-login@3.972.43':
     dependencies:
@@ -7931,7 +7950,7 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/credential-provider-node@3.972.44':
     dependencies:
@@ -7945,7 +7964,7 @@ snapshots:
       '@smithy/core': 3.24.4
       '@smithy/credential-provider-imds': 4.3.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/credential-provider-process@3.972.39':
     dependencies:
@@ -7953,7 +7972,7 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/credential-provider-sso@3.972.43':
     dependencies:
@@ -7963,7 +7982,7 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/credential-provider-web-identity@3.972.43':
     dependencies:
@@ -7972,7 +7991,7 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/middleware-bucket-endpoint@3.972.15':
     dependencies:
@@ -7980,14 +7999,14 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/middleware-expect-continue@3.972.13':
     dependencies:
       '@aws-sdk/types': 3.973.9
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/middleware-flexible-checksums@3.974.21':
     dependencies:
@@ -7999,13 +8018,13 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/middleware-location-constraint@3.972.11':
     dependencies:
       '@aws-sdk/types': 3.973.9
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/middleware-sdk-s3@3.972.42':
     dependencies:
@@ -8015,13 +8034,13 @@ snapshots:
       '@smithy/core': 3.24.4
       '@smithy/signature-v4': 5.4.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/middleware-ssec@3.972.11':
     dependencies:
       '@aws-sdk/types': 3.973.9
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/nested-clients@3.997.11':
     dependencies:
@@ -8034,7 +8053,7 @@ snapshots:
       '@smithy/fetch-http-handler': 5.4.4
       '@smithy/node-http-handler': 4.7.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/signature-v4-multi-region@3.996.28':
     dependencies:
@@ -8042,7 +8061,7 @@ snapshots:
       '@smithy/core': 3.24.4
       '@smithy/signature-v4': 5.4.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/token-providers@3.1052.0':
     dependencies:
@@ -8051,23 +8070,23 @@ snapshots:
       '@aws-sdk/types': 3.973.9
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/types@3.973.9':
     dependencies:
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/util-locate-window@3.965.5':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws-sdk/xml-builder@3.972.25':
     dependencies:
       '@nodable/entities': 2.1.0
       '@smithy/types': 4.14.2
       fast-xml-parser: 5.7.3
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@aws/lambda-invoke-store@0.2.4': {}
 
@@ -10659,7 +10678,7 @@ snapshots:
       pixelmatch: 7.2.0
       pngjs: 7.0.0
       ssim.js: 3.5.0
-      tslib: 2.8.1
+      tslib: 2.9.1
       ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
@@ -10679,7 +10698,7 @@ snapshots:
       metro-config: 0.81.5(supports-color@8.1.1)
       metro-resolver: 0.81.5
       nocache: 4.0.0
-      tslib: 2.8.1
+      tslib: 2.9.1
     transitivePeerDependencies:
       - '@babel/core'
       - '@babel/plugin-transform-react-jsx'
@@ -10699,7 +10718,7 @@ snapshots:
       '@react-native-harness/platforms': 1.3.0
       '@react-native-harness/tools': 1.3.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))
       jest-cli: 30.4.2(@types/node@25.0.8)(supports-color@8.1.1)
-      tslib: 2.8.1
+      tslib: 2.9.1
     transitivePeerDependencies:
       - bufferutil
       - react-native
@@ -10709,7 +10728,7 @@ snapshots:
     dependencies:
       '@react-native-harness/plugins': 1.3.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))
       '@react-native-harness/tools': 1.3.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))
-      tslib: 2.8.1
+      tslib: 2.9.1
       zod: 3.25.76
     transitivePeerDependencies:
       - bufferutil
@@ -10728,7 +10747,7 @@ snapshots:
       chalk: 4.1.2
       jest-message-util: 30.4.1
       jest-util: 30.4.1
-      tslib: 2.8.1
+      tslib: 2.9.1
       yargs: 17.7.2
     transitivePeerDependencies:
       - '@babel/core'
@@ -10749,14 +10768,14 @@ snapshots:
   '@react-native-harness/metro@1.3.0(metro@0.81.5(supports-color@8.1.1))':
     dependencies:
       metro: 0.81.5(supports-color@8.1.1)
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@react-native-harness/platform-android@1.3.0(@types/node@25.0.8)(lightningcss@1.27.0)(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(terser@5.51.2)(yaml@2.9.0)':
     dependencies:
       '@react-native-harness/config': 1.3.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))
       '@react-native-harness/platforms': 1.3.0
       '@react-native-harness/tools': 1.3.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))
-      tslib: 2.8.1
+      tslib: 2.9.1
       vite: 7.3.7(@types/node@25.0.8)(lightningcss@1.27.0)(terser@5.51.2)(yaml@2.9.0)
       zod: 3.25.76
     transitivePeerDependencies:
@@ -10780,7 +10799,7 @@ snapshots:
       '@react-native-harness/config': 1.3.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))
       '@react-native-harness/platforms': 1.3.0
       '@react-native-harness/tools': 1.3.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))
-      tslib: 2.8.1
+      tslib: 2.9.1
       yargs: 17.7.2
       zod: 3.25.76
     transitivePeerDependencies:
@@ -10790,7 +10809,7 @@ snapshots:
 
   '@react-native-harness/platforms@1.3.0':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@react-native-harness/plugins@1.3.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))':
     dependencies:
@@ -10798,7 +10817,7 @@ snapshots:
       '@react-native-harness/platforms': 1.3.0
       '@react-native-harness/tools': 1.3.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))
       hookable: 6.1.1
-      tslib: 2.8.1
+      tslib: 2.9.1
     transitivePeerDependencies:
       - bufferutil
       - react-native
@@ -10828,13 +10847,13 @@ snapshots:
       nano-spawn: 1.0.3
       picocolors: 1.1.1
       react-native: 0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@react-native-harness/ui@1.3.0(@types/react@18.3.31)(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(react@18.3.1)':
     dependencies:
       '@react-native-harness/runtime': 1.3.0(@types/react@18.3.31)(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(react@18.3.1)
       react-native: 0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)
-      tslib: 2.8.1
+      tslib: 2.9.1
     transitivePeerDependencies:
       - '@types/react'
       - bufferutil
@@ -11323,11 +11342,11 @@ snapshots:
       '@lukeed/uuid': 2.0.1
       '@segment/analytics-generic-utils': 1.2.0
       dset: 3.1.4
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@segment/analytics-generic-utils@1.2.0':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@segment/analytics-next@1.84.0':
     dependencies:
@@ -11340,14 +11359,14 @@ snapshots:
       dset: 3.1.4
       js-cookie: 3.0.1
       node-fetch: 2.7.0
-      tslib: 2.8.1
+      tslib: 2.9.1
       unfetch: 4.2.0
     transitivePeerDependencies:
       - encoding
 
   '@segment/analytics-page-tools@1.0.0':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@segment/analytics-react-native@2.15.0(@react-native-async-storage/async-storage@1.23.1(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)))(react-native-get-random-values@1.11.0(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1)))(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(react@18.2.0)':
     dependencies:
@@ -11423,49 +11442,49 @@ snapshots:
     dependencies:
       '@aws-crypto/crc32': 5.2.0
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@smithy/credential-provider-imds@4.3.4':
     dependencies:
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@smithy/fetch-http-handler@5.4.4':
     dependencies:
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@smithy/is-array-buffer@2.2.0':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@smithy/node-http-handler@4.7.4':
     dependencies:
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@smithy/signature-v4@5.4.4':
     dependencies:
       '@smithy/core': 3.24.4
       '@smithy/types': 4.14.2
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@smithy/types@4.14.2':
     dependencies:
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@smithy/util-buffer-from@2.2.0':
     dependencies:
       '@smithy/is-array-buffer': 2.2.0
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@smithy/util-utf8@2.3.0':
     dependencies:
       '@smithy/util-buffer-from': 2.2.0
-      tslib: 2.8.1
+      tslib: 2.9.1
 
   '@standard-schema/spec@1.1.0': {}
 
@@ -11723,6 +11742,13 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
       uri-js: 4.4.1
+
+  ajv@8.20.0:
+    dependencies:
+      fast-deep-equal: 3.1.3
+      fast-uri: 3.1.9
+      json-schema-traverse: 1.0.0
+      require-from-string: 2.0.2
 
   anser@1.4.10: {}
 
@@ -12857,6 +12883,8 @@ snapshots:
   fast-string-width@3.0.2:
     dependencies:
       fast-string-truncated-width: 3.0.3
+
+  fast-uri@3.1.9: {}
 
   fast-wrap-ansi@0.2.2:
     dependencies:
@@ -15122,7 +15150,7 @@ snapshots:
     dependencies:
       nanoid: 3.3.12
       picocolors: 1.1.1
-      source-map-js: 1.2.1
+      source-map-js: 1.2.2
 
   pretty-bytes@5.6.0: {}
 
@@ -15189,9 +15217,10 @@ snapshots:
 
   qrcode-terminal@0.11.0: {}
 
-  qs@6.14.1:
+  qs@6.17.1:
     dependencies:
-      side-channel: 1.1.0
+      es-define-property: 1.0.1
+      side-channel: 1.1.1
 
   query-string@7.1.3:
     dependencies:
@@ -15311,7 +15340,7 @@ snapshots:
       '@react-native-harness/jest': 1.3.0(@babel/core@7.29.7(supports-color@8.1.1))(@babel/plugin-transform-react-jsx@7.29.7(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@18.3.31)(metro-cache@0.81.5)(metro-config@0.81.5(supports-color@8.1.1))(metro-resolver@0.81.5)(metro@0.81.5(supports-color@8.1.1))(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(react@18.3.1)(supports-color@8.1.1)
       '@react-native-harness/metro': 1.3.0(metro@0.81.5(supports-color@8.1.1))
       '@react-native-harness/runtime': 1.3.0(@types/react@18.3.31)(react-native@0.76.9(@babel/core@7.29.7(supports-color@8.1.1))(@babel/preset-env@7.28.6(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@react-native-community/cli@12.1.1(supports-color@8.1.1))(@types/react@18.3.31)(react@18.3.1)(supports-color@8.1.1))(react@18.3.1)
-      tslib: 2.8.1
+      tslib: 2.9.1
     transitivePeerDependencies:
       - '@babel/core'
       - '@babel/plugin-transform-react-jsx'
@@ -15808,7 +15837,7 @@ snapshots:
 
   shell-quote@1.8.3: {}
 
-  side-channel-list@1.0.0:
+  side-channel-list@1.0.1:
     dependencies:
       es-errors: 1.3.0
       object-inspect: 1.13.4
@@ -15828,11 +15857,11 @@ snapshots:
       object-inspect: 1.13.4
       side-channel-map: 1.0.1
 
-  side-channel@1.1.0:
+  side-channel@1.1.1:
     dependencies:
       es-errors: 1.3.0
       object-inspect: 1.13.4
-      side-channel-list: 1.0.0
+      side-channel-list: 1.0.1
       side-channel-map: 1.0.1
       side-channel-weakmap: 1.0.2
 
@@ -15857,8 +15886,6 @@ snapshots:
       is-fullwidth-code-point: 2.0.0
 
   slugify@1.6.9: {}
-
-  source-map-js@1.2.1: {}
 
   source-map-js@1.2.2: {}
 
@@ -16166,7 +16193,7 @@ snapshots:
 
   union@0.5.0:
     dependencies:
-      qs: 6.14.1
+      qs: 6.17.1
 
   unique-filename@3.0.0:
     dependencies:
