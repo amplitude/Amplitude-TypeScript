@@ -96,6 +96,10 @@
           <p>Host loads micro-UI into a div (module federation–style mount without iframe).</p>
         </li>
       </ul>
+      <p style="margin-top: 24px; font-size: 14px; color: #475569">
+        Automated live upload: <code>MFE_CAPTURE_API_KEY=… pnpm exec playwright test mfe-manual-capture.spec.ts --config packages/session-replay-browser/e2e/playwright.config.ts</code>
+        (parent on 127.0.0.1, child on localhost).
+      </p>
     </main>
   </body>
 </html>
