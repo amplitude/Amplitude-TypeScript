@@ -22,8 +22,6 @@
     "dev:nuqs": "vite --config test-server/nuqs-spa/vite.config.mjs",
     "dev:trc": "concurrently \"pnpm run watch\" \"vite --config test-server/session-replay-browser/trc-e2e/vite.config.mjs\"",
     "dev:trc:npm": "SR_MODE=npm vite --config test-server/session-replay-browser/trc-e2e/vite.config.mjs --force",
-    "docs": "typedoc",
-    "docs:check": "typedoc --emit none",
     "fix": "lerna run fix --stream",
     "generate-signed-cert": "sh ./scripts/dev/generate-signed-cert.sh",
     "setup-local-domain": "sh ./scripts/dev/setup-local-domain.sh",
@@ -97,7 +95,6 @@
     "size-limit": "^12.1.0",
     "source-map": "^0.7.4",
     "ts-jest": "^29.0.3",
-    "typedoc": "^0.23.22",
     "typescript": "^4.9.4",
     "vite": "^6.3.4",
     "yargs": "^17.7.1"
