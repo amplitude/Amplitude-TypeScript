@@ -41,75 +41,54 @@ function resolveDurationMillis(
   if (value === undefined) return defaultValue;
   if (!Number.isFinite(value) || value <= 0 || value > maximum) {
     logger.warn(
-      `Page engagement: duration ${value} ms is invalid; using default ${defaultValue} ms. Expected a finite value greater than 0 and at most ${maximum} ms.`,
+      `Page engagement: invalid duration ${value} ms; using default ${defaultValue} ms. Expected 0 < finite duration <= ${maximum} ms.`,
     );
     return defaultValue;
   }
   return value;
 }
 
-/** Owns one page-view delay group at a time, independently of the video heartbeat. */
-export class PageEngagement {
-  private pageState?: PageState;
-  private inactivityTimer?: ReturnType<typeof setTimeout>;
-  private foreground: boolean;
-  private enabled = true;
-  private skippedPage = false;
-  private readonly activityWindow: number;
-  private readonly pulse: number;
-  private readonly timeout: number;
-  private readonly removeListeners: (() => void)[] = [];
+/** Owns one page-view delay group at a time, independently of the video heartbeat.
+ * Keep per-owner state in a closure so ES5 bundles can minify internal names.
+ */
+export const createPageEngagement = (
+  client: BrowserClient,
+  scope: NonNullable<ReturnType<typeof getGlobalScope>>,
+  options: EngagedTimeOptions,
+  config: BrowserConfig,
+  newPageView: () => void,
+) => {
+  let currentPage: PageState | undefined;
+  let inactivityTimer: ReturnType<typeof setTimeout> | undefined;
+  let foreground = isForeground();
+  let enabled = true;
+  let skippedPage = false;
+  const removeListeners: (() => void)[] = [];
+  const timeout = resolveDurationMillis(
+    options.inactivityTimeoutMillis,
+    DEFAULT_INACTIVITY_TIMEOUT,
+    config.loggerProvider,
+    MAX_INACTIVITY_TIMEOUT_MILLIS,
+  );
+  const activityWindow = resolveDurationMillis(
+    options.activityWindowMillis,
+    DEFAULT_ACTIVITY_WINDOW,
+    config.loggerProvider,
+  );
+  const pulse = Math.min(
+    resolveDurationMillis(options.heartbeatIntervalMillis, DEFAULT_ENGAGEMENT_HEARTBEAT, config.loggerProvider),
+    timeout / 2,
+  );
 
-  constructor(
-    private client: BrowserClient,
-    private scope: NonNullable<ReturnType<typeof getGlobalScope>>,
-    options: EngagedTimeOptions,
-    private config: BrowserConfig,
-    private newPageView: () => void,
-  ) {
-    this.timeout = resolveDurationMillis(
-      options.inactivityTimeoutMillis,
-      DEFAULT_INACTIVITY_TIMEOUT,
-      config.loggerProvider,
-      MAX_INACTIVITY_TIMEOUT_MILLIS,
-    );
-    this.activityWindow = resolveDurationMillis(
-      options.activityWindowMillis,
-      DEFAULT_ACTIVITY_WINDOW,
-      config.loggerProvider,
-    );
-    this.pulse = Math.min(
-      resolveDurationMillis(options.heartbeatIntervalMillis, DEFAULT_ENGAGEMENT_HEARTBEAT, config.loggerProvider),
-      this.timeout / 2,
-    );
-    this.foreground = this.isForeground();
-    const listen = (target: EventTarget, type: string, listener: EventListener) => {
-      target.addEventListener(type, listener, { passive: true });
-      this.removeListeners.push(() => target.removeEventListener(type, listener));
-    };
-    for (const type of ['pointerdown', 'pointermove', 'keydown', 'scroll', 'touchstart', 'wheel']) {
-      listen(scope.document, type, this.activity);
-    }
-    listen(scope, 'focus', this.resume);
-    listen(scope, 'blur', this.pause);
-    listen(scope.document, 'visibilitychange', () => (this.isForeground() ? this.resume() : this.pause()));
-    // Leaving the document always ends this view, including entry into BFCache.
-    listen(scope, 'pagehide', () => this.finish('pagehide'));
-    listen(scope, 'pageshow', () => {
-      // A restored page starts a fresh view through the existing activity path.
-      if (this.isForeground()) this.resume();
-    });
+  function isForeground() {
+    return scope.document.visibilityState === 'visible' && scope.document.hasFocus();
   }
 
-  private isForeground() {
-    return this.scope.document.visibilityState === 'visible' && this.scope.document.hasFocus();
-  }
-
-  start(event: Event): boolean {
-    this.finish('navigation');
-    if (!this.enabled) return false;
+  function start(event: Event): boolean {
+    finish('navigation');
+    if (!enabled) return false;
     const now = Date.now();
-    this.foreground = this.isForeground();
+    foreground = isForeground();
     const pageState: PageState = {
       event: {
         ...event,
@@ -117,19 +96,19 @@ export class PageEngagement {
         time: event.time ?? now,
         // Share the SDK inactivity duration with the service fallback. The SDK counts
         // from last activity; the service counts from the last accepted heartbeat.
-        delay: { id: UUID(), timeout: this.timeout },
+        delay: { id: UUID(), timeout },
       },
-      heartbeat: new Heartbeat(this.client, this.pulse, this.timeout, this.config.loggerProvider, {
+      heartbeat: new Heartbeat(client, pulse, timeout, config.loggerProvider, {
         // This owner settles elapsed time and finalizes before sending.
         // Avoid a second set of lifecycle sends.
         sendOnPageLifecycle: false,
         beforeHeartbeat: () => {
           // A heartbeat scheduled by the previous page must not update the new page state.
-          if (this.pageState === pageState) {
-            if (Date.now() >= pageState.lastActivity + this.timeout) {
-              this.retire(pageState, 'inactivity');
+          if (currentPage === pageState) {
+            if (Date.now() >= pageState.lastActivity + timeout) {
+              retire(pageState, 'inactivity');
             } else {
-              void pageState.heartbeat.update(this.snapshot(pageState, pageState.nextSnapshotReason));
+              void pageState.heartbeat.update(snapshot(pageState, pageState.nextSnapshotReason));
               pageState.nextSnapshotReason = 'heartbeat';
             }
           }
@@ -144,36 +123,35 @@ export class PageEngagement {
     };
     // Arrival after server expiry must not overwrite more recent identify updates.
     delete pageState.event.user_properties;
-    const isEnqueued = pageState.heartbeat.enqueue(this.snapshot(pageState, 'initial'));
+    const isEnqueued = pageState.heartbeat.enqueue(snapshot(pageState, 'initial'));
     if (!isEnqueued) {
       // Do not turn subsequent activity on this page into repeated fallback views.
-      this.skippedPage = true;
-      this.config.loggerProvider.warn(
-        'Page engagement: snapshot exceeds the Heartbeat size limit. Sending the original page view without engaged-time tracking.',
+      skippedPage = true;
+      config.loggerProvider.warn(
+        'Page engagement: snapshot exceeds size limit; sending without engaged-time tracking.',
       );
       return false;
     }
-    this.pageState = pageState;
-    this.scheduleInactivity();
+    currentPage = pageState;
+    scheduleInactivity();
     void pageState.heartbeat.resetHeartbeat();
     return true;
   }
 
-  private settle(pageState: PageState) {
+  function settle(pageState: PageState) {
     // Cap a late callback at the inactivity deadline; heartbeats never extend it.
-    const now = Math.max(pageState.updated, Math.min(Date.now(), pageState.lastActivity + this.timeout));
-    if (this.foreground) {
-      pageState.engaged += Math.max(0, Math.min(now, pageState.lastActivity + this.activityWindow) - pageState.updated);
+    const now = Math.max(pageState.updated, Math.min(Date.now(), pageState.lastActivity + timeout));
+    if (foreground) {
+      pageState.engaged += Math.max(0, Math.min(now, pageState.lastActivity + activityWindow) - pageState.updated);
     }
     pageState.updated = now;
   }
 
-  private snapshot(pageState: PageState, reason: string): Event {
-    this.settle(pageState);
+  function snapshot(pageState: PageState, reason: string): Event {
+    settle(pageState);
     const version = ++pageState.version;
     return {
       ...pageState.event,
-      extra: { ...pageState.event.extra, pageEngagementSnapshot: true },
       event_properties: {
         ...pageState.event.event_properties,
         '[Amplitude] Engaged Time': pageState.engaged,
@@ -185,45 +163,45 @@ export class PageEngagement {
     };
   }
 
-  private scheduleInactivity() {
-    clearTimeout(this.inactivityTimer);
-    this.inactivityTimer = setTimeout(() => this.finish('inactivity'), this.timeout);
+  function scheduleInactivity() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => finish('inactivity'), timeout);
   }
 
-  private activity = () => {
+  const activity = () => {
     if (
-      !this.enabled ||
-      this.skippedPage ||
-      !this.foreground ||
-      (this.scope.document as Document & { prerendering?: boolean }).prerendering
+      !enabled ||
+      skippedPage ||
+      !foreground ||
+      (scope.document as Document & { prerendering?: boolean }).prerendering
     )
       return;
-    if (this.pageState && Date.now() >= this.pageState.lastActivity + this.timeout) this.finish('inactivity');
-    if (!this.pageState) {
-      this.newPageView();
+    if (currentPage && Date.now() >= currentPage.lastActivity + timeout) finish('inactivity');
+    if (!currentPage) {
+      newPageView();
       return;
     }
-    this.settle(this.pageState);
-    this.pageState.lastActivity = Date.now();
-    this.scheduleInactivity();
+    settle(currentPage);
+    currentPage.lastActivity = Date.now();
+    scheduleInactivity();
   };
 
-  private resume = () => {
-    if (this.scope.document.visibilityState !== 'visible') return;
-    if (this.pageState) this.settle(this.pageState);
-    this.foreground = true;
-    this.activity();
+  const resume = () => {
+    if (scope.document.visibilityState !== 'visible') return;
+    if (currentPage) settle(currentPage);
+    foreground = true;
+    activity();
   };
 
-  private pause = () => {
-    if (this.pageState) this.settle(this.pageState);
-    this.foreground = false;
-    if (this.pageState) {
-      this.sendBackground(this.pageState);
+  const pause = () => {
+    if (currentPage) settle(currentPage);
+    foreground = false;
+    if (currentPage) {
+      sendBackground(currentPage);
     }
   };
 
-  private sendBackground(pageState: PageState) {
+  function sendBackground(pageState: PageState) {
     const remaining =
       pageState.lastBackgroundSent === undefined
         ? 0
@@ -234,7 +212,7 @@ export class PageEngagement {
       if (pageState.backgroundTimer === undefined) {
         pageState.backgroundTimer = setTimeout(() => {
           pageState.backgroundTimer = undefined;
-          this.sendBackground(pageState);
+          sendBackground(pageState);
         }, remaining);
       }
       return;
@@ -244,46 +222,67 @@ export class PageEngagement {
     pageState.lastBackgroundSent = Date.now();
     pageState.nextSnapshotReason = 'background';
     void pageState.heartbeat.heartbeat();
-    this.client.flush();
+    client.flush();
   }
 
-  private retire(pageState: PageState, reason: string) {
+  function retire(pageState: PageState, reason: string) {
     clearTimeout(pageState.backgroundTimer);
-    clearTimeout(this.inactivityTimer);
-    const event = this.snapshot(pageState, reason);
+    clearTimeout(inactivityTimer);
+    const event = snapshot(pageState, reason);
     event.delay = { ...event.delay!, timeout: undefined };
     void pageState.heartbeat.update(event);
     pageState.heartbeat.pause();
-    this.pageState = undefined;
+    currentPage = undefined;
   }
 
-  finish(reason: string) {
-    this.skippedPage = false;
-    const pageState = this.pageState;
+  function finish(reason: string) {
+    skippedPage = false;
+    const pageState = currentPage;
     if (!pageState) return;
-    this.retire(pageState, reason);
+    retire(pageState, reason);
     // Enqueue the final copy before clearing this page's heartbeat. Destination
     // coalesces pending snapshots and preserves in-flight ordering by delay ID.
     void pageState.heartbeat.heartbeat();
     // Request delivery before waiting for ingestion, especially during page exit.
-    this.client.flush();
+    client.flush();
     pageState.heartbeat.stop();
   }
 
-  setOptOut(optOut: boolean) {
-    this.enabled = !optOut;
+  function setOptOut(optOut: boolean) {
+    enabled = !optOut;
     if (optOut) {
-      this.skippedPage = false;
-      clearTimeout(this.inactivityTimer);
-      clearTimeout(this.pageState?.backgroundTimer);
-      this.pageState?.heartbeat.stop();
-      this.pageState = undefined;
+      skippedPage = false;
+      clearTimeout(inactivityTimer);
+      clearTimeout(currentPage?.backgroundTimer);
+      currentPage?.heartbeat.stop();
+      currentPage = undefined;
     }
   }
 
-  teardown() {
-    this.finish('teardown');
-    this.enabled = false;
-    this.removeListeners.forEach((remove) => remove());
+  function teardown() {
+    finish('teardown');
+    enabled = false;
+    removeListeners.forEach((remove) => remove());
   }
-}
+
+  const listen = (target: EventTarget, type: string, listener: EventListener) => {
+    target.addEventListener(type, listener, { passive: true });
+    removeListeners.push(() => target.removeEventListener(type, listener));
+  };
+  ['pointerdown', 'pointermove', 'keydown', 'scroll', 'touchstart', 'wheel'].forEach((type) => {
+    listen(scope.document, type, activity);
+  });
+  listen(scope, 'focus', resume);
+  listen(scope, 'blur', pause);
+  listen(scope.document, 'visibilitychange', () => (isForeground() ? resume() : pause()));
+  // Leaving the document always ends this view, including entry into BFCache.
+  listen(scope, 'pagehide', () => finish('pagehide'));
+  listen(scope, 'pageshow', () => {
+    // A restored page starts a fresh view through the existing activity path.
+    if (isForeground()) resume();
+  });
+
+  return { start, finish, setOptOut, teardown };
+};
+
+export type PageEngagement = ReturnType<typeof createPageEngagement>;

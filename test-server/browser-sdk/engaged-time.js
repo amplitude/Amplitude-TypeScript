@@ -122,6 +122,7 @@ element('settings').onsubmit = async (event) => {
   element('start').disabled = true;
   try {
     await sdk.init(live ? apiKey : 'local-engaged-time-demo', options).promise;
+    if (customPageView) sdk.track('page_view', { article_id: String(article) });
     element('status').textContent = `SDK running · ${live ? 'Amplitude US' : 'local receiver'}`;
     for (const id of ['navigate', 'flush', 'optout', 'stop']) element(id).disabled = false;
     for (const control of element('settings').querySelectorAll('input, select, button')) control.disabled = true;
@@ -134,6 +135,7 @@ element('navigate').onclick = () => {
   article += 1;
   document.title = `Article ${article} · Engaged time`;
   history.pushState({}, '', `?article=${article}`);
+  if (customPageView) sdk.track('page_view', { article_id: String(article) });
   element('article-title').textContent = `Article ${article} · Another page view`;
 };
 element('flush').onclick = () => {

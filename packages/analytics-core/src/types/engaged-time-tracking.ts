@@ -5,7 +5,7 @@
 export interface EngagedTimeOptions {
   /**
    * Event type for the independent engaged-time plugin. Defaults to `[Amplitude] Page Viewed`.
-   * Automatic lifecycle events, including inactivity renewal, use this name.
+   * Waits for a matching event; after inactivity, resumed activity generates a new view with this name.
    */
   pageViewEventType?: string;
   /** Rolling activity window in milliseconds. Defaults to 5,000. */

@@ -6,7 +6,7 @@ import {
   Logger,
   EngagedTimeOptions,
 } from '@amplitude/analytics-core';
-import { PageEngagement } from '../src/page-engagement';
+import { createPageEngagement, PageEngagement } from '../src/page-engagement';
 
 describe('page engagement', () => {
   let owner: PageEngagement;
@@ -26,7 +26,7 @@ describe('page engagement', () => {
   const engaged = () => latest().event_properties!['[Amplitude] Engaged Time'] as number;
   const start = async (options: EngagedTimeOptions = {}) => {
     const config = { loggerProvider: new Logger(), optOut: false } as unknown as BrowserConfig;
-    owner = new PageEngagement(client, window, options, config, newView);
+    owner = createPageEngagement(client, window, options, config, newView);
     owner.start(original);
     await jest.advanceTimersByTimeAsync(0);
   };
@@ -290,7 +290,7 @@ describe('page engagement', () => {
     const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     await start({ activityWindowMillis: value, heartbeatIntervalMillis: value, inactivityTimeoutMillis: value });
     expect(warn).toHaveBeenCalledWith(
-      `Page engagement: duration ${value} ms is invalid; using default 180000 ms. Expected a finite value greater than 0 and at most 86400000 ms.`,
+      `Page engagement: invalid duration ${value} ms; using default 180000 ms. Expected 0 < finite duration <= 86400000 ms.`,
     );
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('using default 5000 ms'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('using default 15000 ms'));

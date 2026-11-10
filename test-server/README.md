@@ -18,7 +18,7 @@ Open `/browser-sdk/engaged-time.html` after building the packages and starting V
 default local receiver acknowledges requests without simulating delayed ingestion.
 Select Amplitude US and supply a project API key to test the actual delayed service.
 Select the custom page-view checkbox to disable automatic page views and send
-`page_view` lifecycle events without a second default event source.
+`page_view` events from the demo on initialization and article navigation. The engagement plugin waits for those events; it only generates replacement views after an accepted view ends.
 
 The defaults are a 5,000 ms rolling activity window, 15,000 ms heartbeat, and
 180,000 ms (3 minutes) page inactivity timeout. This is one setting used for two paths:
@@ -44,8 +44,8 @@ Use the default settings (5 seconds / 15 seconds / 3 minutes) to check:
 2. Move, scroll, or type before expiry: the same logical page resumes.
 3. Switch tabs or applications: engagement pauses immediately. Return before
    expiry to resume. After expiry, renewed activity automatically generates a new logical view with the configured event name.
-4. Navigate to another article: the old view finalizes with its original URL and
-   the next page-view event starts a new delay group. Leaving the
+4. Navigate to another article: the demo emits the next matching page-view event,
+   which finalizes the old view with its original URL and starts a new delay group. Leaving the
    document finalizes even when it enters BFCache. Returning through Back/Forward
    automatically starts a new view once visible and focused. Switching tabs still only pauses engagement.
 5. Opt out: local engagement state is discarded. Opt in and interact to start anew.

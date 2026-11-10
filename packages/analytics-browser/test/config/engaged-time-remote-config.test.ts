@@ -1,6 +1,6 @@
 import { RemoteConfigClient, RemoteConfig, EngagedTimeOptions } from '@amplitude/analytics-core';
 import { AutocaptureOptionsRemoteConfig, updateBrowserConfigWithRemoteConfig } from '../../src/config/joined-config';
-import { getEngagedTimeTrackingConfig } from '../../src/default-tracking';
+import { getEngagedTimeTrackingConfig, isEngagedTimeTrackingEnabled } from '../../src/default-tracking';
 import { createConfigurationMock } from '../helpers/mock';
 
 const timings: EngagedTimeOptions = {
@@ -36,7 +36,8 @@ describe('independent engaged-time remote config contract', () => {
     (autocapture) => {
       const config = createConfigurationMock({ autocapture });
       updateBrowserConfigWithRemoteConfig({ autocapture: { engagedTimeTracking: { enabled: true } } }, config);
-      expect(getEngagedTimeTrackingConfig(config)).toEqual({});
+      expect(getEngagedTimeTrackingConfig(config)).toBeUndefined();
+      expect(isEngagedTimeTrackingEnabled(config.autocapture)).toBe(true);
     },
   );
 });

@@ -1,4 +1,4 @@
-import { getEngagedTimeTrackingConfig } from '../../src/default-tracking';
+import { getEngagedTimeTrackingConfig, isEngagedTimeTrackingEnabled } from '../../src/default-tracking';
 import { updateBrowserConfigWithRemoteConfig } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
 import {
@@ -31,10 +31,10 @@ describe('joined-config', () => {
         inactivityTimeoutMillis: 120_000,
       };
       test.each([
-        { remote: { enabled: true }, expected: {} },
+        { remote: { enabled: true }, expected: undefined },
         { remote: { enabled: true, ...timings }, expected: timings },
         { remote: { enabled: false, ...timings }, expected: undefined },
-        { remote: true, expected: {} },
+        { remote: true, expected: undefined },
         { remote: false, expected: undefined },
         { remote: {}, expected: {} },
         { remote: timings, expected: timings },
@@ -54,14 +54,16 @@ describe('joined-config', () => {
       test('replaces the engagement options object using the existing shallow merge', () => {
         localConfig.autocapture = { engagedTimeTracking: timings };
         updateBrowserConfigWithRemoteConfig({ autocapture: { engagedTimeTracking: { enabled: true } } }, localConfig);
-        expect(getEngagedTimeTrackingConfig(localConfig)).toEqual({});
+        expect(getEngagedTimeTrackingConfig(localConfig)).toBeUndefined();
+        expect(isEngagedTimeTrackingEnabled(localConfig.autocapture)).toBe(true);
       });
       test('enables independent engagement while pageViews is disabled', () => {
         updateBrowserConfigWithRemoteConfig(
           { autocapture: { pageViews: false, engagedTimeTracking: { enabled: true } } },
           localConfig,
         );
-        expect(getEngagedTimeTrackingConfig(localConfig)).toEqual({});
+        expect(getEngagedTimeTrackingConfig(localConfig)).toBeUndefined();
+        expect(isEngagedTimeTrackingEnabled(localConfig.autocapture)).toBe(true);
         expect(localConfig.autocapture).toMatchObject({ pageViews: false });
       });
     });

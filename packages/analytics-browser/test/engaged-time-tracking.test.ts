@@ -7,7 +7,7 @@ import {
   Transport,
 } from '@amplitude/analytics-core';
 import { AmplitudeBrowser } from '../src/browser-client';
-import { getEngagedTimeTrackingConfig } from '../src/default-tracking';
+import { getEngagedTimeTrackingConfig, isEngagedTimeTrackingEnabled } from '../src/default-tracking';
 import { updateBrowserConfigWithRemoteConfig } from '../src/config/joined-config';
 import { createConfigurationMock } from './helpers/mock';
 
@@ -15,21 +15,26 @@ describe('engagedTimeTracking configuration', () => {
   test.each([undefined, false, true, {}, { engagedTimeTracking: false }])(
     'is opt-in with autocapture=%p',
     (autocapture) => {
+      expect(isEngagedTimeTrackingEnabled(autocapture)).toBe(false);
       expect(getEngagedTimeTrackingConfig({ autocapture })).toBeUndefined();
     },
   );
   test.each([true, {}, { pageViewEventType: 'page_view', activityWindowMillis: 123 }])(
     'forwards %p independently of pageViews',
     (engagedTimeTracking) => {
-      expect(getEngagedTimeTrackingConfig({ autocapture: { pageViews: false, engagedTimeTracking } })).toEqual(
-        engagedTimeTracking === true ? {} : engagedTimeTracking,
-      );
+      for (const pageViews of [false, true, { eventType: 'renamed' }]) {
+        const autocapture = { pageViews, engagedTimeTracking };
+        expect(isEngagedTimeTrackingEnabled(autocapture)).toBe(true);
+        expect(getEngagedTimeTrackingConfig({ autocapture })).toEqual(
+          engagedTimeTracking === true ? undefined : engagedTimeTracking,
+        );
+      }
     },
   );
   test.each([
-    { remote: true, expected: {} },
+    { remote: true, expected: undefined },
     { remote: false, expected: undefined },
-    { remote: { enabled: true }, expected: {} },
+    { remote: { enabled: true }, expected: undefined },
     { remote: { enabled: false, pageViewEventType: 'page_view' }, expected: undefined },
     {
       remote: { enabled: true, pageViewEventType: 'page_view', inactivityTimeoutMillis: 1000 },
@@ -39,6 +44,9 @@ describe('engagedTimeTracking configuration', () => {
     const config = createConfigurationMock({ autocapture: false });
     updateBrowserConfigWithRemoteConfig({ autocapture: { pageViews: false, engagedTimeTracking: remote } }, config);
     expect(getEngagedTimeTrackingConfig(config)).toEqual(expected);
+    expect(isEngagedTimeTrackingEnabled(config.autocapture)).toBe(
+      remote !== false && !(typeof remote === 'object' && remote.enabled === false),
+    );
     expect(config.autocapture).toMatchObject({ pageViews: false });
   });
 });
@@ -122,50 +130,51 @@ describe('engagedTimeTracking through the Browser SDK', () => {
     history.replaceState = originalReplaceState;
     jest.useRealTimers();
   });
-  test('tracks custom events with pageViews disabled and retains page context across navigation', async () => {
+  test('waits for custom events with pageViews disabled, including navigation', async () => {
     await init({ pageViewEventType: 'page_view' });
-    expect(events()).toHaveLength(1);
-    expect(events()[0].event_type).toBe('page_view');
+    expect(events()).toHaveLength(0);
     await track('page_view', { article_id: 'article-a' });
-    expect(events()).toHaveLength(3);
-    expect(events()[2]).toMatchObject({
+    expect(events()).toHaveLength(1);
+    const original = events()[0];
+    expect(original).toMatchObject({
       event_type: 'page_view',
       delay: { timeout: 180_000 },
-      event_properties: {
-        article_id: 'article-a',
-        '[Amplitude] Page Path': '/article-a',
-        '[Amplitude] Engaged Time': expect.any(Number),
-      },
+      event_properties: { article_id: 'article-a', '[Amplitude] Page Path': '/article-a' },
     });
-    const original = events()[2];
     history.pushState({}, '', '/article-b');
-    await jest.advanceTimersByTimeAsync(20);
-    expect(events()).toHaveLength(5);
-    expect(events()[3]).toMatchObject({
+    document.dispatchEvent(new Event('keydown'));
+    window.dispatchEvent(new Event('focus'));
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(events()).toHaveLength(1);
+    await track('page_view', { article_id: 'article-b' });
+    expect(events()).toHaveLength(3);
+    expect(events()[1]).toMatchObject({
       insert_id: original.insert_id,
       time: original.time,
       delay: { id: original.delay!.id, timeout: undefined },
       event_properties: { article_id: 'article-a', '[Amplitude] Page Path': '/article-a' },
     });
+    expect(events()[2].event_properties).toMatchObject({
+      article_id: 'article-b',
+      '[Amplitude] Page Path': '/article-b',
+    });
+    expect(events()[2].delay!.id).not.toBe(original.delay!.id);
+  });
+  test('true waits for the default name without installing or generating page views', async () => {
+    await init(true);
     document.dispatchEvent(new Event('keydown'));
     window.dispatchEvent(new Event('focus'));
-    await jest.advanceTimersByTimeAsync(1000);
-    expect(events()).toHaveLength(5);
-    expect(events()[4].event_properties).not.toHaveProperty('article_id');
-    await track('page_view', { article_id: 'article-b' });
-    expect(events()).toHaveLength(7);
-    expect(events()[6].delay!.id).not.toBe(original.delay!.id);
-  });
-  test('true matches only the default event name without installing automatic page views', async () => {
-    await init(true);
-    expect(events()).toHaveLength(1);
-    expect(events()[0].event_type).toBe('[Amplitude] Page Viewed');
+    await jest.advanceTimersByTimeAsync(200_000);
+    expect(events()).toHaveLength(0);
+    expect(client.timeline.plugins.some((p) => p.name === '@amplitude/plugin-engaged-time-tracking-browser')).toBe(
+      true,
+    );
     expect(client.timeline.plugins.some((p) => p.name === '@amplitude/plugin-page-view-tracking-browser')).toBe(false);
     await track('page_view');
-    expect(events()[1].delay).toBeUndefined();
+    expect(events()[0].delay).toBeUndefined();
     await track('[Amplitude] Page Viewed');
-    expect(events()).toHaveLength(4);
-    expect(events()[3].delay).toBeDefined();
+    expect(events()).toHaveLength(2);
+    expect(events()[1].delay).toBeDefined();
   });
   test('works with the default page-view plugin and counts each view once', async () => {
     await init(true, true);
@@ -186,9 +195,9 @@ describe('engagedTimeTracking through the Browser SDK', () => {
   });
   test('does not treat a renamed automatic page view as the default name', async () => {
     await init(true, { eventType: 'renamed_page' });
-    expect(events()).toHaveLength(2);
-    expect(events().find((event) => event.event_type === 'renamed_page')!.delay).toBeUndefined();
-    expect(events().find((event) => event.event_type === '[Amplitude] Page Viewed')!.delay).toBeDefined();
+    expect(events()).toHaveLength(1);
+    expect(events()[0].event_type).toBe('renamed_page');
+    expect(events()[0].delay).toBeUndefined();
   });
   test('tracks an explicitly selected renamed automatic event', async () => {
     await init({ pageViewEventType: 'renamed_page' }, { eventType: 'renamed_page' });

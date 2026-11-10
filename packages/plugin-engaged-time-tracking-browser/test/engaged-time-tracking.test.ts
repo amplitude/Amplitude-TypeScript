@@ -1,7 +1,5 @@
 import {
-  BASE_CAMPAIGN,
   BeforePlugin,
-  CampaignParser,
   BrowserConfig,
   Event as AnalyticsEvent,
   Logger,
@@ -30,9 +28,8 @@ describe('independent engaged-time tracking', () => {
   });
   const setup = async (
     options: Parameters<typeof engagedTimeTrackingPlugin>[0] = { pageViewEventType: 'page_view' },
-    source: Parameters<typeof engagedTimeTrackingPlugin>[1] = { autoTrackPageViews: false },
   ) => {
-    plugin = engagedTimeTrackingPlugin(options, source);
+    plugin = engagedTimeTrackingPlugin(options);
     await plugin.setup!(config, client);
   };
   const latest = () => sent[sent.length - 1];
@@ -76,82 +73,109 @@ describe('independent engaged-time tracking', () => {
     jest.useRealTimers();
   });
 
-  test('defaults to the standard event type and generates the initial view', async () => {
-    plugin = engagedTimeTrackingPlugin();
-    await plugin.setup!(config, client);
-    await jest.advanceTimersByTimeAsync(1);
-    expect(sent).toHaveLength(1);
-    expect(latest().event_type).toBe('[Amplitude] Page Viewed');
-    const custom = page();
-    expect(await plugin.execute!(custom)).toBe(custom);
-  });
-
-  test('generates custom page views on initialization and navigation, but not active focus', async () => {
-    await setup({ pageViewEventType: 'page_view' }, {});
-    await jest.advanceTimersByTimeAsync(1);
-    expect(sent).toHaveLength(1);
-    const initial = latest();
-    window.dispatchEvent(new Event('focus'));
-    document.dispatchEvent(new Event('keydown'));
-    await jest.advanceTimersByTimeAsync(1);
-    expect(sent).toHaveLength(1);
-    history.pushState({}, '', '/article-b');
-    await jest.advanceTimersByTimeAsync(1);
-    expect(sent).toHaveLength(3);
-    expect(latest().event_type).toBe('page_view');
-    expect(latest().insert_id).not.toBe(initial.insert_id);
-    expect(latest().event_properties).toMatchObject({
-      '[Amplitude] Page Path': '/article-b',
-      '[Amplitude] Page Counter': 2,
-    });
-  });
-
-  test('pathOnly ignores query-only pushState and replaceState, then tracks a new path', async () => {
-    await setup({ pageViewEventType: 'page_view' }, { trackHistoryChanges: 'pathOnly' });
-    await jest.advanceTimersByTimeAsync(1);
-    history.pushState({}, '', '/article-a?q=1');
-    history.replaceState({}, '', '/article-a?q=2');
-    await jest.advanceTimersByTimeAsync(1);
-    expect(sent).toHaveLength(1);
-    history.pushState({}, '', '/article-b');
-    await jest.advanceTimersByTimeAsync(1);
-    expect(sent).toHaveLength(3);
-  });
-
-  test('defers initialization during prerendering and starts once on activation', async () => {
-    Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
-    await setup({ pageViewEventType: 'page_view' }, {});
-    document.dispatchEvent(new Event('keydown'));
-    expect(sent).toHaveLength(0);
-    Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
-    document.dispatchEvent(new Event('prerenderingchange'));
-    document.dispatchEvent(new Event('prerenderingchange'));
-    await jest.advanceTimersByTimeAsync(1);
-    expect(sent).toHaveLength(1);
-  });
-
-  test.each(['reset', 'opt-out', 'teardown'] as const)(
-    'cancels generated views awaiting campaign lookup on %s',
-    async (boundary) => {
-      let release!: () => void;
-      jest.spyOn(CampaignParser.prototype, 'parse').mockImplementationOnce(async () => {
-        await new Promise<void>((resolve) => {
-          release = resolve;
-        });
-        return { ...BASE_CAMPAIGN };
-      });
-      await setup({ pageViewEventType: 'page_view' }, {});
-      if (boundary === 'reset') await plugin.onReset!();
-      if (boundary === 'opt-out') {
-        config.optOut = true;
-        await plugin.onOptOutChanged!(true);
-      }
-      if (boundary === 'teardown') await plugin.teardown!();
-      release();
-      await jest.advanceTimersByTimeAsync(1);
+  test.each([undefined, {}, { pageViewEventType: 'page_view' }])(
+    'waits for a matching event with options %p, including after focus, navigation, and activation',
+    async (options) => {
+      plugin = engagedTimeTrackingPlugin(options);
+      const push = Object.getOwnPropertyDescriptor(history, 'pushState');
+      const replace = Object.getOwnPropertyDescriptor(history, 'replaceState');
+      await plugin.setup!(config, client);
+      document.dispatchEvent(new Event('keydown'));
+      window.dispatchEvent(new Event('focus'));
+      history.pushState({}, '', '/article-b');
+      history.replaceState({}, '', '/article-c');
+      window.dispatchEvent(new Event('popstate'));
+      document.dispatchEvent(new Event('prerenderingchange'));
+      await jest.advanceTimersByTimeAsync(200_000);
       expect(sent).toHaveLength(0);
+      expect(Object.getOwnPropertyDescriptor(history, 'pushState')).toEqual(push);
+      expect(Object.getOwnPropertyDescriptor(history, 'replaceState')).toEqual(replace);
+      const expectedType = options?.pageViewEventType ?? '[Amplitude] Page Viewed';
+      expect(await plugin.execute!(page('unrelated'))).toMatchObject({ event_type: 'unrelated' });
+      expect(await plugin.execute!(page(expectedType))).toBeNull();
+      await jest.advanceTimersByTimeAsync(1);
+      expect(sent).toHaveLength(1);
+      expect(latest().event_type).toBe(expectedType);
     },
   );
+
+  test('does not renew an observed view during prerendering or while the page has exited', async () => {
+    await setup({ pageViewEventType: 'page_view', inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 });
+    await plugin.execute!(page());
+    await jest.advanceTimersByTimeAsync(101);
+    const count = sent.length;
+    Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(count);
+    Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
+    window.dispatchEvent(new Event('pagehide'));
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(count);
+    window.dispatchEvent(new Event('pageshow'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(count + 1);
+  });
+
+  test.each(['reset', 'opt-out', 'pagehide'] as const)('cancels a queued idle renewal on %s', async (boundary) => {
+    await setup({ pageViewEventType: 'page_view', inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 });
+    await plugin.execute!(page());
+    await jest.advanceTimersByTimeAsync(101);
+    const count = sent.length;
+    let queued!: AnalyticsEvent;
+    let complete!: () => void;
+    client.track.mockImplementationOnce((eventOrType) => {
+      queued = eventOrType as AnalyticsEvent;
+      return {
+        promise: new Promise((resolve) => {
+          complete = () => resolve({ event: queued, code: 200, message: '' });
+        }),
+      };
+    });
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    if (boundary === 'reset') await plugin.onReset!();
+    if (boundary === 'opt-out') {
+      config.optOut = true;
+      await plugin.onOptOutChanged!(true);
+    }
+    if (boundary === 'pagehide') window.dispatchEvent(new Event('pagehide'));
+    expect(await plugin.execute!(queued)).toBeNull();
+    complete();
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(count);
+  });
+
+  test('retains campaign metadata on renewal and waits for a matching event after URL changes', async () => {
+    await setup({ pageViewEventType: 'page_view', inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 });
+    await plugin.execute!({ ...page(), event_properties: { article_id: 'article-a', utm_source: 'campaign-a' } });
+    await jest.advanceTimersByTimeAsync(101);
+    history.pushState({}, '', '/article-b');
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    const count = sent.length;
+    expect(client.track.mock.calls).toHaveLength(0);
+    await plugin.execute!({
+      event_type: 'page_view',
+      event_properties: {
+        article_id: 'article-b',
+        utm_source: 'campaign-b',
+        '[Amplitude] Page Location': '/virtual/article-b',
+        '[Amplitude] SDK Initialization Offset': 321,
+      },
+    });
+    await jest.advanceTimersByTimeAsync(101);
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent.length).toBeGreaterThan(count);
+    expect(latest().event_properties).toMatchObject({
+      article_id: 'article-b',
+      utm_source: 'campaign-b',
+      '[Amplitude] Page Location': '/virtual/article-b',
+      '[Amplitude] SDK Initialization Offset': 321,
+    });
+  });
 
   test('snapshots custom events and preserves their identity and business properties', async () => {
     await setup({ pageViewEventType: 'page_view', activityWindowMillis: 2000, heartbeatIntervalMillis: 1000 });
@@ -189,30 +213,22 @@ describe('independent engaged-time tracking', () => {
     expect(sent[2].insert_id).toBeTruthy();
   });
 
-  test.each(['pushState', 'replaceState', 'popstate'] as const)(
-    'finalizes on %s and defers the replacement to the coordinated source',
-    async (method) => {
-      await setup();
-      await plugin.execute!(page());
-      await jest.advanceTimersByTimeAsync(1000);
-      // A history update to the same URL is not a new page.
-      history.pushState({}, '', '/article-a');
-      expect(sent).toHaveLength(1);
-      if (method === 'popstate') {
-        originalReplaceState.call(history, {}, '', '/article-b');
-        window.dispatchEvent(new Event('popstate'));
-      } else history[method]({}, '', '/article-b');
-      await jest.advanceTimersByTimeAsync(1);
-      expect(latest()).toMatchObject({
-        delay: { timeout: undefined },
-        event_properties: { '[Amplitude] Engagement Snapshot Reason': 'navigation' },
-      });
-      document.dispatchEvent(new Event('keydown'));
-      window.dispatchEvent(new Event('focus'));
-      await jest.advanceTimersByTimeAsync(200_000);
-      expect(sent).toHaveLength(2);
-    },
-  );
+  test('navigation alone does not create or finalize views; a matching event defines the next view', async () => {
+    await setup();
+    await plugin.execute!(page());
+    await jest.advanceTimersByTimeAsync(1000);
+    history.pushState({}, '', '/article-b');
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(1);
+    await plugin.execute!({ event_type: 'page_view', event_properties: { article_id: 'article-b' } });
+    await jest.advanceTimersByTimeAsync(1);
+    expect(sent).toHaveLength(3);
+    expect(sent[1]).toMatchObject({
+      delay: { timeout: undefined },
+      event_properties: { article_id: 'article-a', '[Amplitude] Engagement Snapshot Reason': 'navigation' },
+    });
+    expect(latest().event_properties).toMatchObject({ article_id: 'article-b' });
+  });
 
   test('renews once on activity after inactivity and after BFCache restore with the configured name', async () => {
     await setup({ pageViewEventType: 'page_view', inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 });
@@ -294,6 +310,30 @@ describe('independent engaged-time tracking', () => {
     expect(latest().insert_id).toBe(sent[0].insert_id);
     const snapshot = latest();
     expect(await capture.execute!(snapshot)).toBe(snapshot);
+  });
+
+  test('drops a queued idle renewal if a new explicit view arrives first', async () => {
+    await setup({ pageViewEventType: 'page_view', inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 });
+    await plugin.execute!(page());
+    await jest.advanceTimersByTimeAsync(101);
+    let queued!: AnalyticsEvent;
+    let complete!: () => void;
+    client.track.mockImplementationOnce((eventOrType) => {
+      queued = eventOrType as AnalyticsEvent;
+      return {
+        promise: new Promise((resolve) => {
+          complete = () => resolve({ event: queued, code: 200, message: '' });
+        }),
+      };
+    });
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(1);
+    expect(queued).toBeDefined();
+    await plugin.execute!({ event_type: 'page_view', event_properties: { article_id: 'new-article' } });
+    expect(await plugin.execute!(queued)).toBeNull();
+    complete();
+    await jest.advanceTimersByTimeAsync(1);
+    expect(latest().event_properties).toMatchObject({ article_id: 'new-article' });
   });
 
   test('falls back to ordinary delivery if the snapshot is too large', async () => {

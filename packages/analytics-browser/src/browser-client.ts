@@ -17,6 +17,7 @@ import {
 import {
   getPageViewTrackingConfig,
   getEngagedTimeTrackingConfig,
+  isEngagedTimeTrackingEnabled,
   getElementInteractionsConfig,
   getNetworkTrackingConfig,
   isAttributionTrackingEnabled,
@@ -92,7 +93,7 @@ export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserCli
           await this.add(formInteractionTracking()).promise;
         }
 
-        // Default trackOn: enrich URL properties before the page-view source processes events.
+        // Default trackOn: add URL properties before page-view tracking saves engagement snapshots.
         // Attribution: run page-view tracking first to convert $identify into a page view,
         // since URL enrichment skips $identify events. Keep custom callbacks in their existing order.
         const enrichBeforePageTracking = getPageViewTrackingConfig(this.config).trackOn === undefined;
@@ -163,20 +164,8 @@ export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserCli
           await this.add(customEnrichmentPlugin()).promise;
         }
 
-        // Keep one initial/navigation source; engagement owns all timing and renewal.
-        const engagedTimeOptions = getEngagedTimeTrackingConfig(this.config);
-        if (engagedTimeOptions) {
-          const pageViewOptions = getPageViewTrackingConfig(this.config);
-          const sharedSource =
-            isPageViewTrackingEnabled(this.config.defaultTracking) &&
-            (pageViewOptions.eventType ?? '[Amplitude] Page Viewed') ===
-              (engagedTimeOptions.pageViewEventType ?? '[Amplitude] Page Viewed');
-          await this.add(
-            engagedTimeTrackingPlugin(engagedTimeOptions, {
-              autoTrackPageViews: !sharedSource,
-              trackHistoryChanges: pageViewOptions.trackHistoryChanges,
-            }),
-          ).promise;
+        if (isEngagedTimeTrackingEnabled(this.config.autocapture)) {
+          await this.add(engagedTimeTrackingPlugin(getEngagedTimeTrackingConfig(this.config))).promise;
         }
       },
 

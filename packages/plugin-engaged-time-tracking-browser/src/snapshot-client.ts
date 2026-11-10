@@ -10,19 +10,18 @@ import {
 
 /** Reuse the SDK's delivery queues without replaying an already-enriched page view. */
 export const createSnapshotClient = (client: BrowserClient, config: BrowserConfig): BrowserClient => {
-  const send = async (event: Event): Promise<Result> => {
-    if (config.optOut) return { event, code: 0, message: 'Opt-out is enabled' };
+  const send = (event: Event): Promise<Result> => {
+    if (config.optOut) return Promise.resolve({ event, code: 0, message: 'Opt-out is enabled' });
     // Browser SDK clients expose their core timeline. Use every installed destination,
     // preserving normal queues, storage, retries and additional destination plugins.
     const destinations = (client as unknown as AmplitudeCore).timeline.plugins.filter(
       (plugin): plugin is DestinationPlugin => plugin.type === 'destination',
     );
-    const results = await Promise.all(
+    return Promise.all(
       destinations.map((destination) =>
         destination.execute({ ...event }).catch((error: unknown) => ({ event, code: 0, message: String(error) })),
       ),
-    );
-    return results[0] ?? { event, code: 100, message: 'No destination plugins are installed' };
+    ).then((results) => results[0] ?? { event, code: 100, message: 'No destination plugins are installed' });
   };
   const snapshotClient = Object.create(client) as BrowserClient;
   // Heartbeat always calls track(event_type, event_properties, eventOptions).

@@ -93,6 +93,9 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
       expect(send).not.toHaveBeenCalled();
       document.dispatchEvent(new Event('keydown'));
       await jest.advanceTimersByTimeAsync(20);
+      expect(events()).toHaveLength(0);
+      client.track('[Amplitude] Page Viewed');
+      await jest.advanceTimersByTimeAsync(20);
       expect(events()).toHaveLength(1);
       expect(events()[0]).toMatchObject({
         device_id: client.getDeviceId(),

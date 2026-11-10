@@ -36,7 +36,7 @@ describe('engagement delivery through the SDK pipeline', () => {
       await client.init(config);
       await client.add(new Destination()).promise;
       Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
-      const plugin = engagedTimeTrackingPlugin({}, { autoTrackPageViews: false });
+      const plugin = engagedTimeTrackingPlugin();
       await client.add(plugin).promise;
       Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
       try {
@@ -76,7 +76,7 @@ describe('engagement delivery through the SDK pipeline', () => {
     await client.init(config);
     await client.add(new Destination()).promise;
     Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
-    const plugin = engagedTimeTrackingPlugin({}, { autoTrackPageViews: false });
+    const plugin = engagedTimeTrackingPlugin();
     await client.add(plugin).promise;
     Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
     try {
