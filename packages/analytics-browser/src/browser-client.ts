@@ -154,18 +154,29 @@ export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserCli
           await this.add(performancePlugin(getPerformanceTrackingConfig(this.config))).promise;
         }
 
-        if (!enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
-          this.config.loggerProvider.debug('Adding referrer page url plugin');
-          await this.add(pageUrlEnrichmentPlugin()).promise;
-        }
+        const addPostPageViewPlugins = async () => {
+          if (!enrichBeforePageTracking && isPageUrlEnrichmentEnabled(this.config.autocapture)) {
+            this.config.loggerProvider.debug('Adding referrer page url plugin');
+            await this.add(pageUrlEnrichmentPlugin()).promise;
+          }
 
-        if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
-          this.config.loggerProvider.debug('Adding custom enrichment plugin');
-          await this.add(customEnrichmentPlugin()).promise;
-        }
+          if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
+            this.config.loggerProvider.debug('Adding custom enrichment plugin');
+            await this.add(customEnrichmentPlugin()).promise;
+          }
 
-        if (isEngagedTimeTrackingEnabled(this.config.autocapture)) {
-          await this.add(engagedTimeTrackingPlugin(getEngagedTimeTrackingConfig(this.config))).promise;
+          if (isEngagedTimeTrackingEnabled(this.config.autocapture)) {
+            await this.add(engagedTimeTrackingPlugin(getEngagedTimeTrackingConfig(this.config))).promise;
+          }
+        };
+        if (this.config.optOut && isEngagedTimeTrackingEnabled(this.config.autocapture)) {
+          // Opt-in listeners run sequentially: finish deferred PageView setup before
+          // URL/custom enrichment and engagement capture their first matching view.
+          this.timeline.addOptOutListener(async (optOut) => {
+            if (!optOut) await addPostPageViewPlugins();
+          });
+        } else {
+          await addPostPageViewPlugins();
         }
       },
 

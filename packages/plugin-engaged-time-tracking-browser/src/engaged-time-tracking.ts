@@ -11,28 +11,41 @@ import { createSnapshotClient } from './snapshot-client';
 
 /** Observe configured page views; only idle/lifecycle recovery creates replacement views. */
 export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): EnrichmentPlugin => {
+  // Exact PageView event name to observe, including generated renewals.
   const eventType = options.pageViewEventType ?? '[Amplitude] Page Viewed';
-  let owner: PageEngagement | undefined;
-  let localConfig: BrowserConfig;
+  // Tracks the current view's elapsed time, activity, and heartbeat.
+  let pageEngagement: PageEngagement | undefined;
+  // Shared SDK settings, including the current opt-out value.
+  let browserConfig: BrowserConfig;
+  // Blocks renewal after pagehide until pageshow, including BFCache.
   let exited = false;
+  // Prevents this plugin from generating events after teardown.
   let installed = false;
+  // URL of the last accepted view; renewal waits on this same URL.
   let pageHref: string | undefined;
+  // Invalidates queued events across identity, session, consent, or exit boundaries.
   let cancellation = 0;
+  // Advances for each accepted view so an older renewal cannot replace it.
   let revision = 0;
+  // Identifies an in-flight renewal to suppress repeated activity/focus requests.
   let pendingContext: { revision: number; cancellation: number } | undefined;
+  // Removes the before-plugin that stamps each event's lifecycle context.
   let removeContext: (() => Promise<void>) | undefined;
+  // Unsubscribes this plugin's DOM lifecycle listeners during teardown.
   const removeListeners: (() => void)[] = [];
+  // Reuses a completed promise for synchronous plugin hooks.
   const resolved = Promise.resolve();
+  // Cancels stale queued events and finalizes the active view.
   const finish = (reason: string) => {
     cancellation += 1;
-    owner?.finish(reason);
+    pageEngagement?.finish(reason);
   };
 
   return {
     name: '@amplitude/plugin-engaged-time-tracking-browser',
     type: 'enrichment',
     setup: (config: BrowserConfig, client: BrowserClient) => {
-      localConfig = config;
+      browserConfig = config;
       const scope = getGlobalScope();
       if (!scope?.document) return resolved;
       installed = true;
@@ -41,7 +54,7 @@ export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): Enr
         target.addEventListener(type, listener);
         removeListeners.push(() => target.removeEventListener(type, listener));
       };
-      // Register before the engagement owner so BFCache restore clears the exit guard before resume.
+      // Register before the engagement tracker so BFCache restore clears the exit guard before resume.
       listen(scope, 'pagehide', () => {
         exited = true;
         cancellation += 1;
@@ -68,11 +81,10 @@ export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): Enr
           if (pendingContext === context) pendingContext = undefined;
         });
       };
-      const engagement = createPageEngagement(createSnapshotClient(client, config), scope, options, config, () => {
+      pageEngagement = createPageEngagement(createSnapshotClient(client, config), scope, options, config, () => {
         void trackPageView();
       });
-      owner = engagement;
-      engagement.setOptOut(config.optOut);
+      pageEngagement.setOptOut(config.optOut);
       const contextName = '@amplitude/plugin-engaged-time-tracking-browser/context';
       return client
         .add({
@@ -90,8 +102,8 @@ export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): Enr
         });
     },
     execute: (event) => {
-      if (!owner || event.delay || event.event_type !== eventType) return Promise.resolve(event);
-      if (exited || localConfig.optOut) return Promise.resolve(null);
+      if (!pageEngagement || event.delay || event.event_type !== eventType) return Promise.resolve(event);
+      if (exited || browserConfig.optOut) return Promise.resolve(null);
       const context = event.extra?.engagedTimeContext as
         | { cancellation: number; revision?: number; href?: string }
         | undefined;
@@ -101,13 +113,13 @@ export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): Enr
         return Promise.resolve(event);
       pageHref = getGlobalScope()!.location.href;
       revision += 1;
-      return Promise.resolve(owner.start(event) ? null : event);
+      return Promise.resolve(pageEngagement.start(event) ? null : event);
     },
     teardown: () => {
       installed = false;
       cancellation += 1;
-      owner?.teardown();
-      owner = undefined;
+      pageEngagement?.teardown();
+      pageEngagement = undefined;
       removeListeners.forEach((remove) => remove());
       return removeContext?.() ?? resolved;
     },
@@ -115,7 +127,7 @@ export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): Enr
       if (optOut) {
         cancellation += 1;
       }
-      owner?.setOptOut(optOut);
+      pageEngagement?.setOptOut(optOut);
       return resolved;
     },
     onReset: () => {

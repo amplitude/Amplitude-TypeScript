@@ -206,7 +206,7 @@ describe('engagedTimeTracking through the Browser SDK', () => {
     expect(events()).toHaveLength(1);
     expect(events()[0].delay).toBeDefined();
   });
-  test('installs while opted out and waits for consent before tracking custom events', async () => {
+  test('waits for consent before installing engagement and tracking custom events', async () => {
     await init({ pageViewEventType: 'page_view' }, false, true);
     await track('page_view');
     expect(send).not.toHaveBeenCalled();
@@ -239,6 +239,9 @@ describe('engagedTimeTracking through the Browser SDK', () => {
       expect(original.event_properties).toMatchObject({ article_id: 'article-a' });
       expect(renewed.event_properties).not.toHaveProperty('article_id');
       expect(renewed.event_properties).toHaveProperty(['[Amplitude] Engaged Time']);
+      expect((renewed.event_properties as Record<string, unknown>)['[Amplitude] Page Counter']).toBe(
+        eventType === '[Amplitude] Page Viewed' ? 3 : undefined,
+      );
       const beforeFocus = events().length;
       window.dispatchEvent(new Event('focus'));
       await jest.advanceTimersByTimeAsync(1);
