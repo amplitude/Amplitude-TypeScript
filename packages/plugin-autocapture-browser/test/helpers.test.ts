@@ -16,6 +16,7 @@ import {
   getNormalizedPageUrl,
   normalizePageUrl,
   resolveHistoryNavigationUrl,
+  getClickPageCoordinates,
 } from '../src/helpers';
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import { mockWindowLocationFromURL } from './utils';
@@ -963,5 +964,60 @@ describe('autocapture-plugin helpers', () => {
         /http:\/\/localhost\/next/,
       );
     });
+  });
+});
+
+describe('getClickPageCoordinates', () => {
+  const pointerClick = (init: MouseEventInit, page: { pageX?: unknown; pageY?: unknown }) => {
+    const event = new MouseEvent('click', init);
+    Object.defineProperty(event, 'pageX', { value: page.pageX });
+    Object.defineProperty(event, 'pageY', { value: page.pageY });
+    return event;
+  };
+
+  test('returns rounded page coordinates for a pointer click', () => {
+    const event = pointerClick({ detail: 1, clientX: 10, clientY: 20 }, { pageX: 110.4, pageY: 2520.6 });
+    expect(getClickPageCoordinates(event)).toEqual({
+      '[Amplitude] Page X': 110,
+      '[Amplitude] Page Y': 2521,
+    });
+  });
+
+  test('returns page (not viewport) coordinates when the page is scrolled', () => {
+    // clientY is relative to the viewport; pageY includes the scroll offset
+    const event = pointerClick({ detail: 1, clientX: 50, clientY: 100 }, { pageX: 50, pageY: 3100 });
+    expect(getClickPageCoordinates(event)).toEqual({
+      '[Amplitude] Page X': 50,
+      '[Amplitude] Page Y': 3100,
+    });
+  });
+
+  test('returns no coordinates for a keyboard activation (detail === 0)', () => {
+    const event = pointerClick({ detail: 0 }, { pageX: 0, pageY: 0 });
+    expect(getClickPageCoordinates(event)).toEqual({});
+  });
+
+  test('returns no coordinates for a programmatic element.click()', () => {
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    let captured: Event | undefined;
+    button.addEventListener('click', (e) => (captured = e));
+    button.click();
+    button.remove();
+    expect(getClickPageCoordinates(captured)).toEqual({});
+  });
+
+  test('returns no coordinates for a plain Event without pointer data', () => {
+    expect(getClickPageCoordinates(new Event('click'))).toEqual({});
+  });
+
+  test('returns no coordinates when pageX / pageY are missing or not finite', () => {
+    expect(getClickPageCoordinates(pointerClick({ detail: 1 }, { pageX: undefined, pageY: 10 }))).toEqual({});
+    expect(getClickPageCoordinates(pointerClick({ detail: 1 }, { pageX: 10, pageY: NaN }))).toEqual({});
+  });
+
+  test('returns no coordinates for null / undefined', () => {
+    expect(getClickPageCoordinates(null)).toEqual({});
+    expect(getClickPageCoordinates(undefined)).toEqual({});
   });
 });
