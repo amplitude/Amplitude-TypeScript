@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/amp-semantic",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Composable semantic event capture with browser context for Amplitude",
   "license": "MIT",
   "main": "lib/cjs/index.js",
@@ -25,8 +25,8 @@
     "test:playwright": "playwright test --config playwright.config.ts"
   },
   "dependencies": {
-    "tslib": "^2.4.1",
-    "@amplitude/session-replay-dom-privacy": "workspace:*"
+    "@amplitude/session-replay-dom-privacy": "workspace:*",
+    "tslib": "^2.4.1"
   },
   "repository": {
     "type": "git",
@@ -34,7 +34,7 @@
   },
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "devDependencies": {
-    "rimraf": "^3.0.2",
-    "ajv": "^8.17.1"
+    "ajv": "^8.17.1",
+    "rimraf": "^3.0.2"
   }
 }
