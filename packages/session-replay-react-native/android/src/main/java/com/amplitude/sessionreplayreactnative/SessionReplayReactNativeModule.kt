@@ -33,6 +33,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   @Volatile private var shouldStart = false
   @Volatile private var invalidated = false
   @Volatile private var uiChangeReceiver: Any? = null
+  private var listenerCount = 0
 
   @ReactMethod
   override fun isRecording(promise: Promise) {
@@ -41,18 +42,22 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
 
   @ReactMethod
   override fun addListener(eventName: String) {
-    // Required by NativeEventEmitter; the callback is owned by SessionReplay.
+    synchronized(this) {
+      if (!invalidated) listenerCount++
+    }
   }
 
   @ReactMethod
   override fun removeListeners(count: Double) {
-    // Required by NativeEventEmitter.
+    synchronized(this) {
+      listenerCount = (listenerCount - count.toInt().coerceAtLeast(0)).coerceAtLeast(0)
+    }
   }
 
   private fun emitUiChange(receiver: Any) {
     val timestamp = System.currentTimeMillis().toDouble()
     synchronized(this) {
-      if (uiChangeReceiver !== receiver || invalidated || !shouldStart ||
+      if (listenerCount == 0 || uiChangeReceiver !== receiver || invalidated || !shouldStart ||
         !reactContext.hasActiveReactInstance()) return
       try {
         val signal = Arguments.createMap().apply { putDouble("timestamp", timestamp) }
@@ -231,8 +236,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   override fun invalidate() {
-    synchronized(this) { uiChangeReceiver = null }
-    invalidated = true
+    synchronized(this) {
+      invalidated = true
+      uiChangeReceiver = null
+      listenerCount = 0
+    }
     sessionReplay?.shutdown()
     sessionReplay = null
     nativeConfig = null
