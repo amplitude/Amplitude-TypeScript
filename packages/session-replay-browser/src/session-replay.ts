@@ -263,7 +263,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
     this.urlChangeCleanup?.();
-    this.semanticAdapter?.stop();
+    this.useSemanticAdapter((adapter) => adapter.stop());
     this.semanticAdapter = undefined;
     // A new init always allows capture again. `stop()` only pauses the current instance.
     this.recordingEnabled = true;
@@ -491,7 +491,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (isSessionChange && this.config?.semanticCapture?.enabled && this.semanticAdapter) {
       // Keep rrweb recording through the async config/targeting pass, as it does
       // without semantic capture. Only detach the old session's semantic runtime.
-      this.semanticAdapter.stop();
+      this.useSemanticAdapter((adapter) => adapter.stop());
     }
 
     // Drop any beacon-buffered events from the previous session BEFORE installing the
@@ -1197,7 +1197,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
               // Buffer the event so it can be flushed once the compressor is initialized.
               this.pendingEmitEvents.push({ event, sessionId });
             }
-            this.semanticAdapter?.event(event);
+            this.useSemanticAdapter((adapter) => adapter.event(event));
           },
           'Error while capturing replay: ',
         ),
@@ -1205,7 +1205,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         recordCrossOriginIframes: crossOriginIframesEnabled,
       });
 
-      if (this.recordCancelCallback) this.semanticAdapter?.recordingReady();
+      if (this.recordCancelCallback) this.useSemanticAdapter((adapter) => adapter.recordingReady());
 
       if (crossOriginIframesEnabled && !childMode && coordinateChildren) {
         if (!this.crossOriginIframeCoordinator) {
@@ -1219,22 +1219,40 @@ export class SessionReplay implements AmplitudeSessionReplay {
         void this.addCustomRRWebEvent(CustomRRwebEvent.METADATA, this.metadata);
       }
     } catch (error) {
-      this.semanticAdapter?.stop();
+      this.useSemanticAdapter((adapter) => adapter.stop());
       this.loggerProvider.warn('Failed to initialize session replay:', error);
+    }
+  }
+
+  private useSemanticAdapter(operation: (adapter: ReplaySemanticAdapter) => void): void {
+    const adapter = this.semanticAdapter;
+    if (!adapter) return;
+    try {
+      operation(adapter);
+    } catch (error) {
+      // A supplied controller must not interrupt rrweb recording or its teardown.
+      this.semanticAdapter = undefined;
+      this.loggerProvider.debug('Semantic capture failed:', error);
+      try {
+        adapter.stop();
+      } catch (stopError) {
+        this.loggerProvider.debug('Semantic capture stop failed:', stopError);
+      }
     }
   }
 
   private prepareSemanticCapture(config: SessionReplayJoinedConfig, sessionId: string | number): void {
     const scope = getGlobalScope() as Window | undefined;
     if (!scope?.document) return;
-    const createCapture = config.semanticCapture?.createCapture;
-    if (!config.semanticCapture?.enabled || typeof createCapture !== 'function') {
-      this.semanticAdapter?.stop();
-      this.semanticAdapter?.prepare({ enabled: false }, sessionId);
+    const semanticCapture = config.semanticCapture;
+    const createCapture = semanticCapture?.createCapture;
+    if (!semanticCapture?.enabled || typeof createCapture !== 'function') {
+      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.prepare({ enabled: false }, sessionId));
       return;
     }
     if (this.semanticAdapter?.createCapture !== createCapture) {
-      this.semanticAdapter?.stop();
+      this.useSemanticAdapter((adapter) => adapter.stop());
       this.semanticAdapter = undefined;
       try {
         this.semanticAdapter = new ReplaySemanticAdapter(createCapture, {
@@ -1261,7 +1279,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         return;
       }
     }
-    this.semanticAdapter.prepare(config.semanticCapture, sessionId);
+    this.useSemanticAdapter((adapter) => adapter.prepare(semanticCapture, sessionId));
   }
 
   private buildRRWebRecordOptions(
@@ -1387,7 +1405,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   stopRecordingEvents = () => {
     try {
-      this.semanticAdapter?.stop();
+      this.useSemanticAdapter((adapter) => adapter.stop());
       this.loggerProvider.log('Session Replay capture stopping.');
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;

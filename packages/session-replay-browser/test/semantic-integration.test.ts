@@ -160,6 +160,69 @@ describe('Session Replay context integration', () => {
     expect(debug).toHaveBeenCalledWith('Semantic capture initialization failed:', error);
   });
 
+  test('a failing semantic prepare does not interrupt replay setup', () => {
+    const { sdk, internal } = prepare(true);
+    const error = new Error('update failed');
+    capture.updateConfig.mockImplementationOnce(() => {
+      throw error;
+    });
+    const debug = jest.spyOn(internal.loggerProvider, 'debug');
+    expect(() => {
+      internal.prepareSemanticCapture(sdk.config, 1);
+    }).not.toThrow();
+    expect(internal.semanticAdapter).toBeUndefined();
+    expect(debug).toHaveBeenCalledWith('Semantic capture failed:', error);
+  });
+
+  test('a failing semantic stop still cancels rrweb and stops network observers', () => {
+    const { sdk, internal } = prepare(true);
+    const error = new Error('stop failed');
+    const cancelRecording = jest.fn();
+    const stopObservers = jest.fn();
+    sdk.recordCancelCallback = cancelRecording;
+    internal.networkObservers = { stop: stopObservers };
+    capture.stop
+      .mockImplementationOnce(() => {
+        throw error;
+      })
+      .mockImplementationOnce(() => {
+        throw error;
+      });
+    const debug = jest.spyOn(internal.loggerProvider, 'debug');
+    sdk.stopRecordingEvents();
+    expect(cancelRecording).toHaveBeenCalledTimes(1);
+    expect(stopObservers).toHaveBeenCalledTimes(1);
+    expect(internal.semanticAdapter).toBeUndefined();
+    expect(debug).toHaveBeenCalledWith('Semantic capture failed:', error);
+    expect(debug).toHaveBeenCalledWith('Semantic capture stop failed:', error);
+  });
+
+  test.each(['start', 'notify'] as const)('a failing semantic %s leaves rrweb recording', async (method) => {
+    const { sdk, record, internal } = prepare(true);
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    internal.recordingEnabled = true;
+    jest.spyOn(internal, 'getShouldRecord').mockReturnValue(true);
+    jest.spyOn(internal, 'getRecordFunction').mockResolvedValue(record);
+    jest.spyOn(internal, 'initializeNetworkObservers').mockResolvedValue(undefined);
+    jest.spyOn(internal, 'getRecordingPlugins').mockResolvedValue([]);
+    jest.spyOn(sdk, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+    const error = new Error(`${method} failed`);
+    capture[method].mockImplementationOnce(() => {
+      throw error;
+    });
+    const cancelRecording = jest.fn();
+    record.mockImplementation((options) => {
+      options.emit({ type: EventType.FullSnapshot, timestamp: 1, data: {} });
+      return cancelRecording;
+    });
+
+    await internal._recordEvents();
+
+    expect(sdk.recordCancelCallback).toBe(cancelRecording);
+    expect(cancelRecording).not.toHaveBeenCalled();
+    expect(internal.semanticAdapter).toBeUndefined();
+  });
+
   test('skips setup without a browser document', () => {
     jest.mocked(getGlobalScope).mockReturnValue(undefined);
     prepare(true);
