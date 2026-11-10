@@ -38,7 +38,6 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "workspace:*",
-    "@amplitude/plugin-engaged-time-tracking-browser": "workspace:*",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

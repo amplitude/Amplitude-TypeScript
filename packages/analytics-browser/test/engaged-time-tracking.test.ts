@@ -7,7 +7,7 @@ import {
   Transport,
 } from '@amplitude/analytics-core';
 import { AmplitudeBrowser } from '../src/browser-client';
-import { getEngagedTimeTrackingConfig, getPageViewTrackingConfig } from '../src/default-tracking';
+import { getEngagedTimeTrackingConfig } from '../src/default-tracking';
 import { updateBrowserConfigWithRemoteConfig } from '../src/config/joined-config';
 import { createConfigurationMock } from './helpers/mock';
 
@@ -26,14 +26,6 @@ describe('engagedTimeTracking configuration', () => {
       );
     },
   );
-  test.each([false, true, {}])('explicit %p overrides legacy engagement', (engagedTimeTracking) => {
-    expect(
-      getPageViewTrackingConfig({
-        autocapture: { engagedTimeTracking },
-        defaultTracking: { pageViews: { trackEngagedTime: true } },
-      }),
-    ).not.toHaveProperty('trackEngagedTime');
-  });
   test.each([
     { remote: true, expected: {} },
     { remote: false, expected: undefined },
@@ -187,17 +179,10 @@ describe('engagedTimeTracking through the Browser SDK', () => {
     expect(events()).toHaveLength(2);
     expect((events()[1].event_properties as Record<string, unknown>)['[Amplitude] Page Counter']).toBe(1);
   });
-  test('does not delay events when disabled, including the old option being enabled', async () => {
-    await init(false, { trackEngagedTime: true });
+  test('does not delay ordinary page views when engagement is disabled', async () => {
+    await init(false, true);
     expect(events()).toHaveLength(1);
     expect(events()[0].delay).toBeUndefined();
-  });
-  test('explicit new settings prevent duplicate legacy snapshots', async () => {
-    await init(true, { trackEngagedTime: true });
-    expect(events()).toHaveLength(1);
-    await jest.advanceTimersByTimeAsync(15_000);
-    expect(events()).toHaveLength(2);
-    expect(events()[0].delay!.id).toBe(events()[1].delay!.id);
   });
   test('does not treat a renamed automatic page view as the default name', async () => {
     await init(true, { eventType: 'renamed_page' });

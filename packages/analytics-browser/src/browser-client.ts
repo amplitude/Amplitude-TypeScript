@@ -335,7 +335,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await this.add(formInteractionTracking()).promise;
     }
 
-    // Default trackOn: add URL properties before page-view tracking saves engagement snapshots.
+    // Default trackOn: enrich URL properties before the page-view source processes events.
     // Attribution: run page-view tracking first to convert $identify into a page view,
     // since URL enrichment skips $identify events. Keep custom callbacks in their existing order.
     const enrichBeforePageTracking = getPageViewTrackingConfig(this.config).trackOn === undefined;

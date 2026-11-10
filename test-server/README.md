@@ -115,11 +115,9 @@ SDK translator and join logic; backend authoring of this new field is not yet
 verified.
 
 Browser autocapture remote values take precedence, including over local `false`.
-The existing merge is shallow: omitting remote `pageViews` preserves the local
-page-view configuration, but supplying remote `pageViews` replaces that whole
-object. It does not merge individual engagement timings with local timings.
-
-The deprecated `pageViews.trackEngagedTime` option only supports the default `trackOn` (`undefined`). The independent `engagedTimeTracking` option listens for matching events regardless of how they are generated, including callback and attribution page views.
+The existing merge is shallow: omitting remote `engagedTimeTracking` preserves
+the local engagement setting; supplying it replaces that whole value rather than
+merging individual durations. `pageViews` is a separate sibling setting.
 
 Engaged page views and their snapshots omit `user_properties`. Send user-property updates separately with `identify()`. A delayed page view may arrive after newer events when the service expires it; carrying older user-property updates would overwrite newer values in ingestion order.
 
@@ -130,7 +128,10 @@ valid navigation produce views, and renewed activity after inactivity creates a
 fresh view with the configured event type. An active view resumes without an extra
 PV. **Highlight: custom page views automatically renew too; PV counts can increase.**
 Sending a manual PV for the same automatic transition can create another logical view.
-The deprecated `pageViews.trackEngagedTime` configuration remains supported, but
-an explicit `engagedTimeTracking` value takes precedence, including `false`.
+Engagement has one entry point: `autocapture.engagedTimeTracking`. The earlier
+nested experimental option is removed. PageView remains the ordinary main-branch
+plugin; it does not depend on or implement engagement. Already-enriched snapshots
+go directly to the SDK's installed destinations, without rerunning PageView or
+URL enrichment on heartbeat.
 See [the plugin README](../packages/plugin-engaged-time-tracking-browser/README.md)
 for standalone installation and lifecycle behavior.

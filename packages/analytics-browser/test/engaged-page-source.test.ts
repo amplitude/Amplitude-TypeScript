@@ -19,6 +19,7 @@ describe('engaged page sources through the Browser SDK', () => {
   });
 
   afterEach(async () => {
+    await client.remove('@amplitude/plugin-engaged-time-tracking-browser').promise;
     await client.remove('@amplitude/plugin-page-view-tracking-browser').promise;
     await client.remove('@amplitude/plugin-page-url-enrichment-browser').promise;
     await client.flush().promise;
@@ -46,7 +47,8 @@ describe('engaged page sources through the Browser SDK', () => {
         sessions: false,
         fileDownloads: false,
         formInteractions: false,
-        pageViews: { trackEngagedTime: true },
+        pageViews: true,
+        engagedTimeTracking: true,
       },
       fetchRemoteConfig: false,
       enableDiagnostics: false,
@@ -66,6 +68,7 @@ describe('engaged page sources through the Browser SDK', () => {
     await jest.advanceTimersByTimeAsync(20);
     client.track({ event_type: '$identify', user_properties: { $set: { plan: 'new' } } });
     await jest.advanceTimersByTimeAsync(15_000);
+    await client.remove('@amplitude/plugin-engaged-time-tracking-browser').promise;
     await client.remove('@amplitude/plugin-page-view-tracking-browser').promise;
     await jest.advanceTimersByTimeAsync(20);
     const events = send.mock.calls.flatMap(([, payload]) => {
@@ -121,7 +124,7 @@ describe('engaged page sources through the Browser SDK', () => {
     });
   });
 
-  test.each([false, true])('preserves navigation sources with trackEngagedTime=%s', async (trackEngagedTime) => {
+  test.each([false, true])('preserves navigation sources with engagedTimeTracking=%s', async (engagedTimeTracking) => {
     const send = jest.fn<ReturnType<Transport['send']>, Parameters<Transport['send']>>().mockResolvedValue({
       status: Status.Success,
       statusCode: 200,
@@ -140,7 +143,8 @@ describe('engaged page sources through the Browser SDK', () => {
         sessions: false,
         fileDownloads: false,
         formInteractions: false,
-        pageViews: { trackEngagedTime, trackHistoryChanges: 'all' },
+        pageViews: { trackHistoryChanges: 'all' },
+        engagedTimeTracking: engagedTimeTracking,
         // Leave pageUrlEnrichment at its default to exercise the standard setup.
       },
       fetchRemoteConfig: false,
@@ -167,12 +171,12 @@ describe('engaged page sources through the Browser SDK', () => {
     await jest.advanceTimersByTimeAsync(20);
     const pageA = events().filter((event) => properties(event)['[Amplitude] Page Location'] === `${location.origin}/a`);
     const pageB = events().filter((event) => properties(event)['[Amplitude] Page Location'] === `${location.origin}/b`);
-    expect(pageA).toHaveLength(trackEngagedTime ? 3 : 1);
+    expect(pageA).toHaveLength(engagedTimeTracking ? 3 : 1);
     expect(pageA.map((event) => properties(event)['[Amplitude] Previous Page Location'])).toEqual(
-      Array(trackEngagedTime ? 3 : 1).fill('https://www.google.com/'),
+      Array(engagedTimeTracking ? 3 : 1).fill('https://www.google.com/'),
     );
     expect(pageA.map((event) => properties(event)['[Amplitude] Previous Page Type'])).toEqual(
-      Array(trackEngagedTime ? 3 : 1).fill('external'),
+      Array(engagedTimeTracking ? 3 : 1).fill('external'),
     );
     expect(pageB).toHaveLength(1);
     expect(pageB[0].event_properties).toMatchObject({
@@ -180,7 +184,7 @@ describe('engaged page sources through the Browser SDK', () => {
       '[Amplitude] Previous Page Type': 'internal',
     });
     expect(properties(pageA[pageA.length - 1])['[Amplitude] Engagement Snapshot Reason']).toBe(
-      trackEngagedTime ? 'navigation' : undefined,
+      engagedTimeTracking ? 'navigation' : undefined,
     );
   });
 });

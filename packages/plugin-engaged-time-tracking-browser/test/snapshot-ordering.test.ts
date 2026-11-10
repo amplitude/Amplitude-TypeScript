@@ -1,5 +1,5 @@
 import { AmplitudeCore, BaseTransport, Config, Destination, Payload, Status } from '@amplitude/analytics-core';
-import { pageViewTrackingPlugin } from '../src/page-view-tracking';
+import { engagedTimeTrackingPlugin } from '../src/engaged-time-tracking';
 
 class TestClient extends AmplitudeCore {
   init(config: Config) {
@@ -36,7 +36,7 @@ describe('engagement delivery through the SDK pipeline', () => {
       await client.init(config);
       await client.add(new Destination()).promise;
       Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
-      const plugin = pageViewTrackingPlugin({ trackEngagedTime: true });
+      const plugin = engagedTimeTrackingPlugin({}, { autoTrackPageViews: false });
       await client.add(plugin).promise;
       Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
       try {
@@ -76,7 +76,7 @@ describe('engagement delivery through the SDK pipeline', () => {
     await client.init(config);
     await client.add(new Destination()).promise;
     Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
-    const plugin = pageViewTrackingPlugin({ trackEngagedTime: true });
+    const plugin = engagedTimeTrackingPlugin({}, { autoTrackPageViews: false });
     await client.add(plugin).promise;
     Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
     try {

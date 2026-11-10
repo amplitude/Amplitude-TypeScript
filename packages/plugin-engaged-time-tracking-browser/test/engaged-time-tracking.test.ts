@@ -47,6 +47,16 @@ describe('independent engaged-time tracking', () => {
     config = { loggerProvider: new Logger(), optOut: false } as unknown as BrowserConfig;
     client = createMockBrowserClient();
     sent = [];
+    client.timeline.plugins = [
+      {
+        name: 'test-destination',
+        type: 'destination',
+        execute: async (event) => {
+          sent.push(event);
+          return { event, code: 200, message: '' };
+        },
+      },
+    ];
     client.track.mockImplementation((eventOrType, event_properties, options) => {
       const event =
         typeof eventOrType === 'string' ? { event_type: eventOrType, event_properties, ...options } : eventOrType;
@@ -96,7 +106,7 @@ describe('independent engaged-time tracking', () => {
     });
   });
 
-  test('pathOnly ignores query-only changes and replaceState, then tracks a new path', async () => {
+  test('pathOnly ignores query-only pushState and replaceState, then tracks a new path', async () => {
     await setup({ pageViewEventType: 'page_view' }, { trackHistoryChanges: 'pathOnly' });
     await jest.advanceTimersByTimeAsync(1);
     history.pushState({}, '', '/article-a?q=1');
@@ -179,7 +189,7 @@ describe('independent engaged-time tracking', () => {
     expect(sent[2].insert_id).toBeTruthy();
   });
 
-  test.each(['pushState', 'popstate'] as const)(
+  test.each(['pushState', 'replaceState', 'popstate'] as const)(
     'finalizes on %s and defers the replacement to the coordinated source',
     async (method) => {
       await setup();

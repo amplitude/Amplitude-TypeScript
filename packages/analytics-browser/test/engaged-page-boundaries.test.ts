@@ -18,7 +18,8 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
         sessions: false,
         fileDownloads: false,
         formInteractions: false,
-        pageViews: { trackEngagedTime: true },
+        pageViews: true,
+        engagedTimeTracking: true,
         pageUrlEnrichment: false,
       },
       fetchRemoteConfig: false,
@@ -50,6 +51,7 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
     }).promise;
   });
   afterEach(async () => {
+    await client.remove('@amplitude/plugin-engaged-time-tracking-browser').promise;
     await client.remove('@amplitude/plugin-page-view-tracking-browser').promise;
     await jest.advanceTimersByTimeAsync(20);
     await client.flush().promise;
@@ -97,7 +99,8 @@ describe('engaged page lifecycle boundaries through the Browser SDK', () => {
         user_id: client.getUserId(),
         session_id: client.getSessionId(),
       });
-      expect((events()[0].event_properties as Record<string, unknown>)['[Amplitude] Page Counter']).toBe(1);
+      // The unchanged PageView source counted the canceled source event, then this fresh view.
+      expect((events()[0].event_properties as Record<string, unknown>)['[Amplitude] Page Counter']).toBe(2);
     },
   );
 

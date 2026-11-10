@@ -16,6 +16,7 @@ import {
   replaceSensitiveString,
 } from '@amplitude/analytics-core';
 import { PageEngagement } from './page-engagement';
+import { createSnapshotClient } from './snapshot-client';
 
 /** Browser integration coordinates the initial/navigation source without coupling the plugins. */
 export interface PageViewSourceOptions {
@@ -43,6 +44,7 @@ export const engagedTimeTrackingPlugin = (
   let removeContext: (() => Promise<void>) | undefined;
   const removeListeners: (() => void)[] = [];
   const finish = (reason: string) => {
+    awaitingSource = false;
     cancellation += 1;
     revision += 1;
     owner?.finish(reason);
@@ -66,6 +68,7 @@ export const engagedTimeTrackingPlugin = (
       // Register before the engagement owner so BFCache restore clears the exit guard before resume.
       listen(scope, 'pagehide', () => {
         exited = true;
+        awaitingSource = false;
         revision += 1;
         cancellation += 1;
       });
@@ -107,7 +110,7 @@ export const engagedTimeTrackingPlugin = (
           if (pendingRevision === context.revision) pendingRevision = undefined;
         }
       };
-      const engagement = new PageEngagement(client, scope, options, config, () => {
+      const engagement = new PageEngagement(createSnapshotClient(client, config), scope, options, config, () => {
         void trackPageView();
       });
       owner = engagement;
@@ -148,8 +151,8 @@ export const engagedTimeTrackingPlugin = (
         if (autoTrackPageViews) void trackPageView();
       };
       listen(scope, 'popstate', onNavigation);
-      // Match the existing page-view source: pushState and popstate, not replaceState.
-      for (const method of ['pushState'] as const) {
+      // Match the main-branch page-view source, including replaceState URL changes.
+      for (const method of ['pushState', 'replaceState'] as const) {
         const original = scope.history[method];
         const proxy = new Proxy(original, {
           apply: (target, thisArg, args: Parameters<History[typeof method]>) => {
@@ -214,6 +217,7 @@ export const engagedTimeTrackingPlugin = (
     },
     onOptOutChanged: async (optOut) => {
       if (optOut) {
+        awaitingSource = false;
         cancellation += 1;
         revision += 1;
       }
