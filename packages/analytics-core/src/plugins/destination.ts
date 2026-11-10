@@ -94,6 +94,8 @@ export class Destination implements DestinationPlugin {
   // When flush resolves, set `flushId` to null
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
+  // Whether a save of the queue is already scheduled for the next microtask
+  saveQueued = false;
   diagnosticsClient: IDiagnosticsClient | undefined;
 
   constructor(context?: { diagnosticsClient: IDiagnosticsClient | undefined }) {
@@ -425,12 +427,20 @@ export class Destination implements DestinationPlugin {
    * Update the event storage based on the queue
    */
   saveEvents() {
-    if (!this.config.storageProvider) {
+    if (!this.config.storageProvider || this.saveQueued) {
       return;
     }
 
-    const updatedEvents = this.queue.map((context) => context.event);
-    void this.config.storageProvider.set(this.storageKey, updatedEvents);
+    this.saveQueued = true;
+    queueMicrotask(() => {
+      this.saveQueued = false;
+      if (!this.config.storageProvider) {
+        return;
+      }
+
+      const updatedEvents = this.queue.map((context) => context.event);
+      void this.config.storageProvider.set(this.storageKey, updatedEvents);
+    });
   }
 
   /**
