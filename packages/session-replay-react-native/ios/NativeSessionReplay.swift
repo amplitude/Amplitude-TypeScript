@@ -5,6 +5,8 @@ import React
 
 @objc(AMPNativeSessionReplay)
 class NativeSessionReplay: RCTEventEmitter {
+    // Serialize capture startup with invalidation without holding stateLock in SDK calls.
+    private let lifecycleLock = NSLock()
     private let stateLock = NSLock()
     private var currentSessionReplay: SessionReplay?
     var sessionReplay: SessionReplay? {
@@ -70,6 +72,12 @@ class NativeSessionReplay: RCTEventEmitter {
     
     @objc(setup:resolve:reject:)
     func setup(_ config: NSDictionary, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
+        guard stateLock.withLock({ !invalidated }) else {
+            resolve(nil)
+            return
+        }
         guard let apiKey = config["apiKey"] as? String,
               let serverZone = config["serverZone"] as? String,
               let sampleRate = config["sampleRate"] as? NSNumber,
@@ -154,6 +162,12 @@ class NativeSessionReplay: RCTEventEmitter {
     
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
+        guard stateLock.withLock({ !invalidated }) else {
+            resolve(nil)
+            return
+        }
         logger?.debug(message: "start")
         stateLock.withLock { recordingRequested = true }
         sessionReplay?.start()
@@ -177,12 +191,16 @@ class NativeSessionReplay: RCTEventEmitter {
 
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
         logger?.debug(message: "teardown")
         tearDownSessionReplay()
         resolve(nil)
     }
     
     override func invalidate() {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
         stateLock.withLock {
             invalidated = true
             hasUiChangeListeners = false

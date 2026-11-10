@@ -6,6 +6,8 @@ import React
 @objc(PluginSessionReplayReactNative)
 class PluginSessionReplayReactNative: RCTEventEmitter {
     
+    // Serialize capture startup with invalidation without holding stateLock in SDK calls.
+    private let lifecycleLock = NSLock()
     private let stateLock = NSLock()
     private var currentSessionReplay: SessionReplay?
     var sessionReplay: SessionReplay! {
@@ -74,6 +76,12 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
                maskLevel: String,
                resolve: RCTPromiseResolveBlock,
                reject: RCTPromiseRejectBlock) -> Void {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
+        guard stateLock.withLock({ !invalidated }) else {
+            resolve(nil)
+            return
+        }
         print(
             """
             setup:
@@ -128,6 +136,12 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
     
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
+        guard stateLock.withLock({ !invalidated }) else {
+            resolve(nil)
+            return
+        }
       print("start")
       stateLock.withLock { recordingRequested = true }
       sessionReplay.start()
@@ -151,6 +165,8 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
     
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
       print("teardown")
       stateLock.withLock { recordingRequested = false }
       removeUiChangeReceiver()
@@ -159,6 +175,8 @@ class PluginSessionReplayReactNative: RCTEventEmitter {
     }
 
     override func invalidate() {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
         stateLock.withLock {
             invalidated = true
             hasUiChangeListeners = false
