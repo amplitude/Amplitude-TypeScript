@@ -139,7 +139,9 @@ export class SessionReplayJoinedConfigGenerator {
         ...config.semanticCapture,
         // Only serializable controls may come from remote config. Preserve the local createCapture callback.
         ...(semanticConfig.enabled !== undefined ? { enabled: semanticConfig.enabled } : {}),
-        ...(semanticConfig.sampleRate !== undefined ? { sampleRate: semanticConfig.sampleRate } : {}),
+        ...(semanticConfig.sampleRate !== undefined
+          ? { sampleRate: this.sanitizeSemanticSampleRate(semanticConfig.sampleRate) }
+          : {}),
         families: { ...config.semanticCapture?.families, ...semanticConfig.families },
       };
     }
@@ -247,6 +249,15 @@ export class SessionReplayJoinedConfigGenerator {
       joinedConfig: config,
       remoteConfig: sessionReplayRemoteConfig,
     };
+  }
+
+  private sanitizeSemanticSampleRate(raw: unknown): number {
+    if (typeof raw === 'number' && Number.isFinite(raw) && raw >= 0 && raw <= 1) return raw;
+    // A malformed remote sampling control must not increase semantic collection.
+    this.localConfig.loggerProvider.warn(
+      `Invalid semantic sampleRate remote value (${String(raw)}); disabling capture.`,
+    );
+    return 0;
   }
 
   /**

@@ -99,6 +99,21 @@ describe('Session Replay context integration', () => {
     expect(record.addCustomEvent).toHaveBeenCalledTimes(1);
   });
 
+  test('contains rrweb custom-event failures without interrupting replay', () => {
+    const { sdk, record, internal } = prepare(true);
+    const cancelRecording = jest.fn();
+    sdk.recordCancelCallback = cancelRecording;
+    const error = new Error('rrweb custom event failed');
+    record.addCustomEvent.mockImplementationOnce(() => {
+      throw error;
+    });
+    const debug = jest.spyOn(internal.loggerProvider, 'debug');
+    const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
+    expect(() => host.emit({ name: 'context', payload: {} } as Parameters<typeof host.emit>[0])).not.toThrow();
+    expect(debug).toHaveBeenCalledWith('Error while adding semantic replay capture event:', error);
+    expect(cancelRecording).not.toHaveBeenCalled();
+  });
+
   test('turning capture off updates the retained runtime and clears its listeners', () => {
     const { sdk, internal } = prepare(true);
     internal.prepareSemanticCapture({ ...sdk.config, semanticCapture: { enabled: false } }, 1);
@@ -153,14 +168,29 @@ describe('Session Replay context integration', () => {
     expect(createSemanticCapture).not.toHaveBeenCalled();
   });
 
-  test('stops the old semantic stream before changing sessions', async () => {
-    const { sdk } = prepare(true);
+  test('stops old semantics without interrupting rrweb during session config refetch', async () => {
+    const { sdk, internal } = prepare(true);
     sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
-    sdk.recordEvents = jest.fn().mockResolvedValue(undefined);
+    const cancelRecording = jest.fn();
+    sdk.recordCancelCallback = cancelRecording;
+    let resolveConfig!: (value: { joinedConfig: SessionReplayJoinedConfig }) => void;
+    internal.joinedConfigGenerator = {
+      generateJoinedConfig: jest.fn(
+        () => new Promise<{ joinedConfig: SessionReplayJoinedConfig }>((resolve) => (resolveConfig = resolve)),
+      ),
+    };
+    const recordEvents = jest.fn().mockResolvedValue(undefined);
+    sdk.recordEvents = recordEvents;
     const stop = jest.spyOn(sdk, 'stopRecordingEvents');
-    await sdk.asyncSetSessionId(2);
-    expect(stop).toHaveBeenCalledTimes(1);
-    expect(capture.stop).toHaveBeenCalled();
+    capture.stop.mockClear();
+    const sessionChange = sdk.asyncSetSessionId(2);
+    expect(capture.stop).toHaveBeenCalledTimes(1);
+    expect(stop).not.toHaveBeenCalled();
+    expect(cancelRecording).not.toHaveBeenCalled();
+    expect(sdk.recordCancelCallback).toBe(cancelRecording);
+    resolveConfig({ joinedConfig: sdk.config! });
+    await sessionChange;
+    expect(recordEvents).toHaveBeenCalled();
   });
 
   test('stops active semantic capture when replay becomes ineligible', async () => {
