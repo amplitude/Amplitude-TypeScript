@@ -1,7 +1,7 @@
 import { AllWindowObservables } from '../autocapture-plugin';
 import { ElementBasedEvent, type ElementBasedTimestampedEvent, type evaluateTriggersFn } from '../helpers';
 import { Observable, BrowserClient } from '@amplitude/analytics-core';
-import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
+import { filterOutNonTrackableEvents, getClickPageCoordinates, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
 export function trackClicks({
@@ -30,6 +30,10 @@ export function trackClicks({
 
   return clicks.subscribe((click: ElementBasedTimestampedEvent<ElementBasedEvent>) => {
     /* istanbul ignore next */
-    amplitude?.track(AMPLITUDE_ELEMENT_CLICKED_EVENT, click.targetElementProperties);
+    amplitude?.track(AMPLITUDE_ELEMENT_CLICKED_EVENT, {
+      ...click.targetElementProperties,
+      // Pointer position in page pixels, for click maps. Omitted for keyboard / synthetic clicks.
+      ...getClickPageCoordinates(click.event),
+    });
   });
 }
