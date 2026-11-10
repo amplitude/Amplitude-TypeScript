@@ -147,7 +147,7 @@ describe('independent engaged-time tracking', () => {
     expect(sent).toHaveLength(count);
   });
 
-  test('retains campaign metadata on renewal and waits for a matching event after URL changes', async () => {
+  test('waits for a matching event after URL changes and does not copy its metadata into renewals', async () => {
     await setup({ pageViewEventType: 'page_view', inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 });
     await plugin.execute!({ ...page(), event_properties: { article_id: 'article-a', utm_source: 'campaign-a' } });
     await jest.advanceTimersByTimeAsync(101);
@@ -166,14 +166,16 @@ describe('independent engaged-time tracking', () => {
       },
     });
     await jest.advanceTimersByTimeAsync(101);
+    expect(latest().event_properties).toMatchObject({ article_id: 'article-b', utm_source: 'campaign-b' });
     document.dispatchEvent(new Event('keydown'));
     await jest.advanceTimersByTimeAsync(1);
     expect(sent.length).toBeGreaterThan(count);
-    expect(latest().event_properties).toMatchObject({
-      article_id: 'article-b',
-      utm_source: 'campaign-b',
-      '[Amplitude] Page Location': '/virtual/article-b',
-      '[Amplitude] SDK Initialization Offset': 321,
+    expect(client.track.mock.calls[0][0]).not.toHaveProperty('event_properties');
+    expect(latest().event_properties).toEqual({
+      '[Amplitude] Engaged Time': expect.any(Number),
+      '[Amplitude] Total Time': expect.any(Number),
+      '[Amplitude] Snapshot Version': expect.any(Number),
+      '[Amplitude] Engagement Snapshot Reason': 'initial',
     });
   });
 
@@ -245,11 +247,10 @@ describe('independent engaged-time tracking', () => {
     expect(sent).toHaveLength(count + 1);
     expect(latest().event_type).toBe('page_view');
     expect(latest().insert_id).not.toBe(firstId);
-    expect(latest().event_properties).toMatchObject({
-      article_id: 'article-a',
-      '[Amplitude] Min Page Y': 200,
-      '[Amplitude] Viewport Width': 800,
-    });
+    expect(client.track.mock.calls[0][0]).not.toHaveProperty('event_properties');
+    expect(latest().event_properties).not.toHaveProperty('article_id');
+    expect(latest().event_properties).not.toHaveProperty(['[Amplitude] Min Page Y']);
+    expect(latest().event_properties).not.toHaveProperty(['[Amplitude] Viewport Width']);
     const renewedId = latest().insert_id;
     window.dispatchEvent(new Event('pagehide'));
     expect(await plugin.execute!(page())).toBeNull();

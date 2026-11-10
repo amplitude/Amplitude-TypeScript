@@ -75,6 +75,7 @@ describe('engagedTimeTracking through the Browser SDK', () => {
     engagedTimeTracking: boolean | EngagedTimeOptions,
     pageViews: AutocaptureOptions['pageViews'] = false,
     optOut = false,
+    pageUrlEnrichment = true,
   ) => {
     await client.init('test-key', {
       autocapture: {
@@ -84,6 +85,7 @@ describe('engagedTimeTracking through the Browser SDK', () => {
         formInteractions: false,
         pageViews,
         engagedTimeTracking,
+        pageUrlEnrichment,
       },
       optOut,
       fetchRemoteConfig: false,
@@ -214,7 +216,7 @@ describe('engagedTimeTracking through the Browser SDK', () => {
     expect(events()[0].delay).toBeDefined();
   });
   test.each(['[Amplitude] Page Viewed', 'page_view'])(
-    'renews %s once after inactivity with fresh IDs and retained article properties',
+    'renews %s once after inactivity with fresh delivery IDs and no inherited article properties',
     async (eventType) => {
       await init(
         { pageViewEventType: eventType, inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 },
@@ -234,16 +236,48 @@ describe('engagedTimeTracking through the Browser SDK', () => {
       expect(renewed.insert_id).not.toBe(original.insert_id);
       expect(renewed.time).toBeGreaterThan(original.time!);
       expect(renewed.delay!.id).not.toBe(original.delay!.id);
-      expect(renewed.event_properties).toMatchObject({ article_id: 'article-a' });
-      expect((renewed.event_properties as Record<string, unknown>)['[Amplitude] Page View ID']).not.toBe(
-        (original.event_properties as Record<string, unknown>)['[Amplitude] Page View ID'],
-      );
+      expect(original.event_properties).toMatchObject({ article_id: 'article-a' });
+      expect(renewed.event_properties).not.toHaveProperty('article_id');
+      expect(renewed.event_properties).toHaveProperty(['[Amplitude] Engaged Time']);
       const beforeFocus = events().length;
       window.dispatchEvent(new Event('focus'));
       await jest.advanceTimersByTimeAsync(1);
       expect(events()).toHaveLength(beforeFocus);
     },
   );
+
+  test('keeps renewed custom views minimal when page URL enrichment is disabled', async () => {
+    await init(
+      { pageViewEventType: 'page_view', inactivityTimeoutMillis: 100, heartbeatIntervalMillis: 20 },
+      false,
+      false,
+      false,
+    );
+    await track('page_view', {
+      article_id: 'article-a',
+      utm_source: 'campaign',
+      '[Amplitude] Page Counter': 7,
+      '[Amplitude] Page View ID': 'application-id',
+    });
+    const original = events()[events().length - 1];
+    expect(original.event_properties).toMatchObject({
+      article_id: 'article-a',
+      '[Amplitude] Page View ID': 'application-id',
+    });
+    await jest.advanceTimersByTimeAsync(101);
+    document.dispatchEvent(new Event('keydown'));
+    await jest.advanceTimersByTimeAsync(15);
+    const renewed = events()[events().length - 1];
+    expect(renewed.event_type).toBe('page_view');
+    expect(renewed.insert_id).not.toBe(original.insert_id);
+    expect(renewed.delay!.id).not.toBe(original.delay!.id);
+    expect(renewed.event_properties).toEqual({
+      '[Amplitude] Engaged Time': expect.any(Number),
+      '[Amplitude] Total Time': expect.any(Number),
+      '[Amplitude] Snapshot Version': expect.any(Number),
+      '[Amplitude] Engagement Snapshot Reason': 'initial',
+    });
+  });
 
   test('keeps identify separate and strips user properties from delayed custom events', async () => {
     await init({ pageViewEventType: 'page_view' });

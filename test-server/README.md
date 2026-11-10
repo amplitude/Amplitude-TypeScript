@@ -39,11 +39,11 @@ disabled by default. Video keeps its separate 60-second heartbeat and one-hour T
 Use the default settings (5 seconds / 15 seconds / 3 minutes) to check:
 
 1. Leave the page idle: engagement stops after five seconds, snapshots keep the same
-   `insert_id`, `time`, page-view ID, and counter, and the three-minute timeout emits
+   `insert_id`, `time`, and source-provided page properties, and the three-minute timeout emits
    one final copy in `instant_events`.
 2. Move, scroll, or type before expiry: the same logical page resumes.
 3. Switch tabs or applications: engagement pauses immediately. Return before
-   expiry to resume. After expiry, renewed activity automatically generates a new logical view with the configured event name.
+   expiry to resume. After expiry, renewed activity automatically generates a new logical view with the configured event name. Renewal does not copy the previous view's application or page properties; normal SDK enrichment and engagement metrics still apply.
 4. Navigate to another article: the demo emits the next matching page-view event,
    which finalizes the old view with its original URL and starts a new delay group. Leaving the
    document finalizes even when it enters BFCache. Returning through Back/Forward

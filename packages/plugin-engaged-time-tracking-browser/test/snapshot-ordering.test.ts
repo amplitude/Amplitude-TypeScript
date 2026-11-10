@@ -96,7 +96,7 @@ describe('engagement delivery through the SDK pipeline', () => {
       expect(send.mock.calls[0][1].events[0]).toMatchObject({
         event_type: '[Amplitude] Page Viewed',
         insert_id: 'large-page',
-        event_properties: { ...properties, '[Amplitude] Page Counter': 1 },
+        event_properties: properties,
       });
       expect(send.mock.calls[0][1].events[0].event_properties['[Amplitude] Engaged Time']).toBeUndefined();
       window.dispatchEvent(new Event('blur'));

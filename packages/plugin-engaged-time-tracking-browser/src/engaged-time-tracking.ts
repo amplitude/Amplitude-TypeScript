@@ -5,9 +5,6 @@ import {
   EnrichmentPlugin,
   Event,
   getGlobalScope,
-  getOrCreatePageViewId,
-  getPageTitle,
-  replaceSensitiveString,
 } from '@amplitude/analytics-core';
 import { createPageEngagement, PageEngagement } from './page-engagement';
 import { createSnapshotClient } from './snapshot-client';
@@ -23,8 +20,6 @@ export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): Enr
   let cancellation = 0;
   let revision = 0;
   let pendingContext: { revision: number; cancellation: number } | undefined;
-  let lastPageViewId: string | undefined;
-  let properties: Record<string, unknown> = {};
   let removeContext: (() => Promise<void>) | undefined;
   const removeListeners: (() => void)[] = [];
   const resolved = Promise.resolve();
@@ -67,24 +62,8 @@ export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): Enr
           return resolved;
         const context = { revision, cancellation, href: scope.location.href };
         pendingContext = context;
-        const href = scope.location.href;
-        const pageViewId = getOrCreatePageViewId(config.apiKey, href, lastPageViewId);
-        lastPageViewId = pageViewId;
-        // Inherit accepted page/campaign metadata; refresh live title/viewport and IDs.
-        // URL changes require a new matching source event, not a synthesized navigation.
-        const event: Event = {
-          event_type: eventType,
-          extra: { engagedTimeContext: context },
-          event_properties: {
-            ...properties,
-            '[Amplitude] Page Title': getPageTitle(replaceSensitiveString),
-            '[Amplitude] Min Page Y': Math.floor(scope.scrollY),
-            '[Amplitude] Viewport Width': scope.innerWidth,
-            '[Amplitude] Page View ID': pageViewId,
-          },
-        };
-        // Renewal inherits the accepted view's campaign/business context. It does
-        // not rediscover attribution or become a source for a new URL.
+        // Renew without carrying application properties from the previous view.
+        const event: Event = { event_type: eventType, extra: { engagedTimeContext: context } };
         return client.track(event).promise.finally(() => {
           if (pendingContext === context) pendingContext = undefined;
         });
@@ -122,30 +101,6 @@ export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): Enr
         return Promise.resolve(event);
       pageHref = getGlobalScope()!.location.href;
       revision += 1;
-      const incoming: Record<string, unknown> = { ...event.event_properties };
-      // The default page-view plugin may already have assigned this counter.
-      if (incoming['[Amplitude] Page Counter'] === undefined) {
-        localConfig.pageCounter = (localConfig.pageCounter || 0) + 1;
-        incoming['[Amplitude] Page Counter'] = localConfig.pageCounter;
-      }
-      const pageViewId = incoming['[Amplitude] Page View ID'];
-      lastPageViewId =
-        typeof pageViewId === 'string'
-          ? pageViewId
-          : getOrCreatePageViewId(localConfig.apiKey, getGlobalScope()!.location.href, lastPageViewId);
-      incoming['[Amplitude] Page View ID'] = lastPageViewId;
-      event.event_properties = incoming;
-      properties = { ...incoming };
-      [
-        '[Amplitude] Page Counter',
-        '[Amplitude] Page View ID',
-        '[Amplitude] Engaged Time',
-        '[Amplitude] Total Time',
-        '[Amplitude] Snapshot Version',
-        '[Amplitude] Engagement Snapshot Reason',
-        '[Amplitude] Previous Page Location',
-        '[Amplitude] Previous Page Type',
-      ].forEach((key) => delete properties[key]);
       return Promise.resolve(owner.start(event) ? null : event);
     },
     teardown: () => {
