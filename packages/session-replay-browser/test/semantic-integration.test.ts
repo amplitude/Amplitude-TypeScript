@@ -1,7 +1,7 @@
 import { createSemanticCapture as actualFactory } from '@amplitude/amp-semantic';
 import type { SemanticCaptureFactory } from '../src/semantic-types';
 import { getGlobalScope } from '@amplitude/analytics-core';
-import { EventType } from '@amplitude/rrweb-types';
+import { EventType, MouseInteractions } from '@amplitude/rrweb-types';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayJoinedConfig } from '../src/config/types';
 
@@ -28,7 +28,7 @@ describe('Session Replay context integration', () => {
     jest.mocked(createSemanticCapture).mockReturnValue(capture);
   });
 
-  function prepare(enabled: boolean) {
+  function prepare(enabled: boolean, nativeClicks = false) {
     const sdk = new SessionReplay();
     const config: Partial<SessionReplayJoinedConfig> = {
       semanticCapture: { enabled, createCapture: createSemanticCapture },
@@ -36,15 +36,53 @@ describe('Session Replay context integration', () => {
     };
     sdk.config = config as SessionReplayJoinedConfig;
     const record = Object.assign(jest.fn(), {
+      supportsNativeMouseInteraction: nativeClicks,
       addCustomEvent: jest.fn(),
       takeFullSnapshot: jest.fn(),
-      mirror: { getNode: jest.fn() },
+      mirror: { getNode: jest.fn(), getId: jest.fn(() => 42) },
     });
     const internal = sdk as any;
     internal.recordFunction = record;
     internal.prepareSemanticCapture(sdk.config, 1);
     return { sdk, record, internal };
   }
+
+  test.each([true, false])('uses the native rrweb click hook only when supported (%s)', (supported) => {
+    prepare(true, supported);
+    const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
+    expect(host.externalClicks).toBe(supported);
+    expect(host.externalAuxClicks).toBe(false);
+  });
+
+  test('supplies rrweb node IDs, current URL, and safe selector fallbacks', () => {
+    const { sdk, internal } = prepare(true, true);
+    const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
+    expect(host.getNodeId!(document.body)).toBe(42);
+    expect(host.getUrl!()).toBe(window.location.href);
+    expect(host.getSelector!(document.body)).toBeNull();
+    internal.clickHandler = { getSelector: jest.fn(() => 'button') };
+    expect(host.getSelector!(document.body)).toBe('button');
+    internal.config.performanceConfig = { interaction: { timeoutMs: 50 } };
+    internal.clickHandler.getSelector.mockReturnValue(null);
+    expect(host.getSelector!(document.body)).toBeNull();
+    expect(internal.clickHandler.getSelector).toHaveBeenCalledWith(document.body, { timeoutMs: 50 });
+    const config = internal.config;
+    internal.config = undefined;
+    expect(host.getSelector!(document.body)).toBeNull();
+    internal.config = config;
+    internal.clickHandler.getSelector.mockImplementation(() => {
+      throw new Error('finder');
+    });
+    expect(host.getSelector!(document.body)).toBeNull();
+    internal.currentPageUrl = 'https://example.com/current';
+    expect(host.getUrl!()).toBe('https://example.com/current');
+    internal.recordFunction = undefined;
+    expect(host.getNodeId!(document.body)).toBe(-1);
+    internal.semanticAdapter = undefined;
+    internal.prepareSemanticCapture(sdk.config, 1);
+    expect(jest.mocked(createSemanticCapture).mock.lastCall?.[1].externalClicks).toBe(false);
+    sdk.stopRecordingEvents();
+  });
 
   test('disabled capture does not construct a runtime or change session-switch behavior', async () => {
     const { sdk } = prepare(false);
@@ -380,6 +418,49 @@ describe('Session Replay context integration', () => {
     const stop = jest.spyOn(internal.semanticAdapter, 'stop');
     await internal._recordEvents();
     expect(stop).toHaveBeenCalled();
+    sdk.stopRecordingEvents();
+  });
+
+  test('forwards native rrweb clicks through the shared hook when heatmaps are off', async () => {
+    const { sdk, record, internal } = prepare(true, true);
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    internal.recordingEnabled = true;
+    jest.spyOn(internal, 'getShouldRecord').mockReturnValue(true);
+    jest.spyOn(internal, 'getRecordFunction').mockResolvedValue(record);
+    jest.spyOn(internal, 'initializeNetworkObservers').mockResolvedValue(undefined);
+    jest.spyOn(internal, 'getRecordingPlugins').mockResolvedValue([]);
+    jest.spyOn(sdk, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+    record.mockReturnValue(jest.fn());
+    await internal._recordEvents();
+    const options = record.mock.calls[0][0];
+    const event = new MouseEvent('click');
+    options.hooks.mouseInteraction({ id: 42, type: MouseInteractions.Click, x: 1, y: 2 }, event);
+    expect(capture.notify).toHaveBeenCalledWith('click', event);
+    options.hooks.mouseInteraction({ id: 42, type: MouseInteractions.MouseDown, x: 1, y: 2 }, event);
+    expect(capture.notify.mock.calls.filter(([signal]) => signal === 'click')).toHaveLength(1);
+    sdk.stopRecordingEvents();
+  });
+
+  test('reuses the existing click handler and tolerates a stopped adapter', async () => {
+    const { sdk, record, internal } = prepare(true, true);
+    const sharedHook = jest.fn(
+      (_: unknown, semantic: (event: MouseEvent) => void) => (_data: unknown, event: MouseEvent) => semantic(event),
+    );
+    internal.clickHandler = { createSharedHook: sharedHook };
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    internal.recordingEnabled = true;
+    jest.spyOn(internal, 'getShouldRecord').mockReturnValue(true);
+    jest.spyOn(internal, 'getRecordFunction').mockResolvedValue(record);
+    jest.spyOn(internal, 'initializeNetworkObservers').mockResolvedValue(undefined);
+    jest.spyOn(internal, 'getRecordingPlugins').mockResolvedValue([]);
+    jest.spyOn(sdk, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+    record.mockReturnValue(jest.fn());
+    await internal._recordEvents();
+    expect(sharedHook).toHaveBeenCalled();
+    internal.semanticAdapter = undefined;
+    expect(() => {
+      record.mock.calls[0][0].hooks.mouseInteraction({ type: MouseInteractions.Click }, new MouseEvent('click'));
+    }).not.toThrow();
     sdk.stopRecordingEvents();
   });
 });

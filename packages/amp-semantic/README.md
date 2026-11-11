@@ -10,7 +10,7 @@ Recorders register teardown immediately with `onCleanup` when setup can fail. `c
 
 The `snapshot` host signal describes an accepted full snapshot; the runtime does not subscribe to rrweb itself. The host remains responsible for privacy-safe payloads, recording consent, transport, and any persisted tab identity.
 
-Context, visibility, browser lifecycle, navigation, and recording are the default recorders in this increment. Session Replay accepts this package through a locally supplied createCapture callback; capture remains disabled by default.
+Context, visibility, browser lifecycle, navigation, recording, click, field, and submit are the default recorders in this increment. Session Replay accepts this package through a locally supplied createCapture callback; capture remains disabled by default.
 
 ## Development
 
@@ -18,9 +18,9 @@ From the repository root, install dependencies and build with Node 24, `pnpm ins
 
 ## Context recorder
 
-`createSemanticCapture(config, host)` installs the context, visibility, lifecycle, navigation, and recording recorders by default. The host additionally supplies `sdk`, `getPrivacy`, and optional analytics context and stylesheet-inlining configuration. Call `notify('snapshot', undefined)` after an accepted full snapshot to emit context. Starting capture alone emits nothing.
+`createSemanticCapture(config, host)` installs the default recorders. The host additionally supplies `sdk`, `getPrivacy`, and optional analytics context and stylesheet-inlining configuration. Call `notify('snapshot', undefined)` after an accepted full snapshot to emit context. Starting capture alone emits nothing.
 
-`amp-semantic/context` records the effective mask level for the snapshot URL (including URL overrides), stylesheet counts, viewport, a device heuristic, language, user agent, visibility and focus snapshots, analytics SDK configuration, and dropped-event counts. The runtime stamps version, timestamp and document identity. It never captures input values or page text.
+`amp-semantic/context` records the effective mask level for the snapshot URL (including URL overrides), stylesheet counts, viewport, a device heuristic, language, user agent, visibility and focus snapshots, analytics SDK configuration, and dropped-event counts. The runtime stamps version, timestamp and document identity. The context event contains no input values or page text.
 
 The context budget is 200 events per session. At capacity the recorder skips stylesheet and other payload reads. Successfully delivered context acknowledges dropped-event diagnostics; failed delivery preserves them. `schema.json` describes the rrweb custom-event envelope used by the Session Replay adapter.
 
@@ -49,3 +49,7 @@ The initial state is present in context. The visibility budget is 200 events per
 ## Recording recorder
 
 `amp-semantic/recording` records SDK supplied start, stop, pause, and resume boundaries with a compact reason. Start/resume follows the first accepted replay full snapshot; stop/pause is emitted before rrweb teardown so it can be uploaded with the closing sequence. No event is emitted when semantic capture is disabled or sampled out. Disable only this family with `families: { recording: false }`. The budget is 200 events per session.
+
+## Interaction recorders
+
+`amp-semantic/click` describes the actionable target with its rrweb node ID, accessible name, role, states, container, stable key or selector, templated URL, and heading. When rrweb supplies native click events, the recorder shares the existing heatmap hook; auxiliary middle clicks use a small document listener. `amp-semantic/field` emits on change or focusout with value presence, checked state, validity, and a value only when Session Replay privacy settings allow it. Sensitive password and hidden fields are skipped. `amp-semantic/submit` captures form validity, submitter, and up to ten invalid field descriptions without calling `checkValidity()` or reading field text. These families have independent switches and budgets of 2,000, 1,000, and 300 events per session.

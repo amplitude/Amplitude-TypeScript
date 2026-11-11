@@ -1,6 +1,26 @@
 import type { PrivacyConfig } from '@amplitude/session-replay-dom-privacy';
 
 export const SEMANTIC_VERSION = 1;
+export type NameSource =
+  | 'aria-labelledby'
+  | 'aria-label'
+  | 'label-for'
+  | 'label-wrap'
+  | 'alt'
+  | 'value'
+  | 'title'
+  | 'text'
+  | 'placeholder'
+  | 'masked'
+  | 'unnamed';
+export interface TargetDescription {
+  id: number | null;
+  role: string;
+  name: string | null;
+}
+export interface NamedTarget extends TargetDescription {
+  name_source: NameSource;
+}
 export interface AnalyticsContext {
   present: boolean;
   autocapture: string[];
@@ -22,6 +42,37 @@ export interface SemanticPayloads {
   lifecycle: { type: 'pagehide' | 'pageshow' | 'pageshow_bfcache' | 'freeze' | 'resume' };
   navigation: { url: string };
   recording: RecordingSignal;
+  click: NamedTarget & {
+    container: TargetDescription | null;
+    states: string[];
+    visible: boolean;
+    key: string | null;
+    selector?: string | null;
+    attrs: Record<string, string>;
+    url: string;
+    heading: string | null;
+    keyboard: boolean;
+    modifiers: string[];
+    trusted: boolean;
+  };
+  field: NamedTarget & {
+    states: string[];
+    kind: string;
+    value_state: 'empty' | 'filled';
+    value?: string;
+    checked?: boolean;
+    valid: boolean;
+    validity: string[];
+    masked: boolean;
+    option_label: string | null;
+  };
+  submit: {
+    form: TargetDescription;
+    submitter: TargetDescription | null;
+    valid: boolean;
+    invalid_fields: { id: number | null; name: string | null; validity: string[] }[];
+    prevented: boolean;
+  };
   context: {
     sdk: string;
     mask: 'light' | 'medium' | 'conservative';
@@ -54,6 +105,24 @@ export interface HostSignals {
   url: { url: string; timestamp: number };
   /** SDK-owned recording boundary, forwarded before rrweb teardown. */
   recording: RecordingSignal;
+  click: MouseEvent;
+}
+export interface SemanticHelpers {
+  id: (element: Element) => number | null;
+  blocked: (element: Element) => boolean;
+  masked: (element: Element) => boolean;
+  text: (element: Element, value?: string | null) => string | null;
+  name: (element: Element) => { name: string | null; source: NameSource };
+  role: (element: Element) => string;
+  states: (element: Element) => string[];
+  describe: (element: Element) => NamedTarget;
+  actionable: (element: Element) => Element;
+  container: (element: Element) => TargetDescription | null;
+  visible: (element: Element) => boolean;
+  heading: () => string | null;
+  invalidateHeading?: () => void;
+  url: (value?: string) => string;
+  attributes: (element: Element) => Record<string, string>;
 }
 export interface RecordingSignal {
   state: 'start' | 'stop' | 'pause' | 'resume';
@@ -67,6 +136,13 @@ export interface SemanticHost<P extends object = SemanticPayloads> {
   sdk: string;
   getPrivacy: () => PrivacyConfig;
   getAnalyticsContext?: () => AnalyticsContext;
+  getNodeId?: (node: Node) => number;
+  getUrl?: () => string;
+  getSelector?: (element: Element) => string | null;
+  /** True when the host forwards native clicks through notify('click'). */
+  externalClicks?: boolean;
+  /** rrweb's native hook does not cover auxclick; default to a local listener. */
+  externalAuxClicks?: boolean;
   inlineStylesheet?: boolean;
   emit: (event: SemanticEvent<P>) => void;
   /** Called lazily for accepted events. Defaults to document-scoped memory only. */
@@ -80,6 +156,9 @@ export interface RecorderContext<P extends object = SemanticPayloads> {
   onCleanup: (cleanup: Cleanup) => void;
   host: SemanticHost<P>;
   now: () => number;
+  enabled: (family: SemanticFamily<P>) => boolean;
+  /** Optional test or host override; built-in interaction capture creates helpers lazily. */
+  helpers?: SemanticHelpers;
   /** Check before expensive payload work. A rejected candidate increments the dropped count. */
   canEmit: (family: SemanticFamily<P>) => boolean;
   emit: <K extends SemanticFamily<P>>(family: K, payload: P[K], timestamp?: number) => boolean;
