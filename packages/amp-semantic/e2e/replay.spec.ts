@@ -117,7 +117,8 @@ test('browser lifecycle boundaries use the replay custom-event transport', async
     document.dispatchEvent(new Event('resume'));
   });
   const lifecycle = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/lifecycle').slice(previous);
-  expect(lifecycle.map((event) => event.data.payload.type)).toEqual([
+  // WebKit may deliver a real pagehide as the harness becomes ready.
+  expect(lifecycle.slice(-4).map((event) => event.data.payload.type)).toEqual([
     'pagehide',
     'pageshow_bfcache',
     'freeze',
