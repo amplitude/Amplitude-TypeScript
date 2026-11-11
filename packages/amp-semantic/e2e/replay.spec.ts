@@ -76,7 +76,7 @@ for (const query of [
   '?enabled=false',
   '?sampleRate=0',
   '?remoteEnabled=false',
-  '?disabled=context,visibility,lifecycle,navigation,recording,click,field,submit,keys',
+  '?disabled=context,visibility,lifecycle,navigation,recording,click,field,submit,keys,resource-error',
   '?createCapture=false&remoteEnabled=true',
 ]) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
@@ -198,4 +198,21 @@ test('allowlisted keys include a privacy-safe target in replay', async ({ page }
   const key = (await flush(page)).find((event) => event.data.tag === 'amp-semantic/keys')!;
   expect(key.data.payload).toMatchObject({ key: 'Escape', target: { role: 'button', name: 'Save changes' } });
   expect(validate(key), JSON.stringify(validate.errors)).toBe(true);
+});
+
+test('failed image loads produce a compact resource event', async ({ page }) => {
+  await page.route('**/missing-asset.png', (route) => route.abort());
+  await open(page);
+  await page.evaluate(() => {
+    const image = document.createElement('img');
+    image.src = '/missing-asset.png?private=hidden';
+    document.body.append(image);
+  });
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/resource-error').length)
+    .toBe(1);
+  const failure = (await flush(page)).find((event) => event.data.tag === 'amp-semantic/resource-error')!;
+  expect(failure.data.payload).toMatchObject({ rt: 'img', path: '/missing-asset.png', count: 1 });
+  expect(JSON.stringify(failure)).not.toContain('private=hidden');
+  expect(validate(failure), JSON.stringify(validate.errors)).toBe(true);
 });
