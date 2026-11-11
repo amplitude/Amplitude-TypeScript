@@ -21,6 +21,7 @@ export interface SemanticPayloads {
   visibility: { state: 'hidden' | 'visible' };
   lifecycle: { type: 'pagehide' | 'pageshow' | 'pageshow_bfcache' | 'freeze' | 'resume' };
   navigation: { url: string };
+  recording: RecordingSignal;
   context: {
     sdk: string;
     mask: 'light' | 'medium' | 'conservative';
@@ -51,6 +52,12 @@ export interface HostSignals {
   snapshot: undefined;
   /** An accepted URL tracking plugin event, after host UGC filtering. */
   url: { url: string; timestamp: number };
+  /** SDK-owned recording boundary, forwarded before rrweb teardown. */
+  recording: RecordingSignal;
+}
+export interface RecordingSignal {
+  state: 'start' | 'stop' | 'pause' | 'resume';
+  reason: 'init' | 'new_session' | 'customer_stop' | 'sampled_out' | 'opt_out' | 'targeting' | 'focus' | 'error';
 }
 export type Cleanup = () => void;
 /** The host owns transport; the runtime has no rrweb dependency. */

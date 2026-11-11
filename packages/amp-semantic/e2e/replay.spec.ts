@@ -76,7 +76,7 @@ for (const query of [
   '?enabled=false',
   '?sampleRate=0',
   '?remoteEnabled=false',
-  '?disabled=context,visibility,lifecycle,navigation',
+  '?disabled=context,visibility,lifecycle,navigation,recording',
   '?createCapture=false&remoteEnabled=true',
 ]) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
@@ -94,10 +94,10 @@ test('stop removes listeners and resume emits fresh context without resetting do
   await expect
     .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/context').length)
     .toBe(1);
-  const before = (await flush(page)).length;
+  const before = (await flush(page)).filter((event) => event.data.tag !== 'amp-semantic/recording').length;
   await page.evaluate(() => window.semanticHarness.stop());
   await visibility(page, 'hidden');
-  expect((await flush(page)).length).toBe(before);
+  expect((await flush(page)).filter((event) => event.data.tag !== 'amp-semantic/recording')).toHaveLength(before);
   await page.evaluate(() => window.semanticHarness.start());
   await expect
     .poll(async () => (await flush(page)).filter((e) => e.data.tag === 'amp-semantic/context').length)
@@ -144,4 +144,22 @@ test('URL plugin observations produce templated navigation events', async ({ pag
   const navigation = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/navigation');
   expect(navigation[1].data.payload.url).toContain('#/accounts/:id');
   for (const event of navigation) expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
+});
+
+test('recording boundaries bracket a customer stop and resume', async ({ page }) => {
+  await open(page);
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/recording').length)
+    .toBe(1);
+  await page.evaluate(() => window.semanticHarness.stop());
+  const stopped = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/recording');
+  expect(stopped.map((event) => event.data.payload.state)).toEqual(['start', 'stop']);
+  expect(stopped[1].data.payload.reason).toBe('customer_stop');
+  await page.evaluate(() => window.semanticHarness.start());
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/recording').length)
+    .toBe(3);
+  const recording = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/recording');
+  expect(recording[2].data.payload.state).toBe('resume');
+  for (const event of recording) expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
 });

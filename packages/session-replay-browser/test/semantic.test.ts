@@ -28,11 +28,12 @@ describe('ReplaySemanticAdapter', () => {
     adapter.recordingReady();
     adapter.recordingReady();
     expect(capture.start).toHaveBeenCalledTimes(1);
+    expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'start', reason: 'init' });
     expect(capture.notify).toHaveBeenCalledWith('snapshot', undefined);
     adapter.event({ type: EventType.Custom, timestamp: 2, data: { tag: 'amp-semantic/context', payload: {} } });
-    expect(capture.notify).toHaveBeenCalledTimes(1);
-    adapter.event(snapshot);
     expect(capture.notify).toHaveBeenCalledTimes(2);
+    adapter.event(snapshot);
+    expect(capture.notify).toHaveBeenCalledTimes(3);
   });
 
   test('clears queued snapshots on stop and prepare; preserves session sampling until the session changes', () => {
@@ -70,7 +71,7 @@ describe('ReplaySemanticAdapter', () => {
     adapter.prepare({ enabled: true }, 1);
     for (let i = 0; i < 1000; i++) adapter.event(snapshot);
     adapter.recordingReady();
-    expect(capture.notify).toHaveBeenCalledTimes(MAX_PENDING_SEMANTIC_SNAPSHOTS);
+    expect(capture.notify).toHaveBeenCalledTimes(MAX_PENDING_SEMANTIC_SNAPSHOTS + 1);
   });
 
   test('forwards accepted URL plugin events in order and ignores other plugin payloads', () => {
@@ -87,6 +88,7 @@ describe('ReplaySemanticAdapter', () => {
     adapter.recordingReady();
     expect(capture.notify.mock.calls).toEqual([
       ['url', { url: 'https://example.com/first', timestamp: 7 }],
+      ['recording', { state: 'start', reason: 'init' }],
       ['snapshot', undefined],
     ]);
     adapter.event(plugin('https://example.com/second', 8));
@@ -102,9 +104,30 @@ describe('ReplaySemanticAdapter', () => {
       data: { plugin: 'amplitude/url-tracking@1', payload: null },
     });
     expect(capture.notify).toHaveBeenLastCalledWith('url', { url: 'https://example.com/second', timestamp: 8 });
-    expect(capture.notify).toHaveBeenCalledTimes(3);
+    expect(capture.notify).toHaveBeenCalledTimes(4);
     adapter.prepare({ enabled: false }, 1);
     adapter.event(plugin('https://example.com/disabled', 12));
-    expect(capture.notify).toHaveBeenCalledTimes(3);
+    expect(capture.notify).toHaveBeenLastCalledWith('recording', { state: 'stop', reason: 'targeting' });
+    expect(capture.notify).toHaveBeenCalledTimes(5);
+  });
+
+  test('emits stop before teardown and resumes the same session after a new snapshot', () => {
+    const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
+    adapter.prepare({ enabled: true }, 1);
+    adapter.event(snapshot);
+    adapter.recordingReady();
+    adapter.stop('customer_stop');
+    expect(capture.notify).toHaveBeenLastCalledWith('recording', { state: 'stop', reason: 'customer_stop' });
+    expect(capture.stop).toHaveBeenCalledTimes(2); // prepare and explicit stop
+    adapter.prepare({ enabled: true }, 1);
+    adapter.event(snapshot);
+    adapter.recordingReady();
+    expect(capture.notify).toHaveBeenLastCalledWith('snapshot', undefined);
+    expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'resume', reason: 'customer_stop' });
+    adapter.stop('new_session');
+    adapter.prepare({ enabled: true }, 2);
+    adapter.event(snapshot);
+    adapter.recordingReady();
+    expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'start', reason: 'new_session' });
   });
 });

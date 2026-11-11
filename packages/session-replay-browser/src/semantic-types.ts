@@ -38,6 +38,11 @@ export interface SemanticCaptureController {
 export interface SemanticHostSignals {
   snapshot: undefined;
   url: { url: string; timestamp: number };
+  recording: SemanticRecordingSignal;
+}
+export interface SemanticRecordingSignal {
+  state: 'start' | 'stop' | 'pause' | 'resume';
+  reason: 'init' | 'new_session' | 'customer_stop' | 'sampled_out' | 'opt_out' | 'targeting' | 'focus' | 'error';
 }
 export type SemanticCaptureFactory = (
   config: SemanticCaptureConfig,

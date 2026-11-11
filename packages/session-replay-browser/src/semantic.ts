@@ -3,6 +3,7 @@ import type {
   SemanticCaptureController,
   SemanticCaptureFactory,
   SemanticCaptureHost,
+  SemanticRecordingSignal,
 } from './semantic-types';
 
 /** Transport startup queue bound, independent of recorder-specific event budgets. */
@@ -16,6 +17,10 @@ export class ReplaySemanticAdapter {
   private readonly capture: SemanticCaptureController;
   private sessionId?: string | number;
   private ready = false;
+  private firstSnapshot = false;
+  private hasStartedInSession = false;
+  private startSignal: SemanticRecordingSignal = { state: 'start', reason: 'init' };
+  private resumeReason: SemanticRecordingSignal['reason'] = 'focus';
   private pendingSnapshots = 0;
   private pendingUrls = 0;
   private pendingEvents: DeferredObservation[] = [];
@@ -27,9 +32,18 @@ export class ReplaySemanticAdapter {
 
   prepare(config: SemanticCaptureConfig, sessionId: string | number): void {
     this.stop();
+    const newSession = this.sessionId !== sessionId;
+    const startReason = this.sessionId === undefined ? 'init' : newSession ? 'new_session' : this.startSignal.reason;
     this.config = config;
     this.capture.updateConfig(config);
-    if (this.sessionId !== sessionId) this.capture.resetSession();
+    if (newSession) {
+      this.capture.resetSession();
+      this.hasStartedInSession = false;
+    }
+    this.startSignal = {
+      state: this.hasStartedInSession ? 'resume' : 'start',
+      reason: this.hasStartedInSession ? this.resumeReason : startReason,
+    };
     this.sessionId = sessionId;
   }
 
@@ -80,11 +94,22 @@ export class ReplaySemanticAdapter {
       }
       return;
     }
-    if (this.capture.isActive()) this.capture.notify('snapshot', undefined);
+    if (!this.capture.isActive()) return;
+    if (!this.firstSnapshot) {
+      this.firstSnapshot = true;
+      this.hasStartedInSession = true;
+      this.capture.notify('recording', this.startSignal);
+    }
+    this.capture.notify('snapshot', undefined);
   }
 
-  stop(): void {
+  stop(reason: SemanticRecordingSignal['reason'] = 'targeting', state: 'stop' | 'pause' = 'stop'): void {
+    if (this.ready && this.firstSnapshot) {
+      this.resumeReason = reason;
+      this.capture.notify('recording', { state, reason });
+    }
     this.ready = false;
+    this.firstSnapshot = false;
     this.pendingSnapshots = 0;
     this.pendingUrls = 0;
     this.pendingEvents = [];
