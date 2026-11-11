@@ -60,6 +60,12 @@
       <strong>Resource errors:</strong> failed image, stylesheet, script, and font loads, grouped briefly by type and
       sanitized path. Runtime JavaScript errors and invalid CSS rules do not trigger this event.
     </p>
+    <p>
+      <strong>Notice and dialog:</strong> live region messages and dialog open/close transitions from accepted rrweb DOM
+      changes. Click the button to add both, then close the dialog.
+    </p>
+    <button id="show-feedback">Show notice and dialog</button>
+    <div id="feedback-region"></div>
     <button id="semantic-action">Save changes</button>
     <form id="semantic-form">
       <label for="semantic-email">Email</label>

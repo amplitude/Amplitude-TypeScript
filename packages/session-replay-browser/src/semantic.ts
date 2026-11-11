@@ -4,13 +4,19 @@ import type {
   SemanticCaptureFactory,
   SemanticCaptureHost,
   SemanticRecordingSignal,
+  SemanticDomChange,
+  SemanticDomNode,
 } from './semantic-types';
 
 /** Transport startup queue bound, independent of recorder-specific event budgets. */
 export const MAX_PENDING_SEMANTIC_SNAPSHOTS = 200;
-import { EventType, eventWithTime } from '@amplitude/rrweb-types';
+export const MAX_PENDING_SEMANTIC_DOM_CHANGES = 128;
+import { EventType, IncrementalSource, eventWithTime } from '@amplitude/rrweb-types';
 
-type DeferredObservation = { type: 'snapshot' } | { type: 'url'; url: string; timestamp: number };
+type DeferredObservation =
+  | { type: 'snapshot' }
+  | { type: 'url'; url: string; timestamp: number }
+  | { type: 'dom'; change: SemanticDomChange };
 
 /** Starts capture only after rrweb can accept custom events. */
 export class ReplaySemanticAdapter {
@@ -23,6 +29,7 @@ export class ReplaySemanticAdapter {
   private resumeReason: SemanticRecordingSignal['reason'] = 'focus';
   private pendingSnapshots = 0;
   private pendingUrls = 0;
+  private pendingDomChanges = 0;
   private pendingEvents: DeferredObservation[] = [];
   private config: SemanticCaptureConfig = { enabled: false };
 
@@ -55,15 +62,23 @@ export class ReplaySemanticAdapter {
     this.pendingEvents = [];
     this.pendingSnapshots = 0;
     this.pendingUrls = 0;
+    this.pendingDomChanges = 0;
     for (const event of pending) {
       if (event.type === 'snapshot') this.snapshot();
-      else this.url(event.url, event.timestamp);
+      else if (event.type === 'url') this.url(event.url, event.timestamp);
+      else this.dom(event.change);
     }
   }
 
   /** Called only for replay events accepted for delivery; custom events cannot recurse. */
   event(event: eventWithTime): void {
-    if (event.type === EventType.FullSnapshot) this.snapshot();
+    if (event.type === EventType.FullSnapshot) {
+      if (event.data?.node) this.dom({ type: 'snapshot', node: event.data.node as SemanticDomNode });
+      this.snapshot();
+    }
+    if (event.type === EventType.IncrementalSnapshot && event.data.source === IncrementalSource.Mutation) {
+      this.dom({ ...event.data, type: 'mutation' } as SemanticDomChange);
+    }
     if (event.type === EventType.Plugin && event.data.plugin === 'amplitude/url-tracking@1') {
       const payload = event.data.payload as { type?: unknown; href?: unknown } | null;
       if (payload?.type === 'url-change-event' && typeof payload.href === 'string') {
@@ -74,6 +89,19 @@ export class ReplaySemanticAdapter {
 
   click(event: MouseEvent): void {
     if (this.ready && this.capture.isActive()) this.capture.notify('click', event);
+  }
+
+  private dom(change: SemanticDomChange): void {
+    const families = this.config.families;
+    if (!this.config.enabled || (families && families.notice === false && families.dialog === false)) return;
+    if (!this.ready) {
+      if (this.pendingDomChanges < MAX_PENDING_SEMANTIC_DOM_CHANGES) {
+        this.pendingDomChanges++;
+        this.pendingEvents.push({ type: 'dom', change });
+      }
+      return;
+    }
+    if (this.capture.isActive()) this.capture.notify('dom', change);
   }
 
   private url(url: string, timestamp: number): void {
@@ -116,6 +144,7 @@ export class ReplaySemanticAdapter {
     this.firstSnapshot = false;
     this.pendingSnapshots = 0;
     this.pendingUrls = 0;
+    this.pendingDomChanges = 0;
     this.pendingEvents = [];
     this.capture.stop();
   }

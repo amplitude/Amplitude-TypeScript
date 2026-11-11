@@ -22,6 +22,7 @@ export interface SemanticCaptureHost {
   emit: (event: { name: string; timestamp: number; payload: object }) => void;
   getPrivacy: () => PrivacyConfig;
   getNodeId?: (node: Node) => number;
+  getNode?: (id: number) => Node | null;
   getUrl?: () => string;
   getSelector?: (element: Element) => string | null;
   externalClicks?: boolean;
@@ -41,11 +42,28 @@ export interface SemanticCaptureController {
 }
 /** Structural host signals shared with optional semantic capture implementations. */
 export interface SemanticHostSignals {
+  dom: SemanticDomChange;
   snapshot: undefined;
   url: { url: string; timestamp: number };
   recording: SemanticRecordingSignal;
   click: MouseEvent;
 }
+export interface SemanticDomNode {
+  id: number;
+  type: number;
+  tagName?: string;
+  attributes?: Record<string, unknown>;
+  childNodes?: SemanticDomNode[];
+}
+export type SemanticDomChange =
+  | { type: 'snapshot'; node: SemanticDomNode }
+  | {
+      type: 'mutation';
+      adds: { parentId: number; node: SemanticDomNode }[];
+      removes: { parentId: number; id: number }[];
+      texts: { id: number }[];
+      attributes: { id: number; attributes: Record<string, unknown> }[];
+    };
 export interface SemanticRecordingSignal {
   state: 'start' | 'stop' | 'pause' | 'resume';
   reason: 'init' | 'new_session' | 'customer_stop' | 'sampled_out' | 'opt_out' | 'targeting' | 'focus' | 'error';

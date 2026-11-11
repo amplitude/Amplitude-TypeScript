@@ -7,6 +7,7 @@ import { recordingRecorder } from './recorders/recording';
 import { interactionsRecorder } from './recorders/interactions';
 import { keysRecorder } from './recorders/keys';
 import { resourceErrorRecorder } from './recorders/resource-error';
+import { feedbackRecorder } from './recorders/feedback';
 import type { SemanticCaptureConfig, SemanticHost, SemanticRecorder } from './types';
 
 export { createCapture, DEFAULT_SEMANTIC_CAP } from './capture';
@@ -19,6 +20,7 @@ export {
   interactionsRecorder,
   keysRecorder,
   resourceErrorRecorder,
+  feedbackRecorder,
 };
 export const defaultRecorders: readonly SemanticRecorder[] = [
   contextRecorder,
@@ -29,6 +31,7 @@ export const defaultRecorders: readonly SemanticRecorder[] = [
   interactionsRecorder,
   keysRecorder,
   resourceErrorRecorder,
+  feedbackRecorder,
 ];
 export const SEMANTIC_CAPS = {
   context: DEFAULT_SEMANTIC_CAP,
@@ -41,6 +44,8 @@ export const SEMANTIC_CAPS = {
   submit: 300,
   keys: 1000,
   'resource-error': 200,
+  notice: 300,
+  dialog: 300,
 };
 export * from './types';
 export type { SemanticCapture } from './capture';

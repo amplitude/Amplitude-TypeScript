@@ -49,6 +49,21 @@ export interface SemanticPayloads {
     container?: TargetDescription;
     path?: string;
   };
+  notice: {
+    id: number | null;
+    role: 'alert' | 'status' | 'log' | 'live';
+    text: string | null;
+    visible: boolean;
+    region: { role: string; name: string | null } | null;
+    cause_click_ts: number | null;
+  };
+  dialog: NamedTarget & {
+    role: 'dialog' | 'alertdialog';
+    state: 'open' | 'closed';
+    modal: boolean;
+    visible: boolean;
+    cause_click_ts: number | null;
+  };
   click: NamedTarget & {
     container: TargetDescription | null;
     states: string[];
@@ -106,6 +121,7 @@ export interface SemanticCaptureConfig<P extends object = SemanticPayloads> {
   families?: Partial<Record<SemanticFamily<P>, boolean>>;
 }
 export interface HostSignals {
+  dom: SemanticDomChange;
   /** An accepted full snapshot, forwarded after the recorder is ready. */
   snapshot: undefined;
   /** An accepted URL tracking plugin event, after host UGC filtering. */
@@ -114,6 +130,23 @@ export interface HostSignals {
   recording: RecordingSignal;
   click: MouseEvent;
 }
+/** Structural replay input, with no dependency on rrweb implementation types. */
+export interface SemanticDomNode {
+  id: number;
+  type: number;
+  tagName?: string;
+  attributes?: Record<string, unknown>;
+  childNodes?: SemanticDomNode[];
+}
+export type SemanticDomChange =
+  | { type: 'snapshot'; node: SemanticDomNode }
+  | {
+      type: 'mutation';
+      adds: { parentId: number; node: SemanticDomNode }[];
+      removes: { parentId: number; id: number }[];
+      texts: { id: number }[];
+      attributes: { id: number; attributes: Record<string, unknown> }[];
+    };
 export interface SemanticHelpers {
   id: (element: Element) => number | null;
   blocked: (element: Element) => boolean;
@@ -144,6 +177,7 @@ export interface SemanticHost<P extends object = SemanticPayloads> {
   getPrivacy: () => PrivacyConfig;
   getAnalyticsContext?: () => AnalyticsContext;
   getNodeId?: (node: Node) => number;
+  getNode?: (id: number) => Node | null;
   getUrl?: () => string;
   getSelector?: (element: Element) => string | null;
   /** True when the host forwards native clicks through notify('click'). */
@@ -164,12 +198,16 @@ export interface RecorderContext<P extends object = SemanticPayloads> {
   host: SemanticHost<P>;
   now: () => number;
   enabled: (family: SemanticFamily<P>) => boolean;
+  /** Read capacity without counting a rejected candidate. */
+  hasCapacity: (family: SemanticFamily<P>) => boolean;
   /** Optional test or host override; built-in interaction capture creates helpers lazily. */
   helpers?: SemanticHelpers;
   /** Check before expensive payload work. A rejected candidate increments the dropped count. */
   canEmit: (family: SemanticFamily<P>) => boolean;
   emit: <K extends SemanticFamily<P>>(family: K, payload: P[K], timestamp?: number) => boolean;
   on: <K extends keyof HostSignals>(signal: K, callback: (value: HostSignals[K]) => void) => Cleanup;
+  /** Observe successfully emitted events for causal correlation. */
+  subscribe: (callback: (event: SemanticEvent<P>) => void) => Cleanup;
   /** Peek at dropped counts; a recorder can acknowledge them after successful delivery. */
   dropped: () => Partial<Record<SemanticFamily<P>, number>>;
   clearDropped: () => void;
