@@ -107,6 +107,7 @@ test('browser lifecycle boundaries use the replay custom-event transport', async
   await expect
     .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/context').length)
     .toBe(1);
+  const previous = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/lifecycle').length;
   await page.evaluate(() => {
     window.dispatchEvent(new Event('pagehide'));
     const restored = new Event('pageshow');
@@ -115,7 +116,7 @@ test('browser lifecycle boundaries use the replay custom-event transport', async
     document.dispatchEvent(new Event('freeze'));
     document.dispatchEvent(new Event('resume'));
   });
-  const lifecycle = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/lifecycle');
+  const lifecycle = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/lifecycle').slice(previous);
   expect(lifecycle.map((event) => event.data.payload.type)).toEqual([
     'pagehide',
     'pageshow_bfcache',
