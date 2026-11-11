@@ -20,6 +20,7 @@ export interface SemanticEventEnvelope<Name extends string, Payload extends obje
 export interface SemanticPayloads {
   visibility: { state: 'hidden' | 'visible' };
   lifecycle: { type: 'pagehide' | 'pageshow' | 'pageshow_bfcache' | 'freeze' | 'resume' };
+  navigation: { url: string };
   context: {
     sdk: string;
     mask: 'light' | 'medium' | 'conservative';
@@ -48,6 +49,8 @@ export interface SemanticCaptureConfig<P extends object = SemanticPayloads> {
 export interface HostSignals {
   /** An accepted full snapshot, forwarded after the recorder is ready. */
   snapshot: undefined;
+  /** An accepted URL tracking plugin event, after host UGC filtering. */
+  url: { url: string; timestamp: number };
 }
 export type Cleanup = () => void;
 /** The host owns transport; the runtime has no rrweb dependency. */

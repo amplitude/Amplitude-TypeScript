@@ -72,4 +72,39 @@ describe('ReplaySemanticAdapter', () => {
     adapter.recordingReady();
     expect(capture.notify).toHaveBeenCalledTimes(MAX_PENDING_SEMANTIC_SNAPSHOTS);
   });
+
+  test('forwards accepted URL plugin events in order and ignores other plugin payloads', () => {
+    const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
+    adapter.prepare({ enabled: true }, 1);
+    const plugin = (href: string, timestamp: number) =>
+      ({
+        type: EventType.Plugin,
+        timestamp,
+        data: { plugin: 'amplitude/url-tracking@1', payload: { type: 'url-change-event', href } },
+      } as eventWithTime);
+    adapter.event(plugin('https://example.com/first', 7));
+    adapter.event(snapshot);
+    adapter.recordingReady();
+    expect(capture.notify.mock.calls).toEqual([
+      ['url', { url: 'https://example.com/first', timestamp: 7 }],
+      ['snapshot', undefined],
+    ]);
+    adapter.event(plugin('https://example.com/second', 8));
+    adapter.event({ type: EventType.Plugin, timestamp: 9, data: { plugin: 'other', payload: {} } });
+    adapter.event({
+      type: EventType.Plugin,
+      timestamp: 10,
+      data: { plugin: 'amplitude/url-tracking@1', payload: { type: 'url-change-event', href: 4 } },
+    });
+    adapter.event({
+      type: EventType.Plugin,
+      timestamp: 11,
+      data: { plugin: 'amplitude/url-tracking@1', payload: null },
+    });
+    expect(capture.notify).toHaveBeenLastCalledWith('url', { url: 'https://example.com/second', timestamp: 8 });
+    expect(capture.notify).toHaveBeenCalledTimes(3);
+    adapter.prepare({ enabled: false }, 1);
+    adapter.event(plugin('https://example.com/disabled', 12));
+    expect(capture.notify).toHaveBeenCalledTimes(3);
+  });
 });

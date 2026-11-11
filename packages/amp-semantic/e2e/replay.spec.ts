@@ -52,7 +52,9 @@ test('real replay transport delivers context and visibility with stable identity
   await expect
     .poll(async () => (await flush(page)).filter((e) => e.data.tag === 'amp-semantic/context').length)
     .toBe(2);
-  const events = await flush(page);
+  const events = (await flush(page)).filter((event) =>
+    ['amp-semantic/context', 'amp-semantic/visibility'].includes(event.data.tag),
+  );
   expect(events.map((e) => e.data.tag)).toEqual([
     'amp-semantic/context',
     'amp-semantic/visibility',
@@ -74,7 +76,7 @@ for (const query of [
   '?enabled=false',
   '?sampleRate=0',
   '?remoteEnabled=false',
-  '?disabled=context,visibility,lifecycle',
+  '?disabled=context,visibility,lifecycle,navigation',
   '?createCapture=false&remoteEnabled=true',
 ]) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
@@ -89,10 +91,13 @@ for (const query of [
 
 test('stop removes listeners and resume emits fresh context without resetting document identity', async ({ page }) => {
   await open(page);
-  await expect.poll(async () => (await flush(page)).length).toBe(1);
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/context').length)
+    .toBe(1);
+  const before = (await flush(page)).length;
   await page.evaluate(() => window.semanticHarness.stop());
   await visibility(page, 'hidden');
-  expect((await flush(page)).length).toBe(1);
+  expect((await flush(page)).length).toBe(before);
   await page.evaluate(() => window.semanticHarness.start());
   await expect
     .poll(async () => (await flush(page)).filter((e) => e.data.tag === 'amp-semantic/context').length)
@@ -123,4 +128,20 @@ test('browser lifecycle boundaries use the replay custom-event transport', async
     'resume',
   ]);
   for (const event of lifecycle) expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
+});
+
+test('URL plugin observations produce templated navigation events', async ({ page }) => {
+  await open(page);
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/navigation').length)
+    .toBe(1);
+  await page.evaluate(() => {
+    window.location.hash = '#/accounts/8812?private=hidden';
+  });
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/navigation').length)
+    .toBe(2);
+  const navigation = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/navigation');
+  expect(navigation[1].data.payload.url).toContain('#/accounts/:id');
+  for (const event of navigation) expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
 });
