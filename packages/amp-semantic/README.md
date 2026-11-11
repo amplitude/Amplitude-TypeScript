@@ -1,6 +1,6 @@
 # @amplitude/amp-semantic
 
-Internal, composable semantic capture runtime for Amplitude. Context and visibility capture use a host interface. Session Replay supplies configuration, identity, lifecycle signals, and rrweb transport.
+Internal, composable semantic capture runtime for Amplitude. Context, visibility, and browser lifecycle capture use a host interface. Session Replay supplies configuration, identity, recording signals, and rrweb transport.
 
 The host supplies a document, window, and transport callback. `createCapture` accepts typed recorder factories and optional per-family budgets (200 events per session by default). With an empty recorder list it emits nothing and installs no browser listeners.
 
@@ -10,7 +10,7 @@ Recorders register teardown immediately with `onCleanup` when setup can fail. `c
 
 The `snapshot` host signal describes an accepted full snapshot; the runtime does not subscribe to rrweb itself. The host remains responsible for privacy-safe payloads, recording consent, transport, and any persisted tab identity.
 
-Context and visibility are the only default recorders in this increment. Session Replay accepts this package through a locally supplied createCapture callback; capture remains disabled by default.
+Context, visibility, and browser lifecycle are the default recorders in this increment. Session Replay accepts this package through a locally supplied createCapture callback; capture remains disabled by default.
 
 ## Development
 
@@ -18,7 +18,7 @@ From the repository root, install dependencies and build with Node 24, `pnpm ins
 
 ## Context recorder
 
-`createSemanticCapture(config, host)` installs the context and visibility recorders by default. The host additionally supplies `sdk`, `getPrivacy`, and optional analytics context and stylesheet-inlining configuration. Call `notify('snapshot', undefined)` after an accepted full snapshot to emit context. Starting capture alone emits nothing.
+`createSemanticCapture(config, host)` installs the context, visibility, and lifecycle recorders by default. The host additionally supplies `sdk`, `getPrivacy`, and optional analytics context and stylesheet-inlining configuration. Call `notify('snapshot', undefined)` after an accepted full snapshot to emit context. Starting capture alone emits nothing.
 
 `amp-semantic/context` records the effective mask level for the snapshot URL (including URL overrides), stylesheet counts, viewport, a device heuristic, language, user agent, visibility and focus snapshots, analytics SDK configuration, and dropped-event counts. The runtime stamps version, timestamp and document identity. It never captures input values or page text.
 
@@ -37,3 +37,7 @@ For local validation, build with `pnpm build`, then run `pnpm exec vite --host 1
 `amp-semantic/visibility` emits only hidden/visible transitions, deduplicated from the document's `visibilitychange` event. Its payload contains `state`, version and identity; focus/blur alone do not emit events. The listener is removed on stop and recreated on resume. Disable only this family with `semanticCapture: { enabled: true, createCapture: createSemanticCapture, families: { visibility: false } }`.
 
 The initial state is present in context. The visibility budget is 200 events per session. Native notification timing is browser-dependent; an embedded browser can report transitions late. Browser tests inject deterministic transitions to verify transport and timestamps, while native tab behavior should be checked manually in Chrome.
+
+## Browser lifecycle recorder
+
+`amp-semantic/lifecycle` records `pagehide`, `pageshow`, `pageshow_bfcache`, `freeze`, and `resume` as browser boundaries. The BFCache variant is selected when `pageshow.persisted` is true. Its payload contains only the boundary type plus version and identity. These events support deriving replay gaps and resume intervals downstream; they do not claim that a recording stopped or restarted. The listener is removed on stop. Disable this family with `families: { lifecycle: false }`. The budget is 200 events per session.
