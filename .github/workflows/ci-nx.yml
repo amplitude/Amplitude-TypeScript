@@ -36,23 +36,6 @@ jobs:
       - name: Check for unused dependencies
         run: pnpm lint:deps
 
-  build-docs:
-    name: Build Docs
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Check out git repository
-        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
-
-      - name: Setup Node and pnpm
-        uses: ./.github/actions/setup-node-pnpm
-
-      - name: Build all packages
-        run: pnpm build
-
-      - name: Build docs
-        run: pnpm docs:check
-
   check-size-limits:
     name: Check Size Limits
     runs-on: ubuntu-latest

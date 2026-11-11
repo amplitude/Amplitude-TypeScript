@@ -11,7 +11,7 @@ Official Amplitude SDK for Web
 
 # Doc
 
-See our [Analytics SDK for Browser](https://amplitude.github.io/Amplitude-TypeScript/modules/_amplitude_analytics_browser.html) Reference for a list and description of all available SDK methods.
+See the [Browser SDK reference](https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2/reference) for a list and description of all available SDK methods.
 
 # Installation and Quick Start
 

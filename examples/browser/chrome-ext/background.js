@@ -17,7 +17,7 @@ importScripts('/amplitude-min.js');
  * amplitude.init(API_KEY, 'example.extension.user@amplitude.com')
  * ```
  *
- * Optionally, a config object can be provided. Refer to https://amplitude.github.io/Amplitude-TypeScript/interfaces/Types.BrowserConfig.html
+ * Optionally, a config object can be provided. Refer to https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2/reference#configuration-options
  * for object properties.
  */
 amplitude.init('API_KEY', 'example.extension.user@amplitude.com');
