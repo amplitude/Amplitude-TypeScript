@@ -82,6 +82,10 @@ android {
     sourceCompatibility JavaVersion.VERSION_1_8
     targetCompatibility JavaVersion.VERSION_1_8
   }
+
+  testOptions {
+    unitTests.returnDefaultValues = true
+  }
 }
 
 repositories {
@@ -92,6 +96,8 @@ repositories {
 def kotlin_version = getExtOrDefault("kotlinVersion")
 
 dependencies {
+  testImplementation "junit:junit:4.13.2"
+  testImplementation "org.mockito:mockito-core:5.14.2"
     implementation("com.amplitude:session-replay-android:[0.31.1,0.32.0)")
     implementation("com.amplitude:analytics-android:[1.33.0,1.34.0)")
 
