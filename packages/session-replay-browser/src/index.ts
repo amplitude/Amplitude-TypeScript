@@ -19,3 +19,11 @@ export {
   SessionReplaySendEventsHandler,
   SessionReplayFetchConfigHandler,
 } from './config/types';
+
+export type {
+  SemanticCaptureConfig,
+  SemanticCaptureOptions,
+  SemanticCaptureFactory,
+  SemanticCaptureHost,
+  SemanticCaptureController,
+} from './semantic-types';

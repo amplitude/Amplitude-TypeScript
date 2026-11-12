@@ -17,10 +17,9 @@ pnpm build
 
 1. Install dependencies with `pnpm install`.
 2. Build all packages with `pnpm build`.
-3. Verify documentation with `pnpm docs:check`.
-4. Run unit tests with `pnpm test` and example tests with `pnpm test:examples`.
-5. Lint the code using `pnpm lint`.
-6. Check for unused dependencies with `pnpm lint:deps`.
+3. Run unit tests with `pnpm test` and example tests with `pnpm test:examples`.
+4. Lint the code using `pnpm lint`.
+5. Check for unused dependencies with `pnpm lint:deps`.
 
 These steps must pass before you submit your PR.
 

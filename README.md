@@ -61,4 +61,4 @@ Run `npx nx reset` and try again
 
 ## Documentation
 
-See our [Typescript SDK](https://amplitude.github.io/Amplitude-TypeScript/) Reference for a list and description of all available SDK methods.
+See the [Amplitude SDK documentation](https://amplitude.com/docs/sdks) for install guides and API references for each SDK.

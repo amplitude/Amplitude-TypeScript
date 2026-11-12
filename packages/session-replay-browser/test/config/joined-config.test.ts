@@ -139,6 +139,68 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
     });
 
+    describe('semantic capture configuration', () => {
+      test('remote family overrides preserve local sampling and can kill capture', async () => {
+        mockRemoteConfig = {
+          sr_semantic_config: { enabled: false, families: { context: false } },
+        };
+        const generator = await createSessionReplayJoinedConfigGenerator('static_key', {
+          ...mockOptions,
+          semanticCapture: { enabled: true, sampleRate: 0.25, families: { context: true } },
+        });
+        const { joinedConfig, remoteConfig } = await generator.generateJoinedConfig();
+        expect(joinedConfig.semanticCapture).toEqual({
+          enabled: false,
+          sampleRate: 0.25,
+          families: { context: false },
+        });
+        expect(remoteConfig?.sr_semantic_config?.enabled).toBe(false);
+      });
+
+      test('remote controls preserve the local createCapture callback and cannot inject or replace it', async () => {
+        const factory = jest.fn(() => {
+          throw new Error('not called during configuration');
+        });
+        const remoteFactory = jest.fn();
+        mockRemoteConfig = { sr_semantic_config: { enabled: true, sampleRate: 0.5, createCapture: remoteFactory } };
+        const generator = await createSessionReplayJoinedConfigGenerator('static_key', {
+          ...mockOptions,
+          semanticCapture: { enabled: false, createCapture: factory },
+        });
+        const { joinedConfig } = await generator.generateJoinedConfig();
+        expect(joinedConfig.semanticCapture).toEqual({
+          enabled: true,
+          sampleRate: 0.5,
+          families: {},
+          createCapture: factory,
+        });
+        const withoutCreateCapture = await joinedConfigGenerator.generateJoinedConfig();
+        expect(withoutCreateCapture.joinedConfig.semanticCapture).not.toHaveProperty('createCapture');
+        expect(factory).not.toHaveBeenCalled();
+        expect(remoteFactory).not.toHaveBeenCalled();
+      });
+
+      test('a partial remote semantic config does not enable capture by default', async () => {
+        mockRemoteConfig = { sr_semantic_config: { families: { context: true } } };
+        const { joinedConfig } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(joinedConfig.semanticCapture).toEqual({ enabled: false, families: { context: true } });
+      });
+
+      test.each([NaN, Infinity, -0.1, 1.1])('invalid remote semantic sampleRate %s disables capture', async (rate) => {
+        mockRemoteConfig = { sr_semantic_config: { enabled: true, sampleRate: rate } };
+        const { joinedConfig } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(joinedConfig.semanticCapture?.sampleRate).toBe(0);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('Invalid semantic sampleRate'));
+      });
+
+      test.each([0, 1])('valid remote semantic sampleRate %s is retained', async (rate) => {
+        mockRemoteConfig = { sr_semantic_config: { enabled: true, sampleRate: rate } };
+        const { joinedConfig } = await joinedConfigGenerator.generateJoinedConfig();
+        expect(joinedConfig.semanticCapture?.sampleRate).toBe(rate);
+      });
+    });
+
     describe('with successful sampling config fetch', () => {
       test('should use sample_rate and capture_enabled from API', async () => {
         mockRemoteConfig = {

@@ -1,3 +1,5 @@
+import { ReplaySemanticAdapter } from './semantic';
+import { getSemanticIdentity } from './semantic-identity';
 import {
   createPrivacyRecorderOptions,
   getBlockSelectors,
@@ -71,6 +73,7 @@ import type { NetworkObservers, NetworkRequestEvent } from './observers';
 import { createUrlTrackingPlugin, subscribeToUrlChanges } from './plugins/url-tracking-plugin';
 import type { RecordFunction } from './utils/rrweb';
 import { isInIframe, CrossOriginIframeCoordinator, listenForParentSignals } from './cross-origin-iframes';
+import { WindowFocusTracker } from './window-focus';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -110,6 +113,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
+  private semanticAdapter?: ReplaySemanticAdapter;
   private recordEventsInFlight = false;
   /**
    * When false, capture is paused by a customer `stop()` (or `shutdown()`) call.
@@ -130,6 +134,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
    */
   private startChildRecordingOnSetup = false;
   private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
+  /**
+   * Tab hide/blur uploads are deferred by one macrotask. `visibilitychange` (hidden)
+   * fires before `pagehide`, and the default memory store clears the beacon buffer
+   * as soon as `sendEvents` resolves. If that happens first, the page-leave beacon
+   * is empty and the fetch it raced is cancelled on unload.
+   */
+  private hiddenFlushTimer: ReturnType<typeof setTimeout> | undefined;
+  private windowFocus = new WindowFocusTracker();
 
   /** Current page URL, kept in sync with SPA navigations for URL-based masking */
   private currentPageUrl = '';
@@ -168,6 +180,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // in browser that don't support pagehide.
         globalScope.removeEventListener('beforeunload', this.pageLeaveListener);
         !teardown && globalScope.addEventListener('beforeunload', this.pageLeaveListener);
+      }
+      // Tab switches fire visibilitychange on the document. Focus does not: a background
+      // tab can stay blurred without ever hiding, and hidden tabs often never regain focus
+      // until this event. Guarded because unit-test scopes sometimes stub document.
+      const documentRef = globalScope.document;
+      if (documentRef?.addEventListener && documentRef.removeEventListener) {
+        documentRef.removeEventListener('visibilitychange', this.visibilityListener);
+        !teardown && documentRef.addEventListener('visibilitychange', this.visibilityListener);
       }
     }
   };
@@ -243,6 +263,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
     this.urlChangeCleanup?.();
+    this.useSemanticAdapter((adapter) => adapter.stop());
+    this.semanticAdapter = undefined;
     // A new init always allows capture again. `stop()` only pauses the current instance.
     this.recordingEnabled = true;
     this.startChildRecordingOnSetup = false;
@@ -466,6 +488,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const isSessionChange = previousSessionId !== sessionId;
+    if (isSessionChange && this.config?.semanticCapture?.enabled && this.semanticAdapter) {
+      // Keep rrweb recording through the async config/targeting pass, as it does
+      // without semantic capture. Only detach the old session's semantic runtime.
+      this.useSemanticAdapter((adapter) => adapter.stop());
+    }
 
     // Drop any beacon-buffered events from the previous session BEFORE installing the
     // new identifiers / start time. Otherwise the page-leave beacon path could attribute
@@ -555,17 +582,59 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   blurListener = () => {
-    this.sendEvents();
+    // Blur covers window switches that do not hide the document (a second window
+    // beside this one). Drain the idle queue first: sendEvents only ships what is
+    // already in the store, and the mutations for the screen the user just left
+    // are often still waiting on requestIdleCallback.
+    this.scheduleHiddenSend();
+    this.windowFocus.noteBlur();
+  };
+
+  /**
+   * Tab show/hide. `focus` is the wrong signal for this: it also fires for iframes
+   * and editors, which is why `captureFullSnapshotOnFocus` defaults off. A document
+   * visibility change happens once per real tab switch.
+   *
+   * Hidden: flush queued mutations so playback is not left on the last snapshot that
+   * happened to be in the store.
+   * Visible: take one checkout snapshot of this document and send it. Incremental
+   * events from another tab use that tab's node ids and are dropped, so without a
+   * fresh checkout the player stays on whichever snapshot it last applied.
+   */
+  visibilityListener = () => {
+    const visibilityState = getGlobalScope()?.document?.visibilityState;
+    if (visibilityState === 'hidden') {
+      this.windowFocus.onDocumentHidden();
+      this.scheduleHiddenSend();
+      return;
+    }
+    if (visibilityState === 'visible') {
+      // The deferred hide upload has not run. This send includes those events
+      // plus the checkout snapshot. Drop the external-focus flag so the focus
+      // event that follows a tab return does not take a second checkout.
+      this.windowFocus.onDocumentVisible();
+      this.cancelHiddenSend();
+      this.captureVisibleTab();
+    }
   };
 
   focusListener = () => {
     if (!this.recordingEnabled) {
       return;
     }
+    const focusFromOutside = this.windowFocus.consumeArrivedFromOutside();
+    // Another window of the same session stayed visible, so visibilitychange never
+    // fired. One checkout replaces the replayed document; otherwise that window's
+    // incremental adds share node ids and append onto this one.
+    if (focusFromOutside) {
+      this.captureVisibleTab();
+      return;
+    }
     if (this.recordCancelCallback && this.recordFunction) {
       // Recording is already active. The on-focus full snapshot is tunable: when
       // `captureFullSnapshotOnFocus` is false we skip it entirely so high focus-churn pages
       // don't generate a full snapshot (and, with eager send, a network request) per focus.
+      // Returning to a backgrounded tab is handled by visibilityListener instead.
       if (this.config?.captureFullSnapshotOnFocus === false) {
         return;
       }
@@ -579,16 +648,91 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   };
 
+  /** Move idle-queued rrweb events into the store, then ship the current sequence. */
+  private flushPendingReplayEvents() {
+    this.eventCompressor?.flushQueue();
+    this.sendEvents();
+  }
+
+  /**
+   * Flush now, upload on the next macrotask. The flush is synchronous so a
+   * following `pagehide` still sees the events in the beacon buffer. The upload
+   * waits so a memory-store `sendEvents` cannot clear that buffer before the
+   * beacon copies it. A tab switch never reaches `pagehide`, so the timer uploads.
+   */
+  private scheduleHiddenSend() {
+    this.eventCompressor?.flushQueue();
+    if (this.hiddenFlushTimer !== undefined) {
+      return;
+    }
+    const schedule = this.hostSetTimeout();
+    this.hiddenFlushTimer = schedule(() => {
+      this.hiddenFlushTimer = undefined;
+      this.sendEvents();
+    }, 0);
+  }
+
+  private cancelHiddenSend() {
+    if (this.hiddenFlushTimer === undefined) {
+      return;
+    }
+    this.hostClearTimeout()(this.hiddenFlushTimer);
+    this.hiddenFlushTimer = undefined;
+  }
+
+  private hostSetTimeout(): typeof setTimeout {
+    const globalScope = getGlobalScope();
+    if (typeof globalScope?.setTimeout === 'function') {
+      return globalScope.setTimeout.bind(globalScope);
+    }
+    return setTimeout;
+  }
+
+  private hostClearTimeout(): typeof clearTimeout {
+    const globalScope = getGlobalScope();
+    if (typeof globalScope?.clearTimeout === 'function') {
+      return globalScope.clearTimeout.bind(globalScope);
+    }
+    return clearTimeout;
+  }
+
+  /**
+   * Checkout the DOM the user can actually see, then send it. Queued mutations are
+   * flushed first so they stay ordered ahead of the new snapshot.
+   */
+  private captureVisibleTab() {
+    if (!this.recordingEnabled) {
+      return;
+    }
+    this.eventCompressor?.flushQueue();
+    if (this.recordCancelCallback && this.recordFunction) {
+      try {
+        // `true` is an rrweb checkout: the player drops the previous mirror and
+        // paints this snapshot instead of applying it onto an older document.
+        this.recordFunction.takeFullSnapshot(true);
+      } catch (error) {
+        this.loggerProvider.warn('Failed to take full snapshot when the tab became visible:', error);
+      }
+      this.sendEvents();
+      return;
+    }
+    if (!this.recordEventsInFlight) {
+      void this.recordEvents(false);
+    }
+  }
+
   /**
    * This is an instance member so that if init is called multiple times
    * it doesn't add another listener to the page leave event. This is to
    * prevent duplicate listener actions from firing.
    */
   private pageLeaveListener = (e: PageTransitionEvent | Event) => {
+    // Drop the deferred hide upload. It must not resolve before the beacon below
+    // copies the buffer. Unload order is visibilitychange(hidden), then pagehide.
+    this.cancelHiddenSend();
     // Synchronously drain any events still queued in the requestIdleCallback
     // pipeline so they are available to send before the page unloads.
-    this.eventCompressor?.flushQueue();
-    this.sendEvents();
+    this.flushPendingReplayEvents();
     this.pageLeaveFns.forEach((fn) => {
       fn(e);
     });
@@ -930,6 +1074,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
+      if (this.semanticAdapter && this.recordCancelCallback) this.stopRecordingEvents();
       return;
     }
     this.stopRecordingEvents();
@@ -1023,6 +1168,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         return;
       }
 
+      this.prepareSemanticCapture(config, sessionId);
       this.recordCancelCallback = recordFunction({
         ...this.buildRRWebRecordOptions(
           config,
@@ -1051,12 +1197,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
               // Buffer the event so it can be flushed once the compressor is initialized.
               this.pendingEmitEvents.push({ event, sessionId });
             }
+            this.useSemanticAdapter((adapter) => adapter.event(event));
           },
           'Error while capturing replay: ',
         ),
         plugins,
         recordCrossOriginIframes: crossOriginIframesEnabled,
       });
+
+      if (this.recordCancelCallback) this.useSemanticAdapter((adapter) => adapter.recordingReady());
 
       if (crossOriginIframesEnabled && !childMode && coordinateChildren) {
         if (!this.crossOriginIframeCoordinator) {
@@ -1070,8 +1219,67 @@ export class SessionReplay implements AmplitudeSessionReplay {
         void this.addCustomRRWebEvent(CustomRRwebEvent.METADATA, this.metadata);
       }
     } catch (error) {
+      this.useSemanticAdapter((adapter) => adapter.stop());
       this.loggerProvider.warn('Failed to initialize session replay:', error);
     }
+  }
+
+  private useSemanticAdapter(operation: (adapter: ReplaySemanticAdapter) => void): void {
+    const adapter = this.semanticAdapter;
+    if (!adapter) return;
+    try {
+      operation(adapter);
+    } catch (error) {
+      // A supplied controller must not interrupt rrweb recording or its teardown.
+      this.semanticAdapter = undefined;
+      this.loggerProvider.debug('Semantic capture failed:', error);
+      try {
+        adapter.stop();
+      } catch (stopError) {
+        this.loggerProvider.debug('Semantic capture stop failed:', stopError);
+      }
+    }
+  }
+
+  private prepareSemanticCapture(config: SessionReplayJoinedConfig, sessionId: string | number): void {
+    const scope = getGlobalScope() as Window | undefined;
+    if (!scope?.document) return;
+    const semanticCapture = config.semanticCapture;
+    const createCapture = semanticCapture?.createCapture;
+    if (!semanticCapture?.enabled || typeof createCapture !== 'function') {
+      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.prepare({ enabled: false }, sessionId));
+      return;
+    }
+    if (this.semanticAdapter?.createCapture !== createCapture) {
+      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.semanticAdapter = undefined;
+      try {
+        this.semanticAdapter = new ReplaySemanticAdapter(createCapture, {
+          document: scope.document,
+          window: scope,
+          sdk: `@amplitude/session-replay-browser@${VERSION}`,
+          getPrivacy: () => this.config?.privacyConfig ?? {},
+          getIdentity: () => getSemanticIdentity(scope),
+          getAnalyticsContext: () => this.config?.semanticAnalyticsContext ?? { present: false, autocapture: [] },
+          inlineStylesheet: config.shouldInlineStylesheet,
+          emit: (event) => {
+            if (this.recordCancelCallback && this.recordFunction) {
+              try {
+                this.recordFunction.addCustomEvent(`amp-semantic/${event.name}`, event.payload);
+              } catch (error) {
+                this.loggerProvider.debug('Error while adding semantic replay capture event:', error);
+              }
+            }
+          },
+          onError: (error) => this.loggerProvider.debug('Semantic capture error:', error),
+        });
+      } catch (error) {
+        this.loggerProvider.debug('Semantic capture initialization failed:', error);
+        return;
+      }
+    }
+    this.useSemanticAdapter((adapter) => adapter.prepare(semanticCapture, sessionId));
   }
 
   private buildRRWebRecordOptions(
@@ -1197,6 +1405,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   stopRecordingEvents = () => {
     try {
+      this.useSemanticAdapter((adapter) => adapter.stop());
       this.loggerProvider.log('Session Replay capture stopping.');
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
@@ -1235,6 +1444,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordingEnabled = false;
     this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
+    this.cancelHiddenSend();
+    this.windowFocus.stop();
     this.stopRecordingEvents();
     this.sendEvents();
   }
@@ -1252,6 +1463,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordingEnabled = false;
     this.startChildRecordingOnSetup = false;
     this.recordingGeneration++;
+    this.cancelHiddenSend();
+    this.windowFocus.stop();
     this.urlChangeCleanup?.();
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;
