@@ -17,6 +17,8 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
+  // SDK calls can synchronously emit UI changes, so use a separate lifecycle lock.
+  private val lifecycleLock = Any()
   private lateinit var sessionReplay: SessionReplay
   @Volatile private var recordingRequested = false
   @Volatile private var invalidated = false
@@ -43,7 +45,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
-  fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String?, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean, maskLevel: String) {
+  fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String?, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean, maskLevel: String) = synchronized(lifecycleLock) {
     LogcatLogger.logger.logMode = when (logLevel) {
         0 -> Logger.LogMode.OFF
         1 -> Logger.LogMode.ERROR
@@ -73,49 +75,39 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         Mask Level: $maskLevel
     """.trimIndent())
 
+    if (invalidated) return@synchronized
+    val receiver = Any()
+    // Construct without capturing so a failed replacement leaves the current
+    // recorder and its UI-change receiver untouched.
+    val nextSessionReplay = SessionReplay(
+      apiKey,
+      reactContext.applicationContext,
+      deviceId ?: "",
+      sessionId.toLong(),
+      logger = LogcatLogger.logger,
+      sampleRate = sampleRate,
+      enableRemoteConfig = enableRemoteConfig,
+      serverZone = when (serverZone) {
+        "EU" -> ServerZone.EU
+        else -> ServerZone.US
+      },
+      autoStart = false,
+      privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
+      uiChangeCallback = { emitUiChange(receiver) }
+    )
+    val previousSessionReplay = if (::sessionReplay.isInitialized) sessionReplay else null
     synchronized(this) {
-      uiChangeReceiver = null
+      uiChangeReceiver = receiver
       recordingRequested = false
     }
-    if (::sessionReplay.isInitialized) sessionReplay.shutdown()
-    val receiver = Any()
-    synchronized(this) {
-      if (invalidated) return
-      uiChangeReceiver = receiver
-      recordingRequested = autoStart
-    }
-    // Capture may report a UI change before its constructor/start call returns.
-    try {
-      sessionReplay = SessionReplay(
-        apiKey,
-        reactContext.applicationContext,
-        deviceId ?: "",
-        sessionId.toLong(),
-        logger = LogcatLogger.logger,
-        sampleRate = sampleRate,
-        enableRemoteConfig = enableRemoteConfig,
-        serverZone = when (serverZone) {
-          "EU" -> ServerZone.EU
-          else -> ServerZone.US
-        },
-        autoStart = autoStart,
-        privacyConfig = PrivacyConfig(maskLevel = mappedMaskLevel),
-        uiChangeCallback = { emitUiChange(receiver) }
-      )
-    } catch (error: Exception) {
-      synchronized(this) {
-        if (uiChangeReceiver === receiver) {
-          uiChangeReceiver = null
-          recordingRequested = false
-        }
-      }
-      throw error
-    }
+    sessionReplay = nextSessionReplay
+    previousSessionReplay?.shutdown()
+    if (autoStart) start()
   }
 
   @ReactMethod
   fun isRecording(promise: Promise) {
-    promise.resolve(recordingRequested && ::sessionReplay.isInitialized && sessionReplay.shouldRecord())
+    promise.resolve(!invalidated && recordingRequested && ::sessionReplay.isInitialized && sessionReplay.shouldRecord())
   }
 
   @ReactMethod
@@ -163,9 +155,9 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
-  fun start() {
+  fun start() = synchronized(lifecycleLock) {
+    if (invalidated) return@synchronized
     val (receiver, previousRequest) = synchronized(this) {
-      if (invalidated) return
       val previousRequest = recordingRequested
       recordingRequested = true
       Pair(uiChangeReceiver, previousRequest)
@@ -181,7 +173,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
-  fun stop() {
+  fun stop() = synchronized(lifecycleLock) {
     recordingRequested = false
     sessionReplay.stop()
   }
@@ -192,13 +184,13 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
-  fun teardown() {
+  fun teardown() = synchronized(lifecycleLock) {
     synchronized(this) { uiChangeReceiver = null }
     recordingRequested = false
     sessionReplay.shutdown()
   }
 
-  override fun invalidate() {
+  override fun invalidate() = synchronized(lifecycleLock) {
     synchronized(this) {
       invalidated = true
       uiChangeReceiver = null
