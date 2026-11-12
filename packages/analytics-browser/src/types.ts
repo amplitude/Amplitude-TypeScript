@@ -6,7 +6,6 @@ export {
   BrowserClient,
   AttributionOptions,
   AutocaptureOptions,
-  EngagedTimeOptions,
   BrowserOptions,
   BrowserConfig,
   IConfig,

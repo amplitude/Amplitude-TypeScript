@@ -90,7 +90,6 @@ export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserCli
           await this.add(formInteractionTracking()).promise;
         }
 
-        // Default trackOn: add URL properties before page-view tracking saves engagement snapshots.
         // Attribution: run page-view tracking first to convert $identify into a page view,
         // since URL enrichment skips $identify events. Keep custom callbacks in their existing order.
         const enrichBeforePageTracking = getPageViewTrackingConfig(this.config).trackOn === undefined;
