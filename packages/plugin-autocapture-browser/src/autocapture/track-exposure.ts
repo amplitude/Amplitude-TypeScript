@@ -97,9 +97,8 @@ export function trackExposure({
   let exposureMap = new WeakMap<Element, boolean>();
 
   // Track active timers for elements that are currently visible but not yet exposed
-  let exposureTimerMap = new WeakMap<Element, ReturnType<typeof setTimeout>>();
-  // Timer IDs can be enumerated for reset/teardown without retaining element keys.
-  const exposureTimers = new Set<ReturnType<typeof setTimeout>>();
+  // Only active timers retain element keys; delete them on completion or cancellation.
+  const exposureTimerMap = new Map<Element, ReturnType<typeof setTimeout>>();
 
   // IntersectionObserver keeps this set limited to elements touching the viewport,
   // so scroll handling does not measure every allowlisted element on the page.
@@ -109,7 +108,6 @@ export function trackExposure({
     const timer = exposureTimerMap.get(element);
     if (timer !== undefined) {
       clearTimeout(timer);
-      exposureTimers.delete(timer);
       exposureTimerMap.delete(element);
     }
   };
@@ -125,7 +123,6 @@ export function trackExposure({
     }
 
     const timer = setTimeout(() => {
-      exposureTimers.delete(timer);
       exposureTimerMap.delete(element);
       exposureMap.set(element, true);
 
@@ -134,7 +131,6 @@ export function trackExposure({
     }, exposureDuration);
 
     exposureTimerMap.set(element, timer);
-    exposureTimers.add(timer);
   };
 
   const { exposureObservable, scrollObservable } = allObservables;
@@ -162,9 +158,8 @@ export function trackExposure({
   // that is already intersecting, so dropping it here would silently stop the
   // scroll checks for everything currently on screen.
   const clearPageViewState = () => {
-    exposureTimers.forEach(clearTimeout);
-    exposureTimers.clear();
-    exposureTimerMap = new WeakMap();
+    exposureTimerMap.forEach((timer) => clearTimeout(timer));
+    exposureTimerMap.clear();
     exposureMap = new WeakMap();
   };
 
