@@ -8,7 +8,8 @@ const limits = [
   {
     // analytics-browser bundle
     path: './packages/analytics-browser/lib/scripts/amplitude-min.js.gz',
-    limit: '75.5kb',
+    // video-analytics baseline: 75.73 KB; playback delay-group isolation adds ~17 bytes.
+    limit: '76kb',
     brotli: false,
     ...fileOnly,
   },
