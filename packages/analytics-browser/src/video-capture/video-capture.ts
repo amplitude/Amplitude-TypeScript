@@ -380,7 +380,7 @@ export type VideoCaptureOptions = {
   extraEventProperties?: Record<string, string | number | boolean>;
 };
 
-type UntrackVideoResult = () => void;
+type UntrackVideoResult = (stopReason?: VideoStopCause) => void;
 
 export type TrackVideoResult = UntrackVideoResult | Error;
 
@@ -393,7 +393,7 @@ export type TrackVideoResult = UntrackVideoResult | Error;
  * @param amplitude - The Amplitude client instance.
  * @param videoEl - The HTML video or audio element or embedded video player.js instance to capture events from.
  * @param options - The options for the video capture.
- * @returns A function to stop the video capture.
+ * @returns A function that stops capture and emits a final stop with the supplied stop reason (default: untracked).
  */
 export function trackVideo(
   amplitude: BrowserClient,
@@ -424,5 +424,5 @@ export function trackVideo(
     return error as Error;
   }
 
-  return () => videoCapture.stop();
+  return (stopReason) => videoCapture.stop(stopReason);
 }

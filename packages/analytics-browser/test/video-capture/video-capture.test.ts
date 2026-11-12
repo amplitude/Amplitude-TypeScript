@@ -239,6 +239,29 @@ describe('VideoCapture', () => {
     beforeEach(() => {
       resetMockVideoObserver();
     });
+    it('should emit the supplied teardown reason for an embedded player', async () => {
+      const untrack = trackVideo(mockAmplitude, {} as EmbeddedVideoPlayer);
+      if (untrack instanceof Error) {
+        throw untrack;
+      }
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused' },
+        { playbackState: 'playing', position: 4, lastEvent: { duration: 10, position: 4 } },
+      );
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      untrack('content_changed');
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({ '[Streaming] Stop Reason': 'content_changed' }),
+        expect.objectContaining({ delay: { id: expect.any(String) } }),
+      );
+    });
+
     it('should capture start and stop events', async () => {
       const stopVideoCapture = trackVideo(mockAmplitude, document.createElement('video'), {
         vendor: 'mux',
