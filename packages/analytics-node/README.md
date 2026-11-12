@@ -11,7 +11,7 @@ Official Amplitude SDK for Node.js
 
 # Doc
 
-See our [Typescript Analytics Node SDK](https://amplitude.github.io/Amplitude-TypeScript/modules/_amplitude_analytics_node.html) Reference for a list and description of all available SDK methods.
+See the [Node.js SDK documentation](https://amplitude.com/docs/sdks/analytics/node/node-js-sdk) for a list and description of all available SDK methods.
 
 # Installation and Quick Start
 

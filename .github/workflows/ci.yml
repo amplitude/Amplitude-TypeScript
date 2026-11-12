@@ -42,10 +42,6 @@ jobs:
             exit 1
           fi
 
-      - name: Build docs
-        run: |
-          pnpm docs:check
-
       - name: Test all packages
         run: |
           pnpm test
