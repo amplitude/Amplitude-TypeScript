@@ -1,4 +1,9 @@
 rootProject.name = 'app'
 apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesSettingsGradle(settings)
 include ':app'
+// The app autolinks the replay plugin; include standalone replay only for its unit tests.
+if (hasProperty('testSessionReplayModules')) {
+    include ':amplitude_session-replay-react-native'
+    project(':amplitude_session-replay-react-native').projectDir = file('../../../../packages/session-replay-react-native/android')
+}
 includeBuild('../node_modules/@react-native/gradle-plugin')
