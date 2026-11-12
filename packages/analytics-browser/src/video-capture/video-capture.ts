@@ -99,7 +99,7 @@ export class VideoCapture {
   private extraEventProperties: Record<string, string | number | boolean> = {};
   private stopEvent: BaseEvent | null = null;
   private listeners: ((previousState: VideoState, nextState: VideoState) => void)[] = [];
-  private onRemoveListeners: (() => void)[] = [];
+  private onRemoveListeners: ((stopReason: VideoStopCause) => void)[] = [];
   private playId: string | null = null;
   private playStartPosition: number | null = null;
   /**
@@ -308,8 +308,8 @@ export class VideoCapture {
       isEmbedded: !!this.embeddedVideoPlayer,
     });
 
-    this.onRemoveListeners.push(() => {
-      videoObserver.destroy();
+    this.onRemoveListeners.push((stopReason) => {
+      videoObserver.destroy(stopReason);
     });
 
     if (getGlobalScope()) {
@@ -327,11 +327,11 @@ export class VideoCapture {
   /**
    * Stop capturing analytics events for the video element.
    *
-   * Observers are detached first so no playback state change can race with the final
-   * event, then any in-progress play session is closed out.
+   * HTML media observers report their final player state before detaching. Any
+   * remaining play session (including embedded players) is then closed out.
    */
-  stop(stopReason = 'untracked') {
-    this.onRemoveListeners.forEach((listener) => listener());
+  stop(stopReason: VideoStopCause = 'untracked') {
+    this.onRemoveListeners.forEach((listener) => listener(stopReason));
     this.onRemoveListeners = [];
     this.flushStopEvent(stopReason);
   }
