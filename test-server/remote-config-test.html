@@ -77,7 +77,7 @@
     <script type="module">
       let queryParams = new URLSearchParams(window.location.search);
       window.AMPLITUDE_VERSION = queryParams.get('amplitudeVersion') || 'latest';
-      window.API_KEY = queryParams.get('apiKey') || '77de0b7de6157d5e7ca409c81778f28e';
+      window.API_KEY = queryParams.get('apiKey') || import.meta.env.VITE_AMPLITUDE_API_KEY;
       window.SERVER_ZONE = queryParams.get('serverZone') || 'US';
 
       const REMOTE_STAGING = {
@@ -194,6 +194,10 @@
     <script type="module">
       import * as amplitudeModule from '@amplitude/analytics-browser';
       
+      if (!window.API_KEY) {
+        throw new Error('Provide apiKey in the URL or set VITE_AMPLITUDE_API_KEY before starting the test server.');
+      }
+
       if (window.AMPLITUDE_VERSION === 'latest') {
         window.amplitude = amplitudeModule;
       }
