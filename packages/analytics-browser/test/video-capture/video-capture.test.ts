@@ -148,6 +148,91 @@ describe('VideoCapture', () => {
     });
   });
 
+  describe('play delay groups', () => {
+    const paused: VideoState = { playbackState: 'paused', position: 0 };
+    const playing: VideoState = { playbackState: 'playing', position: 0 };
+
+    function startCapture(media: 'video' | 'audio' = 'video') {
+      const capture = new VideoCapture(mockAmplitude)
+        .withVideoElement(document.createElement(media))
+        .captureVideoStarted()
+        .captureVideoStopped()
+        .start();
+      return { capture, observer: currentVideoObserver! };
+    }
+
+    it('uses a fresh group after a final stop upload fails, leaving the old timeout intact', async () => {
+      const { capture, observer } = startCapture();
+      const track = mockAmplitude.track as jest.Mock;
+      observer.emitStateChange(paused, playing);
+      await flushHeartbeat();
+      const firstStart = track.mock.calls[0];
+      const firstStop = track.mock.calls[1];
+      expect(firstStop[2].delay).toEqual({ id: firstStart[2].delay.id, timeout: 3_600_000 });
+      expect(firstStop[1]['[Streaming] Play ID']).toBe(firstStart[1]['[Streaming] Play ID']);
+
+      track.mockReturnValueOnce({ promise: Promise.resolve({ event: {}, code: 500, message: 'failed' }) });
+      observer.emitStateChange(playing, paused);
+      await flushHeartbeat();
+      expect(track.mock.calls[2][2].delay).toEqual({ id: firstStart[2].delay.id });
+
+      observer.emitStateChange(paused, playing);
+      await flushHeartbeat();
+      const secondStart = track.mock.calls[3];
+      const secondStop = track.mock.calls[4];
+      expect(secondStart[2].delay.id).not.toBe(firstStart[2].delay.id);
+      expect(secondStop[2].delay).toEqual({ id: secondStart[2].delay.id, timeout: 3_600_000 });
+      expect(secondStop[1]['[Streaming] Play ID']).toBe(secondStart[1]['[Streaming] Play ID']);
+      expect(secondStart[1]['[Streaming] Play ID']).not.toBe(firstStart[1]['[Streaming] Play ID']);
+      expect(track).toHaveBeenCalledTimes(5);
+      capture.stop();
+      await flushHeartbeat();
+    });
+
+    it('preserves both groups when pause and resume happen before the next send', async () => {
+      const { capture, observer } = startCapture();
+      const track = mockAmplitude.track as jest.Mock;
+      observer.emitStateChange(paused, playing);
+      await flushHeartbeat();
+      const firstDelayId = track.mock.calls[0][2].delay.id;
+
+      observer.emitStateChange(playing, paused);
+      observer.emitStateChange(paused, playing);
+      await flushHeartbeat();
+      expect(track.mock.calls[2][2].delay).toEqual({ id: firstDelayId });
+      const secondDelayId = track.mock.calls[3][2].delay.id;
+      expect(secondDelayId).not.toBe(firstDelayId);
+      expect(track.mock.calls[4][2].delay).toEqual({ id: secondDelayId, timeout: 3_600_000 });
+      capture.stop();
+      await flushHeartbeat();
+    });
+
+    it('isolates concurrent video and audio captures on the same client', async () => {
+      const first = startCapture();
+      const second = startCapture('audio');
+      const track = mockAmplitude.track as jest.Mock;
+      first.observer.emitStateChange(paused, playing);
+      second.observer.emitStateChange(paused, playing);
+      await flushHeartbeat();
+      const firstDelayId = track.mock.calls[0][2].delay.id;
+      const secondDelayId = track.mock.calls[2][2].delay.id;
+      expect(secondDelayId).not.toBe(firstDelayId);
+      expect(mockGetHeartbeatInstance.mock.results.slice(-2)[0].value).not.toBe(
+        mockGetHeartbeatInstance.mock.results.slice(-1)[0].value,
+      );
+
+      first.capture.stop();
+      await flushHeartbeat();
+      track.mockClear();
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track.mock.calls[0][1]['[Streaming] Media Type']).toBe('audio');
+      expect(track.mock.calls[0][2].delay).toEqual({ id: secondDelayId, timeout: 3_600_000 });
+      second.capture.stop();
+      await flushHeartbeat();
+    });
+  });
+
   describe('withEmbeddedPlayer()', () => {
     it('should capture start and stop events', () => {
       const dummyPlayer = {};
@@ -864,6 +949,7 @@ describe('VideoCapture', () => {
       track = jest.fn().mockResolvedValue({ code: 200, event: {} });
       trackNoDelay = jest.fn().mockResolvedValue({ code: 200, event: {} });
       mockGetHeartbeatInstance.mockReturnValue({
+        resetDelayId: jest.fn(),
         track,
         trackNoDelay,
         stop: jest.fn(),
@@ -983,7 +1069,7 @@ describe('VideoCapture', () => {
       first.observer.emitStateChange(idleState, playingState);
       await flushHeartbeat();
 
-      // the shared heartbeat registered pagehide while tracking the first play
+      // the first capture's heartbeat registered pagehide before the second capture started
       const second = startCapture({ video: 'second' });
       second.observer.emitStateChange(idleState, playingState);
       await flushHeartbeat();

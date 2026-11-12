@@ -59,6 +59,23 @@ describe('heartbeat', () => {
   }
 
   describe('track, update and trackNoDelay', () => {
+    test('keeps queued events in their original group after rotating the delay ID', async () => {
+      const event = { insert_id: 'old-stop', event_type: 'stop' };
+      await trackWithTimers(event);
+      const oldDelay = trackMock.mock.calls[0][2].delay;
+
+      heartbeat.resetDelayId();
+      await heartbeat.update(event);
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(trackMock.mock.calls[1][2].delay).toEqual(oldDelay);
+
+      await trackNoDelayWithTimers(event);
+      expect(trackMock.mock.calls[2][2].delay).toEqual({ id: oldDelay.id });
+
+      await trackWithTimers({ insert_id: 'new-stop', event_type: 'stop' });
+      expect(trackMock.mock.calls[3][2].delay.id).not.toBe(oldDelay.id);
+    });
+
     test('can admit an event synchronously before starting delivery', async () => {
       expect(heartbeat.enqueue({ event_type: 'missing-id' })).toBe(false);
       expect(heartbeat.enqueue({ event_type: 'test', insert_id: 'queued-id' })).toBe(true);
@@ -123,6 +140,7 @@ describe('heartbeat', () => {
         event_properties: { test: 'test' },
       };
       await heartbeat.update(event);
+      await heartbeat.update({ event_type: 'missing-insert-id' });
       expect(trackMock).not.toHaveBeenCalled();
     });
 
@@ -234,6 +252,9 @@ describe('heartbeat', () => {
       const result = await heartbeat.track(event);
       expect(result).toBeInstanceOf(Error);
       expect(result?.message).toBe('insert_id is required on events tracked with heartbeat');
+      const noDelayResult = await heartbeat.trackNoDelay(event);
+      expect(noDelayResult).toBeInstanceOf(Error);
+      expect(trackMock).not.toHaveBeenCalled();
     });
 
     test('should reject tracking event if it exceeds the event size limit', async () => {
@@ -844,10 +865,10 @@ describe('heartbeat', () => {
   });
 
   describe('getHeartbeatInstance', () => {
-    test('should return the same instance for the same client', () => {
+    test('should return independent instances for the same client', () => {
       const instance1 = getHeartbeatInstance(mockClient, mockLoggerProvider);
       const instance2 = getHeartbeatInstance(mockClient, mockLoggerProvider);
-      expect(instance1).toBe(instance2);
+      expect(instance1).not.toBe(instance2);
     });
   });
 });

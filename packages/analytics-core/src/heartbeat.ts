@@ -40,6 +40,11 @@ export class Heartbeat {
     this.delayId = UUID();
   }
 
+  /** Start a new delay group without changing events already queued for earlier plays. */
+  resetDelayId() {
+    this.delayId = UUID();
+  }
+
   async heartbeat(flushClient = false): Promise<Result[]> {
     this.options.beforeHeartbeat?.();
     // stop sending heartbeats if no events are queued
@@ -184,7 +189,8 @@ export class Heartbeat {
    * @returns
    */
   async trackNoDelay(event: BaseEvent) {
-    event.delay = { id: this.delayId };
+    const queuedEvent = event.insert_id ? this.events.get(event.insert_id) : undefined;
+    event.delay = { id: queuedEvent?.delay.id ?? this.delayId };
     return this.track(event);
   }
 
@@ -193,14 +199,14 @@ export class Heartbeat {
    * @param event
    */
   async update(event: BaseEvent) {
-    if (event.insert_id && this.events.has(event.insert_id)) {
-      const backupEvent = this.events.get(event.insert_id);
+    const backupEvent = event.insert_id ? this.events.get(event.insert_id) : undefined;
+    if (event.insert_id && backupEvent) {
       this.events.set(event.insert_id, {
         ...event,
         // Page engagement supplies its delay group and removes timeout to finalize it.
-        delay: event.delay || { id: this.delayId, timeout: this.delayTimeout },
+        delay: event.delay || backupEvent.delay,
       });
-      if (!this.checkEventSizeLimit(event) && backupEvent) {
+      if (!this.checkEventSizeLimit(event)) {
         this.events.set(event.insert_id, backupEvent);
         return;
       }
@@ -239,16 +245,7 @@ const DEFAULT_HEARTBEAT_INTERVAL = 60_000;
 // const DEFAULT_HEARTBEAT_INTERVAL = 2_000; // TODO: DO NOT MERGE THIS
 const DEFAULT_HEARTBEAT_DELAY_TIMEOUT = 3_600_000;
 
-type HeartbeatMap = Map<CoreClient, Heartbeat>;
-
-const heartbeatMap: HeartbeatMap = new Map<CoreClient, Heartbeat>();
-
+/** Create an independently owned heartbeat, even when callers share a client. */
 export function getHeartbeatInstance(client: CoreClient, logger?: ILogger): Heartbeat {
-  const existing = heartbeatMap.get(client);
-  if (existing) {
-    return existing;
-  }
-  const heartbeat = new Heartbeat(client, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_HEARTBEAT_DELAY_TIMEOUT, logger);
-  heartbeatMap.set(client, heartbeat);
-  return heartbeat;
+  return new Heartbeat(client, DEFAULT_HEARTBEAT_INTERVAL, DEFAULT_HEARTBEAT_DELAY_TIMEOUT, logger);
 }

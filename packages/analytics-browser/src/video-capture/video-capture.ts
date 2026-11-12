@@ -188,6 +188,7 @@ export class VideoCapture {
         this.sessionTimeBaseline = previousState.watchTime ?? 0;
       }
       if (!ACTIVE_PLAYBACK_STATES.has(prevPlayback) && nextPlayback === 'playing') {
+        this.heartbeat.resetDelayId();
         this.playId = UUID();
         this.playStartPosition = nextState.position ?? nextState.lastEvent?.position ?? 0;
         this.playTimeBaseline = previousState.watchTime ?? 0;
@@ -257,9 +258,7 @@ export class VideoCapture {
   /**
    * End the current play session by ingesting its queued delayed stop event immediately.
    *
-   * The heartbeat is shared by every capture on the same Amplitude client, so the event is
-   * flushed rather than the heartbeat stopped, which would discard other captures' events.
-   * Flushing also drops the event from the heartbeat queue once ingested, so the interval
+   * Flushing drops the event from this capture's heartbeat queue once ingested, so the interval
    * winds down on its own. No-op when no play session is in progress.
    */
   private flushStopEvent(stopReason: string) {
