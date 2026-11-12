@@ -315,8 +315,8 @@ export class VideoCapture {
     if (getGlobalScope()) {
       this.onRemoveListeners.push(
         this.heartbeat.beforePageHide(() => {
-          // if the page is exited, emit a final 'ended' stop event
-          this.stop('ended');
+          // Leaving the page ends tracking without implying playback completed.
+          this.stop('untracked');
         }),
       );
     }
