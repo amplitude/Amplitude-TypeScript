@@ -2,6 +2,9 @@ import { Unsubscribable, Observable } from '@amplitude/analytics-core';
 import { createMouseMoveObservable, createMutationObservable, createExposureObservable } from '../src/observables';
 import { createShadowGate, SHADOW_OFF, type ShadowGate } from '../src/shadow-mode';
 import { TimestampedEvent } from '../src/helpers';
+import { trackExposure } from '../src/autocapture/track-exposure';
+import { AllWindowObservables } from '../src/autocapture-plugin';
+import { DataExtractor } from '../src/data-extractor';
 
 function attachOpen(host: Element, html: string): ShadowRoot {
   const root = host.attachShadow({ mode: 'open' });
@@ -249,6 +252,69 @@ describe('createExposureObservable — shadow mutation path', () => {
     expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(button);
     expect(listener).toHaveBeenCalledWith(expect.objectContaining({ target: button, isIntersecting: false }));
     subscription.unsubscribe();
+  });
+
+  it('cleans up a removed nested shadow target when its hosts remain connected', async () => {
+    jest.useFakeTimers();
+    const outerHost = document.createElement('div');
+    const outerRoot = outerHost.attachShadow({ mode: 'open' });
+    document.body.appendChild(outerHost);
+    const gate = armedGate(1);
+    const mutations = createMutationObservable(gate).map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const exposureObservable = createExposureObservable(mutations, ['button'], gate);
+    let scroll: (() => void) | undefined;
+    const scrollObservable = new Observable<Event>((observer) => {
+      scroll = () => observer.next(new Event('scroll'));
+      return () => undefined;
+    });
+    const onExposure = jest.fn();
+    const tracking = trackExposure({
+      allObservables: { exposureObservable, scrollObservable } as AllWindowObservables,
+      onExposure,
+      dataExtractor: new DataExtractor({}),
+      exposureDuration: 1000,
+    });
+
+    try {
+      const innerHost = document.createElement('div');
+      const innerRoot = innerHost.attachShadow({ mode: 'open' });
+      const button = document.createElement('button');
+      const measure = jest.spyOn(button, 'getBoundingClientRect').mockReturnValue({
+        top: 0,
+        bottom: 100,
+        left: 0,
+        right: 100,
+        width: 100,
+        height: 100,
+      } as DOMRect);
+      innerRoot.appendChild(button);
+      outerRoot.appendChild(innerHost);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(button);
+
+      intersectionCallback([{ target: button, isIntersecting: true } as unknown as IntersectionObserverEntry]);
+      expect(jest.getTimerCount()).toBe(1);
+      button.remove();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(outerHost.isConnected).toBe(true);
+      expect(innerHost.isConnected).toBe(true);
+      // The inner root exceeds the mutation observer's depth budget.
+      expect(mockIntersectionObserver.unobserve).not.toHaveBeenCalledWith(button);
+
+      intersectionCallback([{ target: button, isIntersecting: false } as unknown as IntersectionObserverEntry]);
+      expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(button);
+      expect(jest.getTimerCount()).toBe(0);
+      measure.mockClear();
+      scroll?.();
+      expect(measure).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(1000);
+      expect(onExposure).not.toHaveBeenCalled();
+    } finally {
+      tracking.unsubscribe();
+      jest.useRealTimers();
+    }
   });
 
   it('unobserves nodes added and removed in the same light-DOM mutation batch', async () => {

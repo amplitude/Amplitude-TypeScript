@@ -261,6 +261,8 @@ export const createExposureObservable = (
           // Entries queued before unobserve must not re-add detached candidates.
           if (entry.target.isConnected) {
             observer.next(entry as unknown as Event);
+          } else {
+            unobserveElement(entry.target);
           }
         });
       },
