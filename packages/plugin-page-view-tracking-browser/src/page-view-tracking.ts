@@ -169,6 +169,9 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     },
 
     execute: async (event: Event) => {
+      // Only engagement replays have already received their page context and counter.
+      // Other delayed events, including Video Analytics, still need normal enrichment.
+      if (event.extra?.engagedTimeReplay === true) return event;
       if (trackOn === 'attribution' && isCampaignEvent(event)) {
         /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
         loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');
