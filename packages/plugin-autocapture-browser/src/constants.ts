@@ -19,6 +19,10 @@ export const AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY = '[Amplitude] Element Hiera
 export const AMPLITUDE_EVENT_PROP_ELEMENT_HREF = '[Amplitude] Element Href';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT = '[Amplitude] Element Position Left';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP = '[Amplitude] Element Position Top';
+/** Pointer position of the click relative to the top-left of the document (MouseEvent.pageX), in CSS pixels. */
+export const AMPLITUDE_EVENT_PROP_PAGE_X = '[Amplitude] Page X';
+/** Pointer position of the click relative to the top-left of the document (MouseEvent.pageY), in CSS pixels. */
+export const AMPLITUDE_EVENT_PROP_PAGE_Y = '[Amplitude] Page Y';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL = '[Amplitude] Element Aria Label';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES = '[Amplitude] Element Attributes';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_PATH = '[Amplitude] Element Path';

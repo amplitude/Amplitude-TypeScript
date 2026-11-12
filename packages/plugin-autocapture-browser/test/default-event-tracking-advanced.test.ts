@@ -496,6 +496,43 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
+    test('should add page coordinates to element clicked event for a pointer click', async () => {
+      await plugin?.setup?.({ defaultTracking: false, loggerProvider } as BrowserConfig, instance);
+
+      const click = new MouseEvent('click', { detail: 1, clientX: 12, clientY: 34 });
+      Object.defineProperty(click, 'pageX', { value: 12.3 });
+      Object.defineProperty(click, 'pageY', { value: 2034.7 });
+      document.getElementById('my-link-id')?.dispatchEvent(click);
+
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.objectContaining({
+          '[Amplitude] Element ID': 'my-link-id',
+          '[Amplitude] Page X': 12,
+          '[Amplitude] Page Y': 2035,
+        }),
+      );
+    });
+
+    test('should not add page coordinates to element clicked event for a keyboard activation', async () => {
+      await plugin?.setup?.({ defaultTracking: false, loggerProvider } as BrowserConfig, instance);
+
+      // keyboard activations dispatch a click with detail === 0 and no pointer position
+      document.getElementById('my-link-id')?.dispatchEvent(new MouseEvent('click', { detail: 0 }));
+
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+      expect(track).toHaveBeenCalledTimes(1);
+      const properties = track.mock.calls[0][1] as Record<string, unknown>;
+      expect(properties['[Amplitude] Element ID']).toBe('my-link-id');
+      expect(properties).not.toHaveProperty('[Amplitude] Page X');
+      expect(properties).not.toHaveProperty('[Amplitude] Page Y');
+    });
+
     test('should only collect element hierarchy once', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
