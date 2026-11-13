@@ -248,7 +248,6 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
   let trackOn: PageTrackingTrackOn | undefined = () => false;
   let trackHistoryChanges: PageTrackingHistoryChanges | undefined = undefined;
   let eventType: string | undefined;
-  let engagementOptions: PageTrackingOptions = {};
   const pageCounter = config.pageCounter;
 
   const isDefaultPageViewTrackingEnabled = isPageViewTrackingEnabled(config.defaultTracking);
@@ -273,10 +272,6 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
       if ('eventType' in config.defaultTracking.pageViews && config.defaultTracking.pageViews.eventType) {
         eventType = config.defaultTracking.pageViews.eventType;
       }
-      const pageViews = config.defaultTracking.pageViews;
-      if ('trackEngagedTime' in pageViews) {
-        engagementOptions = { trackEngagedTime: pageViews.trackEngagedTime };
-      }
     }
   }
 
@@ -285,7 +280,6 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
     trackHistoryChanges,
     eventType,
     pageCounter,
-    ...engagementOptions,
   };
 };
 
