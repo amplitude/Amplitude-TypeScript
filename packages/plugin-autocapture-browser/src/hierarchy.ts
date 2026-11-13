@@ -111,8 +111,13 @@ export function getElementProperties(
         continue;
       }
 
-      // Finally cast attribute value to string and limit attribute value length
-      attributes[attr.name] = String(attr.value).substring(0, constants.MAX_ATTRIBUTE_LENGTH);
+      // Keep a lookahead past the event cutoff. getHierarchy masks this value, then
+      // truncates it to MAX_ATTRIBUTE_LENGTH. Cutting to the cutoff first can leave
+      // an email fragment that no longer matches the mask pattern.
+      attributes[attr.name] = String(attr.value).substring(
+        0,
+        constants.MAX_ATTRIBUTE_LENGTH + constants.SENSITIVE_MASK_LOOKAHEAD,
+      );
     }
   }
 

@@ -129,6 +129,17 @@ export class DataExtractor {
     return replaceSensitiveString(text, this.additionalMaskTextPatterns);
   };
 
+  /**
+   * Mask sensitive substrings, then truncate to `maxLength`.
+   * Only `maxLength + SENSITIVE_MASK_LOOKAHEAD` characters are scanned, so a value
+   * that crosses the cutoff is still matched whole, and long text cannot stall the matchers.
+   */
+  maskThenTruncate = (text: string, maxLength: number): string => {
+    const windowEnd = maxLength + constants.SENSITIVE_MASK_LOOKAHEAD;
+    const windowed = text.length > windowEnd ? text.substring(0, windowEnd) : text;
+    return this.replaceSensitiveString(windowed).substring(0, maxLength);
+  };
+
   // Get the DOM hierarchy of the element, starting from the target element to the root element.
   getHierarchy = (element: Element | null): Hierarchy => {
     const startTime = performance.now();
@@ -168,7 +179,7 @@ export class DataExtractor {
       if (hierarchyNode?.attrs) {
         Object.entries(hierarchyNode.attrs).forEach(([key, value]) => {
           if (hierarchyNode.attrs) {
-            hierarchyNode.attrs[key] = this.replaceSensitiveString(value);
+            hierarchyNode.attrs[key] = this.maskThenTruncate(value, constants.MAX_ATTRIBUTE_LENGTH);
           }
         });
       }
@@ -340,8 +351,12 @@ export class DataExtractor {
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = currentElementAttributes?.['aria-label'];
 
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
-      const href = element.href.substring(0, constants.MAX_ATTRIBUTE_LENGTH);
-      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.replaceSensitiveString(href); // we don't use hierarchy here because we don't want href value to be changed
+      // Resolved href, not the hierarchy attribute: mask before the length limit so an
+      // email that crosses the cutoff cannot survive as an unmasked fragment.
+      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.maskThenTruncate(
+        element.href,
+        constants.MAX_ATTRIBUTE_LENGTH,
+      );
     }
 
     return removeEmptyProperties(properties);
@@ -494,7 +509,7 @@ export class DataExtractor {
     } else {
       output = this.getTextWithMaskedDescendants(element);
     }
-    return this.replaceSensitiveString(output.substring(0, 255)).replace(/\s+/g, ' ').trim();
+    return this.maskThenTruncate(output, constants.MAX_TEXT_LENGTH).replace(/\s+/g, ' ').trim();
   };
 
   // Returns the element properties for the given element in Visual Labeling.
