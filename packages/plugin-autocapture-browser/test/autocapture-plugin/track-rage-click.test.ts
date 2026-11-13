@@ -60,6 +60,19 @@ describe('trackRageClicks', () => {
     jest.useRealTimers();
   });
 
+  it('compares null ancestors without retaining a native event', async () => {
+    for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+      clickObserver.next({
+        event: { pageX: 100, pageY: 100, target: document.createElement('button') },
+        timestamp: Date.now(),
+        closestTrackedAncestor: null,
+        targetElementProperties: { id: 'no-ancestor' },
+      });
+    }
+    await jest.advanceTimersByTimeAsync(DEFAULT_RAGE_CLICK_WINDOW_MS);
+    expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+  });
+
   describe('selection change', () => {
     let subscription: Unsubscribable | undefined;
     let mockElement: HTMLElement;
