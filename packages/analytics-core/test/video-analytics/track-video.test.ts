@@ -77,6 +77,7 @@ describe('trackHtmlVideo', () => {
 
   test('should report a play event when the video is already playing when tracked', () => {
     Object.defineProperty(video, 'paused', { configurable: true, value: false });
+    Object.defineProperty(video, 'readyState', { configurable: true, value: HTMLMediaElement.HAVE_METADATA });
     Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
     Object.defineProperty(video, 'currentTime', { configurable: true, value: 3 });
 
@@ -88,6 +89,30 @@ describe('trackHtmlVideo', () => {
       position: 3,
       percent_completed: 30,
     });
+  });
+
+  test('should wait for playing before reporting a play event', () => {
+    trackHtmlVideo(video, handler);
+
+    video.dispatchEvent(new Event('play'));
+    expect(handler.onPlay).not.toHaveBeenCalled();
+
+    Object.defineProperty(video, 'duration', { configurable: true, value: 10 });
+    video.dispatchEvent(new Event('playing'));
+    expect(handler.onPlay).toHaveBeenCalledTimes(1);
+    expect(handler.onPlay).toHaveBeenCalledWith({ duration: 10, position: 0, percent_completed: 0 });
+  });
+
+  test('should wait for playing when tracking starts before metadata is loaded', () => {
+    Object.defineProperty(video, 'paused', { configurable: true, value: false });
+    Object.defineProperty(video, 'readyState', { configurable: true, value: HTMLMediaElement.HAVE_NOTHING });
+
+    trackHtmlVideo(video, handler);
+    expect(handler.onPlay).not.toHaveBeenCalled();
+
+    video.play();
+    expect(handler.onPlay).toHaveBeenCalledTimes(1);
+    expect(handler.onPlay).toHaveBeenCalledWith({ duration: 10, position: 0, percent_completed: 0 });
   });
 
   test('should not report a play event when the video is paused or ended when tracked', () => {
