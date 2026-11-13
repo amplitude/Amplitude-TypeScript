@@ -49,6 +49,13 @@ runs:
         VITE_AMPLITUDE_API_KEY: ${{ inputs.amplitude-api-key }}
         VITE_AMPLITUDE_USER_ID: ${{ inputs.amplitude-user-id }}
       run: |
+        # Fork pull requests cannot read repository secrets, so AMPLITUDE_API_KEY is empty there.
+        # The SDK drops every event when the key is missing. Playwright intercepts ingestion,
+        # so a non-empty placeholder is enough for those runs. Pushes to main still use the secret.
+        if [ -z "$VITE_AMPLITUDE_API_KEY" ]; then
+          echo "AMPLITUDE_API_KEY is unset; using a placeholder key for intercepted E2E requests."
+          VITE_AMPLITUDE_API_KEY="e2e-test-key"
+        fi
         printf 'VITE_AMPLITUDE_API_KEY=%s\n' "$VITE_AMPLITUDE_API_KEY" > .env
         printf 'VITE_AMPLITUDE_USER_ID=%s\n' "$VITE_AMPLITUDE_USER_ID" >> .env
 
