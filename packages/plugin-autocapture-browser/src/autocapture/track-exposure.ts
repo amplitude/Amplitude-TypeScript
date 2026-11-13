@@ -94,10 +94,11 @@ export function trackExposure({
   exposureDuration?: number;
 }) {
   // Track which elements have been marked as exposed (per-element state)
-  const exposureMap = new Map<Element, boolean>();
+  let exposureMap = new WeakMap<Element, boolean>();
 
   // Track active timers for elements that are currently visible but not yet exposed
-  const exposureTimerMap = new Map<Element, ReturnType<typeof setTimeout> | null | undefined>();
+  // Only active timers retain element keys; delete them on completion or cancellation.
+  const exposureTimerMap = new Map<Element, ReturnType<typeof setTimeout>>();
 
   // IntersectionObserver keeps this set limited to elements touching the viewport,
   // so scroll handling does not measure every allowlisted element on the page.
@@ -105,9 +106,9 @@ export function trackExposure({
 
   const cancelExposure = (element: Element) => {
     const timer = exposureTimerMap.get(element);
-    if (timer) {
+    if (timer !== undefined) {
       clearTimeout(timer);
-      exposureTimerMap.set(element, null);
+      exposureTimerMap.delete(element);
     }
   };
 
@@ -117,16 +118,16 @@ export function trackExposure({
       return;
     }
 
-    if (exposureMap.get(element) || exposureTimerMap.get(element)) {
+    if (exposureMap.get(element) || exposureTimerMap.has(element)) {
       return;
     }
 
     const timer = setTimeout(() => {
+      exposureTimerMap.delete(element);
       exposureMap.set(element, true);
 
       const elementPath = dataExtractor.getElementPath(element);
       onExposure(elementPath);
-      exposureTimerMap.set(element, null);
     }, exposureDuration);
 
     exposureTimerMap.set(element, timer);
@@ -157,13 +158,9 @@ export function trackExposure({
   // that is already intersecting, so dropping it here would silently stop the
   // scroll checks for everything currently on screen.
   const clearPageViewState = () => {
-    exposureTimerMap.forEach((timer) => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-    });
+    exposureTimerMap.forEach((timer) => clearTimeout(timer));
     exposureTimerMap.clear();
-    exposureMap.clear();
+    exposureMap = new WeakMap();
   };
 
   return {
