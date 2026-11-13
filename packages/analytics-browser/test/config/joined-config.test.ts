@@ -1,3 +1,4 @@
+import { getEngagedTimeTrackingConfig, isEngagedTimeTrackingEnabled } from '../../src/default-tracking';
 import { updateBrowserConfigWithRemoteConfig } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
 import {
@@ -23,6 +24,50 @@ describe('joined-config', () => {
   });
 
   describe('updateBrowserConfigWithRemoteConfig', () => {
+    describe('engaged-time settings', () => {
+      const timings = {
+        activityWindowMillis: 10_000,
+        heartbeatIntervalMillis: 20_000,
+        inactivityTimeoutMillis: 120_000,
+      };
+      test.each([
+        { remote: { enabled: true }, expected: undefined },
+        { remote: { enabled: true, ...timings }, expected: timings },
+        { remote: { enabled: false, ...timings }, expected: undefined },
+        { remote: true, expected: undefined },
+        { remote: false, expected: undefined },
+        { remote: {}, expected: {} },
+        { remote: timings, expected: timings },
+      ])('translates independent remote engagement: $remote', ({ remote, expected }) => {
+        localConfig.autocapture = { pageViews: false, engagedTimeTracking: timings };
+        updateBrowserConfigWithRemoteConfig(
+          { autocapture: { engagedTimeTracking: typeof remote === 'object' ? { ...remote } : remote } },
+          localConfig,
+        );
+        expect(getEngagedTimeTrackingConfig(localConfig)).toEqual(expected);
+      });
+      test('preserves local engagement when only pageViews changes remotely', () => {
+        localConfig.autocapture = { engagedTimeTracking: timings };
+        updateBrowserConfigWithRemoteConfig({ autocapture: { pageViews: { enabled: true } } }, localConfig);
+        expect(getEngagedTimeTrackingConfig(localConfig)).toEqual(timings);
+      });
+      test('replaces the engagement options object using the existing shallow merge', () => {
+        localConfig.autocapture = { engagedTimeTracking: timings };
+        updateBrowserConfigWithRemoteConfig({ autocapture: { engagedTimeTracking: { enabled: true } } }, localConfig);
+        expect(getEngagedTimeTrackingConfig(localConfig)).toBeUndefined();
+        expect(isEngagedTimeTrackingEnabled(localConfig.autocapture)).toBe(true);
+      });
+      test('enables independent engagement while pageViews is disabled', () => {
+        updateBrowserConfigWithRemoteConfig(
+          { autocapture: { pageViews: false, engagedTimeTracking: { enabled: true } } },
+          localConfig,
+        );
+        expect(getEngagedTimeTrackingConfig(localConfig)).toBeUndefined();
+        expect(isEngagedTimeTrackingEnabled(localConfig.autocapture)).toBe(true);
+        expect(localConfig.autocapture).toMatchObject({ pageViews: false });
+      });
+    });
+
     test('should not modify local config if remote config is null', () => {
       const originalConfig = { ...localConfig };
       updateBrowserConfigWithRemoteConfig(null, localConfig);
