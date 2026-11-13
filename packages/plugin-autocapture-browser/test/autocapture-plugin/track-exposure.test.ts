@@ -614,4 +614,28 @@ describe('trackExposure', () => {
     expect(onExposure).toHaveBeenCalledWith('div#reset-div-1');
     expect(onExposure).toHaveBeenCalledWith('div#reset-div-2');
   });
+
+  test('releases cancelled timers across batches without waiting for navigation', () => {
+    for (let batch = 0; batch < 3; batch++) {
+      const elements = Array.from({ length: 500 }, () => document.createElement('button'));
+      elements.forEach((element) => triggerExposure({ target: element, isIntersecting: true }));
+      expect(jest.getTimerCount()).toBe(500);
+      jest.advanceTimersByTime(30);
+      elements.forEach((element) => triggerExposure({ target: element, isIntersecting: false }));
+      expect(jest.getTimerCount()).toBe(0);
+    }
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
+
+  test('cancels all active dwell timers on unsubscribe', () => {
+    for (let i = 0; i < 3; i++) {
+      triggerExposure({ target: document.createElement('button'), isIntersecting: true });
+    }
+    expect(jest.getTimerCount()).toBe(3);
+    unsubscribe();
+    expect(jest.getTimerCount()).toBe(0);
+    jest.advanceTimersByTime(DEFAULT_EXPOSURE_DURATION);
+    expect(onExposure).not.toHaveBeenCalled();
+  });
 });
