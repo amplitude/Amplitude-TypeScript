@@ -208,7 +208,40 @@ const LOG_PREFIX = '[Amplitude / GTM]';
   };
 
 
-  var init = function(client, args) {
+  const clientInitializations = new WeakMap();
+
+  var createGuidesSurveysRegistration = function() {
+      // Only install the proxy for clients that enable G&S.
+      engagementSnippet();
+      const plugin = window.engagement.plugin();
+      const setup = plugin.setup;
+      let setupPromise;
+      let setupFailure;
+
+      plugin.setup = function(...args) {
+          if (!setupPromise) {
+              setupFailure = undefined;
+              setupPromise = Promise.resolve()
+                  .then(() => setup?.apply(this, args))
+                  .catch(error => {
+                      // Let Analytics finish its queued initialization so a later
+                      // wrapper Init can retry, instead of leaving Analytics busy.
+                      setupFailure = { error };
+                      setupPromise = undefined;
+                  });
+          }
+          return setupPromise;
+      };
+
+      return {
+          plugin,
+          assertSetupSucceeded() {
+              if (setupFailure) throw setupFailure.error;
+          },
+      };
+  };
+
+  var initializeClient = async function(client, args, state) {
       const argsLength = args.length;
       const configuration = args[argsLength - 1];
 
@@ -282,18 +315,49 @@ const LOG_PREFIX = '[Amplitude / GTM]';
         client.add(sessionReplayPlugin.plugin());
       }
 
-      if (guidesSurveys) {
-        // Only initiate G/S here, otherwise, we'll auto-install the proxy for users who don't need it
-        engagementSnippet();
-        client.add(window.engagement.plugin());
+      if (guidesSurveys && !state.guidesSurveysRegistration) {
+          state.guidesSurveysRegistration = createGuidesSurveysRegistration();
+      }
+      const registration = state.guidesSurveysRegistration;
+      const registerBeforeInit = guidesSurveys && !state.initialized;
+      if (registerBeforeInit) {
+          client.add(registration.plugin);
       }
 
-      // as plugin order cannot be adjusted, init first then add library plugin to overwrite the library value
-      let promise = client.init(...args).promise;
-      promise.then(
-          () => client.add(gtmLibraryPlugin())
-      );
-      return promise;
+      await client.init(...args).promise;
+      state.initialized = true;
+      // Keep library enrichment after Analytics initialization, as before.
+      client.add(gtmLibraryPlugin());
+
+      if (guidesSurveys) {
+          try {
+              if (!registerBeforeInit) {
+                  await client.add(registration.plugin).promise;
+              }
+              registration.assertSetupSucceeded();
+          } catch (error) {
+              // Also unlock a registration whose setup failed, so the next Init
+              // can retry the same cached plugin.
+              await client.remove(registration.plugin.name).promise;
+              throw error;
+          }
+      }
+  };
+
+  var init = function(client, args) {
+      let state = clientInitializations.get(client);
+      if (!state) {
+          state = { initialized: false };
+          clientInitializations.set(client, state);
+      }
+      if (!state.initialization) {
+          // Claim the operation before invoking plugins. Concurrent calls join
+          // the owning Init through restoration and cannot change its settings.
+          state.initialization = Promise.resolve()
+              .then(() => initializeClient(client, args, state))
+              .finally(() => { state.initialization = undefined; });
+      }
+      return state.initialization;
   };
 
 
