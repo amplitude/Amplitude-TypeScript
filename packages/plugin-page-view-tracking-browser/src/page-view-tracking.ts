@@ -1,5 +1,6 @@
 import {
   getPageTitle,
+  DEFAULT_PAGE_VIEW_EVENT,
   replaceSensitiveString,
   BrowserConfig,
   BrowserClient,
@@ -20,7 +21,7 @@ import {
 } from '@amplitude/analytics-core';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 
-export const defaultPageViewEvent = '[Amplitude] Page Viewed';
+export { DEFAULT_PAGE_VIEW_EVENT as defaultPageViewEvent } from '@amplitude/analytics-core';
 export { PAGE_VIEW_SESSION_STORAGE_KEY } from '@amplitude/analytics-core';
 
 type PageViewSessionStorage = {
@@ -34,7 +35,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let isTracking = false;
   let localConfig: BrowserConfig;
   let sessionStorage: BrowserStorage<PageViewSessionStorage> | undefined;
-  const { trackOn, trackHistoryChanges, eventType = defaultPageViewEvent } = options;
+  const { trackOn, trackHistoryChanges, eventType = DEFAULT_PAGE_VIEW_EVENT } = options;
 
   const getDecodeURI = (locationStr: string): string => {
     let decodedLocationStr = locationStr;

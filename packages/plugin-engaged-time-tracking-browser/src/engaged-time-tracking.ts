@@ -1,6 +1,7 @@
 import {
   BrowserClient,
   BrowserConfig,
+  DEFAULT_PAGE_VIEW_EVENT,
   EngagedTimeOptions,
   EnrichmentPlugin,
   Event,
@@ -11,7 +12,7 @@ import { createPageEngagement, PageEngagement } from './page-engagement';
 /** Observe configured page views; only idle/lifecycle recovery creates replacement views. */
 export const engagedTimeTrackingPlugin = (options: EngagedTimeOptions = {}): EnrichmentPlugin => {
   // Exact application PageView event name to observe.
-  const eventType = options.pageViewEventType ?? '[Amplitude] Page Viewed';
+  const eventType = options.pageViewEventType ?? DEFAULT_PAGE_VIEW_EVENT;
   // Generated lifecycle renewals can use a separate analytics event name.
   const secondaryEventType = options.secondaryPageViewEventType ?? eventType;
   // Tracks the current view's elapsed time, activity, and heartbeat.
