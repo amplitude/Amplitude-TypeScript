@@ -9,7 +9,9 @@ import com.amplitude.core.ServerZone
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.Promise
+import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 // `@ReactMethod` is required on the legacy architecture and ignored on the new
 // one, so it stays on the overrides below.
@@ -26,16 +28,59 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     val maskLevel: MaskLevel,
   )
 
-  private var sessionReplay: SessionReplay? = null
+  // Never hold the UI-event state monitor while calling into the SDK.
+  private val lifecycleLock = Any()
+  @Volatile private var sessionReplay: SessionReplay? = null
   private var nativeConfig: NativeConfig? = null
-  private var shouldStart = false
+  @Volatile private var shouldStart = false
+  @Volatile private var invalidated = false
+  @Volatile private var uiChangeReceiver: Any? = null
+  private var listenerCount = 0
+
+  @ReactMethod
+  override fun isRecording(promise: Promise) {
+    promise.resolve(!invalidated && shouldStart && sessionReplay?.shouldRecord() == true)
+  }
+
+  @ReactMethod
+  override fun addListener(eventName: String) {
+    synchronized(this) {
+      if (!invalidated) listenerCount++
+    }
+  }
+
+  @ReactMethod
+  override fun removeListeners(count: Double) {
+    synchronized(this) {
+      listenerCount = (listenerCount - count.toInt().coerceAtLeast(0)).coerceAtLeast(0)
+    }
+  }
+
+  private fun emitUiChange(receiver: Any) {
+    val timestamp = System.currentTimeMillis().toDouble()
+    synchronized(this) {
+      if (listenerCount == 0 || uiChangeReceiver !== receiver || invalidated || !shouldStart ||
+        !reactContext.hasActiveReactInstance()) return
+      try {
+        val signal = Arguments.createMap().apply { putDouble("timestamp", timestamp) }
+        reactContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+          .emit("amplitudeSessionReplayReactNativeUiChange", signal)
+      } catch (_: RuntimeException) {
+        // The React instance can be destroyed between the check and the emission.
+      }
+    }
+  }
 
   override fun getName(): String {
     return NAME
   }
 
   @ReactMethod
-  override fun setup(config: ReadableMap, promise: Promise) {
+  override fun setup(config: ReadableMap, promise: Promise) = synchronized(lifecycleLock) {
+    if (invalidated) {
+      promise.resolve(null)
+      return@synchronized
+    }
     try {
       val apiKey = config.getString("apiKey") ?: throw IllegalArgumentException("apiKey is required")
       val deviceId = config.getString("deviceId")
@@ -75,7 +120,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
           Opt Out: $optOut
       """.trimIndent())
 
-      nativeConfig = NativeConfig(
+      val updatedConfig = NativeConfig(
         apiKey = apiKey,
         deviceId = deviceId,
         customSessionId = customSessionId,
@@ -85,7 +130,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
         optOut = optOut,
         maskLevel = maskLevel,
       )
-      rebootSessionReplay(requireNotNull(nativeConfig))
+      rebootSessionReplay(updatedConfig)
+      nativeConfig = updatedConfig
       shouldStart = false
 
       promise.resolve(null)
@@ -126,12 +172,16 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  override fun setOptOut(optOut: Boolean, promise: Promise) {
+  override fun setOptOut(optOut: Boolean, promise: Promise) = synchronized(lifecycleLock) {
+    if (invalidated) {
+      promise.resolve(null)
+      return@synchronized
+    }
     try {
       val currentConfig = requireNotNull(nativeConfig)
       if (currentConfig.optOut == optOut) {
         promise.resolve(null)
-        return
+        return@synchronized
       }
 
       // session-replay-android has no public runtime opt-out setter, so retain
@@ -151,7 +201,11 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  override fun start(promise: Promise) {
+  override fun start(promise: Promise) = synchronized(lifecycleLock) {
+    if (invalidated) {
+      promise.resolve(null)
+      return@synchronized
+    }
     try {
       shouldStart = true
       sessionReplay?.start()
@@ -162,7 +216,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  override fun stop(promise: Promise) {
+  override fun stop(promise: Promise) = synchronized(lifecycleLock) {
     try {
       shouldStart = false
       sessionReplay?.stop()
@@ -183,7 +237,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   @ReactMethod
-  override fun teardown(promise: Promise) {
+  override fun teardown(promise: Promise) = synchronized(lifecycleLock) {
+    synchronized(this) { uiChangeReceiver = null }
     try {
       sessionReplay?.shutdown()
       sessionReplay = null
@@ -195,7 +250,12 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
     }
   }
 
-  override fun invalidate() {
+  override fun invalidate() = synchronized(lifecycleLock) {
+    synchronized(this) {
+      invalidated = true
+      uiChangeReceiver = null
+      listenerCount = 0
+    }
     sessionReplay?.shutdown()
     sessionReplay = null
     nativeConfig = null
@@ -203,17 +263,19 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   }
 
   private fun rebootSessionReplay(config: NativeConfig) {
+    val receiver = Any()
     val nextSessionReplay = if (config.optOut) {
       LogcatLogger.logger.debug("skipping SessionReplay init because optOut=true")
       null
     } else {
-      createSessionReplay(config)
+      createSessionReplay(config, receiver)
     }
+    synchronized(this) { uiChangeReceiver = if (nextSessionReplay == null) null else receiver }
     sessionReplay?.shutdown()
     sessionReplay = nextSessionReplay
   }
 
-  private fun createSessionReplay(config: NativeConfig): SessionReplay {
+  private fun createSessionReplay(config: NativeConfig, receiver: Any): SessionReplay {
     val sessionReplay = SessionReplay(
       apiKey = config.apiKey,
       context = reactContext.applicationContext,
@@ -229,6 +291,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       },
       autoStart = false,
       privacyConfig = PrivacyConfig(maskLevel = config.maskLevel),
+      uiChangeCallback = { emitUiChange(receiver) },
     )
     sessionReplay.setCustomSessionId(config.customSessionId)
     return sessionReplay

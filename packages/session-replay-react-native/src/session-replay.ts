@@ -1,5 +1,6 @@
 // @refresh reset
 
+import { NativeEventEmitter, type EmitterSubscription } from 'react-native';
 import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
 import { getDefaultConfig, SessionReplayConfig, SessionReplayConfigInternal } from './session-replay-config';
 import { createSessionReplayLogger } from './logger';
@@ -305,4 +306,43 @@ export async function privateInit(
 ): Promise<void> {
   logger = newLogger;
   return init(config);
+}
+
+const globalUiChangeListeners = new Set<(timestamp: number) => void>();
+let uiChangeSubscription: EmitterSubscription | undefined;
+let uiChangeSubscriptionGeneration = 0;
+
+/** Subscribe to UI changes with their Unix timestamp in milliseconds. Returns an unsubscribe function. */
+export function addUiChangeListener(listener: (timestamp: number) => void): () => void {
+  // Each registration gets its own entry, even when the callback is reused.
+  const registeredListener = (timestamp: number) => listener(timestamp);
+  globalUiChangeListeners.add(registeredListener);
+  if (!uiChangeSubscription) {
+    const generation = ++uiChangeSubscriptionGeneration;
+    uiChangeSubscription = new NativeEventEmitter(NativeSessionReplay).addListener(
+      'amplitudeSessionReplayReactNativeUiChange',
+      (event?: { timestamp?: number }) => {
+        if (generation !== uiChangeSubscriptionGeneration) return;
+        // Older native binaries sent no payload. Preserve their delivery-time fallback.
+        const timestamp =
+          typeof event?.timestamp === 'number' && Number.isFinite(event.timestamp) ? event.timestamp : Date.now();
+        globalUiChangeListeners.forEach((callback) => callback(timestamp));
+      },
+    );
+  }
+
+  return () => {
+    globalUiChangeListeners.delete(registeredListener);
+    if (globalUiChangeListeners.size === 0) {
+      // Retire callbacks already queued for the previous native subscription.
+      uiChangeSubscriptionGeneration++;
+      uiChangeSubscription?.remove();
+      uiChangeSubscription = undefined;
+    }
+  };
+}
+
+/** Resolves whether a native replay instance is recording and providing UI change signals. */
+export async function isRecording(): Promise<boolean> {
+  return NativeSessionReplay.isRecording();
 }

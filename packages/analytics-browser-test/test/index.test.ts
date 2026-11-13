@@ -1927,7 +1927,8 @@ describe('integration', () => {
           ...defaultTracking,
           pageViews: true,
         },
-        sessionTimeout: 500,
+        // The navigation at 500 ms must occur before session expiry.
+        sessionTimeout: 1000,
         flushIntervalMillis: 3000,
         fetchRemoteConfig: false,
       });

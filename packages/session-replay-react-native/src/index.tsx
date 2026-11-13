@@ -8,6 +8,8 @@ export {
   setDeviceId,
   setOptOut,
   teardown,
+  addUiChangeListener,
+  isRecording,
 } from './session-replay';
 export { type SessionReplayConfig, type MaskLevel, type PrivacyConfig } from './session-replay-config';
 export { LogLevel } from './session-replay-config';

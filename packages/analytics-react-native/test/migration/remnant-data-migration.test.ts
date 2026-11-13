@@ -228,6 +228,9 @@ describe('migration', () => {
       cookieStorage: new MemoryStorage(),
       storageProvider: storageProvider,
       migrateLegacyData: false,
+      // Web attribution can enqueue an identify during init. Keep the queue
+      // assertion specific to legacy migration, independent of campaign state.
+      attribution: { disabled: true },
       loggerProvider,
       instanceName: 'test-instance',
     }).promise;

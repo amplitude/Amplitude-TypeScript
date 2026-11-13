@@ -1,22 +1,83 @@
 import Foundation
 import AmplitudeSessionReplay
 import AmplitudeCore
+import React
 
 @objc(AMPNativeSessionReplay)
-class NativeSessionReplay: NSObject, RCTBridgeModule {
-    static func moduleName() -> String! {
-        "AMPNativeSessionReplay"
+class NativeSessionReplay: RCTEventEmitter {
+    // Serialize capture startup with invalidation without holding stateLock in SDK calls.
+    private let lifecycleLock = NSLock()
+    private let stateLock = NSLock()
+    private var currentSessionReplay: SessionReplay?
+    var sessionReplay: SessionReplay? {
+        get { stateLock.withLock { currentSessionReplay } }
+        set { stateLock.withLock { currentSessionReplay = newValue } }
+    }
+    var logger: CoreLogger?
+    private var hasUiChangeListeners = false
+    private var recordingRequested = false
+    private var invalidated = false
+    private var uiChangeReceiver: UiChangeReceiver?
+
+    @objc(isRecording:reject:)
+    func isRecording(_ resolve: @escaping RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
+        // SDK >= 0.16.1 synchronizes isProviding internally; read it outside our lock.
+        let (requested, replay) = stateLock.withLock {
+            (!invalidated && recordingRequested, currentSessionReplay)
+        }
+        resolve(requested && (replay?.isProviding ?? false))
+    }
+
+    private func attachUiChangeReceiver() {
+        guard let provider = sessionReplay else { return }
+        let receiver = UiChangeReceiver { [weak self] receiver, timestamp in
+            guard let self = self else { return }
+            self.stateLock.withLock {
+                // JS cannot distinguish callbacks from an SDK instance already replaced.
+                guard !self.invalidated, self.hasUiChangeListeners, self.recordingRequested,
+                      self.uiChangeReceiver === receiver else { return }
+                self.sendEvent(withName: "amplitudeSessionReplayReactNativeUiChange", body: ["timestamp": timestamp])
+            }
+        }
+        stateLock.withLock { uiChangeReceiver = receiver }
+        provider.addInterfaceSignalReceiver(receiver)
+    }
+
+    private func removeUiChangeReceiver() {
+        let (provider, receiver) = stateLock.withLock {
+            let receiver = uiChangeReceiver
+            uiChangeReceiver = nil
+            return (currentSessionReplay, receiver)
+        }
+        // Never hold the state lock while calling back into the SDK.
+        if let receiver = receiver { provider?.removeInterfaceSignalReceiver(receiver) }
+    }
+
+    override func supportedEvents() -> [String]! {
+        return ["amplitudeSessionReplayReactNativeUiChange"]
+    }
+
+    override func startObserving() {
+        stateLock.withLock { hasUiChangeListeners = !invalidated }
+    }
+
+    override func stopObserving() {
+        stateLock.withLock { hasUiChangeListeners = false }
     }
     
-    var sessionReplay: SessionReplay?
-    var logger: CoreLogger?
-    
     override init() {
+        super.init()
         print("NativeSessionReplay init")
     }
     
     @objc(setup:resolve:reject:)
     func setup(_ config: NSDictionary, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
+        guard stateLock.withLock({ !invalidated }) else {
+            resolve(nil)
+            return
+        }
         guard let apiKey = config["apiKey"] as? String,
               let serverZone = config["serverZone"] as? String,
               let sampleRate = config["sampleRate"] as? NSNumber,
@@ -48,6 +109,9 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             """
         )
         
+        removeUiChangeReceiver()
+        stateLock.withLock { recordingRequested = false }
+        sessionReplay?.stop()
         sessionReplay = SessionReplay(
             apiKey: apiKey,
             deviceId: deviceId,
@@ -61,6 +125,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         )
 
         sessionReplay?.customSessionId = customSessionId
+        attachUiChangeReceiver()
 
         resolve(nil)
     }
@@ -97,7 +162,14 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     
     @objc(start:reject:)
     func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
+        guard stateLock.withLock({ !invalidated }) else {
+            resolve(nil)
+            return
+        }
         logger?.debug(message: "start")
+        stateLock.withLock { recordingRequested = true }
         sessionReplay?.start()
         resolve(nil)
     }
@@ -105,6 +177,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     @objc(stop:reject:)
     func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
         logger?.debug(message: "stop")
+        stateLock.withLock { recordingRequested = false }
         sessionReplay?.stop()
         resolve(nil)
     }
@@ -118,22 +191,48 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
 
     @objc(teardown:reject:)
     func teardown(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
         logger?.debug(message: "teardown")
         tearDownSessionReplay()
         resolve(nil)
     }
     
-    @objc(invalidate)
-    func invalidate() {
+    override func invalidate() {
+        lifecycleLock.lock()
+        defer { lifecycleLock.unlock() }
+        stateLock.withLock {
+            invalidated = true
+            hasUiChangeListeners = false
+            recordingRequested = false
+        }
         print("invalidate")
         tearDownSessionReplay()
+        super.invalidate()
     }
 
     private func tearDownSessionReplay() {
+        stateLock.withLock { recordingRequested = false }
+        removeUiChangeReceiver()
         sessionReplay?.stop()
         sessionReplay = nil
         logger = nil
     }
+}
+
+private final class UiChangeReceiver: InterfaceSignalReceiver, @unchecked Sendable {
+    private let uiChangeCallback: (UiChangeReceiver, Double) -> Void
+
+    init(uiChangeCallback: @escaping (UiChangeReceiver, Double) -> Void) {
+        self.uiChangeCallback = uiChangeCallback
+    }
+
+    func onInterfaceChanged(signal: InterfaceChangeSignal) {
+        uiChangeCallback(self, signal.time.timeIntervalSince1970 * 1000)
+    }
+
+    func onStartProviding() {}
+    func onStopProviding() {}
 }
 
 extension MaskLevel {
