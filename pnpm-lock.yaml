@@ -344,6 +344,9 @@ importers:
       '@amplitude/plugin-custom-enrichment-browser':
         specifier: 1.0.0
         version: 1.0.0(@amplitude/analytics-core@packages+analytics-core)
+      '@amplitude/plugin-engaged-time-tracking-browser':
+        specifier: workspace:*
+        version: link:../plugin-engaged-time-tracking-browser
       '@amplitude/plugin-event-property-attribution-browser':
         specifier: workspace:*
         version: link:../plugin-event-property-attribution-browser
