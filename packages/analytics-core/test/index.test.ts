@@ -8,6 +8,7 @@ import {
   LogLevel,
   AMPLITUDE_PREFIX,
   STORAGE_PREFIX,
+  DEFAULT_PAGE_VIEW_EVENT,
   returnWrapper,
   debugWrapper,
   getClientLogConfig,
@@ -118,6 +119,7 @@ describe('index', () => {
     expect(typeof createIdentifyEvent).toBe('function');
     expect(AMPLITUDE_PREFIX).toBe('AMP');
     expect(STORAGE_PREFIX).toBe('AMP_unsent');
+    expect(DEFAULT_PAGE_VIEW_EVENT).toBe('[Amplitude] Page Viewed');
     expect(typeof getStorageKey).toBe('function');
     expect(typeof getGlobalScope).toBe('function');
     expect(typeof getAnalyticsConnector).toBe('function');

@@ -74,7 +74,7 @@ export {
 } from './remote-config/remote-config';
 
 export { LogLevel } from './types/loglevel';
-export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
+export { AMPLITUDE_PREFIX, STORAGE_PREFIX, DEFAULT_PAGE_VIEW_EVENT } from './types/constants';
 export { Storage, StorageData, IdentityStorageType, CookieStorageConfig } from './types/storage';
 export { consoleObserver } from './observers/console';
 export {
@@ -127,6 +127,7 @@ export {
   DEFAULT_DEAD_CLICK_WINDOW_MS,
 } from './types/frustration-interactions';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
+export { EngagedTimeOptions } from './types/engaged-time-tracking';
 export { FormInteractionsOptions } from './types/form-interactions';
 export { Status } from './types/status';
 
