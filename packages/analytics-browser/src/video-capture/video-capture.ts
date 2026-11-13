@@ -214,13 +214,11 @@ export class VideoCapture {
             ...this.extraEventProperties,
           }),
         };
-        this.heartbeat
-          .trackNoDelay({
-            ...startEvent,
-            event_properties: this.toAnalyticsEventProperties(startEvent.event_properties),
-          })
-          .catch(() => this.stop());
-        this.heartbeat.track(this.stopEvent).catch(() => this.stop());
+        void this.heartbeat.trackNoDelay({
+          ...startEvent,
+          event_properties: this.toAnalyticsEventProperties(startEvent.event_properties),
+        });
+        void this.heartbeat.track(this.stopEvent);
       }
     });
 
@@ -274,12 +272,10 @@ export class VideoCapture {
       ...stopEvent.event_properties,
       stop_reason: stopReason,
     };
-    this.heartbeat
-      .trackNoDelay({
-        ...stopEvent,
-        event_properties: this.toAnalyticsEventProperties(stopEvent.event_properties),
-      })
-      .catch(() => this.stop());
+    void this.heartbeat.trackNoDelay({
+      ...stopEvent,
+      event_properties: this.toAnalyticsEventProperties(stopEvent.event_properties),
+    });
   }
 
   // Placeholder: may need a generic state change listener to capture unusual events or to have
