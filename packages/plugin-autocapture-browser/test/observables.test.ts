@@ -2,6 +2,9 @@ import { Unsubscribable, Observable } from '@amplitude/analytics-core';
 import { createMouseMoveObservable, createMutationObservable, createExposureObservable } from '../src/observables';
 import { createShadowGate, SHADOW_OFF, type ShadowGate } from '../src/shadow-mode';
 import { TimestampedEvent } from '../src/helpers';
+import { trackExposure } from '../src/autocapture/track-exposure';
+import { AllWindowObservables } from '../src/autocapture-plugin';
+import { DataExtractor } from '../src/data-extractor';
 
 function attachOpen(host: Element, html: string): ShadowRoot {
   const root = host.attachShadow({ mode: 'open' });
@@ -165,11 +168,182 @@ describe('createMutationObservable — shadow fan-out', () => {
 
 describe('createExposureObservable — shadow mutation path', () => {
   let mockIntersectionObserver: { observe: jest.Mock; unobserve: jest.Mock; disconnect: jest.Mock };
+  let intersectionCallback: (entries: IntersectionObserverEntry[]) => void;
 
   beforeEach(() => {
     mockIntersectionObserver = { observe: jest.fn(), unobserve: jest.fn(), disconnect: jest.fn() };
-    (global as any).IntersectionObserver = jest.fn(() => mockIntersectionObserver);
+    (global as any).IntersectionObserver = jest.fn((callback) => {
+      intersectionCallback = callback;
+      return mockIntersectionObserver;
+    });
     document.body.innerHTML = '';
+  });
+
+  it.each([false, true])('unobserves removed subtrees, including shadow DOM: %s', async (shadow) => {
+    const wrapper = document.createElement('div');
+    const button = document.createElement('button');
+    button.className = 'track-me';
+    (shadow ? wrapper.attachShadow({ mode: 'open' }) : wrapper).appendChild(button);
+    document.body.appendChild(wrapper);
+    const gate = shadow ? armedGate(1) : offGate();
+    const mutations = createMutationObservable(gate).map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const onExposure = jest.fn();
+    const subscription = createExposureObservable(mutations, ['.track-me'], gate).subscribe(onExposure);
+    await Promise.resolve();
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(button);
+
+    // Cleanup must not depend on whether the detached node still matches.
+    button.className = '';
+    wrapper.remove();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(button);
+    expect(onExposure).toHaveBeenCalledWith(expect.objectContaining({ target: button, isIntersecting: false }));
+    subscription.unsubscribe();
+  });
+
+  it('preserves observation when a node moves within the document', async () => {
+    const button = document.createElement('button');
+    button.className = 'track-me';
+    const wrapper = document.createElement('div');
+    document.body.append(button, wrapper);
+    const mutations = createMutationObservable().map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const onExposure = jest.fn();
+    const subscription = createExposureObservable(mutations, ['.track-me']).subscribe(onExposure);
+    await Promise.resolve();
+    mockIntersectionObserver.unobserve.mockClear();
+
+    wrapper.appendChild(button);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.unobserve).not.toHaveBeenCalled();
+    expect(onExposure).not.toHaveBeenCalled();
+    subscription.unsubscribe();
+  });
+
+  it('unobserves nested shadow targets discovered with a fresh subtree depth budget', async () => {
+    const outerHost = document.createElement('div');
+    const outerRoot = outerHost.attachShadow({ mode: 'open' });
+    document.body.appendChild(outerHost);
+    const gate = armedGate(1);
+    const mutations = createMutationObservable(gate).map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const listener = jest.fn();
+    const subscription = createExposureObservable(mutations, ['.track-me'], gate).subscribe(listener);
+    await Promise.resolve();
+
+    // This insertion is visible to the outer root's MutationObserver. Discovery
+    // starts a fresh one-boundary walk at innerHost, reaching a target two shadow
+    // boundaries below outerHost despite the gate's maxDepth of one.
+    const innerHost = document.createElement('div');
+    const innerRoot = innerHost.attachShadow({ mode: 'open' });
+    const button = document.createElement('button');
+    button.className = 'track-me';
+    innerRoot.appendChild(button);
+    outerRoot.appendChild(innerHost);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(button);
+    intersectionCallback([{ target: button, isIntersecting: true } as unknown as IntersectionObserverEntry]);
+    listener.mockClear();
+
+    outerHost.remove();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(button);
+    expect(listener).toHaveBeenCalledWith(expect.objectContaining({ target: button, isIntersecting: false }));
+    subscription.unsubscribe();
+  });
+
+  it('cleans up a removed nested shadow target when its hosts remain connected', async () => {
+    jest.useFakeTimers();
+    const outerHost = document.createElement('div');
+    const outerRoot = outerHost.attachShadow({ mode: 'open' });
+    document.body.appendChild(outerHost);
+    const gate = armedGate(1);
+    const mutations = createMutationObservable(gate).map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const exposureObservable = createExposureObservable(mutations, ['button'], gate);
+    let scroll: (() => void) | undefined;
+    const scrollObservable = new Observable<Event>((observer) => {
+      scroll = () => observer.next(new Event('scroll'));
+      return () => undefined;
+    });
+    const onExposure = jest.fn();
+    const tracking = trackExposure({
+      allObservables: { exposureObservable, scrollObservable } as AllWindowObservables,
+      onExposure,
+      dataExtractor: new DataExtractor({}),
+      exposureDuration: 1000,
+    });
+
+    try {
+      const innerHost = document.createElement('div');
+      const innerRoot = innerHost.attachShadow({ mode: 'open' });
+      const button = document.createElement('button');
+      const measure = jest.spyOn(button, 'getBoundingClientRect').mockReturnValue({
+        top: 0,
+        bottom: 100,
+        left: 0,
+        right: 100,
+        width: 100,
+        height: 100,
+      } as DOMRect);
+      innerRoot.appendChild(button);
+      outerRoot.appendChild(innerHost);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(mockIntersectionObserver.observe).toHaveBeenCalledWith(button);
+
+      intersectionCallback([{ target: button, isIntersecting: true } as unknown as IntersectionObserverEntry]);
+      expect(jest.getTimerCount()).toBe(1);
+      button.remove();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(outerHost.isConnected).toBe(true);
+      expect(innerHost.isConnected).toBe(true);
+      // The inner root exceeds the mutation observer's depth budget.
+      expect(mockIntersectionObserver.unobserve).not.toHaveBeenCalledWith(button);
+
+      intersectionCallback([{ target: button, isIntersecting: false } as unknown as IntersectionObserverEntry]);
+      expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(button);
+      expect(jest.getTimerCount()).toBe(0);
+      measure.mockClear();
+      scroll?.();
+      expect(measure).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(1000);
+      expect(onExposure).not.toHaveBeenCalled();
+    } finally {
+      tracking.unsubscribe();
+      jest.useRealTimers();
+    }
+  });
+
+  it('unobserves nodes added and removed in the same light-DOM mutation batch', async () => {
+    const mutations = createMutationObservable().map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const onExposure = jest.fn();
+    const subscription = createExposureObservable(mutations, ['button']).subscribe(onExposure);
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    button.remove();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockIntersectionObserver.unobserve).toHaveBeenCalledWith(button);
+    expect(onExposure).toHaveBeenCalledWith(expect.objectContaining({ target: button, isIntersecting: false }));
+    subscription.unsubscribe();
+  });
+
+  it('ignores stale intersection entries for removed elements', async () => {
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+    const mutations = createMutationObservable().map((event) => ({ event } as TimestampedEvent<MutationRecord[]>));
+    const listener = jest.fn();
+    const subscription = createExposureObservable(mutations, ['button']).subscribe(listener);
+    button.remove();
+    await Promise.resolve();
+    await Promise.resolve();
+    listener.mockClear();
+    intersectionCallback([{ target: button, isIntersecting: true } as unknown as IntersectionObserverEntry]);
+    expect(listener).not.toHaveBeenCalled();
+    subscription.unsubscribe();
   });
 
   it('uses light-DOM querySelectorAll for added nodes when shadow is disabled', () => {
