@@ -43,6 +43,12 @@ export interface SemanticPayloads {
   navigation: { url: string };
   recording: RecordingSignal;
   keys: { key: string; target: NamedTarget & { states: string[] } };
+  'resource-error': {
+    rt: 'img' | 'css' | 'font' | 'script';
+    count: number;
+    container?: TargetDescription;
+    path?: string;
+  };
   click: NamedTarget & {
     container: TargetDescription | null;
     states: string[];
