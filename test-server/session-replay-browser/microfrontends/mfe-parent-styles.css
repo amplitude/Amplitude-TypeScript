@@ -1,0 +1,96 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #eef2ff;
+  color: #1e1b4b;
+}
+.shell-header {
+  background: #312e81;
+  color: #e0e7ff;
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(49, 46, 129, 0.35);
+}
+#parent-shell-marker {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1001;
+  background: #dc2626;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-bottom-left-radius: 8px;
+  pointer-events: none;
+}
+.shell-header h1 {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+}
+.shell-header .tag {
+  display: inline-block;
+  background: #4f46e5;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-right: 6px;
+}
+.shell-main {
+  padding: 16px 20px;
+}
+.parent-panel {
+  background: #fff;
+  border: 2px solid #6366f1;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.parent-panel button {
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 4px 8px 4px 0;
+}
+.mfe-slot {
+  margin-top: 12px;
+  min-height: 280px;
+  border: 2px dashed #818cf8;
+  border-radius: 8px;
+  background: #f5f3ff;
+  overflow: hidden;
+}
+.mfe-slot iframe {
+  display: block;
+  width: 100%;
+  height: 320px;
+  max-height: 45vh;
+  border: 0;
+}
+#status {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  padding: 8px 12px;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+.scenario-notes {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.scenario-notes summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.scenario-notes code {
+  font-size: 12px;
+  background: #e2e8f0;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
