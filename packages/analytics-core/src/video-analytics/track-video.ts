@@ -179,8 +179,7 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
   videoEl.addEventListener('emptied', emptiedHandler);
   const media = videoEl as HTMLMediaElement;
 
-  // if the media is already playing when tracking begins, emit a play event
-  if (media.paused === false && media.ended !== true && media.readyState >= HTMLMediaElement.HAVE_METADATA) {
+  if (media.paused === false && media.ended !== true && media.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
     playHandler();
   }
 
