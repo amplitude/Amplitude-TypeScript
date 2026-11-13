@@ -21,6 +21,11 @@ export interface SemanticCaptureHost {
   sdk: string;
   emit: (event: { name: string; timestamp: number; payload: object }) => void;
   getPrivacy: () => PrivacyConfig;
+  getNodeId?: (node: Node) => number;
+  getUrl?: () => string;
+  getSelector?: (element: Element) => string | null;
+  externalClicks?: boolean;
+  externalAuxClicks?: boolean;
   getIdentity?: () => SemanticIdentity;
   getAnalyticsContext?: () => SemanticAnalyticsContext;
   inlineStylesheet?: boolean;
@@ -39,6 +44,7 @@ export interface SemanticHostSignals {
   snapshot: undefined;
   url: { url: string; timestamp: number };
   recording: SemanticRecordingSignal;
+  click: MouseEvent;
 }
 export interface SemanticRecordingSignal {
   state: 'start' | 'stop' | 'pause' | 'resume';

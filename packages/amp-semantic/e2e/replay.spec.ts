@@ -76,7 +76,7 @@ for (const query of [
   '?enabled=false',
   '?sampleRate=0',
   '?remoteEnabled=false',
-  '?disabled=context,visibility,lifecycle,navigation,recording',
+  '?disabled=context,visibility,lifecycle,navigation,recording,click,field,submit',
   '?createCapture=false&remoteEnabled=true',
 ]) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
@@ -164,4 +164,28 @@ test('recording boundaries bracket a customer stop and resume', async ({ page })
   const recording = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/recording');
   expect(recording[2].data.payload.state).toBe('resume');
   for (const event of recording) expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
+});
+
+test('shared rrweb click hook and native form events deliver interaction payloads', async ({ page }) => {
+  await open(page);
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/context').length)
+    .toBe(1);
+  await page.locator('#semantic-action').click();
+  await page.locator('#semantic-email').fill('test@example.com');
+  await page.locator('#semantic-email').blur();
+  await page.locator('#semantic-form button').click();
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/submit').length)
+    .toBe(1);
+  const events = await flush(page);
+  const clicks = events.filter((event) => event.data.tag === 'amp-semantic/click');
+  const fields = events.filter((event) => event.data.tag === 'amp-semantic/field');
+  const submits = events.filter((event) => event.data.tag === 'amp-semantic/submit');
+  expect(clicks).toHaveLength(2);
+  expect(clicks[0].data.payload).toMatchObject({ role: 'button', name: 'Save changes' });
+  expect(fields[0].data.payload).toMatchObject({ role: 'textbox', value_state: 'filled' });
+  expect(submits[0].data.payload).toMatchObject({ valid: true, prevented: true });
+  for (const event of [...clicks, ...fields, ...submits])
+    expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
 });

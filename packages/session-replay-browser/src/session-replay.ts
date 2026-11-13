@@ -1105,21 +1105,30 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }, networkLoggingConfig);
     const { interactionConfig, loggingConfig } = config;
 
-    const hooks = interactionConfig?.enabled
-      ? {
-          mouseInteraction:
-            this.eventsManager &&
-            this.clickHandler?.createHook({
-              eventsManager: this.eventsManager,
-              sessionId,
-              deviceIdFn: this.getDeviceId.bind(this),
-              mirror: recordFunction.mirror,
-              ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
-              performanceOptions: config.performanceConfig?.interaction,
-            }),
-          scroll: this.scrollHook,
-        }
-      : {};
+    const heatmapHook =
+      interactionConfig?.enabled && this.eventsManager
+        ? this.clickHandler?.createHook({
+            eventsManager: this.eventsManager,
+            sessionId,
+            deviceIdFn: this.getDeviceId.bind(this),
+            mirror: recordFunction.mirror,
+            ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
+            performanceOptions: config.performanceConfig?.interaction,
+          })
+        : undefined;
+    const sharedSemanticClicks =
+      config.semanticCapture?.enabled &&
+      typeof config.semanticCapture.createCapture === 'function' &&
+      recordFunction.supportsNativeMouseInteraction === true;
+    let mouseInteraction = heatmapHook;
+    if (sharedSemanticClicks) {
+      const clickHandler = this.clickHandler ?? (this.clickHandler = new ClickHandler(this.loggerProvider));
+      mouseInteraction = clickHandler.createSharedHook(heatmapHook, (event) => this.semanticAdapter?.click(event));
+    }
+    const hooks = {
+      ...(mouseInteraction ? { mouseInteraction } : {}),
+      ...(interactionConfig?.enabled ? { scroll: this.scrollHook } : {}),
+    };
 
     const ugcFilterRules =
       interactionConfig?.enabled && interactionConfig.ugcFilterRules ? interactionConfig.ugcFilterRules : [];
@@ -1268,6 +1277,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
           window: scope,
           sdk: `@amplitude/session-replay-browser@${VERSION}`,
           getPrivacy: () => this.config?.privacyConfig ?? {},
+          getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
+          getUrl: () => this.currentPageUrl || scope.location.href,
+          getSelector: (element) => {
+            try {
+              return this.clickHandler?.getSelector(element, this.config?.performanceConfig?.interaction) ?? null;
+            } catch {
+              return null;
+            }
+          },
+          externalClicks: this.recordFunction?.supportsNativeMouseInteraction === true,
+          externalAuxClicks: false,
           getIdentity: () => getSemanticIdentity(scope),
           getAnalyticsContext: () => this.config?.semanticAnalyticsContext ?? { present: false, autocapture: [] },
           inlineStylesheet: config.shouldInlineStylesheet,

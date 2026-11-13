@@ -111,6 +111,18 @@
                     "recording": {
                       "type": "integer",
                       "minimum": 0
+                    },
+                    "submit": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "field": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "click": {
+                      "type": "integer",
+                      "minimum": 0
                     }
                   },
                   "additionalProperties": false
@@ -284,6 +296,566 @@
         }
       },
       "required": ["type", "timestamp", "data"],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/click"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "role": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "name_source": {
+                  "enum": [
+                    "aria-labelledby",
+                    "aria-label",
+                    "label-for",
+                    "label-wrap",
+                    "alt",
+                    "value",
+                    "title",
+                    "text",
+                    "placeholder",
+                    "masked",
+                    "unnamed"
+                  ]
+                },
+                "container": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "role",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "states": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "disabled",
+                      "required",
+                      "invalid",
+                      "checked",
+                      "mixed",
+                      "busy",
+                      "open",
+                      "expanded",
+                      "collapsed",
+                      "selected",
+                      "current",
+                      "pressed",
+                      "readonly"
+                    ]
+                  }
+                },
+                "visible": {
+                  "type": "boolean"
+                },
+                "key": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "selector": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "attrs": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "href": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    },
+                    "aria-controls": {
+                      "type": "string"
+                    },
+                    "aria-haspopup": {
+                      "type": "string"
+                    },
+                    "data-testid": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [],
+                  "additionalProperties": false
+                },
+                "url": {
+                  "type": "string"
+                },
+                "heading": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "keyboard": {
+                  "type": "boolean"
+                },
+                "modifiers": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "alt",
+                      "ctrl",
+                      "meta",
+                      "shift"
+                    ]
+                  }
+                },
+                "trusted": {
+                  "type": "boolean"
+                },
+                "tab_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "document_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": [
+                "id",
+                "role",
+                "name",
+                "name_source",
+                "container",
+                "states",
+                "visible",
+                "key",
+                "attrs",
+                "url",
+                "heading",
+                "keyboard",
+                "modifiers",
+                "trusted",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "tag",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "timestamp",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/field"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "name_source": {
+                  "enum": [
+                    "aria-labelledby",
+                    "aria-label",
+                    "label-for",
+                    "label-wrap",
+                    "alt",
+                    "value",
+                    "title",
+                    "text",
+                    "placeholder",
+                    "masked",
+                    "unnamed"
+                  ]
+                },
+                "states": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "disabled",
+                      "required",
+                      "invalid",
+                      "checked",
+                      "mixed",
+                      "busy",
+                      "open",
+                      "expanded",
+                      "collapsed",
+                      "selected",
+                      "current",
+                      "pressed",
+                      "readonly"
+                    ]
+                  }
+                },
+                "id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "role": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                },
+                "value_state": {
+                  "enum": [
+                    "empty",
+                    "filled"
+                  ]
+                },
+                "checked": {
+                  "type": "boolean"
+                },
+                "valid": {
+                  "type": "boolean"
+                },
+                "validity": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "valueMissing",
+                      "typeMismatch",
+                      "patternMismatch",
+                      "tooShort",
+                      "tooLong",
+                      "rangeUnderflow",
+                      "rangeOverflow",
+                      "stepMismatch",
+                      "badInput",
+                      "customError",
+                      "ariaInvalid"
+                    ]
+                  }
+                },
+                "masked": {
+                  "type": "boolean"
+                },
+                "option_label": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tab_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "document_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": [
+                "id",
+                "role",
+                "name",
+                "kind",
+                "value_state",
+                "valid",
+                "validity",
+                "masked",
+                "option_label",
+                "v"
+              ],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "masked": {
+                        "const": true
+                      }
+                    },
+                    "required": [
+                      "masked"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "value": false
+                    }
+                  }
+                }
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "tag",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "timestamp",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/submit"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "form": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "role",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "submitter": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "role",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "valid": {
+                  "type": "boolean"
+                },
+                "invalid_fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
+                        "minimum": 0
+                      },
+                      "name": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "validity": {
+                        "type": "array",
+                        "items": {
+                          "enum": [
+                            "valueMissing",
+                            "typeMismatch",
+                            "patternMismatch",
+                            "tooShort",
+                            "tooLong",
+                            "rangeUnderflow",
+                            "rangeOverflow",
+                            "stepMismatch",
+                            "badInput",
+                            "customError",
+                            "ariaInvalid"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "validity"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "maxItems": 10
+                },
+                "prevented": {
+                  "type": "boolean"
+                },
+                "tab_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "document_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "v": {
+                  "const": 1
+                }
+              },
+              "required": [
+                "form",
+                "submitter",
+                "valid",
+                "invalid_fields",
+                "prevented",
+                "v"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "tag",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "timestamp",
+        "data"
+      ],
       "additionalProperties": false
     }
   ]
