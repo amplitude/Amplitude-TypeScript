@@ -99,7 +99,7 @@ export class VideoCapture {
   private extraEventProperties: Record<string, string | number | boolean> = {};
   private stopEvent: BaseEvent | null = null;
   private listeners: ((previousState: VideoState, nextState: VideoState) => void)[] = [];
-  private onRemoveListeners: (() => void)[] = [];
+  private onRemoveListeners: ((stopReason: VideoStopCause) => void)[] = [];
   private playId: string | null = null;
   private playStartPosition: number | null = null;
   /**
@@ -308,15 +308,15 @@ export class VideoCapture {
       isEmbedded: !!this.embeddedVideoPlayer,
     });
 
-    this.onRemoveListeners.push(() => {
-      videoObserver.destroy();
+    this.onRemoveListeners.push((stopReason) => {
+      videoObserver.destroy(stopReason);
     });
 
     if (getGlobalScope()) {
       this.onRemoveListeners.push(
         this.heartbeat.beforePageHide(() => {
-          // if the page is exited, emit a final 'ended' stop event
-          this.stop('ended');
+          // Leaving the page ends tracking without implying playback completed.
+          this.stop('untracked');
         }),
       );
     }
@@ -327,11 +327,11 @@ export class VideoCapture {
   /**
    * Stop capturing analytics events for the video element.
    *
-   * Observers are detached first so no playback state change can race with the final
-   * event, then any in-progress play session is closed out.
+   * HTML media observers report their final player state before detaching. Any
+   * remaining play session (including embedded players) is then closed out.
    */
-  stop(stopReason = 'untracked') {
-    this.onRemoveListeners.forEach((listener) => listener());
+  stop(stopReason: VideoStopCause = 'untracked') {
+    this.onRemoveListeners.forEach((listener) => listener(stopReason));
     this.onRemoveListeners = [];
     this.flushStopEvent(stopReason);
   }
@@ -380,7 +380,7 @@ export type VideoCaptureOptions = {
   extraEventProperties?: Record<string, string | number | boolean>;
 };
 
-type UntrackVideoResult = () => void;
+type UntrackVideoResult = (stopReason?: VideoStopCause) => void;
 
 export type TrackVideoResult = UntrackVideoResult | Error;
 
@@ -393,7 +393,7 @@ export type TrackVideoResult = UntrackVideoResult | Error;
  * @param amplitude - The Amplitude client instance.
  * @param videoEl - The HTML video or audio element or embedded video player.js instance to capture events from.
  * @param options - The options for the video capture.
- * @returns A function to stop the video capture.
+ * @returns A function that stops capture and emits a final stop with the supplied stop reason (default: untracked).
  */
 export function trackVideo(
   amplitude: BrowserClient,
@@ -424,5 +424,5 @@ export function trackVideo(
     return error as Error;
   }
 
-  return () => videoCapture.stop();
+  return (stopReason) => videoCapture.stop(stopReason);
 }

@@ -18,6 +18,63 @@ describe('trackHtmlVideo', () => {
     handler = res.handler;
   });
 
+  test.each([undefined, 'content_changed'] as const)(
+    'reports a final stop before removing listeners with reason %s',
+    (stopReason) => {
+      const untrack = trackHtmlVideo(video, handler);
+      const removeListener = jest.spyOn(video, 'removeEventListener');
+      handler.onEnded = jest.fn(() => {
+        expect(removeListener).not.toHaveBeenCalled();
+      });
+      video.play();
+      // No timeupdate is needed to report the current player position at teardown.
+      Object.defineProperty(video, 'currentTime', { configurable: true, value: 4 });
+
+      untrack(stopReason);
+      untrack(stopReason);
+
+      expect(handler.onEnded).toHaveBeenCalledTimes(1);
+      expect(handler.onEnded).toHaveBeenCalledWith(
+        { duration: 10, position: 4, percent_completed: 40, stop_reason: stopReason ?? 'untracked' },
+        stopReason ?? 'untracked',
+      );
+      expect(removeListener).toHaveBeenCalledTimes(9);
+      jest.clearAllMocks();
+      video.play();
+      video.dispatchEvent(new Event('ended'));
+      expect(handler.onPlay).not.toHaveBeenCalled();
+      expect(handler.onEnded).not.toHaveBeenCalled();
+    },
+  );
+
+  test('includes current Mux metadata in the final stop', () => {
+    const untrack = trackHtmlVideo(video, handler, 'mux');
+    video.setAttribute('playback-id', 'playback-id');
+    video.setAttribute('metadata-video-id', 'video-id');
+    video.setAttribute('metadata-video-title', 'title');
+    untrack('untracked');
+    expect(handler.onEnded).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mux_playback_id: 'playback-id',
+        mux_video_id: 'video-id',
+        mux_video_title: 'title',
+        stop_reason: 'untracked',
+      }),
+      'untracked',
+    );
+  });
+
+  test('removes listeners even if the final stop handler throws', () => {
+    const untrack = trackHtmlVideo(video, handler);
+    handler.onEnded = jest.fn(() => {
+      throw new Error('stop callback failed');
+    });
+    expect(() => untrack()).toThrow('stop callback failed');
+    expect(() => untrack()).not.toThrow();
+    video.play();
+    expect(handler.onPlay).not.toHaveBeenCalled();
+  });
+
   test('should track play, pause and ended events', () => {
     const untrack = trackHtmlVideo(video, handler);
 
@@ -45,6 +102,7 @@ describe('trackHtmlVideo', () => {
     });
 
     untrack();
+    expect(handler.onEnded).toHaveBeenCalledTimes(1);
     handler.onPlay = jest.fn();
     video.play();
     expect(handler.onPlay).not.toHaveBeenCalled();
