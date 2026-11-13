@@ -132,6 +132,10 @@ export interface SessionReplayOptions {
    */
   inlineImages?: boolean;
   /**
+   * @see {@link StandaloneSessionReplayOptions.canvas}
+   */
+  canvas?: StandaloneSessionReplayOptions['canvas'];
+  /**
    * @see {@link StandaloneSessionReplayOptions.performanceConfig}
    */
   performanceConfig?: SessionReplayPerformanceConfig;

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SR Canvas — image snapshots</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 720px;
+        margin: 32px auto;
+        padding: 0 16px;
+        line-height: 1.5;
+      }
+      canvas {
+        display: block;
+        border: 1px solid #ccc;
+        background: #111;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 12px;
+        overflow: auto;
+      }
+      #status {
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Canvas example: image snapshots</h1>
+    <p>
+      Passes <code>canvas.sampling: 15</code> and <code>dataURLOptions</code> through to rrweb. Instead of
+      recording each drawing call, rrweb stores an image of the canvas at most 15 times per second as
+      <code>image/webp</code>.
+    </p>
+    <p id="status">loading</p>
+    <canvas id="demo" width="320" height="180"></canvas>
+    <pre id="config"></pre>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      window.sessionReplay = sessionReplay;
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'canvas-snapshots-device';
+      const canvas = {
+        enabled: true,
+        sampling: 15,
+        dataURLOptions: { type: 'image/webp', quality: 0.6 },
+      };
+      document.getElementById('config').textContent = JSON.stringify({ canvas }, null, 2);
+
+      const canvasEl = document.getElementById('demo');
+      const ctx = canvasEl.getContext('2d');
+      let frame = 0;
+
+      function paint(tick) {
+        ctx.fillStyle = '#101418';
+        ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
+        ctx.fillStyle = '#f5c542';
+        ctx.beginPath();
+        ctx.arc(40 + (tick % 240), 90, 28, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#7ec8ff';
+        ctx.fillRect(24, 140, 80 + (tick % 40), 16);
+      }
+
+      // One synchronous frame so the full snapshot is not a blank canvas.
+      paint(0);
+
+      function loop() {
+        frame += 1;
+        paint(frame);
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+
+      void (async () => {
+        try {
+          await sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', {
+            deviceId,
+            sessionId,
+            sampleRate: 1,
+            canvas,
+          }).promise;
+        } catch (err) {
+          document.getElementById('status').textContent = 'error: ' + err.message;
+          window.srError = err.message;
+        }
+        window.srReady = true;
+        document.getElementById('status').textContent = 'ready';
+      })();
+    </script>
+  </body>
+</html>

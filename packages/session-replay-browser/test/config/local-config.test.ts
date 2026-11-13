@@ -111,6 +111,173 @@ describe('SessionReplayLocalConfig', () => {
     });
   });
 
+  describe('canvas', () => {
+    let warnSpy: jest.SpyInstance;
+    let logger: ILogger;
+
+    beforeEach(() => {
+      logger = new Logger();
+      warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {
+        /* swallow */
+      });
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    test('is undefined when option is omitted', () => {
+      const config = new SessionReplayLocalConfig('static_key', { loggerProvider: logger });
+      expect(config.canvas).toBeUndefined();
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('passes through enabled, sampling, and dataURLOptions', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: {
+          enabled: true,
+          sampling: 'all',
+          dataURLOptions: { type: 'image/webp', quality: 0.6 },
+        },
+      });
+      expect(config.canvas).toEqual({
+        enabled: true,
+        sampling: 'all',
+        dataURLOptions: { type: 'image/webp', quality: 0.6 },
+      });
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('passes through dataURLOptions.type without quality', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: { enabled: true, dataURLOptions: { type: 'image/png' } },
+      });
+      expect(config.canvas).toEqual({ enabled: true, dataURLOptions: { type: 'image/png' } });
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('passes through a frames-per-second sampling value', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: { enabled: true, sampling: 15 },
+      });
+      expect(config.canvas).toEqual({ enabled: true, sampling: 15 });
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+
+    test('clamps sampling outside 1–60 and warns', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: { enabled: true, sampling: 120 },
+      });
+      expect(config.canvas?.sampling).toBe(60);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('canvas.sampling'));
+    });
+
+    test('ignores a sampling value that is not "all" or a finite number', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: { enabled: true, sampling: 'fast' as 'all' },
+      });
+      expect(config.canvas).toEqual({ enabled: true });
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('canvas.sampling'));
+    });
+
+    test('clamps dataURLOptions.quality outside 0–1 and warns', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: { enabled: true, dataURLOptions: { quality: 4 } },
+      });
+      expect(config.canvas?.dataURLOptions).toEqual({ quality: 1 });
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('quality'));
+    });
+
+    test('warns when sampling is set while recording is off', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: { enabled: false, sampling: 15 },
+      });
+      expect(config.canvas).toEqual({ enabled: false, sampling: 15 });
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('canvas.enabled is true'));
+    });
+
+    test('clamps sampling below 1 fps', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: { enabled: true, sampling: 0 },
+      });
+      expect(config.canvas?.sampling).toBe(1);
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('canvas.sampling'));
+    });
+
+    test('clamps dataURLOptions.quality below 0', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: { enabled: true, dataURLOptions: { type: 'image/jpeg', quality: -0.2 } },
+      });
+      expect(config.canvas?.dataURLOptions).toEqual({ type: 'image/jpeg', quality: 0 });
+    });
+
+    test.each([null, 1])('ignores a non-object canvas config (%p)', (canvas) => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: canvas as unknown as { enabled: boolean },
+      });
+      expect(config.canvas).toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('not an object'));
+    });
+
+    test('ignores an array canvas config', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: [] as unknown as { enabled: boolean },
+      });
+      expect(config.canvas).toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('not an object'));
+    });
+
+    test.each([null, 'webp', []])('ignores non-object dataURLOptions (%p)', (dataURLOptions) => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: {
+          enabled: true,
+          dataURLOptions: dataURLOptions as unknown as { type: string },
+        },
+      });
+      expect(config.canvas).toEqual({ enabled: true });
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('dataURLOptions is not an object'));
+    });
+
+    test('ignores invalid dataURLOptions and non-finite sampling', () => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: {
+          enabled: true,
+          sampling: Number.NaN,
+          dataURLOptions: null as unknown as { type: string },
+        },
+      });
+      expect(config.canvas).toEqual({ enabled: true });
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('canvas.sampling'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('dataURLOptions is not an object'));
+    });
+
+    test.each(['', 1])('drops dataURLOptions.type that is not a non-empty string (%p)', (type) => {
+      const config = new SessionReplayLocalConfig('static_key', {
+        loggerProvider: logger,
+        canvas: {
+          enabled: false,
+          dataURLOptions: { type: type as string, quality: Number.POSITIVE_INFINITY },
+        },
+      });
+      expect(config.canvas).toEqual({ enabled: false });
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('type is not a non-empty string'));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('quality is not a finite number'));
+    });
+  });
+
   describe('enableTransportCompression', () => {
     test('defaults to true when option is omitted', () => {
       const config = new SessionReplayLocalConfig('static_key', { loggerProvider: new Logger() });
