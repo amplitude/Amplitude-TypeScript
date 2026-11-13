@@ -5,6 +5,34 @@ import { fileDownloadTracking } from '../../src/plugins/file-download-tracking';
 import { FILE_EXTENSION, FILE_NAME, LINK_ID, LINK_TEXT, LINK_URL } from '../../src/constants';
 
 describe('fileDownloadTracking', () => {
+  test('releases removed subtree listeners and tracks reinserted and moved links once', async () => {
+    const amplitude = createAmplitudeMock();
+    const wrapper = document.createElement('div');
+    const link = document.createElement('a');
+    link.href = '/download.pdf';
+    wrapper.appendChild(link);
+    document.body.appendChild(wrapper);
+    const plugin = fileDownloadTracking();
+    await plugin.setup?.(createConfigurationMock(), amplitude);
+    window.dispatchEvent(new Event('load'));
+    const removeListener = jest.spyOn(link, 'removeEventListener');
+
+    wrapper.remove();
+    await Promise.resolve();
+    expect(removeListener).toHaveBeenCalledWith('click', expect.any(Function));
+    link.dispatchEvent(new Event('click'));
+    expect(amplitude.track).not.toHaveBeenCalled();
+
+    document.body.appendChild(wrapper);
+    await Promise.resolve();
+    document.body.appendChild(link);
+    await Promise.resolve();
+    link.dispatchEvent(new Event('click'));
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
+    await plugin.teardown?.();
+    wrapper.remove();
+    link.remove();
+  });
   let amplitude = createAmplitudeMock();
 
   beforeEach(() => {
