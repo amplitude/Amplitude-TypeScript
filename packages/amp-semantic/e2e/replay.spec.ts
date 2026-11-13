@@ -76,7 +76,7 @@ for (const query of [
   '?enabled=false',
   '?sampleRate=0',
   '?remoteEnabled=false',
-  '?disabled=context,visibility,lifecycle,navigation,recording,click,field,submit',
+  '?disabled=context,visibility,lifecycle,navigation,recording,click,field,submit,keys',
   '?createCapture=false&remoteEnabled=true',
 ]) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
@@ -188,4 +188,16 @@ test('shared rrweb click hook and native form events deliver interaction payload
   expect(submits[0].data.payload).toMatchObject({ valid: true, prevented: true });
   for (const event of [...clicks, ...fields, ...submits])
     expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
+});
+
+test('allowlisted keys include a privacy-safe target in replay', async ({ page }) => {
+  await open(page);
+  await page.locator('#semantic-action').focus();
+  await page.keyboard.press('Escape');
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/keys').length)
+    .toBe(1);
+  const key = (await flush(page)).find((event) => event.data.tag === 'amp-semantic/keys')!;
+  expect(key.data.payload).toMatchObject({ key: 'Escape', target: { role: 'button', name: 'Save changes' } });
+  expect(validate(key), JSON.stringify(validate.errors)).toBe(true);
 });

@@ -49,6 +49,7 @@ test('default capture exposes context and skips payload reads after its cap', ()
     semantic.navigationRecorder,
     semantic.recordingRecorder,
     semantic.interactionsRecorder,
+    semantic.keysRecorder,
   ]);
   const host = { document, window, sdk: 'test', getPrivacy: () => ({}), emit: jest.fn() };
   const capture = semantic.createSemanticCapture({ enabled: true }, host);

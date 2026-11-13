@@ -857,6 +857,124 @@
         "data"
       ],
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": 5
+        },
+        "timestamp": {
+          "type": "number"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "tag": {
+              "const": "amp-semantic/keys"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "pattern": "^((Ctrl\\+)?(Meta\\+)?(Alt\\+)?(Shift\\+)?(Escape|Enter|Tab|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Home|End|PageUp|PageDown|F[1-9]|F1[0-2])|(Ctrl|Meta)\\+(Shift\\+)?[KPF])$",
+                  "maxLength": 48
+                },
+                "target": {
+                  "type": "object",
+                  "properties": {
+                    "name_source": {
+                      "enum": [
+                        "aria-labelledby",
+                        "aria-label",
+                        "label-for",
+                        "label-wrap",
+                        "alt",
+                        "value",
+                        "title",
+                        "text",
+                        "placeholder",
+                        "masked",
+                        "unnamed"
+                      ]
+                    },
+                    "states": {
+                      "type": "array",
+                      "items": {
+                        "enum": [
+                          "disabled",
+                          "required",
+                          "invalid",
+                          "checked",
+                          "mixed",
+                          "busy",
+                          "open",
+                          "expanded",
+                          "collapsed",
+                          "selected",
+                          "current",
+                          "pressed",
+                          "readonly"
+                        ]
+                      }
+                    },
+                    "id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "role",
+                    "name"
+                  ],
+                  "additionalProperties": false
+                },
+                "v": {
+                  "const": 1
+                },
+                "tab_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "document_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "v",
+                "key",
+                "target"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "tag",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "timestamp",
+        "data"
+      ],
+      "additionalProperties": false
     }
   ]
 }

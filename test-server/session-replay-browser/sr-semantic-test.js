@@ -66,7 +66,7 @@ async function boot() {
   const families = Object.fromEntries(
     (params.get('disabled') ?? '')
       .split(',')
-      .filter((name) => ['context', 'visibility', 'lifecycle', 'navigation', 'recording', 'click', 'field', 'submit'].includes(name))
+      .filter((name) => ['context', 'visibility', 'lifecycle', 'navigation', 'recording', 'click', 'field', 'submit', 'keys'].includes(name))
       .map((name) => [name, false]),
   );
   await sessionReplay.init('semantic-local-test-key', {
