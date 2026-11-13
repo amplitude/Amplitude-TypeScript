@@ -268,6 +268,71 @@ describe('Session Replay context integration', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  test.each([
+    { optOut: true, targeting: false, reason: 'opt_out' },
+    { optOut: false, targeting: true, reason: 'targeting' },
+    { optOut: false, targeting: false, reason: 'sampled_out' },
+  ])('classifies an ineligible recording as $reason', async ({ optOut, targeting, reason }) => {
+    const { sdk, internal } = prepare(true);
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    sdk.recordCancelCallback = jest.fn();
+    sdk.config = { ...sdk.config!, targetingConfig: targeting ? ({} as any) : undefined };
+    jest.spyOn(internal, 'getShouldRecord').mockReturnValue(false);
+    jest.spyOn(internal, 'shouldOptOut').mockReturnValue(optOut);
+    const stop = jest.spyOn(sdk, 'stopRecordingEvents');
+    await internal._recordEvents();
+    expect(stop).toHaveBeenCalledWith(reason);
+  });
+
+  test('handles an ineligible recording before config is available', async () => {
+    const { sdk, internal } = prepare(true);
+    sdk.recordCancelCallback = jest.fn();
+    sdk.config = undefined;
+    jest.spyOn(internal, 'getShouldRecord').mockReturnValue(false);
+    jest.spyOn(internal, 'shouldOptOut').mockReturnValue(false);
+    const stop = jest.spyOn(sdk, 'stopRecordingEvents');
+    await internal._recordEvents();
+    expect(stop).toHaveBeenCalledWith('sampled_out');
+  });
+
+  test('allows terminal recording custom events through the stop guard', async () => {
+    const { sdk, record, internal } = prepare(true);
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    internal.recordingEnabled = true;
+    jest.spyOn(internal, 'getShouldRecord').mockReturnValue(true);
+    jest.spyOn(internal, 'getRecordFunction').mockResolvedValue(record);
+    jest.spyOn(internal, 'initializeNetworkObservers').mockResolvedValue(undefined);
+    jest.spyOn(internal, 'getRecordingPlugins').mockResolvedValue([]);
+    jest.spyOn(sdk, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+    record.mockImplementation(() => jest.fn());
+    await internal._recordEvents();
+    const options = record.mock.calls[0][0];
+    const enqueued = jest.fn();
+    internal.eventCompressor = { enqueueEvent: enqueued };
+    const stop = jest.spyOn(sdk, 'stopRecordingEvents');
+    options.emit({ type: EventType.Custom, timestamp: 0, data: { tag: 'amp-semantic/recording' } });
+    options.emit({
+      type: EventType.Custom,
+      timestamp: 0,
+      data: { tag: 'amp-semantic/recording', payload: { state: 'start' } },
+    });
+    options.emit({ type: EventType.Custom, timestamp: 0, data: { tag: 'other', payload: { state: 'stop' } } });
+    enqueued.mockClear();
+    internal.recordingEnabled = false;
+    options.emit({
+      type: EventType.Custom,
+      timestamp: 1,
+      data: { tag: 'amp-semantic/recording', payload: { state: 'stop' } },
+    });
+    options.emit({
+      type: EventType.Custom,
+      timestamp: 2,
+      data: { tag: 'amp-semantic/recording', payload: { state: 'pause' } },
+    });
+    expect(enqueued).toHaveBeenCalledTimes(2);
+    expect(stop).not.toHaveBeenCalled();
+  });
+
   test.each(['stop', 'shutdown'] as const)('%s tears down semantics before cancelling rrweb', (method) => {
     const { sdk } = prepare(true);
     const observed = jest.fn();
@@ -296,16 +361,18 @@ describe('Session Replay context integration', () => {
     await internal._recordEvents();
     const options = record.mock.calls[0][0];
     expect(options.hooks.mouseInteraction).toBeUndefined();
+    expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'start', reason: 'init' });
     expect(capture.notify).toHaveBeenCalledWith('snapshot', undefined);
     const enqueued = jest.fn();
     internal.eventCompressor = { enqueueEvent: enqueued };
     options.emit({ type: EventType.Custom, timestamp: 2, data: { tag: 'amp-semantic/context', payload: {} } });
     expect(enqueued).toHaveBeenCalledTimes(1);
-    expect(capture.notify).toHaveBeenCalledTimes(1);
+    expect(capture.notify).toHaveBeenCalledTimes(2);
     jest.spyOn(internal, 'shouldOptOut').mockReturnValue(true);
     options.emit({ type: EventType.FullSnapshot, timestamp: 3, data: {} });
     expect(enqueued).toHaveBeenCalledTimes(1);
-    expect(capture.notify).toHaveBeenCalledTimes(1);
+    expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'stop', reason: 'opt_out' });
+    expect(capture.notify).toHaveBeenCalledTimes(3);
     jest.spyOn(internal, 'shouldOptOut').mockReturnValue(false);
     record.mockImplementationOnce(() => {
       throw new Error('rrweb failed');

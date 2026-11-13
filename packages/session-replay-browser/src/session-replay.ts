@@ -1,4 +1,5 @@
 import { ReplaySemanticAdapter } from './semantic';
+import type { SemanticRecordingSignal } from './semantic-types';
 import { getSemanticIdentity } from './semantic-identity';
 import {
   createPrivacyRecorderOptions,
@@ -491,7 +492,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (isSessionChange && this.config?.semanticCapture?.enabled && this.semanticAdapter) {
       // Keep rrweb recording through the async config/targeting pass, as it does
       // without semantic capture. Only detach the old session's semantic runtime.
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.stop('new_session'));
     }
 
     // Drop any beacon-buffered events from the previous session BEFORE installing the
@@ -1074,7 +1075,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
-      if (this.semanticAdapter && this.recordCancelCallback) this.stopRecordingEvents();
+      if (this.semanticAdapter && this.recordCancelCallback)
+        this.stopRecordingEvents(
+          this.shouldOptOut() ? 'opt_out' : config?.targetingConfig ? 'targeting' : 'sampled_out',
+        );
       return;
     }
     this.stopRecordingEvents();
@@ -1174,13 +1178,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
           config,
           hooks,
           (event: eventWithTime) => {
-            if (this.shouldOptOut() || !this.recordingEnabled) {
+            const semanticStop =
+              event.type === RRWebEventType.Custom &&
+              event.data.tag === 'amp-semantic/recording' &&
+              ['stop', 'pause'].includes((event.data.payload as { state?: string } | undefined)?.state ?? '');
+            if (!semanticStop && (this.shouldOptOut() || !this.recordingEnabled)) {
               this.loggerProvider.log(
                 this.shouldOptOut()
                   ? `Opting session ${sessionId} out of recording due to optOut config.`
                   : `Session Replay capture stopping for ${sessionId}.`,
               );
-              this.stopRecordingEvents();
+              this.stopRecordingEvents(this.shouldOptOut() ? 'opt_out' : 'customer_stop');
               this.sendEvents();
               return;
             }
@@ -1219,7 +1227,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         void this.addCustomRRWebEvent(CustomRRwebEvent.METADATA, this.metadata);
       }
     } catch (error) {
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.stop('error'));
       this.loggerProvider.warn('Failed to initialize session replay:', error);
     }
   }
@@ -1403,9 +1411,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   };
 
-  stopRecordingEvents = () => {
+  stopRecordingEvents = (reason: SemanticRecordingSignal['reason'] = 'targeting', state: 'stop' | 'pause' = 'stop') => {
     try {
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.stop(reason, state));
       this.loggerProvider.log('Session Replay capture stopping.');
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
@@ -1446,7 +1454,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordingGeneration++;
     this.cancelHiddenSend();
     this.windowFocus.stop();
-    this.stopRecordingEvents();
+    this.stopRecordingEvents('customer_stop');
     this.sendEvents();
   }
 
@@ -1469,7 +1477,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;
     this.teardownEventListeners(true);
-    this.stopRecordingEvents();
+    this.stopRecordingEvents('customer_stop');
     this.sendEvents();
   }
 

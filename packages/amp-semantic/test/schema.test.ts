@@ -28,8 +28,9 @@ test('validates shipped event families and rejects unshipped families', () => {
   document.dispatchEvent(new Event('visibilitychange'));
   window.dispatchEvent(new Event('pagehide'));
   capture.notify('url', { url: 'https://example.com/accounts/8812?private=hidden', timestamp: 5 });
+  capture.notify('recording', { state: 'start', reason: 'init' });
   capture.stop();
-  expect(events.map((event) => event.name)).toEqual(['context', 'visibility', 'lifecycle', 'navigation']);
+  expect(events.map((event) => event.name)).toEqual(['context', 'visibility', 'lifecycle', 'navigation', 'recording']);
   for (const event of events) expect(validate(wire(event))).toBe(true);
   const invalid = wire(events[1]);
   invalid.data.tag = 'amp-semantic/click';
@@ -46,6 +47,7 @@ test('default capture exposes context and skips payload reads after its cap', ()
     semantic.visibilityRecorder,
     semantic.lifecycleRecorder,
     semantic.navigationRecorder,
+    semantic.recordingRecorder,
   ]);
   const host = { document, window, sdk: 'test', getPrivacy: () => ({}), emit: jest.fn() };
   const capture = semantic.createSemanticCapture({ enabled: true }, host);

@@ -10,7 +10,7 @@ Recorders register teardown immediately with `onCleanup` when setup can fail. `c
 
 The `snapshot` host signal describes an accepted full snapshot; the runtime does not subscribe to rrweb itself. The host remains responsible for privacy-safe payloads, recording consent, transport, and any persisted tab identity.
 
-Context, visibility, browser lifecycle, and navigation are the default recorders in this increment. Session Replay accepts this package through a locally supplied createCapture callback; capture remains disabled by default.
+Context, visibility, browser lifecycle, navigation, and recording are the default recorders in this increment. Session Replay accepts this package through a locally supplied createCapture callback; capture remains disabled by default.
 
 ## Development
 
@@ -18,7 +18,7 @@ From the repository root, install dependencies and build with Node 24, `pnpm ins
 
 ## Context recorder
 
-`createSemanticCapture(config, host)` installs the context, visibility, lifecycle, and navigation recorders by default. The host additionally supplies `sdk`, `getPrivacy`, and optional analytics context and stylesheet-inlining configuration. Call `notify('snapshot', undefined)` after an accepted full snapshot to emit context. Starting capture alone emits nothing.
+`createSemanticCapture(config, host)` installs the context, visibility, lifecycle, navigation, and recording recorders by default. The host additionally supplies `sdk`, `getPrivacy`, and optional analytics context and stylesheet-inlining configuration. Call `notify('snapshot', undefined)` after an accepted full snapshot to emit context. Starting capture alone emits nothing.
 
 `amp-semantic/context` records the effective mask level for the snapshot URL (including URL overrides), stylesheet counts, viewport, a device heuristic, language, user agent, visibility and focus snapshots, analytics SDK configuration, and dropped-event counts. The runtime stamps version, timestamp and document identity. It never captures input values or page text.
 
@@ -45,3 +45,7 @@ The initial state is present in context. The visibility budget is 200 events per
 ## Browser lifecycle recorder
 
 `amp-semantic/lifecycle` records `pagehide`, `pageshow`, `pageshow_bfcache`, `freeze`, and `resume` as browser boundaries. The BFCache variant is selected when `pageshow.persisted` is true. Its payload contains only the boundary type plus version and identity. These events support deriving replay gaps and resume intervals downstream; they do not claim that a recording stopped or restarted. The listener is removed on stop. Disable this family with `families: { lifecycle: false }`. The budget is 200 events per session.
+
+## Recording recorder
+
+`amp-semantic/recording` records SDK supplied start, stop, pause, and resume boundaries with a compact reason. Start/resume follows the first accepted replay full snapshot; stop/pause is emitted before rrweb teardown so it can be uploaded with the closing sequence. No event is emitted when semantic capture is disabled or sampled out. Disable only this family with `families: { recording: false }`. The budget is 200 events per session.
