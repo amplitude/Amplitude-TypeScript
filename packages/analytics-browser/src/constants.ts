@@ -1,8 +1,12 @@
-import { IdentityStorageType, ServerZoneType } from '@amplitude/analytics-core';
+import {
+  IdentityStorageType,
+  ServerZoneType,
+  DEFAULT_PAGE_VIEW_EVENT as CORE_DEFAULT_PAGE_VIEW_EVENT,
+} from '@amplitude/analytics-core';
 
 export const DEFAULT_EVENT_PREFIX = '[Amplitude]';
 
-export const DEFAULT_PAGE_VIEW_EVENT = `${DEFAULT_EVENT_PREFIX} Page Viewed`;
+export const DEFAULT_PAGE_VIEW_EVENT = CORE_DEFAULT_PAGE_VIEW_EVENT;
 export const DEFAULT_FORM_START_EVENT = `${DEFAULT_EVENT_PREFIX} Form Started`;
 export const DEFAULT_FORM_SUBMIT_EVENT = `${DEFAULT_EVENT_PREFIX} Form Submitted`;
 export const DEFAULT_FILE_DOWNLOAD_EVENT = `${DEFAULT_EVENT_PREFIX} File Downloaded`;
