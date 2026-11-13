@@ -38,6 +38,7 @@ export function createCapture<P extends object = SemanticPayloads>(
   let counts: Partial<Record<SemanticFamily<P>, number>> = {};
   let dropped: Partial<Record<SemanticFamily<P>, number>> = {};
   const signals = new Map<keyof HostSignals, Set<(value: never) => void>>();
+  const subscribers = new Set<(event: SemanticEvent<P>) => void>();
   const now = host.now ?? Date.now;
   const report = (error: unknown) => {
     try {
@@ -66,6 +67,7 @@ export function createCapture<P extends object = SemanticPayloads>(
     host,
     now,
     enabled,
+    hasCapacity,
     canEmit,
     dropped: () => ({ ...dropped }),
     clearDropped: () => {
@@ -95,6 +97,7 @@ export function createCapture<P extends object = SemanticPayloads>(
         report(error);
         return false;
       }
+      subscribers.forEach((callback) => safely(() => callback(event)));
       return true;
     },
     on: (signal, callback) => {
@@ -110,6 +113,10 @@ export function createCapture<P extends object = SemanticPayloads>(
         registered.delete(listener);
       };
     },
+    subscribe: (callback) => {
+      subscribers.add(callback);
+      return () => subscribers.delete(callback);
+    },
   };
   const detach = () => {
     active = false;
@@ -118,6 +125,7 @@ export function createCapture<P extends object = SemanticPayloads>(
     cleanups = [];
     previous.reverse().forEach((cleanup) => safely(cleanup));
     signals.clear();
+    subscribers.clear();
   };
   const attach = () => {
     if (active || !requested || !settings.enabled) return;
@@ -139,6 +147,11 @@ export function createCapture<P extends object = SemanticPayloads>(
           onCleanup: registerCleanup,
           on: (signal, callback) => {
             const cleanup = context.on(signal, callback);
+            registerCleanup(cleanup);
+            return cleanup;
+          },
+          subscribe: (callback) => {
+            const cleanup = context.subscribe(callback);
             registerCleanup(cleanup);
             return cleanup;
           },
