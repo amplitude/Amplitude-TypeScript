@@ -10,7 +10,7 @@ Recorders register teardown immediately with `onCleanup` when setup can fail. `c
 
 The `snapshot` host signal describes an accepted full snapshot; the runtime does not subscribe to rrweb itself. The host remains responsible for privacy-safe payloads, recording consent, transport, and any persisted tab identity.
 
-Context, visibility, and browser lifecycle are the default recorders in this increment. Session Replay accepts this package through a locally supplied createCapture callback; capture remains disabled by default.
+Context, visibility, browser lifecycle, and navigation are the default recorders in this increment. Session Replay accepts this package through a locally supplied createCapture callback; capture remains disabled by default.
 
 ## Development
 
@@ -18,7 +18,7 @@ From the repository root, install dependencies and build with Node 24, `pnpm ins
 
 ## Context recorder
 
-`createSemanticCapture(config, host)` installs the context, visibility, and lifecycle recorders by default. The host additionally supplies `sdk`, `getPrivacy`, and optional analytics context and stylesheet-inlining configuration. Call `notify('snapshot', undefined)` after an accepted full snapshot to emit context. Starting capture alone emits nothing.
+`createSemanticCapture(config, host)` installs the context, visibility, lifecycle, and navigation recorders by default. The host additionally supplies `sdk`, `getPrivacy`, and optional analytics context and stylesheet-inlining configuration. Call `notify('snapshot', undefined)` after an accepted full snapshot to emit context. Starting capture alone emits nothing.
 
 `amp-semantic/context` records the effective mask level for the snapshot URL (including URL overrides), stylesheet counts, viewport, a device heuristic, language, user agent, visibility and focus snapshots, analytics SDK configuration, and dropped-event counts. The runtime stamps version, timestamp and document identity. It never captures input values or page text.
 
@@ -37,6 +37,10 @@ For local validation, build with `pnpm build`, then run `pnpm exec vite --host 1
 `amp-semantic/visibility` emits only hidden/visible transitions, deduplicated from the document's `visibilitychange` event. Its payload contains `state`, version and identity; focus/blur alone do not emit events. The listener is removed on stop and recreated on resume. Disable only this family with `semanticCapture: { enabled: true, createCapture: createSemanticCapture, families: { visibility: false } }`.
 
 The initial state is present in context. The visibility budget is 200 events per session. Native notification timing is browser-dependent; an embedded browser can report transitions late. Browser tests inject deterministic transitions to verify transport and timestamps, while native tab behavior should be checked manually in Chrome.
+
+## Navigation recorder
+
+`amp-semantic/navigation` mirrors accepted `amplitude/url-tracking@1` rrweb plugin observations. It adds no history patches, polling, or page scans. The URL plugin applies configured UGC rules first; the semantic recorder then removes origins and queries and templates identifier-shaped path and hash-route segments. Other literal path segments remain, so configure UGC rules for sensitive routes. Each observation retains its plugin timestamp, even if two different URLs map to the same template. Empty URLs are ignored. Disable this family with `families: { navigation: false }`; the budget is 200 events per session.
 
 ## Browser lifecycle recorder
 
