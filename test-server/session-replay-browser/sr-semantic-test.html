@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Semantic context</title>
+    <title>Semantic context and visibility</title>
     <style>
       body {
         max-width: 960px;
@@ -27,10 +27,14 @@
     </style>
   </head>
   <body>
-    <h1>Semantic context</h1>
+    <h1>Semantic context and visibility</h1>
     <p>
       <strong>Context:</strong> environment facts at each replay full snapshot: user agent, viewport, masking policy,
       visibility, focus and analytics configuration.
+    </p>
+    <p>
+      <strong>Visibility:</strong> hidden/visible transitions. Switch to another Chrome tab for a few seconds and
+      return. Keyboard focus changes alone do not emit this event.
     </p>
     <section class="amp-block" aria-label="Local event inspector">
       <p>Local transport only. No API key required and no replay data sent to Amplitude.</p>

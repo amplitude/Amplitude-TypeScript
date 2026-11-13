@@ -44,7 +44,7 @@ async function stop() {
 }
 async function start() {
   await sessionReplay.start().promise;
-  status.textContent = 'Recording; flush to inspect context events';
+  status.textContent = 'Recording; switch tabs and flush to inspect events';
 }
 document.querySelector('#flush').onclick = () => void flush().catch(report);
 document.querySelector('#stop').onclick = () => void stop().catch(report);
@@ -65,7 +65,7 @@ async function boot() {
   const families = Object.fromEntries(
     (params.get('disabled') ?? '')
       .split(',')
-      .filter((name) => ['context'].includes(name))
+      .filter((name) => ['context', 'visibility'].includes(name))
       .map((name) => [name, false]),
   );
   await sessionReplay.init('semantic-local-test-key', {
@@ -105,6 +105,6 @@ async function boot() {
       ),
   }).promise;
   ready = true;
-  status.textContent = 'Ready; flush to inspect context events';
+  status.textContent = 'Ready; switch tabs and flush to inspect events';
 }
 void boot().catch(report);

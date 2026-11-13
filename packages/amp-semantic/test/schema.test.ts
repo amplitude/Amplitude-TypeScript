@@ -1,7 +1,6 @@
 import Ajv from 'ajv';
 import * as schema from '../schema.json';
 import { createSemanticCapture, SemanticEvent } from '../src';
-import * as semantic from '../src';
 
 const validate = new Ajv().compile(schema);
 const wire = (event: SemanticEvent) => ({
@@ -10,7 +9,8 @@ const wire = (event: SemanticEvent) => ({
   data: { tag: `amp-semantic/${event.name}`, payload: event.payload },
 });
 
-test('validates actual context payloads and rejects unshipped families', () => {
+test('validates actual context and visibility payloads and rejects unshipped families', () => {
+  const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   const events: SemanticEvent[] = [];
   const capture = createSemanticCapture(
     { enabled: true },
@@ -24,19 +24,22 @@ test('validates actual context payloads and rejects unshipped families', () => {
   );
   capture.start();
   capture.notify('snapshot', undefined);
+  visibility.mockReturnValue('hidden');
+  document.dispatchEvent(new Event('visibilitychange'));
   capture.stop();
-  expect(events.map((event) => event.name)).toEqual(['context']);
+  expect(events.map((event) => event.name)).toEqual(['context', 'visibility']);
   for (const event of events) expect(validate(wire(event))).toBe(true);
-  const invalid = wire(events[0]);
+  const invalid = wire(events[1]);
   invalid.data.tag = 'amp-semantic/click';
   expect(validate(invalid)).toBe(false);
-  invalid.data.tag = 'amp-semantic/context';
+  invalid.data.tag = 'amp-semantic/visibility';
   invalid.data.payload = { ...invalid.data.payload, document_id: '' };
   expect(validate(invalid)).toBe(false);
 });
 
+import * as semantic from '../src';
 test('default capture exposes context and skips payload reads after its cap', () => {
-  expect(semantic.defaultRecorders).toEqual([semantic.contextRecorder]);
+  expect(semantic.defaultRecorders).toEqual([semantic.contextRecorder, semantic.visibilityRecorder]);
   const host = { document, window, sdk: 'test', getPrivacy: () => ({}), emit: jest.fn() };
   const capture = semantic.createSemanticCapture({ enabled: true }, host);
   capture.start();
