@@ -8,7 +8,8 @@ const limits = [
   {
     // analytics-browser bundle
     path: './packages/analytics-browser/lib/scripts/amplitude-min.js.gz',
-    limit: '75.5kb',
+    // Video analytics with heartbeat retries measures 75,726 bytes in CI.
+    limit: '76kb',
     brotli: false,
     ...fileOnly,
   },

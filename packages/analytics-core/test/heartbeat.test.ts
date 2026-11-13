@@ -1,6 +1,9 @@
 import { Heartbeat, getHeartbeatInstance } from '../src/';
 import { CoreClient } from '../src/types/client/core-client';
 import * as globalScope from '../src/global-scope';
+import { Destination } from '../src/plugins/destination';
+import { useDefaultConfig } from './helpers/default';
+import { Status } from '../src/types/status';
 
 describe('heartbeat', () => {
   let mockClient: CoreClient;
@@ -18,6 +21,7 @@ describe('heartbeat', () => {
   };
 
   beforeEach(() => {
+    jest.clearAllMocks();
     jest.useFakeTimers();
     trackMock = jest.fn().mockImplementation((eventType, eventProperties, options) => ({
       promise: Promise.resolve({
@@ -226,6 +230,115 @@ describe('heartbeat', () => {
       expect(trackMock).not.toHaveBeenCalled();
     });
 
+    test.each([0, 400, 429, 500])('retries an unacknowledged stop with the next play (code=%s)', async (code) => {
+      const stop = { insert_id: 'stop-1', event_type: 'stopped', event_properties: { play_id: 'play-1' } };
+      trackMock.mockReturnValueOnce({ promise: Promise.resolve({ event: stop, code, message: 'failed' }) });
+      expect(await trackNoDelayWithTimers(stop)).toMatchObject({ code });
+      trackMock.mockClear();
+
+      const nextStart = heartbeat.trackNoDelay({ insert_id: 'start-2', event_type: 'started' });
+      const nextStop = heartbeat.track({ insert_id: 'stop-2', event_type: 'stopped' });
+      await jest.advanceTimersByTimeAsync(0);
+      await Promise.all([nextStart, nextStop]);
+
+      expect(trackMock.mock.calls.map(([, , options]) => (options as { insert_id: string }).insert_id)).toEqual([
+        'stop-1',
+        'start-2',
+        'stop-2',
+      ]);
+      expect(trackMock.mock.calls[0]).toEqual([
+        'stopped',
+        { play_id: 'play-1' },
+        { insert_id: 'stop-1', delay: { id: expect.any(String) } },
+      ]);
+      expect(trackMock.mock.calls[2][2].delay.timeout).toBe(1000);
+
+      trackMock.mockClear();
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(trackMock.mock.calls.map(([, , options]) => (options as { insert_id: string }).insert_id)).toEqual([
+        'stop-2',
+      ]);
+    });
+
+    test('keeps retrying a lone instant event after a rejected or thrown send', async () => {
+      const event = { insert_id: 'start-1', event_type: 'started' };
+      trackMock.mockImplementationOnce(() => ({ promise: Promise.reject(new Error('network failure')) }));
+      expect(await trackNoDelayWithTimers(event)).toMatchObject({ code: 0, message: 'network failure' });
+
+      trackMock.mockImplementationOnce(() => {
+        throw new Error('send failed');
+      });
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(trackMock).toHaveBeenCalledTimes(2);
+
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(trackMock).toHaveBeenCalledTimes(3);
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(trackMock).toHaveBeenCalledTimes(3);
+    });
+
+    test('retries non-Error rejections when no logger is configured', async () => {
+      heartbeat.stop();
+      heartbeat = new Heartbeat(mockClient, 1000, 1000);
+      trackMock.mockImplementationOnce(() => ({ promise: Promise.reject('unavailable') }));
+      expect(await trackNoDelayWithTimers({ insert_id: 'start-1', event_type: 'started' })).toMatchObject({
+        code: 0,
+        message: 'unavailable',
+      });
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(trackMock).toHaveBeenCalledTimes(2);
+    });
+
+    test('preserves a pending instant event when an oversized replacement is rejected', async () => {
+      const event = { insert_id: 'stop-1', event_type: 'stopped', event_properties: { position: 10 } };
+      trackMock.mockReturnValueOnce({ promise: Promise.resolve({ event, code: 500, message: 'failed' }) });
+      await trackNoDelayWithTimers(event);
+      await heartbeat.update({
+        ...event,
+        event_properties: { data: 'x'.repeat(4 * 10_000 + 1) },
+      });
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(trackMock).toHaveBeenLastCalledWith(
+        'stopped',
+        { position: 10 },
+        {
+          insert_id: 'stop-1',
+          delay: { id: expect.any(String) },
+        },
+      );
+      expect(trackMock).toHaveBeenCalledTimes(2);
+    });
+
+    test.each([0, 200])('does not let an older response remove a newer instant snapshot (code=%s)', async (code) => {
+      let resolveFirst!: (value: unknown) => void;
+      trackMock.mockImplementationOnce(() => ({
+        promise: new Promise((resolve) => {
+          resolveFirst = resolve;
+        }),
+      }));
+      const original = heartbeat.trackNoDelay({ insert_id: 'stop-1', event_type: 'stopped' });
+      await jest.advanceTimersByTimeAsync(0);
+      await heartbeat.update({
+        insert_id: 'stop-1',
+        event_type: 'stopped',
+        event_properties: { position: 10 },
+        delay: { id: 'group' },
+      });
+      resolveFirst({ event: { insert_id: 'stop-1' }, code, message: 'response' });
+      await original;
+
+      await jest.advanceTimersByTimeAsync(1000);
+      expect(trackMock).toHaveBeenLastCalledWith(
+        'stopped',
+        { position: 10 },
+        {
+          insert_id: 'stop-1',
+          delay: { id: 'group' },
+        },
+      );
+      expect(trackMock).toHaveBeenCalledTimes(2);
+    });
+
     test('should return an error if insert_id is not provided', async () => {
       const event = {
         event_type: 'test',
@@ -280,6 +393,48 @@ describe('heartbeat', () => {
   });
 
   describe('heartbeat', () => {
+    test('resends a dropped stop in the next delayed endpoint payload', async () => {
+      const destination = new Destination();
+      const send = jest.fn().mockResolvedValue({
+        status: Status.Success,
+        statusCode: 200,
+        body: { eventsIngested: 2, payloadSizeBytes: 1, serverUploadTime: 1 },
+      });
+      destination.config = { ...useDefaultConfig(), transportProvider: { send } };
+      trackMock.mockImplementation((event_type, event_properties, options) => ({
+        promise: destination.execute({ event_type, event_properties, ...options }),
+      }));
+
+      const start = heartbeat.trackNoDelay({ event_type: 'started', insert_id: 'start-1' });
+      const timeoutStop = heartbeat.track({ event_type: 'stopped', insert_id: 'stop-1' });
+      await jest.advanceTimersByTimeAsync(0);
+      await destination.flush();
+      await Promise.all([start, timeoutStop]);
+
+      send.mockResolvedValueOnce(null);
+      const stop = heartbeat.trackNoDelay({ event_type: 'stopped', insert_id: 'stop-1' });
+      await jest.advanceTimersByTimeAsync(0);
+      await destination.flush();
+      expect(await stop).toMatchObject({ code: 0 });
+
+      const nextStart = heartbeat.trackNoDelay({ event_type: 'started', insert_id: 'start-2' });
+      const nextStop = heartbeat.track({ event_type: 'stopped', insert_id: 'stop-2' });
+      await jest.advanceTimersByTimeAsync(0);
+      await destination.flush();
+      await Promise.all([nextStart, nextStop]);
+
+      expect(
+        send.mock.calls.map(([, payload]) => ({
+          instant: payload.instant_events.map((event: { insert_id: string }) => event.insert_id),
+          delayed: payload.events.map((event: { insert_id: string }) => event.insert_id),
+        })),
+      ).toEqual([
+        { instant: ['start-1'], delayed: ['stop-1'] },
+        { instant: ['stop-1'], delayed: [] },
+        { instant: ['stop-1', 'start-2'], delayed: ['stop-2'] },
+      ]);
+    });
+
     test('refreshes a feature-owned snapshot before sending', async () => {
       heartbeat.stop();
       heartbeat = new Heartbeat(mockClient, 15_000, 180_000, mockLoggerProvider, {
