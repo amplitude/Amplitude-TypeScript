@@ -88,6 +88,41 @@ describe('custom transport (handleSendEvents)', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
     });
 
+    test('plugin logging snippet can parse rrweb type and timestamp from an uncompressed batch', async () => {
+      const logged: Array<{ type: number; timestamp: number }> = [];
+      const handleSendEvents = jest.fn(
+        async (request: {
+          url: string;
+          method: string;
+          headers: Record<string, string>;
+          body: string | Uint8Array;
+          keepalive: boolean;
+        }) => {
+          const json = typeof request.body === 'string' ? request.body : new TextDecoder().decode(request.body);
+          const payload = JSON.parse(json) as { events?: string[] };
+          const events = (payload.events ?? []).map((s) => JSON.parse(s) as { type: number; timestamp: number });
+          logged.push(...events.map((e) => ({ type: e.type, timestamp: e.timestamp })));
+          return fetch(request.url, {
+            method: request.method,
+            headers: request.headers,
+            body: request.body,
+            keepalive: request.keepalive,
+          });
+        },
+      );
+      const trackDestination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        enableTransportCompression: false,
+        handleSendEvents,
+      });
+
+      await trackDestination.send({ ...baseContext(), version: { type: 'plugin', version: VERSION } });
+
+      expect(handleSendEvents).toHaveBeenCalledTimes(1);
+      expect(logged).toEqual([{ type: mockEvent.type, timestamp: mockEvent.timestamp }]);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
     test('lets the customer attach custom headers (e.g. JWT) without losing SDK headers', async () => {
       const handleSendEvents = jest.fn(({ url, method, headers, body }) =>
         // mimic the documented customer pattern: spread SDK headers, add auth
