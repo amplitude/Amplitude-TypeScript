@@ -1,0 +1,5 @@
+node_modules/
+dist/
+models/**/*.onnx
+models/**/.cache/
+ort/*.wasm
