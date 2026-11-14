@@ -1,0 +1,81 @@
+# Opens an empty draft PR on amplitude/amplitude-docs (blank body) for manual follow-up.
+# Future iteration: run Cursor agent + skill to fill changelog updates.
+#
+# Secret: AMPLITUDE_DOCS_GITHUB_TOKEN — PAT or fine-grained token with contents:write and
+# pull-requests:write on amplitude/amplitude-docs (HTTPS checkout; same repo as
+# git@github.com:amplitude/amplitude-docs.git).
+#
+# Optional repository variable: AMPLITUDE_DOCS_DEFAULT_BRANCH (default: main)
+#
+name: Amplitude Docs — analytics-browser changelog
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-empty-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      DOCS_DIR: amplitude-docs
+      DOCS_REPO: amplitude/amplitude-docs
+      GH_TOKEN: ${{ secrets.GH_PUBLISH_TOKEN }}
+
+    steps:
+      - name: Check out amplitude-docs
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+        with:
+          repository: amplitude/amplitude-docs
+          token: ${{ secrets.GH_PUBLISH_TOKEN }}
+          path: ${{ env.DOCS_DIR }}
+
+      - name: Push empty commit and open draft PR
+        working-directory: ${{ env.DOCS_DIR }}
+        env:
+          BASE_BRANCH: ${{ vars.AMPLITUDE_DOCS_DEFAULT_BRANCH || 'main' }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="ci/analytics-browser-changelog-${{ github.run_id }}"
+          git checkout -b "$BRANCH"
+          git commit --allow-empty -m "chore: draft PR placeholder"
+          git push -u origin "$BRANCH"
+
+          # GitHub requires a non-empty title; use zero-width space as a blank placeholder (edit in the UI).
+          TITLE=$'\u200b'
+          PR_LOG="$(mktemp)"
+          gh pr create \
+            --repo "${{ env.DOCS_REPO }}" \
+            --base "${BASE_BRANCH}" \
+            --head "$BRANCH" \
+            --draft \
+            --title "$TITLE" \
+            --body "" \
+            --reviewer amplitude/dx \
+            2>&1 | tee "$PR_LOG"
+
+          PR_URL="$(grep -oE 'https://github\.com/[^[:space:]]+/pull/[0-9]+' "$PR_LOG" | head -n1)"
+          rm -f "$PR_LOG"
+          if [ -z "$PR_URL" ]; then
+            echo "::error::Could not parse pull request URL from gh output."
+            exit 1
+          fi
+
+          echo "PR_URL=${PR_URL}" >> "$GITHUB_ENV"
+          echo "Created pull request: ${PR_URL}"
+          {
+            echo "## Pull request"
+            echo "${PR_URL}"
+            echo ""
+            echo "### Next steps"
+            echo "Edit the PR title and description, push commits to this branch, then mark the PR ready for review when you are done."
+          } >> "$GITHUB_STEP_SUMMARY"
