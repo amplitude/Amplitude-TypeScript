@@ -173,3 +173,54 @@ import { reset } from '@amplitude/analytics-react-native';
 reset();
 ```
 
+## Troubleshooting
+
+### Metro cannot resolve an optional Session Replay package
+
+The SDK uses `@amplitude/plugin-session-replay-react-native` and `@amplitude/session-replay-react-native` as optional peers for dead-click detection. Analytics works without either package. Dead clicks require a compatible Session Replay package installed and recording.
+
+If Metro reports `Unable to resolve module` for either package when it isn't installed, enable `transformer.allowOptionalDependencies` in your app's `metro.config.js`. This lets Metro bundle the SDK's guarded `require` calls when an optional package is absent. Setting `optionalDependencies` or `peerDependenciesMeta` in `package.json` alone doesn't configure Metro.
+
+For React Native CLI apps, merge the option into your existing configuration:
+
+```js
+const { getDefaultConfig, mergeConfig } = require("@react-native/metro-config");
+
+const config = {
+  // Keep your existing configuration here.
+  transformer: {
+    // Keep your existing transformer options here.
+    allowOptionalDependencies: true,
+  },
+};
+
+module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+```
+
+For Expo apps, add the option to the config returned by `expo/metro-config` before exporting it:
+
+```js
+const { getDefaultConfig } = require("expo/metro-config");
+
+const config = getDefaultConfig(__dirname);
+
+// Keep your existing configuration changes.
+config.transformer = {
+  ...config.transformer,
+  allowOptionalDependencies: true,
+};
+
+module.exports = config;
+```
+
+Stop Metro, then restart it with a cleared cache:
+
+```sh
+# React Native CLI
+npx react-native start --reset-cache
+
+# Expo
+npx expo start --clear
+```
+
+You don't need to install both Replay packages to resolve this error. To capture dead clicks, follow the [React Native Session Replay setup instructions](https://amplitude.com/docs/sdks/session-replay/session-replay-react-native-sdk-plugin). For details about optional module resolution, see [Metro's `allowOptionalDependencies` option](https://metrobundler.dev/docs/configuration/#allowoptionaldependencies).
