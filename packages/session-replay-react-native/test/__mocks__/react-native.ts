@@ -6,6 +6,9 @@
 let customSessionId = '-1';
 
 const ampNativeSessionReplay = {
+  isRecording: jest.fn(() => Promise.resolve(false)),
+  addListener: jest.fn(),
+  removeListeners: jest.fn(),
   setup: jest.fn((config: { customSessionId: string }) => {
     customSessionId = config.customSessionId;
     return Promise.resolve();

@@ -46,6 +46,17 @@ idle, even after `start()`.
 
 To use Amplitude Session Replay with Amplitude Analytics, use the [`@amplitude/plugin-session-replay-react-native`](https://www.npmjs.com/package/@amplitude/plugin-session-replay-react-native) plugin package.
 
+## Recording status
+
+`isRecording()` returns a `Promise<boolean>`. Await it to check whether native Replay
+is recording and providing UI-change signals:
+
+```js
+import { isRecording } from '@amplitude/session-replay-react-native';
+
+const recording = await isRecording();
+```
+
 ## Masking views
 
 To mask certain views, add the `AmpMaskView` tag with the mask property `amp-mask` around the section to be masked
@@ -104,3 +115,19 @@ them by doing the following
   <WebView source={{ uri: 'https://reactnative.dev/' }} style={{ flex: 1 }} />
 </AmpMaskView>
 ```
+
+
+## UI change timestamps
+
+`addUiChangeListener` passes the UI change time as milliseconds since the Unix epoch:
+
+```typescript
+const unsubscribe = addUiChangeListener((timestamp) => {
+  console.log('UI changed at', new Date(timestamp));
+});
+```
+
+Existing callbacks that take no arguments continue to work. On iOS, the timestamp
+comes from Session Replay's interface signal. On Android, it records when the
+native SDK invokes its UI-change callback. Older native binaries without a timestamp
+fall back to the time JavaScript receives the notification.
