@@ -104,3 +104,49 @@ them by doing the following
   <WebView source={{ uri: 'https://reactnative.dev/' }} style={{ flex: 1 }} />
 </AmpMaskView>
 ```
+
+
+## Interface signals
+
+`onInterfaceChange(listener)` subscribes without resolving the native module and
+returns `{ remove(), getState() }`. `getState()` reads current recording availability
+and session/device identity.
+
+```typescript
+import { onInterfaceChange } from '@amplitude/session-replay-react-native';
+
+const subscription = onInterfaceChange((signal) => {
+  if (signal.interfaceChanged) console.log('UI changed');
+});
+const state = await subscription.getState();
+subscription.remove();
+```
+
+The lower-level `addInterfaceSignalListener(listener)` API remains available.
+Each report is one object that can carry multiple changes together:
+
+```typescript
+{
+  interfaceChanged: true,
+  identityChanged: false,
+  isProviding: false,
+  timestamp: 1767225600000,
+}
+```
+
+`interfaceChanged` indicates an observed UI change. `identityChanged` indicates
+an actual session/device change. `isProviding` reports recording availability;
+a report with both change flags false communicates an availability transition.
+There is no synthetic report on subscription, and no-op setters do not report
+identity changes. Dead-click consumers process both flags independently and
+invalidate pending observations when `isProviding` is false or identity changes.
+
+`getInterfaceSignalState()` reads current `isProviding`, `sessionId`, and
+`deviceId`. It resolves to `null` if the native module is unlinked or lacks
+interface-signal support; subscriptions are then no-ops. Native query failures
+reject the promise so consumers can skip detection for that observation window.
+
+On Android, the bridge reports availability transitions when lifecycle methods,
+state queries, or UI callbacks observe them; the native SDK has no dedicated
+availability callback. On iOS, native availability callbacks are forwarded,
+with an explicit unavailable report before an active recorder is detached.

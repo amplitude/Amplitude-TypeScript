@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { NativeEventEmitter, Platform, type EmitterSubscription, type NativeModule } from 'react-native';
 import SessionReplaySpec from './specs/NativeAmpSessionReplay';
 
 const LINKING_ERROR =
@@ -22,6 +22,53 @@ export const NativeSessionReplay = (SessionReplaySpec ??
       },
     },
   )) as unknown as NativeSessionReplaySpec;
+
+/** Native UI observation events. Lifecycle bookkeeping belongs to the JS consumer. */
+export interface InterfaceSignal {
+  interfaceChanged: boolean;
+  identityChanged: boolean;
+  isProviding: boolean;
+  timestamp: number;
+}
+
+/** Current native recording availability and identity for interface-signal consumers. */
+export interface InterfaceSignalState {
+  isProviding: boolean;
+  sessionId: string;
+  deviceId: string | null;
+}
+
+function supportsInterfaceSignals(): boolean {
+  return (
+    typeof SessionReplaySpec?.getInterfaceSignalState === 'function' &&
+    (Platform.OS === 'android' ||
+      (typeof SessionReplaySpec?.addListener === 'function' &&
+        typeof SessionReplaySpec?.removeListeners === 'function'))
+  );
+}
+
+/** Returns null when the linked native binary cannot provide interface signals. */
+export async function getInterfaceSignalState(): Promise<InterfaceSignalState | null> {
+  return supportsInterfaceSignals() ? NativeSessionReplay.getInterfaceSignalState() : null;
+}
+
+/**
+ * Subscribe to observation reports. Read initial state with getInterfaceSignalState();
+ * subscribing does not synthesize a UI/identity change or duplicate an availability report.
+ */
+export function addInterfaceSignalListener(
+  listener: (signal: InterfaceSignal) => void,
+): Pick<EmitterSubscription, 'remove'> {
+  if (!supportsInterfaceSignals()) {
+    return { remove: () => undefined };
+  }
+  const emitter =
+    Platform.OS === 'android'
+      ? new NativeEventEmitter()
+      : new NativeEventEmitter(NativeSessionReplay as unknown as NativeModule);
+  const subscription = emitter.addListener('AMPNativeSessionReplayInterfaceSignal', listener);
+  return subscription;
+}
 
 /**
  * Configuration interface for setting up the native iOS and Android session replay modules.
@@ -87,6 +134,9 @@ export interface NativeSessionReplaySpec {
    * @returns Promise resolving to the active custom session ID
    */
   getCustomSessionId(): Promise<string>;
+
+  /** Internal UI change signal state used by React Native dead click detection. */
+  getInterfaceSignalState(): Promise<InterfaceSignalState>;
 
   /**
    * Updates whether session replay collection is disabled for the current user.
