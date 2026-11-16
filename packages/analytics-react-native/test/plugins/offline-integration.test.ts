@@ -71,8 +71,8 @@ describe('offline mode integration', () => {
 
     // Track events while offline; their promises won't resolve until flushed,
     // so don't await them here.
-    void client.track('event_while_offline_1').promise;
-    void client.track('event_while_offline_2').promise;
+    const firstEvent = client.track('event_while_offline_1').promise;
+    const secondEvent = client.track('event_while_offline_2').promise;
     await bothEventsPersisted;
 
     // Nothing is sent while offline, and the queue is persisted.
@@ -83,7 +83,10 @@ describe('offline mode integration', () => {
 
     // Reconnect → plugin flips config.offline=false and flushes immediately.
     DeviceEventEmitter.emit(CONNECTIVITY_EVENT_NAME, { isConnected: true });
-    await client.flush().promise;
+    // A second flush can return early while the reconnect flush is in flight.
+    // Tracking promises resolve after the destination removes the sent events.
+    const results = await Promise.all([firstEvent, secondEvent]);
+    expect(results.map((result) => result.code)).toEqual([200, 200]);
 
     expect(send).toHaveBeenCalled();
     expect(sentEvents.map((e) => e.event_type)).toEqual(

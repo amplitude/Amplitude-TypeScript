@@ -110,7 +110,7 @@ describe('network connectivity', () => {
     emitConnectivity(false);
 
     // 3. Track while offline (promise resolves only after flush on reconnect).
-    void client.track('event_offline_2').promise;
+    const offlineEvent = client.track('event_offline_2').promise;
 
     // 4. Offline event should be persisted; nothing new sent yet.
     const queued = await waitForQueuedEvents(storageProvider, 1);
@@ -121,10 +121,13 @@ describe('network connectivity', () => {
     emitConnectivity(true);
 
     // 6. Track a third event after reconnect.
-    void client.track('event_online_3').promise;
+    const reconnectedEvent = client.track('event_online_3').promise;
 
     // 7. All three events should have been uploaded; storage should drain.
-    await waitForSentEvents(sentEvents, ['event_online_1', 'event_offline_2', 'event_online_3']);
+    // Capturing a payload in send() happens before the destination processes
+    // the response and drains storage. Await event completion before checking it.
+    const results = await Promise.all([offlineEvent, reconnectedEvent]);
+    expect(results.map((result) => result.code)).toEqual([200, 200]);
     const sentTypes = sentEvents.map((e) => e.event_type);
     expect(sentTypes.includes('event_online_1')).toBe(true);
     expect(sentTypes.includes('event_offline_2')).toBe(true);
