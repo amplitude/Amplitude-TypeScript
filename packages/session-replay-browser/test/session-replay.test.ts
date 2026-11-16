@@ -1663,6 +1663,25 @@ describe('SessionReplay', () => {
         expect(takeFullSnapshotMock).not.toHaveBeenCalled();
       });
 
+      test('a focus inspection that throws does not surface an uncaught error', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const throwingDocument = Object.defineProperty({ ...mockDocument }, 'activeElement', {
+          get: (): Element => {
+            throw new DOMException('blocked', 'SecurityError');
+          },
+        });
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: throwingDocument,
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        expect(() => sessionReplay.blurListener()).not.toThrow();
+      });
+
       test('a frame that rejects blur subscription does not throw', async () => {
         await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
         const iframe = {
