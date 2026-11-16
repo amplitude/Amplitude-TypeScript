@@ -11,11 +11,10 @@ import {
 
 export interface AutocaptureOptionsRemoteConfig extends ReactNativeAutocaptureOptions {
   networkTracking?: boolean | NetworkTrackingOptionsRemoteConfig;
-  frustrationInteractions?: boolean | (ReactNativeFrustrationInteractionsOptions & { deadClicks?: boolean });
+  frustrationInteractions?: boolean | ReactNativeFrustrationInteractionsOptions;
 }
 
-// Remote config currently delivers browserSDK-shaped payloads to React Native.
-// Apply the same join/translations as browser, except elementInteractions.
+// React Native uses Android and iOS remote config, with singular frustration interaction names.
 type RemoteConfigReactNativeSDK = {
   autocapture?: AutocaptureOptionsRemoteConfig | boolean;
 };
@@ -23,7 +22,8 @@ type RemoteConfigReactNativeSDK = {
 /**
  * Updates the React Native config in place by applying remote configuration settings.
  * Primarily merges autocapture settings from the remote config into the React Native config.
- * Mirrors browser remote-config joining, except elementInteractions translations.
+ * Mirrors browser remote-config joining, except elementInteractions translations
+ * and frustration interaction names, which remain singular.
  *
  * Unlike browser, remote autocapture is applied only when local autocapture is already
  * truthy (`true` or an options object). A falsey local value (`false`, `undefined`, `null`)
@@ -41,7 +41,7 @@ export function updateReactNativeConfigWithRemoteConfig(
   }
 
   // translate remote config to local compatible format
-  translateRemoteConfigToLocal(remoteConfig);
+  translateRemoteConfigToLocal(remoteConfig, 'react-native');
 
   try {
     reactNativeConfig.loggerProvider.debug(
@@ -63,20 +63,6 @@ export function updateReactNativeConfigWithRemoteConfig(
 
       if (typeof typedRemoteConfig.autocapture === 'object' && typedRemoteConfig.autocapture !== null) {
         const transformedAutocaptureRemoteConfig = { ...typedRemoteConfig.autocapture };
-
-        // Shared translation uses browser's deadClicks spelling; React Native uses deadClick.
-        const frustrationInteractions = transformedAutocaptureRemoteConfig.frustrationInteractions;
-        if (
-          typeof frustrationInteractions === 'object' &&
-          frustrationInteractions !== null &&
-          frustrationInteractions.deadClicks !== undefined
-        ) {
-          const { deadClicks, ...frustrationOptions } = frustrationInteractions;
-          transformedAutocaptureRemoteConfig.frustrationInteractions = {
-            ...frustrationOptions,
-            deadClick: deadClicks,
-          };
-        }
 
         // Handle Network Tracking config initialization
         const transformedNetworkTracking = transformNetworkTrackingRemoteConfig(

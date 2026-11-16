@@ -97,12 +97,8 @@ describe('frustration plugin dead clicks', () => {
   });
 
   it.each([
-    ['deadClicks', false, false],
-    ['deadClicks', true, true],
     ['deadClick', false, false],
     ['deadClick', true, true],
-    ['deadClicks', { enabled: false }, false],
-    ['deadClicks', { enabled: true }, true],
     ['deadClick', { enabled: false }, false],
     ['deadClick', { enabled: true }, true],
   ] as const)('honors remote %s: %j after joining config', async (key, value, enabled) => {
