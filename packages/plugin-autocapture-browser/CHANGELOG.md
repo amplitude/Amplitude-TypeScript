@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.31.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.2...@amplitude/plugin-autocapture-browser@1.31.3) (2026-11-16)
+
+
+### Bug Fixes
+
+* **autocapture:** release removed exposure elements ([#2139](https://github.com/amplitude/Amplitude-TypeScript/issues/2139)) ([b0f94c4](https://github.com/amplitude/Amplitude-TypeScript/commit/b0f94c4989c846a6be9ff74b7f8a4368e67d40ac))
+
+
+
+
+
 ## [1.31.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.1...@amplitude/plugin-autocapture-browser@1.31.2) (2026-11-06)
 
 

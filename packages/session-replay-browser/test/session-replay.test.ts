@@ -1625,6 +1625,63 @@ describe('SessionReplay', () => {
         expect(takeFullSnapshotMock).not.toHaveBeenCalled();
       });
 
+      test('a cross-origin frame whose addEventListener getter throws does not throw', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const takeFullSnapshotMock = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordCancelCallback = jest.fn();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+        const crossOriginWindow = {
+          get addEventListener(): Window['addEventListener'] {
+            throw new DOMException(
+              "Failed to read a named property 'addEventListener' from 'Window': Blocked a frame with origin \"https://app.example.com\" from accessing a cross-origin frame.",
+              'SecurityError',
+            );
+          },
+        };
+        const iframe = {
+          tagName: 'IFRAME',
+          contentWindow: crossOriginWindow,
+        };
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: {
+            ...mockDocument,
+            visibilityState: 'visible' as DocumentVisibilityState,
+            activeElement: iframe as unknown as Element,
+          },
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        expect(() => sessionReplay.blurListener()).not.toThrow();
+        sessionReplay.focusListener();
+
+        expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+      });
+
+      test('a focus inspection that throws does not surface an uncaught error', async () => {
+        await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
+        const throwingDocument = Object.defineProperty({ ...mockDocument }, 'activeElement', {
+          get: (): Element => {
+            throw new DOMException('blocked', 'SecurityError');
+          },
+        });
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
+          ...mockGlobalScope,
+          document: throwingDocument,
+          requestAnimationFrame: (callback: FrameRequestCallback) => {
+            callback(0);
+            return 1;
+          },
+        } as unknown as typeof globalThis);
+
+        expect(() => sessionReplay.blurListener()).not.toThrow();
+      });
+
       test('a frame that rejects blur subscription does not throw', async () => {
         await sessionReplay.init(apiKey, { ...mockOptions, captureFullSnapshotOnFocus: false }).promise;
         const iframe = {

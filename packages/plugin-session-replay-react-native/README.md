@@ -27,6 +27,17 @@ await add(new SessionReplayPlugin(config)).promise;
 
 ```
 
+## Recording status
+
+`isRecording()` returns a `Promise<boolean>`. Await it to check whether native Replay
+is recording and providing UI-change signals:
+
+```js
+import { isRecording } from '@amplitude/plugin-session-replay-react-native';
+
+const recording = await isRecording();
+```
+
 ## Mask levels
 
 Control how aggressively Session Replay masks sensitive content via the `privacyConfig.maskLevel` config option:
@@ -99,3 +110,19 @@ Web views are blocked by default and will not be tracked. If you'd like webviews
     <WebView source={{ uri: 'https://reactnative.dev/' }} style={{ flex: 1 }} />
 </AmpMaskView>
 ```
+
+
+## UI change timestamps
+
+`addUiChangeListener` passes the UI change time as milliseconds since the Unix epoch:
+
+```typescript
+const unsubscribe = addUiChangeListener((timestamp) => {
+  console.log('UI changed at', new Date(timestamp));
+});
+```
+
+Existing callbacks that take no arguments continue to work. On iOS, the timestamp
+comes from Session Replay's interface signal. On Android, it records when the
+native SDK invokes its UI-change callback. Older native binaries without a timestamp
+fall back to the time JavaScript receives the notification.
