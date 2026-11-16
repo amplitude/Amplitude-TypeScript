@@ -115,18 +115,15 @@ export class WindowFocusTracker {
   private watchFocusedFrame(frame: HTMLIFrameElement) {
     this.releaseFocusedFrame();
     let child: Window | null | undefined;
-    try {
-      child = frame.contentWindow;
-    } catch {
-      return;
-    }
-    if (child == null || typeof child.addEventListener !== 'function') {
-      return;
-    }
     const onBlur = () => {
       this.noteFrameBlur();
     };
     try {
+      child = frame.contentWindow;
+      // Reading `addEventListener` on a cross-origin Window throws a SecurityError.
+      if (child == null || typeof child.addEventListener !== 'function') {
+        return;
+      }
       child.addEventListener('blur', onBlur);
     } catch {
       return;
@@ -153,7 +150,13 @@ export class WindowFocusTracker {
   private scheduleFocusInspect(scope: ReturnType<typeof getGlobalScope>, inspect: () => void) {
     const run = () => {
       this.focusDestinationFrame = undefined;
-      inspect();
+      try {
+        inspect();
+      } catch {
+        // This runs from a rAF callback, so a throw would surface as an uncaught
+        // error on the host page. Focus tracking is best effort: stop watching.
+        this.releaseFocusedFrame();
+      }
     };
     if (typeof scope?.requestAnimationFrame === 'function') {
       this.focusDestinationFrame = scope.requestAnimationFrame(run);
