@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/amp-semantic@0.3.0...@amplitude/amp-semantic@0.4.0) (2026-11-16)
+
+
+### Features
+
+* **amp-semantic:** add visibility recorder ([#2128](https://github.com/amplitude/Amplitude-TypeScript/issues/2128)) ([5b445aa](https://github.com/amplitude/Amplitude-TypeScript/commit/5b445aa4e143e30f47cc90ff85e15ebed09ac44b))
+* **session-replay:** integrate semantic context capture ([#2127](https://github.com/amplitude/Amplitude-TypeScript/issues/2127)) ([50f601b](https://github.com/amplitude/Amplitude-TypeScript/commit/50f601bcecf910d4102f8f235dc447697a81d386))
+
+
+
+
+
 # [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/amp-semantic@0.2.0...@amplitude/amp-semantic@0.3.0) (2026-11-09)
 
 
