@@ -26,6 +26,7 @@ import {
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent, JSONValue } from './helpers';
 import { getAncestors, getElementProperties } from './hierarchy';
+import { sensitiveMaskWindowEnd } from './sensitive-mask';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
 import {
@@ -131,13 +132,14 @@ export class DataExtractor {
 
   /**
    * Mask sensitive substrings, then truncate to `maxLength`.
-   * Only `maxLength + SENSITIVE_MASK_LOOKAHEAD` characters are scanned, so a value
-   * that crosses the cutoff is still matched whole, and long text cannot stall the matchers.
+   * Only `maxLength + SENSITIVE_MASK_LOOKAHEAD` characters are scanned, and the
+   * scan ends on whitespace when it can, so a value is not sliced and then
+   * pulled into the kept text when masking shortens the string.
    */
   maskThenTruncate = (text: string, maxLength: number): string => {
-    const windowEnd = maxLength + constants.SENSITIVE_MASK_LOOKAHEAD;
-    const windowed = text.length > windowEnd ? text.substring(0, windowEnd) : text;
-    return this.replaceSensitiveString(windowed).substring(0, maxLength);
+    const scanEnd = maxLength + constants.SENSITIVE_MASK_LOOKAHEAD;
+    const windowEnd = sensitiveMaskWindowEnd(text, scanEnd);
+    return this.replaceSensitiveString(text.substring(0, windowEnd)).substring(0, maxLength);
   };
 
   // Get the DOM hierarchy of the element, starting from the target element to the root element.

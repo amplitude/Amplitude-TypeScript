@@ -5,7 +5,12 @@
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, ILogger, MASKED_TEXT_VALUE } from '@amplitude/analytics-core';
 import { DataExtractor } from '../src/data-extractor';
 import { autocapturePlugin } from '../src/autocapture-plugin';
-import { DATA_AMP_MASK_ATTRIBUTES, MAX_ATTRIBUTE_LENGTH, MAX_TEXT_LENGTH } from '../src/constants';
+import {
+  DATA_AMP_MASK_ATTRIBUTES,
+  MAX_ATTRIBUTE_LENGTH,
+  MAX_TEXT_LENGTH,
+  SENSITIVE_MASK_LOOKAHEAD,
+} from '../src/constants';
 import { createMockBrowserClient } from './mock-browser-client';
 import { mockWindowLocationFromURL } from './utils';
 
@@ -46,6 +51,23 @@ const expectNoEmail = (value: string) => {
   expect(value).not.toContain('@');
   expect(value).not.toContain('jane');
   expect(value).not.toContain('example.com');
+};
+
+/**
+ * Eighteen complete emails, then one more that starts five characters before the
+ * lookahead cap. Masking the earlier emails shortens the prefix enough to pull
+ * the sliced address into the kept text unless the window ends before it.
+ */
+const textWithEmailSlicedAtLookahead = (maxLength: number): string => {
+  const emailStart = maxLength + SENSITIVE_MASK_LOOKAHEAD - 5;
+  let prefix = Array.from({ length: 18 }, () => EMAIL).join(' ');
+  prefix += ' ';
+  prefix += 'w'.repeat(Math.max(0, emailStart - prefix.length));
+  prefix = prefix.slice(0, emailStart - 1) + ' ';
+  if (prefix.length !== emailStart) {
+    throw new Error(`sliced email starts at ${prefix.length}, expected ${emailStart}`);
+  }
+  return `${prefix}${EMAIL} tail`;
 };
 
 describe('mask sensitive strings before truncation', () => {
@@ -111,6 +133,26 @@ describe('mask sensitive strings before truncation', () => {
       expect(extractor.getText(card)).toBe('x'.repeat(244) + ' ' + MASKED_TEXT_VALUE);
       expect(extractor.getText(ssn)).toBe('x'.repeat(249) + ' ' + MASKED_TEXT_VALUE);
     });
+
+    test('does not keep an email sliced at the lookahead after earlier emails shorten the text', () => {
+      const button = document.createElement('button');
+      button.textContent = textWithEmailSlicedAtLookahead(MAX_TEXT_LENGTH);
+      document.body.appendChild(button);
+
+      const text = extractor.getText(button);
+      expectNoEmail(text);
+      expect(text).toContain(MASKED_TEXT_VALUE);
+      expect(text.length).toBeLessThanOrEqual(MAX_TEXT_LENGTH);
+    });
+
+    test('still masks a spaced card when text continues past the lookahead', () => {
+      const card = '4111 1111 1111 1111';
+      const button = document.createElement('button');
+      button.textContent = 'x'.repeat(244) + ' ' + card + ' ' + 'y'.repeat(800);
+      document.body.appendChild(button);
+
+      expect(extractor.getText(button)).toBe('x'.repeat(244) + ' ' + MASKED_TEXT_VALUE);
+    });
   });
 
   describe('attribute values', () => {
@@ -139,6 +181,20 @@ describe('mask sensitive strings before truncation', () => {
         expect(captured.includes(MASKED_TEXT_VALUE)).toBe(masked);
         expect(captured.length).toBeLessThanOrEqual(MAX_ATTRIBUTE_LENGTH);
       }
+    });
+
+    test('does not keep an email sliced at the lookahead after earlier emails shorten the value', () => {
+      const button = document.createElement('button');
+      button.textContent = 'ok';
+      button.setAttribute('title', textWithEmailSlicedAtLookahead(MAX_ATTRIBUTE_LENGTH));
+      document.body.appendChild(button);
+
+      const props = extractor.getEventProperties('click', button, 'data-amp-track-');
+      const title = (props['[Amplitude] Element Hierarchy'] as Array<{ attrs?: Record<string, string> }>)[0].attrs
+        ?.title as string;
+      expectNoEmail(title);
+      expect(title).toContain(MASKED_TEXT_VALUE);
+      expect(title.length).toBeLessThanOrEqual(MAX_ATTRIBUTE_LENGTH);
     });
 
     test('still truncates a non-sensitive attribute to MAX_ATTRIBUTE_LENGTH', () => {
