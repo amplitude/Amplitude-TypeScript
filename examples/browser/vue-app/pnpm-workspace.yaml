@@ -1,5 +1,14 @@
 packages:
   - '.'
 
+minimumReleaseAge: 20160 # 14 days
+trustPolicy: no-downgrade
+# These exact versions are already present in this example's lockfile.
+trustPolicyExclude:
+  - 'css-declaration-sorter@6.4.1'
+  - 'semver@5.7.2'
+  - 'semver@6.3.1'
+blockExoticSubdeps: true
+
 overrides:
   svgo@2: ^2.8.4
