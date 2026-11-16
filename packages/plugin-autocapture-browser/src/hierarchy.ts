@@ -117,7 +117,11 @@ export function getElementProperties(
       const rawValue = String(attr.value);
       attributes[attr.name] = rawValue.substring(
         0,
-        sensitiveMaskWindowEnd(rawValue, constants.MAX_ATTRIBUTE_LENGTH + constants.SENSITIVE_MASK_LOOKAHEAD),
+        sensitiveMaskWindowEnd(
+          rawValue,
+          constants.MAX_ATTRIBUTE_LENGTH + constants.SENSITIVE_MASK_LOOKAHEAD,
+          constants.MAX_ATTRIBUTE_LENGTH,
+        ),
       );
     }
   }

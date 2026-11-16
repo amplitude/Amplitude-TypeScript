@@ -122,6 +122,15 @@ describe('mask sensitive strings before truncation', () => {
       expect(extractor.getText(button)).toBe('x'.repeat(MAX_TEXT_LENGTH));
     });
 
+    test('keeps text before the cutoff when a long token follows', () => {
+      const prefix = 'hello ';
+      const button = document.createElement('button');
+      button.textContent = prefix + 'a'.repeat(MAX_TEXT_LENGTH + SENSITIVE_MASK_LOOKAHEAD);
+      document.body.appendChild(button);
+
+      expect(extractor.getText(button)).toBe(prefix + 'a'.repeat(MAX_TEXT_LENGTH - prefix.length));
+    });
+
     test('masks a credit card and an SSN that cross the cutoff', () => {
       const card = document.createElement('button');
       card.textContent = 'x'.repeat(244) + ' 4111 1111 1111 1111';
@@ -195,6 +204,19 @@ describe('mask sensitive strings before truncation', () => {
       expectNoEmail(title);
       expect(title).toContain(MASKED_TEXT_VALUE);
       expect(title.length).toBeLessThanOrEqual(MAX_ATTRIBUTE_LENGTH);
+    });
+
+    test('keeps an attribute prefix when a long token follows', () => {
+      const prefix = 'hello ';
+      const button = document.createElement('button');
+      button.textContent = 'ok';
+      button.setAttribute('title', prefix + 'a'.repeat(MAX_ATTRIBUTE_LENGTH + SENSITIVE_MASK_LOOKAHEAD));
+      document.body.appendChild(button);
+
+      const props = extractor.getEventProperties('click', button, 'data-amp-track-');
+      const title = (props['[Amplitude] Element Hierarchy'] as Array<{ attrs?: Record<string, string> }>)[0].attrs
+        ?.title as string;
+      expect(title).toBe(prefix + 'a'.repeat(MAX_ATTRIBUTE_LENGTH - prefix.length));
     });
 
     test('still truncates a non-sensitive attribute to MAX_ATTRIBUTE_LENGTH', () => {

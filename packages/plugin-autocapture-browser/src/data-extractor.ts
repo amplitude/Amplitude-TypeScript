@@ -134,11 +134,12 @@ export class DataExtractor {
    * Mask sensitive substrings, then truncate to `maxLength`.
    * Only `maxLength + SENSITIVE_MASK_LOOKAHEAD` characters are scanned, and the
    * scan ends on whitespace when it can, so a value is not sliced and then
-   * pulled into the kept text when masking shortens the string.
+   * pulled into the kept text when masking shortens the string. The window
+   * never ends before `maxLength`, so a long token still fills the kept text.
    */
   maskThenTruncate = (text: string, maxLength: number): string => {
     const scanEnd = maxLength + constants.SENSITIVE_MASK_LOOKAHEAD;
-    const windowEnd = sensitiveMaskWindowEnd(text, scanEnd);
+    const windowEnd = sensitiveMaskWindowEnd(text, scanEnd, maxLength);
     return this.replaceSensitiveString(text.substring(0, windowEnd)).substring(0, maxLength);
   };
 

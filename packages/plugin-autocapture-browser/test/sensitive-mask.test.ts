@@ -41,6 +41,22 @@ describe('sensitiveMaskWindowEnd', () => {
     expect(sensitiveMaskWindowEnd(text, cap)).toBe(text.indexOf('next'));
   });
 
+  test('does not end before the kept region when a long token follows', () => {
+    const text = `hello ${'a'.repeat(80)}`;
+    expect(sensitiveMaskWindowEnd(text, 50, 20)).toBe(50);
+  });
+
+  test('still ends on whitespace inside the lookahead', () => {
+    const text = `hello ${'a'.repeat(30)} jane.doe@example.com more`;
+    const cap = text.indexOf('more') + 2;
+    expect(sensitiveMaskWindowEnd(text, cap, 10)).toBe(text.indexOf('more'));
+  });
+
+  test('keeps the cap when a spaced card starts before the kept region', () => {
+    const text = `4111 ${' '.repeat(15)}1111XXXX`;
+    expect(sensitiveMaskWindowEnd(text, 26, 12)).toBe(26);
+  });
+
   test('stops looking for the rest of a card at the lookahead limit', () => {
     const text = `note 4111 ${' '.repeat(SENSITIVE_MASK_LOOKAHEAD + 10)}9`;
     const cap = 'note 4111 '.length + 3;
