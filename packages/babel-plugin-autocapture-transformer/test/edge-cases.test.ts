@@ -99,7 +99,7 @@ describe('@amplitude/babel-plugin-autocapture-transformer edge cases', () => {
       },
     });
 
-    const plugin = autocaptureTransformer();
+    const plugin = autocaptureTransformer({ types: t });
     const visitor = plugin.visitor.JSXOpeningElement;
 
     if (typeof visitor === 'function') {
@@ -155,7 +155,7 @@ describe('@amplitude/babel-plugin-autocapture-transformer edge cases', () => {
 
     expect(jsxPath).toBeDefined();
 
-    const plugin = autocaptureTransformer();
+    const plugin = autocaptureTransformer({ types: t });
     const visitor = plugin.visitor.JSXOpeningElement;
     if (typeof visitor === 'function') {
       visitor.call({} as PluginPass, jsxPath as NodePath<JSXOpeningElement>, {} as PluginPass);
@@ -194,7 +194,7 @@ describe('@amplitude/babel-plugin-autocapture-transformer edge cases', () => {
     expect(jsxPath).toBeDefined();
 
     const openingElementPath = jsxPath as NodePath<JSXOpeningElement>;
-    const plugin = autocaptureTransformer();
+    const plugin = autocaptureTransformer({ types: t });
     const visitor = plugin.visitor.JSXOpeningElement;
     const originalFindParent = openingElementPath.findParent.bind(openingElementPath);
     openingElementPath.findParent = (() => null) as typeof openingElementPath.findParent;

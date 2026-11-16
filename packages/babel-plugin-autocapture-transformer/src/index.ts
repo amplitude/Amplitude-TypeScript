@@ -1,5 +1,16 @@
-import { types as t, type NodePath, type PluginObj, type PluginPass } from '@babel/core';
+import type * as BabelTypes from '@babel/types';
+import type { NodePath, PluginObj, PluginPass } from '@babel/core';
+import path from 'path';
 import type { TransformerOptions } from './types';
+
+type BabelTypesRuntime = typeof import('@babel/core').types;
+
+type BabelAPI = {
+  types: BabelTypesRuntime;
+};
+
+// Use the `types` Babel passes in, so this file does not load a second `@babel/core`.
+let t: BabelTypesRuntime;
 
 export const PACKAGE_NAME = '@amplitude/babel-plugin-autocapture-transformer';
 export const PLUGIN_NAME = PACKAGE_NAME;
@@ -71,7 +82,7 @@ function buildCapturableElementCategories(options: TransformerOptions): Capturab
 }
 
 function getCapturableElementCategory(
-  name: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName,
+  name: BabelTypes.JSXIdentifier | BabelTypes.JSXMemberExpression | BabelTypes.JSXNamespacedName,
   categories: CapturableElementCategory[],
 ): CapturableElementCategory | null {
   if (!t.isJSXIdentifier(name)) {
@@ -81,7 +92,7 @@ function getCapturableElementCategory(
   return categories.find((category) => category.elements.includes(name.name)) ?? null;
 }
 
-function getJsxAttributeName(attr: t.JSXAttribute): string | null {
+function getJsxAttributeName(attr: BabelTypes.JSXAttribute): string | null {
   if (t.isJSXIdentifier(attr.name)) {
     return attr.name.name;
   }
@@ -91,14 +102,14 @@ function getJsxAttributeName(attr: t.JSXAttribute): string | null {
   return null;
 }
 
-function getImportedName(specifier: t.ImportSpecifier): string {
+function getImportedName(specifier: BabelTypes.ImportSpecifier): string {
   if (t.isIdentifier(specifier.imported)) {
     return specifier.imported.name;
   }
   return specifier.imported.value;
 }
 
-function ensureTrackImport(programPath: NodePath<t.Program>): string {
+function ensureTrackImport(programPath: NodePath<BabelTypes.Program>): string {
   const body = programPath.get('body');
 
   for (const stmt of body) {
@@ -143,7 +154,7 @@ function ensureTrackImport(programPath: NodePath<t.Program>): string {
   return AMP_CAPTURE_IMPORT_NAME;
 }
 
-function getAccessibilityLabelValue(attr: t.JSXAttribute): t.Expression | null {
+function getAccessibilityLabelValue(attr: BabelTypes.JSXAttribute): BabelTypes.Expression | null {
   if (!attr.value) {
     return null;
   }
@@ -163,7 +174,10 @@ function getAccessibilityLabelValue(attr: t.JSXAttribute): t.Expression | null {
   return null;
 }
 
-function getJsxAttributeValueFromElement(node: t.JSXOpeningElement, attributeName: string): t.Expression | null {
+function getJsxAttributeValueFromElement(
+  node: BabelTypes.JSXOpeningElement,
+  attributeName: string,
+): BabelTypes.Expression | null {
   for (const attr of node.attributes) {
     if (!t.isJSXAttribute(attr)) {
       continue;
@@ -179,9 +193,9 @@ function getJsxAttributeValueFromElement(node: t.JSXOpeningElement, attributeNam
   return null;
 }
 
-type CaptureProperties = Partial<Record<(typeof CAPTURE_ATTRIBUTE_NAMES)[number], t.Expression>> & {
-  [ELEMENT_PROPERTY]?: t.Expression;
-  [COMPONENT_PROPERTY]?: t.Expression;
+type CaptureProperties = Partial<Record<(typeof CAPTURE_ATTRIBUTE_NAMES)[number], BabelTypes.Expression>> & {
+  [ELEMENT_PROPERTY]?: BabelTypes.Expression;
+  [COMPONENT_PROPERTY]?: BabelTypes.Expression;
 };
 
 function getEnclosingComponentName(path: NodePath): string | null {
@@ -239,7 +253,7 @@ function getEnclosingComponentName(path: NodePath): string | null {
   return null;
 }
 
-function getCapturePropertiesFromElement(path: NodePath<t.JSXOpeningElement>): CaptureProperties {
+function getCapturePropertiesFromElement(path: NodePath<BabelTypes.JSXOpeningElement>): CaptureProperties {
   const { node } = path;
   const properties: CaptureProperties = {};
 
@@ -264,11 +278,13 @@ function getCapturePropertiesFromElement(path: NodePath<t.JSXOpeningElement>): C
 
 function buildAmpCaptureCall(
   captureIdentifier: string,
-  handler: t.Expression,
+  handler: BabelTypes.Expression,
   action: string,
   captureProperties: CaptureProperties,
-): t.CallExpression {
-  const properties: t.ObjectProperty[] = [t.objectProperty(t.identifier(ACTION_PROPERTY), t.stringLiteral(action))];
+): BabelTypes.CallExpression {
+  const properties: BabelTypes.ObjectProperty[] = [
+    t.objectProperty(t.identifier(ACTION_PROPERTY), t.stringLiteral(action)),
+  ];
 
   for (const attributeName of CAPTURE_ATTRIBUTE_NAMES) {
     const value = captureProperties[attributeName];
@@ -289,17 +305,23 @@ function buildAmpCaptureCall(
 }
 
 export default function autocaptureTransformer(
-  _api?: unknown,
+  api: BabelAPI,
   options?: TransformerOptions | null,
 ): PluginObj<PluginPass> {
+  t = api.types;
   const resolvedOptions = options ?? {};
   const capturableElementCategories = buildCapturableElementCategories(resolvedOptions);
 
   return {
     name: PLUGIN_NAME,
     visitor: {
-      JSXOpeningElement(path) {
-        const { node } = path;
+      JSXOpeningElement(elementPath, state) {
+        const filename = state.filename;
+        if (filename?.includes(`${path.sep}node_modules${path.sep}`)) {
+          return;
+        }
+
+        const { node } = elementPath;
         const category = getCapturableElementCategory(node.name, capturableElementCategories);
         if (!category) {
           return;
@@ -333,7 +355,7 @@ export default function autocaptureTransformer(
           return;
         }
 
-        const programPath = path.findParent((parent) => parent.isProgram());
+        const programPath = elementPath.findParent((parent) => parent.isProgram());
         if (!programPath?.isProgram()) {
           return;
         }
@@ -344,7 +366,7 @@ export default function autocaptureTransformer(
           programPath.setData('autocaptureCaptureIdentifier', captureIdentifier);
         }
 
-        const captureProperties = getCapturePropertiesFromElement(path);
+        const captureProperties = getCapturePropertiesFromElement(elementPath);
 
         for (const attr of node.attributes) {
           if (!t.isJSXAttribute(attr)) {

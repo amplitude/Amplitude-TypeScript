@@ -84,9 +84,13 @@ export function transformNetworkTrackingRemoteConfig(
  * Output: { prop: { hello: 'world' } } // No change
  *
  * @param config Remote config object to be transformed
+ * @param platform SDK platform whose local schema should be used
  * @returns Transformed config object compatible with local schema
  */
-export function translateRemoteConfigToLocal(config?: Record<string, any>) {
+export function translateRemoteConfigToLocal(
+  config?: Record<string, any>,
+  platform: 'browser' | 'react-native' = 'browser',
+) {
   // Disabling type checking rules because remote config comes from a remote source
   // and this function needs to handle any unexpected values
   /* eslint-disable @typescript-eslint/no-unsafe-member-access,
@@ -122,7 +126,7 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
       }
 
       // recursively translate properties of the value
-      translateRemoteConfigToLocal(value as Record<string, any>);
+      translateRemoteConfigToLocal(value as Record<string, any>, platform);
     } catch (e) {
       // a failure here means that an accessor threw an error
       // so don't translate it
@@ -160,9 +164,9 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
     config.autocapture.screenViews = config.autocapture.pageViews;
   }
 
-  // translate frustrationInteractions pluralization
+  // Only browser's local config uses plural frustration interaction names.
   const frustrationInteractions = config.autocapture?.frustrationInteractions;
-  if (frustrationInteractions) {
+  if (platform === 'browser' && frustrationInteractions) {
     if (frustrationInteractions.rageClick) {
       frustrationInteractions.rageClicks = frustrationInteractions.rageClick;
       delete frustrationInteractions.rageClick;

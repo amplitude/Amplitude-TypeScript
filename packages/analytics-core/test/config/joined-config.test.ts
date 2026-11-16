@@ -199,6 +199,26 @@ describe('joined-config', () => {
     });
 
     describe('frustrationInteractions', () => {
+      test.each([true, false, { enabled: true }, { enabled: false }])(
+        'should preserve singular React Native interaction names for %p',
+        (deadClick) => {
+          const expectedDeadClick = typeof deadClick === 'boolean' ? deadClick : deadClick.enabled;
+          const remoteConfig = {
+            androidSDK: {
+              autocapture: {
+                frustrationInteractions: { deadClick },
+              },
+            },
+          };
+
+          translateRemoteConfigToLocal(remoteConfig, 'react-native');
+
+          expect(remoteConfig.androidSDK.autocapture.frustrationInteractions).toEqual({
+            deadClick: expectedDeadClick,
+          });
+        },
+      );
+
       test('should translate rageClick to rageClicks', () => {
         const remoteConfig = {
           browserSDK: {

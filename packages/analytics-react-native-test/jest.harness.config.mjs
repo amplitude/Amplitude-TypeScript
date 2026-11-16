@@ -6,7 +6,7 @@
  * so they are skipped when NEW_ARCH is not enabled.
  */
 const isNewArch = ['1', 'true', 'on', 'yes'].includes((process.env.NEW_ARCH ?? '0').trim().toLowerCase());
-const uiHarnessTestPattern = '(element-interactions|frustration-interactions)\\.harness\\.[jt]sx?$';
+const uiHarnessTestPattern = '(element-interactions|frustration-interactions|dead-click)\\.harness\\.[jt]sx?$';
 
 export default {
   preset: 'react-native-harness',

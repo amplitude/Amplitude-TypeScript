@@ -121,6 +121,33 @@ describe('joined-config', () => {
       expect(localConfig.autocapture).toStrictEqual(expectedAutocapture);
     });
 
+    describe('frustrationInteractions', () => {
+      test.each([true, false, { enabled: true }, { enabled: false }])(
+        'should preserve deadClick from native remote config for %p',
+        (deadClick) => {
+          const expectedDeadClick = typeof deadClick === 'boolean' ? deadClick : deadClick.enabled;
+          localConfig = useDefaultConfig({
+            autocapture: { frustrationInteractions: { deadClick: false } },
+          });
+          const remoteConfig = {
+            autocapture: {
+              frustrationInteractions: { deadClick },
+            },
+          };
+
+          updateReactNativeConfigWithRemoteConfig(remoteConfig, localConfig);
+
+          const expected = {
+            frustrationInteractions: {
+              deadClick: expectedDeadClick,
+            },
+          };
+          expect(localConfig.autocapture).toEqual(expected);
+          expect(remoteConfig.autocapture).toEqual(expected);
+        },
+      );
+    });
+
     describe('networkTracking', () => {
       describe('headers', () => {
         test('should translate responseHeaders and requestHeaders to local responseHeaders and requestHeaders', () => {
