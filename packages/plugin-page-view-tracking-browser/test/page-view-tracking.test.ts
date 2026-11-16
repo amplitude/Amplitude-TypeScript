@@ -131,6 +131,27 @@ describe('pageViewTrackingPlugin', () => {
     jest.spyOn(performance, 'now').mockReturnValue(0);
   });
 
+  test.each([undefined, false, true])(
+    'counts delayed events unless explicitly marked as engagement replay: %p',
+    async (replay) => {
+      const config = { ...mockConfig, pageCounter: 0 };
+      const plugin = pageViewTrackingPlugin({ trackOn: () => false });
+      await plugin.setup?.(config, createMockBrowserClient());
+      const event = {
+        event_type: defaultPageViewEvent,
+        delay: { id: 'delay', timeout: 1000 },
+        extra: { engagedTimeReplay: replay },
+        event_properties: { '[Amplitude] Page Counter': 42 },
+      };
+      const result = await plugin.execute?.(event);
+      expect(result?.event_properties).toMatchObject({ '[Amplitude] Page Counter': replay === true ? 42 : 1 });
+      expect(config.pageCounter).toBe(replay === true ? 0 : 1);
+      await plugin.execute?.({ event_type: defaultPageViewEvent });
+      expect(config.pageCounter).toBe(replay === true ? 1 : 2);
+      await plugin.teardown?.();
+    },
+  );
+
   describe('setup', () => {
     test.each([
       { trackHistoryChanges: undefined },

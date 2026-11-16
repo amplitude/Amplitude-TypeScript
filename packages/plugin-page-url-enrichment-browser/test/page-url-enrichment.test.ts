@@ -127,6 +127,44 @@ describe('pageUrlEnrichmentPlugin', () => {
     jest.restoreAllMocks();
   });
 
+  test('preserves all page fields on an engagement replay after SPA navigation', async () => {
+    await plugin.setup?.(mockConfig, mockAmplitude);
+    const event = {
+      event_type: '[Amplitude] Page Viewed',
+      extra: { engagedTimeReplay: true },
+      delay: { id: 'engagement', timeout: 1000 },
+      event_properties: {
+        '[Amplitude] Page URL': '/old',
+        '[Amplitude] Page Title': 'Old title',
+        '[Amplitude] Previous Page Location': '/before-old',
+        '[Amplitude] Previous Page Type': 'internal',
+      },
+    };
+    (window.location as any) = { href: 'https://example.com/new', pathname: '/new', hostname: 'example.com' };
+    expect(await plugin.execute?.(event)).toBe(event);
+    expect(event.event_properties).toEqual({
+      '[Amplitude] Page URL': '/old',
+      '[Amplitude] Page Title': 'Old title',
+      '[Amplitude] Previous Page Location': '/before-old',
+      '[Amplitude] Previous Page Type': 'internal',
+    });
+  });
+
+  test('still enriches an unmarked Video Analytics delayed event', async () => {
+    (window.location as any) = { href: 'https://example.com/video', pathname: '/video', hostname: 'example.com' };
+    await plugin.setup?.(mockConfig, mockAmplitude);
+    const event = await plugin.execute?.({
+      event_type: '[Streaming] Stream Stopped',
+      delay: { id: 'video', timeout: 3_600_000 },
+    });
+    expect(event?.event_properties).toMatchObject({
+      '[Amplitude] Page URL': 'https://example.com/video',
+      '[Amplitude] Page Path': '/video',
+      '[Amplitude] Page Domain': 'example.com',
+    });
+    expect(event?.event_properties).toHaveProperty(['[Amplitude] Previous Page Location']);
+  });
+
   describe('setup', () => {
     test('should track page changes if we move to a new page', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
