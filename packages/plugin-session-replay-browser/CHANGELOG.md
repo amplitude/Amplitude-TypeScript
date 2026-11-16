@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.37.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.36.7...@amplitude/plugin-session-replay-browser@1.37.0) (2026-11-16)
+
+
+### Features
+
+* **session-replay:** integrate semantic context capture ([#2127](https://github.com/amplitude/Amplitude-TypeScript/issues/2127)) ([50f601b](https://github.com/amplitude/Amplitude-TypeScript/commit/50f601bcecf910d4102f8f235dc447697a81d386))
+
+
+
+
+
 ## [1.36.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.36.6...@amplitude/plugin-session-replay-browser@1.36.7) (2026-11-06)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
