@@ -32,9 +32,7 @@ async function visibility(page: Page, state: 'hidden' | 'visible') {
   }, state);
 }
 
-test('real replay transport delivers only the two supported families with stable identity and timestamps', async ({
-  page,
-}) => {
+test('real replay transport delivers context and visibility with stable identity and timestamps', async ({ page }) => {
   const external: string[] = [];
   page.on('request', (request) => {
     if (/^https?:/.test(request.url()) && !new URL(request.url()).hostname.match(/^(localhost|127\.0\.0\.1)$/)) {
@@ -76,7 +74,7 @@ for (const query of [
   '?enabled=false',
   '?sampleRate=0',
   '?remoteEnabled=false',
-  '?disabled=context,visibility',
+  '?disabled=context,visibility,lifecycle',
   '?createCapture=false&remoteEnabled=true',
 ]) {
   test(`capture gates suppress semantic output: ${query}`, async ({ page }) => {
@@ -102,4 +100,29 @@ test('stop removes listeners and resume emits fresh context without resetting do
   const contexts = (await flush(page)).filter((e) => e.data.tag === 'amp-semantic/context');
   expect(contexts[1].data.payload.visibility_state).toBe('hidden');
   expect(contexts[1].data.payload.document_id).toBe(contexts[0].data.payload.document_id);
+});
+
+test('browser lifecycle boundaries use the replay custom-event transport', async ({ page }) => {
+  await open(page);
+  await expect
+    .poll(async () => (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/context').length)
+    .toBe(1);
+  const previous = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/lifecycle').length;
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('pagehide'));
+    const restored = new Event('pageshow');
+    Object.defineProperty(restored, 'persisted', { value: true });
+    window.dispatchEvent(restored);
+    document.dispatchEvent(new Event('freeze'));
+    document.dispatchEvent(new Event('resume'));
+  });
+  const lifecycle = (await flush(page)).filter((event) => event.data.tag === 'amp-semantic/lifecycle').slice(previous);
+  // WebKit may deliver a real pagehide as the harness becomes ready.
+  expect(lifecycle.slice(-4).map((event) => event.data.payload.type)).toEqual([
+    'pagehide',
+    'pageshow_bfcache',
+    'freeze',
+    'resume',
+  ]);
+  for (const event of lifecycle) expect(validate(event), JSON.stringify(validate.errors)).toBe(true);
 });

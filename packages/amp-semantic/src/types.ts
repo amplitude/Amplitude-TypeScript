@@ -19,6 +19,7 @@ export interface SemanticEventEnvelope<Name extends string, Payload extends obje
 /** Payloads exclude version and identity, which are owned by the runtime. */
 export interface SemanticPayloads {
   visibility: { state: 'hidden' | 'visible' };
+  lifecycle: { type: 'pagehide' | 'pageshow' | 'pageshow_bfcache' | 'freeze' | 'resume' };
   context: {
     sdk: string;
     mask: 'light' | 'medium' | 'conservative';
