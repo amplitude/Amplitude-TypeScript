@@ -115,18 +115,15 @@ export class WindowFocusTracker {
   private watchFocusedFrame(frame: HTMLIFrameElement) {
     this.releaseFocusedFrame();
     let child: Window | null | undefined;
-    try {
-      child = frame.contentWindow;
-    } catch {
-      return;
-    }
-    if (child == null || typeof child.addEventListener !== 'function') {
-      return;
-    }
     const onBlur = () => {
       this.noteFrameBlur();
     };
     try {
+      child = frame.contentWindow;
+      // Reading `addEventListener` on a cross-origin Window throws a SecurityError.
+      if (child == null || typeof child.addEventListener !== 'function') {
+        return;
+      }
       child.addEventListener('blur', onBlur);
     } catch {
       return;
