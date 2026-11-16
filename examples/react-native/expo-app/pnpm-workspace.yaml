@@ -2,6 +2,17 @@ packages:
   - '.'
   - '../../../packages/*'
 
+minimumReleaseAge: 20160 # 14 days
+trustPolicy: no-downgrade
+# These exact versions are already present in this example's lockfile.
+trustPolicyExclude:
+  - 'fast-xml-parser@4.5.7'
+  - 'rollup@2.80.0'
+  - 'semver@5.7.2'
+  - 'semver@6.3.1'
+  - 'ua-parser-js@1.0.41'
+blockExoticSubdeps: true
+
 overrides:
   # Vite bundles launch-editor; keep its Windows command-injection fixes.
   vite@7: ^7.3.7

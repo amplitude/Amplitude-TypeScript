@@ -1,6 +1,17 @@
 packages:
   - '.'
 
+minimumReleaseAge: 20160 # 14 days
+trustPolicy: no-downgrade
+# These exact versions are already present in this example's lockfile.
+trustPolicyExclude:
+  - 'chokidar@4.0.3'
+  - 'eslint-config-prettier@8.10.2'
+  - 'eslint-plugin-prettier@4.2.5'
+  - 'semver@6.3.1'
+  - 'undici-types@6.21.0'
+blockExoticSubdeps: true
+
 overrides:
   js-yaml@3: ^3.15.2
   js-yaml@4: ^4.3.2
