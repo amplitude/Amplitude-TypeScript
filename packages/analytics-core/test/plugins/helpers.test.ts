@@ -189,6 +189,23 @@ describe('replaceSensitiveString', () => {
       expect(result).toBe(`I live in ${MASKED_TEXT_VALUE}`);
     });
 
+    test('should mask every match of a custom pattern, not only the first', () => {
+      const text = 'ACCT-111111 and ACCT-222222 and ACCT-333333';
+      const result = replaceSensitiveString(text, [/ACCT-\d{6}/]);
+      expect(result).toBe(`${MASKED_TEXT_VALUE} and ${MASKED_TEXT_VALUE} and ${MASKED_TEXT_VALUE}`);
+    });
+
+    test('should mask every match of a case-insensitive string-style pattern', () => {
+      const text = 'secret one, SECRET two';
+      const result = replaceSensitiveString(text, [new RegExp('secret', 'i')]);
+      expect(result).toBe(`${MASKED_TEXT_VALUE} one, ${MASKED_TEXT_VALUE} two`);
+    });
+
+    test('should not insert masks between characters for a pattern that matches empty text', () => {
+      const result = replaceSensitiveString('abc', [/x*/]);
+      expect(result).toBe('abc');
+    });
+
     test('should mask text with multiple custom patterns', () => {
       const patterns = [/Florida|California/, /Pennsylvania/];
       const text1 = 'Pittsburgh, Pennsylvania';

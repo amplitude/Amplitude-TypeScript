@@ -30,10 +30,15 @@ export const replaceSensitiveString = (text: string | null, additionalMaskTextPa
   // Check for email
   result = result.replace(EMAIL_REGEX, MASKED_TEXT_VALUE);
 
-  // Check for additional mask text patterns
+  // Check for additional mask text patterns. Every match is masked, not only the first.
+  // A later match can otherwise slide into the kept text once earlier matches shorten the prefix.
   for (const pattern of additionalMaskTextPatterns) {
     try {
-      result = result.replace(pattern, MASKED_TEXT_VALUE);
+      const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+      // Skip zero-length matches so a pattern like /x*/ does not insert a mask between characters.
+      result = result.replace(new RegExp(pattern.source, flags), (match) =>
+        match.length > 0 ? MASKED_TEXT_VALUE : match,
+      );
     } catch {
       // ignore invalid pattern
     }
