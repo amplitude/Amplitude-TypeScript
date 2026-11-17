@@ -131,6 +131,14 @@
                     "resource-error": {
                       "type": "integer",
                       "minimum": 0
+                    },
+                    "notice": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "dialog": {
+                      "type": "integer",
+                      "minimum": 0
                     }
                   },
                   "additionalProperties": false
