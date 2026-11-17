@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { iife, umd } from '../../scripts/build/rollup.config';
 
 import resolve from '@rollup/plugin-node-resolve';
@@ -9,6 +10,11 @@ import path from 'node:path';
 import commonjs from '@rollup/plugin-commonjs';
 import gzip from 'rollup-plugin-gzip';
 
+const require = createRequire(import.meta.url);
+const { name: scopedName, version } = require('./package.json');
+const { esmChunkFileNames } = require('../../scripts/publish/esm-cdn');
+const packageName = scopedName.replace('@amplitude/', '');
+
 // Configure ES module build for chunks
 const esmConfig = {
   input: 'src/index.ts',
@@ -17,7 +23,9 @@ const esmConfig = {
     format: 'es',
     sourcemap: true,
     entryFileNames: 'session-replay-browser-esm.js',
-    chunkFileNames: '[name]-min.js',
+    // Versioned so the publish script can upload each chunk next to the entry
+    // without colliding with another release or the browser plugin.
+    chunkFileNames: esmChunkFileNames(packageName, version),
     manualChunks: {
       'console-plugin': ['@amplitude/rrweb-plugin-console-record'],
       targeting: ['@amplitude/targeting'],
