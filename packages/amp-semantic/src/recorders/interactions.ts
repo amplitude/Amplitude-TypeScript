@@ -119,6 +119,7 @@ export const interactionsRecorder: SemanticRecorder = {
     let active = true;
     const lastFields = new WeakMap<Element, { payload: string; timestamp: number }>();
     const invalidForms = new Map<HTMLFormElement, Set<Element>>();
+    const pendingSubmits = new Map<Event, { timer: number; emit: () => void }>();
     let invalidTimer: number | undefined;
 
     const defer = (callback: () => void): number => {
@@ -239,7 +240,7 @@ export const interactionsRecorder: SemanticRecorder = {
       const candidate = (event as SubmitEvent).submitter;
       const submitter = candidate && !helpers.blocked(candidate) ? candidate : null;
       // Do not call checkValidity(): that would dispatch new invalid events into the page.
-      defer(() => {
+      const emit = () => {
         if (!scoped.enabled('submit') || helpers.blocked(form)) return;
         if (!scoped.canEmit('submit')) return;
         scoped.emit('submit', {
@@ -252,7 +253,24 @@ export const interactionsRecorder: SemanticRecorder = {
           invalid_fields: [],
           prevented: event.defaultPrevented,
         });
+      };
+      // Flush at the end of bubbling, after form and document handlers but before
+      // a native navigation can discard the deferred task. Keep the task as a
+      // fallback for applications that stop propagation.
+      const timer = defer(() => {
+        pendingSubmits.delete(event);
+        emit();
       });
+      pendingSubmits.set(event, { timer, emit });
+    };
+
+    const flushSubmit = (event: Event) => {
+      const pending = pendingSubmits.get(event);
+      if (!pending) return;
+      pendingSubmits.delete(event);
+      host.window.clearTimeout(pending.timer);
+      timers.delete(pending.timer);
+      pending.emit();
     };
 
     const invalid = (event: Event) => {
@@ -303,6 +321,8 @@ export const interactionsRecorder: SemanticRecorder = {
     }
     if (scoped.enabled('submit')) {
       listen('submit', submit);
+      host.window.addEventListener('submit', flushSubmit);
+      cleanups.push(() => host.window.removeEventListener('submit', flushSubmit));
       listen('invalid', invalid);
     }
     return () => {
@@ -310,6 +330,7 @@ export const interactionsRecorder: SemanticRecorder = {
       cleanups.forEach((cleanup) => cleanup());
       timers.forEach((timer) => host.window.clearTimeout(timer));
       timers.clear();
+      pendingSubmits.clear();
       invalidForms.clear();
     };
   },

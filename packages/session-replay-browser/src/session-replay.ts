@@ -484,15 +484,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.latestUrlChangeTargetingEvaluationId++;
     this.sessionTargetingMatch = false;
     this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
-    if (previousSessionId) {
-      this.sendEvents(previousSessionId);
-    }
-
     const isSessionChange = previousSessionId !== sessionId;
     if (isSessionChange && this.config?.semanticCapture?.enabled && this.semanticAdapter) {
       // Keep rrweb recording through the async config/targeting pass, as it does
-      // without semantic capture. Only detach the old session's semantic runtime.
+      // without semantic capture. Emit the old session's closing boundary before
+      // flushing its sequence and clearing its beacon buffer.
       this.useSemanticAdapter((adapter) => adapter.stop('new_session'));
+    }
+    if (previousSessionId) {
+      if (isSessionChange) this.eventCompressor?.flushQueue();
+      this.sendEvents(previousSessionId);
     }
 
     // Drop any beacon-buffered events from the previous session BEFORE installing the

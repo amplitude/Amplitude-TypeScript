@@ -99,6 +99,25 @@ describe('Session Replay context integration', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  test('flushes the old session after its semantic stop and before discarding its beacon buffer', async () => {
+    const { sdk, internal } = prepare(true);
+    const order: string[] = [];
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    sdk.recordEvents = jest.fn().mockResolvedValue(undefined);
+    sdk.sendEvents = jest.fn((sessionId) => order.push(`send:${String(sessionId)}`));
+    internal.eventCompressor = { flushQueue: jest.fn(() => order.push('flush')) };
+    internal.rrwebEventManager = { dropPendingBeaconEvents: jest.fn(() => order.push('drop')) };
+    internal.semanticAdapter.recordingReady();
+    internal.semanticAdapter.event({ type: EventType.FullSnapshot, timestamp: 1, data: {} });
+    capture.notify.mockImplementation((signal, value) => {
+      if (signal === 'recording' && value.state === 'stop') order.push(`stop:${String(value.reason)}`);
+    });
+
+    await sdk.asyncSetSessionId(2);
+
+    expect(order).toEqual(['stop:new_session', 'flush', 'send:1', 'drop']);
+  });
+
   test('emits through rrweb only while recording and reads current privacy and analytics settings', () => {
     const { sdk, record, internal } = prepare(true);
     const host = jest.mocked(createSemanticCapture).mock.calls[0][1];

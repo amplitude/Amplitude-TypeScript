@@ -123,6 +123,14 @@
                     "click": {
                       "type": "integer",
                       "minimum": 0
+                    },
+                    "keys": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "resource-error": {
+                      "type": "integer",
+                      "minimum": 0
                     }
                   },
                   "additionalProperties": false

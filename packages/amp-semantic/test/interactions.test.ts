@@ -433,23 +433,50 @@ describe('interactions recorder', () => {
     expect(JSON.stringify(h.emitted)).not.toMatch(/PRIVATE/);
   });
 
-  it('reads defaultPrevented after application handlers and emits no duplicate on cleanup', () => {
+  it('emits submits before the next task and reads defaultPrevented after form handlers', () => {
     document.body.innerHTML = '<form aria-label="Create"><button>Save</button></form>';
     const h = harness();
     cleanup = h.start();
     const form = document.querySelector('form') as HTMLFormElement;
     form.addEventListener('submit', (event) => event.preventDefault());
     dispatch(form, 'submit');
-    expect(h.emitted).toHaveLength(0);
-    jest.runOnlyPendingTimers();
     expect(h.emitted[0]).toMatchObject({
       family: 'submit',
       payload: { valid: true, prevented: true, form: { name: 'Create' } },
     });
-    dispatch(form, 'submit');
-    cleanup();
+    expect(h.emitted).toHaveLength(1);
     jest.runOnlyPendingTimers();
     expect(h.emitted).toHaveLength(1);
+    cleanup();
+    dispatch(form, 'submit');
+    expect(h.emitted).toHaveLength(1);
+  });
+
+  it('emits an uncanceled native submit before navigation can discard the fallback task', () => {
+    document.body.innerHTML = '<form><button>Save</button></form>';
+    const h = harness();
+    cleanup = h.start();
+    dispatch(document.querySelector('form') as HTMLFormElement, 'submit');
+    expect(h.emitted).toHaveLength(1);
+    expect(h.emitted[0].payload).toMatchObject({ prevented: false });
+    jest.runOnlyPendingTimers();
+    expect(h.emitted).toHaveLength(1);
+  });
+
+  it('uses a deferred fallback when a submit handler stops propagation', () => {
+    document.body.innerHTML = '<form><button>Save</button></form>';
+    const h = harness();
+    cleanup = h.start();
+    const form = document.querySelector('form') as HTMLFormElement;
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    dispatch(form, 'submit');
+    expect(h.emitted).toHaveLength(0);
+    jest.runOnlyPendingTimers();
+    expect(h.emitted).toHaveLength(1);
+    expect(h.emitted[0].payload).toMatchObject({ prevented: true });
   });
 
   it('batches invalid fields per form, caps at ten and never reads validationMessage', () => {
@@ -495,7 +522,7 @@ describe('interactions recorder', () => {
     expect(JSON.stringify(h.emitted)).not.toContain('SECRET_VALUE');
   });
 
-  it('rechecks privacy after submit handlers and before the deferred emit', () => {
+  it('rechecks privacy after submit handlers and before the emit', () => {
     document.body.innerHTML =
       '<form aria-label="PRIVATE_FORM"><button aria-label="PRIVATE_BUTTON">Save</button></form>';
     const h = harness();
@@ -645,6 +672,7 @@ describe('interactions recorder', () => {
     document.body.innerHTML = '<form><input required></form>';
     const form = document.querySelector('form')!;
     const input = form.querySelector('input')!;
+    form.addEventListener('submit', (event) => event.stopPropagation());
     dispatch(form, 'submit');
     dispatch(input, 'invalid');
     h.context.enabled = () => false;
