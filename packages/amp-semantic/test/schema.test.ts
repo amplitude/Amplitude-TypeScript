@@ -34,7 +34,7 @@ test('validates shipped event families and rejects unshipped families', () => {
   for (const event of events) expect(validate(wire(event))).toBe(true);
   const capped = {
     ...wire(events[0]),
-    data: { tag: 'amp-semantic/context', payload: { ...events[0].payload, caps_hit: { keys: 1 } } },
+    data: { tag: 'amp-semantic/context', payload: { ...events[0].payload, caps_hit: { keys: 1, 'resource-error': 2 } } },
   };
   expect(validate(capped)).toBe(true);
   const invalid = wire(events[1]);
