@@ -2,34 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getName, getVersion } = require('../utils');
-
-// Keep package-specific artifact names and replacement prefixes explicit. Replay
-// chunks without the package prefix retain their legacy, unversioned keys.
-const replayPackages = {
-  'session-replay-browser': {
-    prefix: 'session-replay-browser',
-    files: [
-      'session-replay-browser-esm.js.gz',
-      'session-replay-browser-min.js.gz',
-      'console-plugin-min.js.gz',
-      'rrweb-record-min.js.gz',
-      'targeting-min.js.gz',
-    ],
-  },
-  'plugin-session-replay-browser': {
-    prefix: 'plugin-session-replay-browser',
-    files: [
-      'plugin-session-replay-browser-esm.js.gz',
-      'plugin-session-replay-browser-min.js.gz',
-      'console-plugin-min.js.gz',
-      'rrweb-record-min.js.gz',
-    ],
-  },
-  'segment-session-replay-plugin': {
-    prefix: 'segment-session-replay-wrapper',
-    files: ['segment-session-replay-wrapper-esm.js.gz'],
-  },
-};
+const { prepareCdnAssets } = require('./esm-cdn');
 
 // Keep this exact allowlist aligned with UpdateLegacySessionReplayChunks in
 // platform-infra's release IAM role until these chunks are versioned.
@@ -60,10 +33,16 @@ function publishConfig(name, version) {
     };
   }
 
-  const replay = replayPackages[name];
-  if (replay) {
+  if (name === 'session-replay-browser' || name === 'plugin-session-replay-browser') {
+    const assets = prepareCdnAssets({ scriptsDir: path.join(process.cwd(), 'lib', 'scripts'), name, version });
     return {
-      files: replay.files.map((file) => artifact(file, `libs/${file.replace(replay.prefix, `${name}-${version}`)}`)),
+      files: assets.map(({ key, body }) => ({ ...artifact(null, key), body })),
+    };
+  }
+
+  if (name === 'segment-session-replay-plugin') {
+    return {
+      files: [artifact('segment-session-replay-wrapper-esm.js.gz', `libs/${name}-${version}-esm.js.gz`)],
     };
   }
 
@@ -121,14 +100,14 @@ async function main() {
 
   console.log('[Publish to AWS S3] START');
   console.log(`[Publish to AWS S3] Package: ${name} v${config.version ?? version}`);
-  for (const { file, key, contentType, contentEncoding } of config.files) {
-    const filePath = path.join(location, file);
+  for (const { file, key, contentType, contentEncoding, body: preparedBody } of config.files) {
+    const filePath = file ? path.join(location, file) : null;
     if (config.optionalFiles && !fs.existsSync(filePath)) {
       console.log(`[Publish to AWS S3] ${file} not found. Skipping.`);
       continue;
     }
     // Required Replay/GTM artifacts must exist, including during GTM dry runs.
-    const body = fs.readFileSync(filePath);
+    const body = preparedBody ?? fs.readFileSync(filePath);
     totalFiles++;
     if (config.dryRun) {
       console.log(`[Publish to AWS S3] Dry run. Publishing ${key} to ${bucket}...`);

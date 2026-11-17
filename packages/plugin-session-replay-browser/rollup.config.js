@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { iife } from '../../scripts/build/rollup.config';
 import { webWorkerPlugins } from '../session-replay-browser/rollup.config';
 import typescript from '@rollup/plugin-typescript';
@@ -5,6 +6,11 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import { terser } from 'rollup-plugin-terser';
 import gzip from 'rollup-plugin-gzip';
+
+const require = createRequire(import.meta.url);
+const { name: scopedName, version } = require('./package.json');
+const { esmChunkFileNames } = require('../../scripts/publish/esm-cdn');
+const packageName = scopedName.replace('@amplitude/', '');
 
 // Configure ESM build
 const esm = {
@@ -14,12 +20,14 @@ const esm = {
     format: 'es',
     sourcemap: true,
     entryFileNames: 'plugin-session-replay-browser-esm.js',
-    chunkFileNames: '[name]-min.js',
+    // Versioned so the publish script can upload each chunk next to the entry
+    // without colliding with another release or the standalone SDK.
+    chunkFileNames: esmChunkFileNames(packageName, version),
     manualChunks: {
       'console-plugin': ['@amplitude/rrweb-plugin-console-record'],
-      'rrweb-record': ['@amplitude/rrweb-record']
-    }
-  }
+      'rrweb-record': ['@amplitude/rrweb-record'],
+    },
+  },
 };
 
 // Configure legacy build
@@ -30,7 +38,7 @@ iife.output = {
   file: 'lib/scripts/plugin-session-replay-browser-min.js',
   name: 'sessionReplay',
   sourcemap: true,
-  inlineDynamicImports: true
+  inlineDynamicImports: true,
 };
 
 // Common plugins for both builds
@@ -47,9 +55,9 @@ const commonPlugins = [
       outDir: 'lib/scripts',
       baseUrl: '.',
       paths: {
-        'src/*': ['src/*']
-      }
-    }
+        'src/*': ['src/*'],
+      },
+    },
   }),
   resolve({
     browser: true,
@@ -65,10 +73,9 @@ const commonPlugins = [
 
 export default async () => {
   const webWorkerPluginsList = await webWorkerPlugins();
-  
+
   esm.plugins = [...webWorkerPluginsList, ...commonPlugins];
   iife.plugins = [...webWorkerPluginsList, ...commonPlugins];
 
   return [esm, iife];
 };
-

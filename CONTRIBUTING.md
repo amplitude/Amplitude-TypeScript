@@ -122,9 +122,13 @@ already exists and is skipped for recovery runs, without verifying its contents.
 Other upload failures fail the publisher and release. Uploads do not need
 `HeadObject`/`GetObject` or ACL permissions; public reads depend on bucket policy.
 
-The unversioned `console-plugin-min.js.gz`, `rrweb-record-min.js.gz`, and
-`targeting-min.js.gz` chunks still update in place. Their explicit exception must
-stay aligned with the release IAM policy until chunk publishing is versioned.
+Replay ESM uploads are prepared by `scripts/publish/esm-cdn.js`: the complete
+module graph uses package- and version-prefixed chunk names, and relative imports
+point to the uploaded `.js.gz` keys. The IIFE bundle is uploaded unchanged.
+
+The uploader retains the legacy mutable-key allowlist for
+`console-plugin-min.js.gz`, `rrweb-record-min.js.gz`, and `targeting-min.js.gz`,
+aligned with the release IAM policy. New Replay uploads use versioned keys only.
 
 Before the next production publish, coordinate with Platform to confirm the IAM
 role and bucket policy are deployed and validate the approved v2 `main` release
