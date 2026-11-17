@@ -19,8 +19,10 @@ export const replaceSensitiveString = (text: string | null, additionalMaskTextPa
 
   let result = text;
 
-  // Check for credit card number (with or without spaces/dashes)
-  result = result.replace(CC_REGEX, MASKED_TEXT_VALUE);
+  // CC_REGEX is not global: repeated `.test()` calls share lastIndex.
+  // A fresh global copy masks every card. One replace would leave later cards,
+  // and a card past the cutoff can then slide into the kept autocapture text.
+  result = result.replace(new RegExp(CC_REGEX.source, 'g'), MASKED_TEXT_VALUE);
 
   // Check for social security number
   result = result.replace(SSN_REGEX, MASKED_TEXT_VALUE);

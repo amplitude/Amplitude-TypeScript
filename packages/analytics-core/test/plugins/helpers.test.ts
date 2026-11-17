@@ -121,6 +121,12 @@ describe('replaceSensitiveString', () => {
       const result = replaceSensitiveString(text);
       expect(result).toBe(MASKED_TEXT_VALUE);
     });
+
+    test('should mask every credit card in the text', () => {
+      const text = '4111111111111111 and 5555555555554444';
+      const result = replaceSensitiveString(text);
+      expect(result).toBe(`${MASKED_TEXT_VALUE} and ${MASKED_TEXT_VALUE}`);
+    });
   });
 
   describe('SSN masking', () => {

@@ -154,6 +154,19 @@ describe('mask sensitive strings before truncation', () => {
       expect(text.length).toBeLessThanOrEqual(MAX_TEXT_LENGTH);
     });
 
+    test('masks a second card that slides in from past the cutoff', () => {
+      const firstCard = '4111111111111111';
+      const secondCard = '5555555555554444';
+      const button = document.createElement('button');
+      button.textContent = firstCard + ' '.repeat(MAX_TEXT_LENGTH + 1 - firstCard.length) + secondCard + ' done';
+      document.body.appendChild(button);
+
+      const text = extractor.getText(button);
+      expect(text).toBe(`${MASKED_TEXT_VALUE} ${MASKED_TEXT_VALUE} done`);
+      expect(text).not.toContain(firstCard);
+      expect(text).not.toContain(secondCard);
+    });
+
     test('still masks a spaced card when text continues past the lookahead', () => {
       const card = '4111 1111 1111 1111';
       const button = document.createElement('button');
@@ -203,6 +216,26 @@ describe('mask sensitive strings before truncation', () => {
         ?.title as string;
       expectNoEmail(title);
       expect(title).toContain(MASKED_TEXT_VALUE);
+      expect(title.length).toBeLessThanOrEqual(MAX_ATTRIBUTE_LENGTH);
+    });
+
+    test('masks a second card that slides in from past the attribute cutoff', () => {
+      const firstCard = '4111111111111111';
+      const secondCard = '5555555555554444';
+      const button = document.createElement('button');
+      button.textContent = 'ok';
+      button.setAttribute(
+        'title',
+        firstCard + ' '.repeat(MAX_ATTRIBUTE_LENGTH + 1 - firstCard.length) + secondCard + ' done',
+      );
+      document.body.appendChild(button);
+
+      const props = extractor.getEventProperties('click', button, 'data-amp-track-');
+      const title = (props['[Amplitude] Element Hierarchy'] as Array<{ attrs?: Record<string, string> }>)[0].attrs
+        ?.title as string;
+      expect(title).not.toContain(firstCard);
+      expect(title).not.toContain(secondCard);
+      expect(title.split(MASKED_TEXT_VALUE).length - 1).toBe(2);
       expect(title.length).toBeLessThanOrEqual(MAX_ATTRIBUTE_LENGTH);
     });
 
