@@ -334,6 +334,17 @@ describe('data extractor', () => {
       expect(result).toEqual(`Contact ${MASKED_TEXT_VALUE} for support`);
     });
 
+    test('should mask every custom maskTextRegex match in the captured text', () => {
+      const accountExtractor = new DataExtractor({
+        maskTextRegex: [{ pattern: 'ACCT-\\d{6}', description: 'account' }],
+      });
+      const button = document.createElement('button');
+      button.innerText = 'Pay ACCT-111111 then ACCT-222222 now';
+      document.body.appendChild(button);
+
+      expect(accountExtractor.getText(button)).toBe(`Pay ${MASKED_TEXT_VALUE} then ${MASKED_TEXT_VALUE} now`);
+    });
+
     test('should mask text matching custom maskTextRegex patterns', () => {
       const button = document.createElement('button');
       const safeText = document.createTextNode('Welcome to ');
