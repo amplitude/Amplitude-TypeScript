@@ -202,7 +202,7 @@ export class VideoCapture {
             play_id: this.playId,
           },
         };
-        this.stopEvent = {
+        const stopEvent: BaseEvent = {
           ...startEvent,
           insert_id: UUID(),
           event_type: DEFAULT_STREAM_STOPPED_EVENT,
@@ -214,11 +214,20 @@ export class VideoCapture {
             ...this.extraEventProperties,
           }),
         };
-        void this.heartbeat.trackNoDelay({
-          ...startEvent,
-          event_properties: this.toAnalyticsEventProperties(startEvent.event_properties),
-        });
-        void this.heartbeat.track(this.stopEvent);
+        this.stopEvent = stopEvent;
+        void (async () => {
+          try {
+            await Promise.all([
+              this.heartbeat.trackNoDelay({
+                ...startEvent,
+                event_properties: this.toAnalyticsEventProperties(startEvent.event_properties),
+              }),
+              this.heartbeat.track(stopEvent),
+            ]);
+          } catch (error) {
+            console.warn('Amplitude video capture failed to queue a heartbeat event.', error);
+          }
+        })();
       }
     });
 

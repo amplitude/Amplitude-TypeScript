@@ -844,6 +844,29 @@ describe('VideoCapture', () => {
   });
 
   describe('continues capturing when track fails', () => {
+    it.each(['trackNoDelay', 'track'] as const)('warns when %s rejects while queuing a play', async (method) => {
+      const error = new Error('queue failed');
+      const heartbeat = {
+        trackNoDelay: jest.fn().mockResolvedValue(undefined),
+        track: jest.fn().mockResolvedValue(undefined),
+        beforePageHide: jest.fn().mockReturnValue(jest.fn()),
+      };
+      heartbeat[method].mockRejectedValueOnce(error);
+      mockGetHeartbeatInstance.mockReturnValue(heartbeat);
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      new VideoCapture(mockAmplitude).withVideoElement(document.createElement('video')).captureVideoStarted().start();
+
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: undefined },
+      );
+      await flushHeartbeat();
+
+      expect(heartbeat.trackNoDelay).toHaveBeenCalledTimes(1);
+      expect(heartbeat.track).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('Amplitude video capture'), error);
+    });
+
     it.each([
       ['stream start', 0],
       ['delayed stop', 1],
