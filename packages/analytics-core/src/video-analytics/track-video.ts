@@ -69,7 +69,7 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
     };
     handlers.onPlay(startEvent);
   };
-  videoEl.addEventListener('play', playHandler);
+  videoEl.addEventListener('playing', playHandler);
 
   const endedHandler = () => {
     if (hasReportedEnded) {
@@ -179,13 +179,12 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
   videoEl.addEventListener('emptied', emptiedHandler);
   const media = videoEl as HTMLMediaElement;
 
-  // if the media is already playing when tracking begins, emit a play event
-  if (media.paused === false && media.ended !== true) {
+  if (media.paused === false && media.ended !== true && media.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
     playHandler();
   }
 
   return () => {
-    videoEl.removeEventListener('play', playHandler);
+    videoEl.removeEventListener('playing', playHandler);
     videoEl.removeEventListener('ended', endedHandler);
     videoEl.removeEventListener('pause', pauseHandler);
     videoEl.removeEventListener('seeking', seekingHandler);
