@@ -4,7 +4,10 @@ export const MASKED_TEXT_VALUE = '*****';
 // Regex patterns for sensitive data
 export const CC_REGEX = /\b(?:\d[ -]*?){13,16}\b/;
 export const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;
-export const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/g;
+// [^\s@]+ stops at the next @. In a URL that leaves `@domain` after the first address.
+// Continue through those @ segments so the leftover cannot slide into kept text
+// when the long match is replaced with a short mask.
+export const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+(?:@[^\s@]+)*/g;
 
 /**
  * Replaces sensitive strings (credit cards, SSNs, emails) and custom patterns with masked text

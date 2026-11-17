@@ -174,6 +174,12 @@ describe('replaceSensitiveString', () => {
       expect(result).toBe(`Contact ${MASKED_TEXT_VALUE} or ${MASKED_TEXT_VALUE}`);
     });
 
+    test('should mask a second address in the same token instead of leaving @domain', () => {
+      const result = replaceSensitiveString('user@first.com&bob@second.com');
+      expect(result).toBe(MASKED_TEXT_VALUE);
+      expect(result).not.toContain('@');
+    });
+
     test('should mask email with dots in domain', () => {
       const text = 'user@mail.example.com';
       const result = replaceSensitiveString(text);

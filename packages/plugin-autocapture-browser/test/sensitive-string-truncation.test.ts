@@ -288,6 +288,21 @@ describe('mask sensitive strings before truncation', () => {
       expect(hierHref).toBe(MASKED_TEXT_VALUE);
     });
 
+    test('does not keep a second address whose @ sat past the href cutoff', () => {
+      const href = 'https://example.com/' + 'a'.repeat(100) + 'user@first.com&bob@second.com';
+      const anchor = document.createElement('a');
+      anchor.setAttribute('href', href);
+      anchor.textContent = 'link';
+      document.body.appendChild(anchor);
+
+      const props = extractor.getEventProperties('click', anchor, 'data-amp-track-');
+      const hierHref = (props['[Amplitude] Element Hierarchy'] as Array<{ attrs?: Record<string, string> }>)[0].attrs
+        ?.href;
+
+      expect(props['[Amplitude] Element Href']).toBe(MASKED_TEXT_VALUE);
+      expect(hierHref).toBe(MASKED_TEXT_VALUE);
+    });
+
     test('does not scan an email that starts past the lookahead', () => {
       const href = 'https://example.com/' + 'a'.repeat(500) + EMAIL;
       const anchor = document.createElement('a');
