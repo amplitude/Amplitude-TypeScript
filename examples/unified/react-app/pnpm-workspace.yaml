@@ -1,6 +1,15 @@
 packages:
   - '.'
 
+minimumReleaseAge: 20160 # 14 days
+trustPolicy: no-downgrade
+# These exact versions are already present in this example's lockfile.
+trustPolicyExclude:
+  - 'css-declaration-sorter@6.4.1'
+  - 'rollup@2.80.0'
+  - 'semver@6.3.1'
+blockExoticSubdeps: true
+
 overrides:
   js-yaml@3: ^3.15.2
   js-yaml@4: ^4.3.2
