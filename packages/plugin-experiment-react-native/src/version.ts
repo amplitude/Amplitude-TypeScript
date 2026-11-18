@@ -1,1 +1,1 @@
-export const VERSION = '1.0.0-beta.13';
+export const VERSION = '1.0.0-video-analytics-plus-page-x-y.0';

@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-session-replay-react-native",
-  "version": "0.5.13",
+  "version": "0.5.14-video-analytics-plus-page-x-y.0",
   "description": "Amplitude Session Replay plugin for React Native",
   "keywords": [
     "analytics",
