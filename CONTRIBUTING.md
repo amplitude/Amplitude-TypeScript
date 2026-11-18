@@ -92,51 +92,27 @@ After approval, merge the PR to the appropriate release branch. Merging alone do
 
 #### Publishing NPM package for the first time
 
-Use this procedure only for a **brand-new npm package name**. npm requires the package to exist before its Trusted Publisher can be configured. An existing package's prerelease or stable release goes directly through [Publishing SDK packages](#publishing-sdk-packages); it does not need another bootstrap.
+Because the workflow uses Trusted Publishing, a new package can't be published from the publish workflow on the first try. 
 
-1. **Use the shared SDK npm publishing account.** An authorized maintainer must have access to that account, permission to create/publish packages in the `@amplitude` scope, and 2FA enabled. Use Node 24, run `pnpm install` from the repository root, then `npm login` with the shared account. Check `npm whoami` before continuing. Do not use a personal npm account for this bootstrap.
-
-2. **Publish the placeholder locally.** Run `pnpm deploy:publish:bootstrap` from the repository root. Enter the full package name (for example, `@amplitude/my-new-package`). At the initial-version prompt, either accept the default `0.0.1` or enter an optional prerelease placeholder such as `0.0.1-alpha.0`. Review the name/version before confirming, and complete npm's 2FA prompt when required.
-
-   The [bootstrap script](scripts/publish/bootstrap-npm-package.sh) publishes **only `package.json`**, from a temporary directory, with public access and the **`alpha` dist-tag**, regardless of the chosen version. This reserves the name for Trusted Publishing setup; it is **not a functional package release** and must not be installed by consumers or used as a real dependency. The script does not build code, update repository manifests, or prepare compatible dependency versions. Verify the placeholder with `pnpm view @amplitude/my-new-package@0.0.1-alpha.0 version` and `pnpm view @amplitude/my-new-package dist-tags`, substituting the name/version you selected.
-
-3. **Configure the intended Trusted Publisher on npm.** Open the new package's npm **Settings → Trusted publishing** page. For a normal SDK package, follow the current [analytics-browser access configuration](https://www.npmjs.com/package/@amplitude/analytics-browser/access) and [Publish v2.x workflow](.github/workflows/publish-v2.yml). The GitHub publisher fields are case sensitive:
-
-   | Field | Normal SDK package value |
-   | --- | --- |
-   | Organization or user | `amplitude` |
-   | Repository | `Amplitude-TypeScript` |
-   | Workflow filename | `publish-v2.yml` (the file in `.github/workflows/`, not its display name) |
-   | Environment | `npm-release` |
-
-   Verify these values against the current workflow and reference package before saving; repository write/admin access and the configured release environment are also required to run it. Trusted Publishing uses GitHub OIDC for subsequent workflow publications. Do not restore a token-based single-package publishing path. Custom enrichment has a different workflow and stage-only permission: follow its [separate runbook](#publishing-the-custom-enrichment-browser-plugin).
-
-4. **Prepare the first functional release.** Ensure the new SDK package's reviewed source manifest is eligible for normal Lerna/pnpm publishing (`private` absent or `false`) and that its build outputs and package entry points are correct. Choose a real version above the placeholder and review every runtime/peer dependency for compatibility and npm availability. Publish real code and any required SDK dependency versions together through **Publish v2.x**, using the prerelease or stable inputs below. Bootstrapping alone does not release the source code. Keep custom enrichment's private source manifest and Browser's exact published plugin pin as specified in its separate runbook.
+To publish a package for the first time (administrators only):
+1. run `pnpm install` from the root
+2. run `pnpm deploy:publish:bootstrap` and enter the full npm package name (e.g. `@amplitude/my-new-package`) when prompted. The script publishes an empty package (package.json only); this requires you to be logged into an NPM admin account with 2FA enabled.
+3. navigate to the NPM homepage of the new package
+4. open "Settings" and configure it to use Trusted Publishing
+5. copy the same configuration used in [analytics browser](https://www.npmjs.com/package/@amplitude/analytics-browser/access). **case sensitive**
+6. now that it's in NPM and Trusted Publishing is enabled, this package can now be published from workflows
 
 #### Publishing SDK packages
 
-Use [Publish v2.x](.github/workflows/publish-v2.yml) for both prereleases of existing packages (including the first real release after bootstrap) and stable SDK releases. It validates, versions, and publishes eligible SDK packages together; it is not a single-package publisher. Custom enrichment is excluded and follows the separate procedure below.
+For a normal stable SDK release, open **GitHub Actions → Publish v2.x → Run workflow**, select `main` (or the intended `hotfix/*` branch), explicitly select `releaseType: release`, leave the optional `branch` input empty, and leave `skipLernaVersion` unchecked. The default release type is `prerelease`, so check this input before dispatching. The workflow requires repository write/admin permission and the configured release environments and credentials.
 
-In **GitHub Actions → Publish v2.x → Run workflow**, set the inputs explicitly:
-
-| Release intent | “Use workflow from” branch (dispatch ref) | `releaseType` | `branch` input (source to publish) | `skipLernaVersion` |
-| --- | --- | --- | --- | --- |
-| Branch prerelease | `main` or the intended `hotfix/*` branch | `prerelease` | Exact feature branch name, required (for example, `feature/new-package`) | Unchecked (`false`) |
-| Stable release | `main` or the intended `hotfix/*` branch | `release` | Empty | Unchecked (`false`) |
-
-The default `releaseType` is `prerelease`, so check it before dispatching. For a branch prerelease, select `main`/`hotfix/*` in the workflow branch selector and put the feature branch in the separate `branch` input; dispatching a publishing run directly from a feature branch is rejected. The workflow derives the prerelease identifier and npm dist-tag by removing all characters except letters, digits, and hyphens from the source branch (for example, `feature/new-package` becomes `featurenew-package`). The prerelease command passes that tag via `--tag`; stable publishing uses each package's `publishConfig.tag` (usually `latest`, but some packages specify `beta`). Review the package configuration and verify the resulting npm dist-tag before consumer adoption. Ensure the derived tag is suitable for the intended prerelease. Use `skipLernaVersion` only for [partial-publish recovery](#recovering-a-partial-publish-v2-workflow-run), never for normal first publication or a new release.
-
-**Verify each functional release before adoption:**
-
-- Confirm the intended version and tag on npm, for example `pnpm view @amplitude/my-new-package@<version> version dependencies peerDependencies` and `pnpm view @amplitude/my-new-package dist-tags`. Check every required dependency version is available and every peer range supports the intended stable or prerelease dependency versions; stable peer ranges do not automatically accept prereleases.
-- Inspect the actual published tarball, for example `npm pack @amplitude/my-new-package@<version>` in a temporary directory, then inspect its files and `package/package.json`. Confirm real code, types, and entry points are present, and that packed dependency ranges resolve to the intended npm versions with no unresolved `workspace:` references or placeholder dependencies. Do not infer the published manifest from the workspace manifest alone.
-- Install the exact version in a fresh consumer project outside the monorepo, with no workspace links or local overrides. Install required compatible peers, verify TypeScript resolution, and smoke-test the public API in the intended runtime. For a prerelease, install the explicit version or derived dist-tag; do not expect `latest` to select it. Verify Browser's exact custom-enrichment pin and the separate plugin compatibility requirements whenever Browser is released.
+This workflow validates, versions, and publishes SDK packages. It excludes custom enrichment, which uses the separate procedure below. The first-time bootstrap procedure above is only for a package name that does not yet exist on npm. Do not use it for a new version of an existing package.
 
 #### Publishing the custom enrichment browser plugin
 
 This is the maintainer runbook for `@amplitude/plugin-custom-enrichment-browser`; no Linear ticket or external project document is needed to follow it. Use the existing [Publish custom enrichment workflow](.github/workflows/publish-custom-enrichment.yml), then a separate Browser adoption PR, then [Publish v2.x](.github/workflows/publish-v2.yml).
 
-The plugin's repository manifest is private so Lerna skips its version and dependency updates. Recursive SDK publishing explicitly excludes it. Only the temporary staged artifact has `private` removed. Do not remove `private` from the source manifest or bypass this release path with generic SDK publishing.
+The plugin's repository manifest is private so Lerna skips its version and dependency updates. Recursive SDK publishing explicitly excludes it. Only the temporary staged artifact has `private` removed. Do not remove `private` from the source manifest or use the generic single-package publisher to bypass this release path.
 
 **One-time prerequisites:** the plugin is declared as dual-use, and its npm Trusted Publisher must use `.github/workflows/publish-custom-enrichment.yml`, **stage-only** permission, and the `npm-release` environment. The workflow uses the existing release GitHub App in `npm-release` for protected-branch writes. An npm maintainer with 2FA must approve each new staged version. These settings require the appropriate npm/GitHub permissions; local build success does not establish that they are configured.
 
