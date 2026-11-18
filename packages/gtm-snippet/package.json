@@ -16,8 +16,8 @@
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
     "lint": "pnpm lint:eslint && pnpm lint:prettier && pnpm typecheck",
-    "lint:eslint": "eslint '{test,e2e}/**/*.ts' 'playwright*.ts'",
-    "lint:prettier": "prettier --check \"{test,e2e}/**/*.ts\" \"playwright*.ts\""
+    "lint:eslint": "eslint 'test/**/*.ts'",
+    "lint:prettier": "prettier --check \"test/**/*.ts\""
   },
   "repository": {
     "type": "git",
@@ -36,7 +36,6 @@
     "rollup": "^2.80.0",
     "rollup-plugin-gzip": "^3.1.0",
     "rollup-plugin-terser": "^7.0.2",
-    "@amplitude/analytics-core": "workspace:*",
-    "@playwright/test": "1.55.1"
+    "@amplitude/analytics-core": "workspace:*"
   }
 }

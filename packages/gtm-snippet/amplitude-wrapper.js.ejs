@@ -214,6 +214,7 @@ const LOG_PREFIX = '[Amplitude / GTM]';
     if (!window.engagement) engagementSnippet();
     return window.engagement.plugin();
   };
+
   var initializeClient = async function(client, args, state) {
       const argsLength = args.length;
       const configuration = args[argsLength - 1];
@@ -319,7 +320,6 @@ const LOG_PREFIX = '[Amplitude / GTM]';
           throw error;
         }
       }
-
   };
 
   var init = function (client, args) {
@@ -347,7 +347,6 @@ const LOG_PREFIX = '[Amplitude / GTM]';
       });
     return state.initialization;
   };
-
 
 
   // Build the command wrapper logic

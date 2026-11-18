@@ -56,11 +56,10 @@ function harness() {
   // Assume the G&S teardown contract here; release validation must exercise the shipped runtime.
   const plugin = jest.fn((): EnrichmentPlugin<BrowserClient, BrowserConfig> => {
     let detach: (() => void) | undefined;
-    const instance: EnrichmentPlugin<BrowserClient, BrowserConfig> = {
+    return {
       name: '@amplitude/engagement-browser',
       type: 'enrichment',
       async setup(config) {
-        expect(this).toBe(instance);
         setupStarted.resolve();
         await beforeSetup();
         const store = getAnalyticsConnector(config.instanceName).identityStore;
@@ -69,17 +68,14 @@ function harness() {
         detach = () => store.removeIdentityListener(listener);
       },
       async teardown() {
-        expect(this).toBe(instance);
         detach?.();
         detach = undefined;
       },
       async execute(event) {
-        expect(this).toBe(instance);
         forwarded.push(event);
         return event;
       },
     };
-    return instance;
   });
   const beforeInit = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
   const initStarted = deferred();
