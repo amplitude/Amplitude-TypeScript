@@ -71,7 +71,7 @@ To run the server as HTTPS follow these steps
 ## TIPS
 * You can enable a "Workspace" in Chrome on this site, which allows you to edit the files from inside the browser
 
-### Engaged-time configuration
+### Engaged-time configuration and remote config
 
 ```js
 autocapture: {
@@ -92,6 +92,36 @@ autocapture: {
 | `false` | Explicitly disabled |
 | `true` or `{}` | Enabled with default timings |
 | Options object | Enabled with supplied timings; omitted timings use defaults |
+
+The existing remote-config translator accepts the same nested feature shape as
+other autocapture options. Under
+`configs.analyticsSDK.browserSDK.autocapture`, the proposed wire value is:
+
+```json
+{
+  "engagedTimeTracking": {
+    "enabled": true,
+    "pageViewEventType": "page_view",
+    "secondaryPageViewEventType": "Engagement Resumed",
+    "activityWindowMillis": 5000,
+    "heartbeatIntervalMillis": 15000,
+    "inactivityTimeoutMillis": 180000
+  }
+}
+```
+
+The translator removes `enabled: true`, leaving the options object (or `true`
+when there are no other fields); `enabled: false` becomes `false`. A separate
+`engagedTimeTrackingEnabled` setting is unnecessary. This is verified against the
+SDK translator and join logic; backend authoring of this new field is not yet
+verified.
+
+Browser autocapture remote values take precedence, including over local `false`.
+The existing merge is shallow: omitting remote `engagedTimeTracking` preserves
+the local engagement setting; supplying it replaces that whole value rather than
+merging individual names or durations. If the remote engagement object omits
+`secondaryPageViewEventType`, renewal falls back to its primary event name; it
+does not inherit the local secondary name. `pageViews` is a separate sibling setting.
 
 Engaged page views and their snapshots omit `user_properties`. Send user-property updates separately with `identify()`. A delayed page view may arrive after newer events when the service expires it; carrying older user-property updates would overwrite newer values in ingestion order.
 
