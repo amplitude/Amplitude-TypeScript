@@ -112,7 +112,7 @@ describe('keys', () => {
   });
   test('respects masking, blocked hosts, password controls, and never uses editable contents', () => {
     document.body.innerHTML =
-      '<button class="amp-mask">PRIVATE</button><input type="password"><input type="hidden"><textarea>PRIVATE</textarea><div contenteditable="true">PRIVATE</div><div class="amp-block" id="host"></div>';
+      '<button class="amp-mask">PRIVATE</button><input type="password"><input type="hidden"><input type="text" data-rr-is-password aria-label="Revealed password"><textarea>PRIVATE</textarea><div contenteditable="true">PRIVATE</div><div class="amp-block" id="host"></div>';
     start(keysRecorder);
     for (const target of Array.from(document.querySelectorAll('button,input,textarea,[contenteditable]')))
       key(target, 'Escape');
