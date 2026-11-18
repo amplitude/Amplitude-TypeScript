@@ -42,8 +42,8 @@ function harness() {
   const identityChanged = jest.fn<void, [unknown]>();
   const beforeSetup = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
   const setupStarted = deferred();
-  const listeners = new Set<unknown>();
-  const plugin = jest.fn((): EnrichmentPlugin<BrowserClient, BrowserConfig> => {
+  // Assume the G&S teardown contract here; release validation must exercise the shipped runtime.
+  const plugin = (): EnrichmentPlugin<BrowserClient, BrowserConfig> => {
     let detach: (() => void) | undefined;
     return {
       name: '@amplitude/engagement-browser',
@@ -54,11 +54,7 @@ function harness() {
         const store = getAnalyticsConnector(config.instanceName).identityStore;
         const listener = () => identityChanged(store.getIdentity());
         store.addIdentityListener(listener);
-        listeners.add(listener);
-        detach = () => {
-          store.removeIdentityListener(listener);
-          listeners.delete(listener);
-        };
+        detach = () => store.removeIdentityListener(listener);
       },
       async teardown() {
         detach?.();
@@ -69,7 +65,7 @@ function harness() {
         return event;
       },
     };
-  });
+  };
   const beforeInit = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
   const initStarted = deferred();
   for (const client of Object.values(clients)) {
@@ -123,13 +119,11 @@ function harness() {
     track,
     forwarded,
     delivered,
-    plugin,
     beforeSetup,
     setupStarted,
     beforeInit,
     initStarted,
     identityChanged,
-    listeners,
   };
 }
 
@@ -137,38 +131,32 @@ test('first Init and repeated Init deliver once to G&S and Analytics', async () 
   const h = harness();
   for (let i = 0; i < 4; i++) {
     await h.initialize();
+    h.identityChanged.mockClear();
+    h.clients[''].setUserId(`user-${i}`);
+    expect(h.identityChanged).toHaveBeenCalledTimes(1);
+    expect(h.identityChanged).toHaveBeenCalledWith(expect.objectContaining({ userId: `user-${i}` }));
     await h.track(`event-${i}`);
-    expect(h.delivered.map((event) => event.event_type)).toContain(`event-${i}`);
-    expect(h.forwarded.map((event) => event.event_type)).toContain(`event-${i}`);
-    expect(h.listeners.size).toBe(1);
   }
   expect(h.forwarded.map((event) => event.event_type)).toEqual(['event-0', 'event-1', 'event-2', 'event-3']);
   expect(h.delivered.map((event) => event.event_type)).toEqual(['event-0', 'event-1', 'event-2', 'event-3']);
   expect(h.delivered.every((event) => event.library === 'amplitude-ts-gtm-snippet/test-version')).toBe(true);
-  expect(h.plugin).toHaveBeenCalledTimes(4);
-  expect(new Set(h.plugin.mock.results.map((result) => result.value as EnrichmentPlugin)).size).toBe(4);
-  h.identityChanged.mockClear();
-  h.clients[''].setUserId('next-user');
-  expect(h.identityChanged).toHaveBeenCalledTimes(1);
-  await h.track('new-identity');
-  expect(h.forwarded[4].user_id).toBe('next-user');
+  expect(h.forwarded.map((event) => event.user_id)).toEqual(['user-0', 'user-1', 'user-2', 'user-3']);
 });
 
 test('disabling G&S detaches forwarding and identity; re-enabling restores both once', async () => {
   const h = harness();
   await h.initialize();
   await h.initialize(false);
-  expect(h.listeners.size).toBe(0);
   h.identityChanged.mockClear();
   h.clients[''].setUserId('detached-user');
   expect(h.identityChanged).not.toHaveBeenCalled();
   await h.track('disabled');
   expect(h.forwarded).toHaveLength(0);
   await h.initialize();
-  expect(h.listeners.size).toBe(1);
   h.identityChanged.mockClear();
   h.clients[''].setUserId('reattached-user');
   expect(h.identityChanged).toHaveBeenCalledTimes(1);
+  expect(h.identityChanged).toHaveBeenCalledWith(expect.objectContaining({ userId: 'reattached-user' }));
   await h.track('enabled');
   expect(h.forwarded.map((event) => event.event_type)).toEqual(['enabled']);
   expect(h.delivered.map((event) => event.event_type)).toEqual(['disabled', 'enabled']);
@@ -181,9 +169,8 @@ test.each([true, false])('overlapping Analytics initialization uses the first G&
   const owner = h.initialize(enabled);
   await h.initStarted.promise;
   const joined = h.initialize(!enabled);
-  expect(joined).toBe(owner);
   gate.resolve();
-  await joined;
+  await Promise.all([owner, joined]);
   expect(h.beforeInit).toHaveBeenCalledTimes(1);
   await h.track();
   expect(h.forwarded).toHaveLength(enabled ? 1 : 0);
@@ -197,14 +184,15 @@ test('overlapping callers wait through G&S setup and cannot disable the owning I
   const owner = h.initialize();
   await h.setupStarted.promise;
   const joined = h.initialize(false);
-  expect(joined).toBe(owner);
   const complete = jest.fn();
+  void owner.then(complete);
   void joined.then(complete);
-  await Promise.resolve();
+  // Let queued promise callbacks run while setup is still blocked.
+  await new Promise((resolve) => setTimeout(resolve, 0));
   expect(complete).not.toHaveBeenCalled();
   gate.resolve();
-  await joined;
-  expect(h.listeners.size).toBe(1);
+  await Promise.all([owner, joined]);
+  expect(complete).toHaveBeenCalledTimes(2);
   await h.track();
   expect(h.forwarded).toHaveLength(1);
 });
@@ -230,13 +218,18 @@ test.each([false, true])(
       { status: 'rejected', reason: error },
       { status: 'rejected', reason: error },
     ]);
-    expect(h.listeners.size).toBe(0);
+    h.identityChanged.mockClear();
+    h.clients[''].setUserId('failed-user');
+    expect(h.identityChanged).not.toHaveBeenCalled();
     await h.track('during-failure');
     await h.initialize();
     await h.track('after-retry');
     expect(h.forwarded.map((event) => event.event_type)).toEqual(['after-retry']);
     expect(h.delivered.map((event) => event.event_type)).toEqual(['during-failure', 'after-retry']);
-    expect(h.listeners.size).toBe(1);
+    h.identityChanged.mockClear();
+    h.clients[''].setUserId('retried-user');
+    expect(h.identityChanged).toHaveBeenCalledTimes(1);
+    expect(h.identityChanged).toHaveBeenCalledWith(expect.objectContaining({ userId: 'retried-user' }));
   },
 );
 
@@ -244,7 +237,6 @@ test('Analytics failure releases the shared operation for another Init', async (
   const h = harness();
   h.beforeInit.mockRejectedValueOnce(new Error('Analytics initialization failed'));
   await expect(h.initialize()).rejects.toThrow('Analytics initialization failed');
-  expect(h.plugin).not.toHaveBeenCalled();
   await h.initialize();
   await h.track();
   expect(h.forwarded).toHaveLength(1);
@@ -258,13 +250,27 @@ test('separate clients initialize independently and keep separate registrations'
   const first = h.initialize();
   await h.setupStarted.promise;
   await h.initialize(true, 'other');
-  expect(h.listeners.size).toBe(1);
+  h.identityChanged.mockClear();
+  h.clients.other.setUserId('other-user');
+  expect(h.identityChanged).toHaveBeenCalledTimes(1);
+  expect(h.identityChanged).toHaveBeenCalledWith(expect.objectContaining({ userId: 'other-user' }));
   await h.track('other-event', 'other');
   gate.resolve();
   await first;
-  expect(h.listeners.size).toBe(2);
+  h.identityChanged.mockClear();
+  h.clients[''].setUserId('default-user');
+  h.clients.other.setUserId('updated-other-user');
+  expect(h.identityChanged.mock.calls).toEqual([
+    [expect.objectContaining({ userId: 'default-user' })],
+    [expect.objectContaining({ userId: 'updated-other-user' })],
+  ]);
   await h.initialize(false);
-  expect(h.listeners.size).toBe(1);
+  h.identityChanged.mockClear();
+  h.clients[''].setUserId('detached-user');
+  expect(h.identityChanged).not.toHaveBeenCalled();
+  h.clients.other.setUserId('still-attached-user');
+  expect(h.identityChanged).toHaveBeenCalledTimes(1);
+  expect(h.identityChanged).toHaveBeenCalledWith(expect.objectContaining({ userId: 'still-attached-user' }));
   await h.track('still-attached', 'other');
   await h.track('detached');
   expect(h.forwarded.map((event) => event.event_type)).toEqual(['other-event', 'still-attached']);

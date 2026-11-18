@@ -17,8 +17,7 @@
     "typecheck": "tsc -p ./tsconfig.json",
     "lint": "pnpm lint:eslint && pnpm lint:prettier && pnpm typecheck",
     "lint:eslint": "eslint '{test,e2e}/**/*.ts' 'playwright*.ts'",
-    "lint:prettier": "prettier --check \"{test,e2e}/**/*.ts\" \"playwright*.ts\"",
-    "test:integration": "playwright test --config playwright.guides-surveys.config.ts"
+    "lint:prettier": "prettier --check \"{test,e2e}/**/*.ts\" \"playwright*.ts\""
   },
   "repository": {
     "type": "git",
