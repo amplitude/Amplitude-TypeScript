@@ -75,6 +75,23 @@ describe('Session Replay context integration', () => {
     expect(order).toEqual(['stop:new_session', 'flush', 'send:1', 'drop']);
   });
 
+  test('flushes a terminal semantic boundary before customer stop sends', () => {
+    const { sdk, internal } = prepare(true);
+    const order: string[] = [];
+    sdk.recordCancelCallback = jest.fn(() => order.push('cancel'));
+    sdk.sendEvents = jest.fn(() => order.push('send'));
+    internal.eventCompressor = { flushQueue: jest.fn(() => order.push('flush')) };
+    internal.semanticAdapter.recordingReady();
+    internal.semanticAdapter.event({ type: EventType.FullSnapshot, timestamp: 1, data: {} });
+    capture.notify.mockImplementation((signal, value) => {
+      if (signal === 'recording' && value.state === 'stop') order.push('stop');
+    });
+
+    sdk.stop();
+
+    expect(order).toEqual(['stop', 'flush', 'cancel', 'send']);
+  });
+
   test('emits through rrweb only while recording and reads current privacy and analytics settings', () => {
     const { sdk, record, internal } = prepare(true);
     const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
