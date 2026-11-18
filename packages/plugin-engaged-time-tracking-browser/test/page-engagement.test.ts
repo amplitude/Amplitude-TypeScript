@@ -6,7 +6,7 @@ import {
   Logger,
   EngagedTimeOptions,
 } from '@amplitude/analytics-core';
-import { PageEngagement } from '../src/page-engagement';
+import { createPageEngagement, PageEngagement } from '../src/page-engagement';
 
 describe('page engagement', () => {
   let owner: PageEngagement;
@@ -26,8 +26,10 @@ describe('page engagement', () => {
   const engaged = () => latest().event_properties!['[Amplitude] Engaged Time'] as number;
   const start = async (options: EngagedTimeOptions = {}) => {
     const config = { loggerProvider: new Logger(), optOut: false } as unknown as BrowserConfig;
-    owner = new PageEngagement(client, window, options, config, newView);
-    owner.start(original);
+    owner = createPageEngagement(client, window, options, config, newView);
+    const initial = owner.start(original)!;
+    // The source pipeline delivers this return value; the engine does not resend it.
+    client.track(initial.event_type, initial.event_properties, initial);
     await jest.advanceTimersByTimeAsync(0);
   };
   const visibility = (value: DocumentVisibilityState) => {
@@ -196,6 +198,7 @@ describe('page engagement', () => {
       };
     });
     window.dispatchEvent(type === 'pagehide' ? new PageTransitionEvent(type) : new Event(type));
+    await Promise.resolve();
     expect(client.track.mock.calls).toHaveLength(2);
     expect(client.flush.mock.calls).toHaveLength(1);
     expect(client.flush.mock.invocationCallOrder[0]).toBeGreaterThan(client.track.mock.invocationCallOrder[1]);
@@ -209,6 +212,7 @@ describe('page engagement', () => {
       await start();
       await jest.advanceTimersByTimeAsync(1_000);
       window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+      await Promise.resolve();
       expect(engaged()).toBe(1_000);
       expect(latest().delay!.timeout).toBeUndefined();
       expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('pagehide');
@@ -238,6 +242,7 @@ describe('page engagement', () => {
     // Advance wall-clock time without allowing either timer callback to execute.
     jest.setSystemTime(400_000);
     visibility('visible');
+    await Promise.resolve();
     expect(latest().delay!.timeout).toBeUndefined();
     expect(latest().event_properties!['[Amplitude] Engagement Snapshot Reason']).toBe('inactivity');
     expect(engaged()).toBe(1_000);
@@ -248,13 +253,16 @@ describe('page engagement', () => {
     await start();
     const firstId = latest().delay!.id;
     await jest.advanceTimersByTimeAsync(3_000);
-    owner.start({ ...original, insert_id: 'second-id', time: 103_000 });
+    const second = owner.start({ ...original, insert_id: 'second-id', time: 103_000 })!;
+    await Promise.resolve();
     expect(engaged()).toBe(3_000);
     expect(latest().delay).toMatchObject({ id: firstId, timeout: undefined });
+    client.track(second.event_type, second.event_properties, second);
     await jest.advanceTimersByTimeAsync(1);
     expect(latest().insert_id).toBe('second-id');
     expect(latest().delay!.id).not.toBe(firstId);
     window.dispatchEvent(new PageTransitionEvent('pagehide'));
+    await Promise.resolve();
     expect(latest().delay!.timeout).toBeUndefined();
     expect(client.flush.mock.calls.length).toBeGreaterThan(0);
   });
@@ -290,7 +298,7 @@ describe('page engagement', () => {
     const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
     await start({ activityWindowMillis: value, heartbeatIntervalMillis: value, inactivityTimeoutMillis: value });
     expect(warn).toHaveBeenCalledWith(
-      `Page engagement: duration ${value} ms is invalid; using default 180000 ms. Expected a finite value greater than 0 and at most 86400000 ms.`,
+      `Page engagement: invalid duration ${value} ms; using default 180000 ms. Expected 0 < finite duration <= 86400000 ms.`,
     );
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('using default 5000 ms'));
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('using default 15000 ms'));

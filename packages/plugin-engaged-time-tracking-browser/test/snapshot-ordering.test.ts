@@ -1,5 +1,5 @@
 import { AmplitudeCore, BaseTransport, Config, Destination, Payload, Status } from '@amplitude/analytics-core';
-import { pageViewTrackingPlugin } from '../src/page-view-tracking';
+import { engagedTimeTrackingPlugin } from '../src/engaged-time-tracking';
 
 class TestClient extends AmplitudeCore {
   init(config: Config) {
@@ -36,7 +36,7 @@ describe('engagement delivery through the SDK pipeline', () => {
       await client.init(config);
       await client.add(new Destination()).promise;
       Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
-      const plugin = pageViewTrackingPlugin({ trackEngagedTime: true });
+      const plugin = engagedTimeTrackingPlugin();
       await client.add(plugin).promise;
       Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
       try {
@@ -76,7 +76,7 @@ describe('engagement delivery through the SDK pipeline', () => {
     await client.init(config);
     await client.add(new Destination()).promise;
     Object.defineProperty(document, 'prerendering', { configurable: true, value: true });
-    const plugin = pageViewTrackingPlugin({ trackEngagedTime: true });
+    const plugin = engagedTimeTrackingPlugin();
     await client.add(plugin).promise;
     Object.defineProperty(document, 'prerendering', { configurable: true, value: false });
     try {
@@ -96,7 +96,7 @@ describe('engagement delivery through the SDK pipeline', () => {
       expect(send.mock.calls[0][1].events[0]).toMatchObject({
         event_type: '[Amplitude] Page Viewed',
         insert_id: 'large-page',
-        event_properties: { ...properties, '[Amplitude] Page Counter': 1 },
+        event_properties: properties,
       });
       expect(send.mock.calls[0][1].events[0].event_properties['[Amplitude] Engaged Time']).toBeUndefined();
       window.dispatchEvent(new Event('blur'));

@@ -12,6 +12,7 @@ import {
   CustomEnrichmentOptions,
   PerformanceTrackingOptions,
   WebVitalsOptions,
+  EngagedTimeOptions,
   isChromeExtension,
   normalizeNetworkCaptureRules,
 } from '@amplitude/analytics-core';
@@ -248,7 +249,6 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
   let trackOn: PageTrackingTrackOn | undefined = () => false;
   let trackHistoryChanges: PageTrackingHistoryChanges | undefined = undefined;
   let eventType: string | undefined;
-  let engagementOptions: PageTrackingOptions = {};
   const pageCounter = config.pageCounter;
 
   const isDefaultPageViewTrackingEnabled = isPageViewTrackingEnabled(config.defaultTracking);
@@ -273,10 +273,6 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
       if ('eventType' in config.defaultTracking.pageViews && config.defaultTracking.pageViews.eventType) {
         eventType = config.defaultTracking.pageViews.eventType;
       }
-      const pageViews = config.defaultTracking.pageViews;
-      if ('trackEngagedTime' in pageViews) {
-        engagementOptions = { trackEngagedTime: pageViews.trackEngagedTime };
-      }
     }
   }
 
@@ -285,8 +281,18 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
     trackHistoryChanges,
     eventType,
     pageCounter,
-    ...engagementOptions,
   };
+};
+
+/** Experimental: enable only through the explicit sibling option, not autocapture: true. */
+export const isEngagedTimeTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean =>
+  typeof autocapture === 'object' &&
+  (autocapture.engagedTimeTracking === true ||
+    (typeof autocapture.engagedTimeTracking === 'object' && autocapture.engagedTimeTracking !== null));
+
+export const getEngagedTimeTrackingConfig = (config: BrowserOptions): EngagedTimeOptions | undefined => {
+  const value = typeof config.autocapture === 'object' ? config.autocapture.engagedTimeTracking : undefined;
+  return value && typeof value === 'object' ? value : undefined;
 };
 
 export const getAttributionTrackingConfig = (config: BrowserOptions): AttributionOptions => {

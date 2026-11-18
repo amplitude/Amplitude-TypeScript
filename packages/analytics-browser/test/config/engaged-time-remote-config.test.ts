@@ -1,79 +1,90 @@
 import { RemoteConfigClient, RemoteConfig, EngagedTimeOptions } from '@amplitude/analytics-core';
-import {
-  AutocaptureOptionsRemoteConfig,
-  PageTrackingOptionsRemoteConfig,
-  updateBrowserConfigWithRemoteConfig,
-} from '../../src/config/joined-config';
-import { getPageViewTrackingConfig } from '../../src/default-tracking';
+import { AutocaptureOptionsRemoteConfig, updateBrowserConfigWithRemoteConfig } from '../../src/config/joined-config';
+import { getEngagedTimeTrackingConfig, isEngagedTimeTrackingEnabled } from '../../src/default-tracking';
 import { createConfigurationMock } from '../helpers/mock';
 
-const timings: EngagedTimeOptions = {
+const engagementOptions: EngagedTimeOptions = {
+  pageViewEventType: 'page_view',
+  secondaryPageViewEventType: 'Engagement Resumed',
   activityWindowMillis: 5000,
   heartbeatIntervalMillis: 15000,
   inactivityTimeoutMillis: 180000,
 };
 
-// Exercise delivery filtering and recursive enabled translation before the
-// page-view plugin receives its options. Authoring design is recorded in SDK-391.
-describe('engaged-time remote config contract', () => {
-  test('delivers remote options to the page-view plugin configuration', () => {
+describe('independent engaged-time remote config contract', () => {
+  test('delivers the sibling engagement option without enabling pageViews', () => {
     const config = createConfigurationMock({ autocapture: false });
     const client = new RemoteConfigClient('api-key', config.loggerProvider);
     const callback = jest.fn((remote: RemoteConfig | null) => updateBrowserConfigWithRemoteConfig(remote, config));
     const autocapture: AutocaptureOptionsRemoteConfig = {
-      pageViews: { enabled: true, trackEngagedTime: { enabled: true, ...timings } },
+      pageViews: false,
+      engagedTimeTracking: { enabled: true, ...engagementOptions },
     };
     client.sendCallback(
+      { id: 'test-subscription', key: 'configs.analyticsSDK.browserSDK', deliveryMode: 'all', callback },
       {
-        id: 'test-subscription',
-        key: 'configs.analyticsSDK.browserSDK',
-        deliveryMode: 'all',
-        callback,
-      },
-      {
-        remoteConfig: {
-          configs: {
-            analyticsSDK: {
-              browserSDK: { autocapture },
-            },
-          },
-        },
+        remoteConfig: { configs: { analyticsSDK: { browserSDK: { autocapture } } } },
         lastFetch: new Date(),
       },
       'remote',
     );
-
     expect(callback).toHaveBeenCalledTimes(1);
-    expect(getPageViewTrackingConfig(config).trackEngagedTime).toEqual(timings);
+    expect(getEngagedTimeTrackingConfig(config)).toEqual(engagementOptions);
+    expect(config.autocapture).toMatchObject({ pageViews: false });
     expect(config.defaultTracking).toEqual(config.autocapture);
   });
-
-  test.each<{ pageViews: boolean | PageTrackingOptionsRemoteConfig; expected?: boolean | EngagedTimeOptions }>([
-    { pageViews: true },
-    { pageViews: false },
-    { pageViews: { enabled: true } },
-    { pageViews: { enabled: false } },
-    { pageViews: { enabled: true, trackEngagedTime: { enabled: true } }, expected: true },
-    { pageViews: { enabled: true, trackEngagedTime: { enabled: false } }, expected: false },
-    { pageViews: { enabled: true, trackEngagedTime: { enabled: true, ...timings } }, expected: timings },
-    { pageViews: { trackEngagedTime: true }, expected: true },
-    { pageViews: { trackEngagedTime: false }, expected: false },
-    { pageViews: { trackEngagedTime: {} }, expected: {} },
-  ])('forwards pageViews: $pageViews', ({ pageViews, expected }) => {
-    const config = createConfigurationMock({ autocapture: false });
-    updateBrowserConfigWithRemoteConfig({ autocapture: { pageViews } }, config);
-    expect(getPageViewTrackingConfig(config).trackEngagedTime).toEqual(expected);
+  test('replaces local secondary naming rather than merging it into remote primary options', () => {
+    const config = createConfigurationMock({
+      autocapture: { pageViews: false, engagedTimeTracking: engagementOptions },
+    });
+    updateBrowserConfigWithRemoteConfig(
+      {
+        autocapture: {
+          engagedTimeTracking: {
+            enabled: true,
+            pageViewEventType: 'remote_page',
+          },
+        },
+      },
+      config,
+    );
+    expect(getEngagedTimeTrackingConfig(config)).toEqual({ pageViewEventType: 'remote_page' });
   });
-
+  test('preserves local secondary naming when the remote engagement setting is omitted', () => {
+    const config = createConfigurationMock({ autocapture: { engagedTimeTracking: engagementOptions } });
+    updateBrowserConfigWithRemoteConfig({ autocapture: { pageViews: false } }, config);
+    expect(getEngagedTimeTrackingConfig(config)).toEqual(engagementOptions);
+  });
   test.each([undefined, false, true, { sessions: false }, { pageViews: false }])(
-    'applies remote engagement when local autocapture is %p',
+    'applies remote engagement independently of local autocapture=%p',
     (autocapture) => {
       const config = createConfigurationMock({ autocapture });
-      updateBrowserConfigWithRemoteConfig(
-        { autocapture: { pageViews: { enabled: true, trackEngagedTime: { enabled: true } } } },
-        config,
-      );
-      expect(getPageViewTrackingConfig(config).trackEngagedTime).toBe(true);
+      updateBrowserConfigWithRemoteConfig({ autocapture: { engagedTimeTracking: { enabled: true } } }, config);
+      expect(getEngagedTimeTrackingConfig(config)).toBeUndefined();
+      expect(isEngagedTimeTrackingEnabled(config.autocapture)).toBe(true);
     },
   );
+  test.each([
+    { remote: true, expected: undefined },
+    { remote: false, expected: undefined },
+    { remote: { enabled: true }, expected: undefined },
+    { remote: { enabled: false, ...engagementOptions }, expected: undefined },
+    {
+      remote: { enabled: true, secondaryPageViewEventType: 'Engagement Resumed' },
+      expected: { secondaryPageViewEventType: 'Engagement Resumed' },
+    },
+    { remote: { enabled: true, ...engagementOptions }, expected: engagementOptions },
+    {
+      remote: { enabled: true, pageViewEventType: 'page_view', inactivityTimeoutMillis: 1000 },
+      expected: { pageViewEventType: 'page_view', inactivityTimeoutMillis: 1000 },
+    },
+  ])('translates independent remote setting $remote', ({ remote, expected }) => {
+    const config = createConfigurationMock({ autocapture: false });
+    updateBrowserConfigWithRemoteConfig({ autocapture: { pageViews: false, engagedTimeTracking: remote } }, config);
+    expect(getEngagedTimeTrackingConfig(config)).toEqual(expected);
+    expect(isEngagedTimeTrackingEnabled(config.autocapture)).toBe(
+      remote !== false && !(typeof remote === 'object' && remote.enabled === false),
+    );
+    expect(config.autocapture).toMatchObject({ pageViews: false });
+  });
 });

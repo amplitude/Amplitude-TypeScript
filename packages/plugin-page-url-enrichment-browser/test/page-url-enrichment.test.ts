@@ -127,6 +127,44 @@ describe('pageUrlEnrichmentPlugin', () => {
     jest.restoreAllMocks();
   });
 
+  test('preserves all page fields on an engagement replay after SPA navigation', async () => {
+    await plugin.setup?.(mockConfig, mockAmplitude);
+    const event = {
+      event_type: '[Amplitude] Page Viewed',
+      extra: { engagedTimeReplay: true },
+      delay: { id: 'engagement', timeout: 1000 },
+      event_properties: {
+        '[Amplitude] Page URL': '/old',
+        '[Amplitude] Page Title': 'Old title',
+        '[Amplitude] Previous Page Location': '/before-old',
+        '[Amplitude] Previous Page Type': 'internal',
+      },
+    };
+    (window.location as any) = { href: 'https://example.com/new', pathname: '/new', hostname: 'example.com' };
+    expect(await plugin.execute?.(event)).toBe(event);
+    expect(event.event_properties).toEqual({
+      '[Amplitude] Page URL': '/old',
+      '[Amplitude] Page Title': 'Old title',
+      '[Amplitude] Previous Page Location': '/before-old',
+      '[Amplitude] Previous Page Type': 'internal',
+    });
+  });
+
+  test('still enriches an unmarked Video Analytics delayed event', async () => {
+    (window.location as any) = { href: 'https://example.com/video', pathname: '/video', hostname: 'example.com' };
+    await plugin.setup?.(mockConfig, mockAmplitude);
+    const event = await plugin.execute?.({
+      event_type: '[Streaming] Stream Stopped',
+      delay: { id: 'video', timeout: 3_600_000 },
+    });
+    expect(event?.event_properties).toMatchObject({
+      '[Amplitude] Page URL': 'https://example.com/video',
+      '[Amplitude] Page Path': '/video',
+      '[Amplitude] Page Domain': 'example.com',
+    });
+    expect(event?.event_properties).toHaveProperty(['[Amplitude] Previous Page Location']);
+  });
+
   describe('setup', () => {
     test('should track page changes if we move to a new page', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
@@ -231,33 +269,6 @@ describe('pageUrlEnrichmentPlugin', () => {
   });
 
   describe('execute', () => {
-    test('preserves captured page context when replaying an engagement snapshot', async () => {
-      await plugin.setup?.(mockConfig, mockAmplitude);
-      window.sessionStorage.setItem(
-        URL_INFO_STORAGE_KEY,
-        JSON.stringify({
-          [CURRENT_PAGE_STORAGE_KEY]: 'https://example.com/b',
-          [PREVIOUS_PAGE_STORAGE_KEY]: 'https://example.com/a',
-        }),
-      );
-      const snapshot = {
-        event_type: '[Amplitude] Page Viewed',
-        delay: { id: 'page-a' },
-        extra: { pageEngagementSnapshot: true },
-        event_properties: {
-          '[Amplitude] Page Location': 'https://example.com/a',
-          '[Amplitude] Previous Page Location': 'https://www.google.com/',
-          '[Amplitude] Previous Page Type': 'external',
-        },
-      };
-      expect(await plugin.execute?.(snapshot)).toEqual(snapshot);
-      // Ordinary delayed events still use the existing enrichment behavior.
-      const ordinary = await plugin.execute?.({ ...snapshot, delay: { id: 'other-event' }, extra: undefined });
-      expect(ordinary?.event_properties).toMatchObject({
-        '[Amplitude] Previous Page Location': 'https://example.com/a',
-      });
-    });
-
     test('should add additional Page URL and Previous Page properties to an event', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
