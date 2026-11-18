@@ -4,7 +4,10 @@ export const MASKED_TEXT_VALUE = '*****';
 // Regex patterns for sensitive data
 export const CC_REGEX = /\b(?:\d[ -]*?){13,16}\b/;
 export const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;
-export const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/g;
+// [^\s@]+ stops at the next @. In a URL that leaves `@domain` after the first address.
+// Continue through those @ segments so the leftover cannot slide into kept text
+// when the long match is replaced with a short mask.
+export const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+(?:@[^\s@]+)*/g;
 
 /**
  * Replaces sensitive strings (credit cards, SSNs, emails) and custom patterns with masked text
@@ -19,8 +22,10 @@ export const replaceSensitiveString = (text: string | null, additionalMaskTextPa
 
   let result = text;
 
-  // Check for credit card number (with or without spaces/dashes)
-  result = result.replace(CC_REGEX, MASKED_TEXT_VALUE);
+  // CC_REGEX is not global: repeated `.test()` calls share lastIndex.
+  // A fresh global copy masks every card. One replace would leave later cards,
+  // and a card past the cutoff can then slide into the kept autocapture text.
+  result = result.replace(new RegExp(CC_REGEX.source, 'g'), MASKED_TEXT_VALUE);
 
   // Check for social security number
   result = result.replace(SSN_REGEX, MASKED_TEXT_VALUE);
@@ -28,10 +33,15 @@ export const replaceSensitiveString = (text: string | null, additionalMaskTextPa
   // Check for email
   result = result.replace(EMAIL_REGEX, MASKED_TEXT_VALUE);
 
-  // Check for additional mask text patterns
+  // Check for additional mask text patterns. Every match is masked, not only the first.
+  // A later match can otherwise slide into the kept text once earlier matches shorten the prefix.
   for (const pattern of additionalMaskTextPatterns) {
     try {
-      result = result.replace(pattern, MASKED_TEXT_VALUE);
+      const flags = pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`;
+      // Skip zero-length matches so a pattern like /x*/ does not insert a mask between characters.
+      result = result.replace(new RegExp(pattern.source, flags), (match) =>
+        match.length > 0 ? MASKED_TEXT_VALUE : match,
+      );
     } catch {
       // ignore invalid pattern
     }

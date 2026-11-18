@@ -59,6 +59,17 @@ export const MAX_MASK_TEXT_PATTERNS = 25;
 
 export const MAX_ATTRIBUTE_LENGTH = 128;
 
+/** Element text captured on autocapture events is limited to this many characters. */
+export const MAX_TEXT_LENGTH = 255;
+
+/**
+ * Extra characters scanned past a cutoff before masking.
+ * Truncating first can split an email, card, or SSN so the pattern no longer matches.
+ * 256 covers a full email (RFC 5321 maximum is 254) that begins on the last kept character,
+ * without running the matchers on unbounded text.
+ */
+export const SENSITIVE_MASK_LOOKAHEAD = 256;
+
 // The key for the page view object in sessionStorage
 export { PAGE_VIEW_SESSION_STORAGE_KEY } from '@amplitude/analytics-core';
 

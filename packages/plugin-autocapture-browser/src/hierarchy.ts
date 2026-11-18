@@ -2,6 +2,7 @@ import { isShadowRoot, walkComposedAncestors } from '@amplitude/element-selector
 import { isNonSensitiveElement } from './helpers';
 import { SHADOW_OFF, type ShadowMode } from './shadow-mode';
 import { DATA_AMP_INTERNAL_SHADOW, DATA_AMP_MASK_ATTRIBUTES } from './constants';
+import { sensitiveMaskWindowEnd } from './sensitive-mask';
 import type { HierarchyNode } from './typings/autocapture';
 import * as constants from './constants';
 import { MASKED_TEXT_VALUE, TEXT_MASK_ATTRIBUTE } from '@amplitude/analytics-core';
@@ -111,8 +112,17 @@ export function getElementProperties(
         continue;
       }
 
-      // Finally cast attribute value to string and limit attribute value length
-      attributes[attr.name] = String(attr.value).substring(0, constants.MAX_ATTRIBUTE_LENGTH);
+      // Bound the stored value on the same window getHierarchy masks. A hard cut
+      // can slice an email, and masking then pulls that fragment into the kept text.
+      const rawValue = String(attr.value);
+      attributes[attr.name] = rawValue.substring(
+        0,
+        sensitiveMaskWindowEnd(
+          rawValue,
+          constants.MAX_ATTRIBUTE_LENGTH + constants.SENSITIVE_MASK_LOOKAHEAD,
+          constants.MAX_ATTRIBUTE_LENGTH,
+        ),
+      );
     }
   }
 

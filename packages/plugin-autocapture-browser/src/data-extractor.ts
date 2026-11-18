@@ -26,6 +26,7 @@ import {
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent, JSONValue } from './helpers';
 import { getAncestors, getElementProperties } from './hierarchy';
+import { sensitiveMaskWindowEnd } from './sensitive-mask';
 import { getDataSource } from './pageActions/actions';
 import { Hierarchy } from './typings/autocapture';
 import {
@@ -129,6 +130,19 @@ export class DataExtractor {
     return replaceSensitiveString(text, this.additionalMaskTextPatterns);
   };
 
+  /**
+   * Mask sensitive substrings, then truncate to `maxLength`.
+   * Only `maxLength + SENSITIVE_MASK_LOOKAHEAD` characters are scanned, and the
+   * scan ends on whitespace when it can, so a value is not sliced and then
+   * pulled into the kept text when masking shortens the string. The window
+   * never ends before `maxLength`, so a long token still fills the kept text.
+   */
+  maskThenTruncate = (text: string, maxLength: number): string => {
+    const scanEnd = maxLength + constants.SENSITIVE_MASK_LOOKAHEAD;
+    const windowEnd = sensitiveMaskWindowEnd(text, scanEnd, maxLength);
+    return this.replaceSensitiveString(text.substring(0, windowEnd)).substring(0, maxLength);
+  };
+
   // Get the DOM hierarchy of the element, starting from the target element to the root element.
   getHierarchy = (element: Element | null): Hierarchy => {
     const startTime = performance.now();
@@ -168,7 +182,7 @@ export class DataExtractor {
       if (hierarchyNode?.attrs) {
         Object.entries(hierarchyNode.attrs).forEach(([key, value]) => {
           if (hierarchyNode.attrs) {
-            hierarchyNode.attrs[key] = this.replaceSensitiveString(value);
+            hierarchyNode.attrs[key] = this.maskThenTruncate(value, constants.MAX_ATTRIBUTE_LENGTH);
           }
         });
       }
@@ -340,8 +354,12 @@ export class DataExtractor {
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = currentElementAttributes?.['aria-label'];
 
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
-      const href = element.href.substring(0, constants.MAX_ATTRIBUTE_LENGTH);
-      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.replaceSensitiveString(href); // we don't use hierarchy here because we don't want href value to be changed
+      // Resolved href, not the hierarchy attribute: mask before the length limit so an
+      // email that crosses the cutoff cannot survive as an unmasked fragment.
+      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.maskThenTruncate(
+        element.href,
+        constants.MAX_ATTRIBUTE_LENGTH,
+      );
     }
 
     return removeEmptyProperties(properties);
@@ -494,7 +512,7 @@ export class DataExtractor {
     } else {
       output = this.getTextWithMaskedDescendants(element);
     }
-    return this.replaceSensitiveString(output.substring(0, 255)).replace(/\s+/g, ' ').trim();
+    return this.maskThenTruncate(output, constants.MAX_TEXT_LENGTH).replace(/\s+/g, ' ').trim();
   };
 
   // Returns the element properties for the given element in Visual Labeling.
