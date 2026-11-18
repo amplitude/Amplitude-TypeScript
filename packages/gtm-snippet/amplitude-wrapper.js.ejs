@@ -210,83 +210,11 @@ const LOG_PREFIX = '[Amplitude / GTM]';
 
   const clientInitializations = new WeakMap();
 
-  // One registration per Init attempt. Only queued setup may run before
-  // Analytics finishes: an immediate add belongs to a timeline Init will reset.
-  var createGuidesSurveysRegistration = function () {
+  var createGuidesSurveysPlugin = function () {
     if (!window.engagement) engagementSnippet();
-    const original = window.engagement.plugin();
-    let phase = 'before-init';
-    let setup = { status: 'not-started' };
-    let teardownPromise;
-    let registrationPromise;
-
-    const teardown = function () {
-      // Reset can remove an immediate placeholder before real setup runs.
-      if (setup.status === 'not-started') return;
-      phase = 'retired';
-      if (!teardownPromise) {
-        teardownPromise = (async () => {
-          await original.teardown?.call(original);
-        })();
-      }
-      return teardownPromise;
-    };
-    const plugin = {
-      ...original,
-      async setup(...args) {
-        if (phase === 'before-init' || phase === 'retired') return;
-        setup = { status: 'pending' };
-        try {
-          await original.setup?.apply(original, args);
-          setup = { status: 'succeeded' };
-        } catch (error) {
-          // Do not strand Analytics in its queued initialization. A failed
-          // registration passes startup events through, then Init rejects.
-          setup = { status: 'failed', error };
-        }
-      },
-      execute(event) {
-        if (phase === 'retired' || setup.status !== 'succeeded') return Promise.resolve(event);
-        return original.execute ? original.execute.call(original, event) : Promise.resolve(event);
-      },
-      teardown,
-    };
-    for (const hook of ['onIdentityChanged', 'onSessionIdChanged', 'onOptOutChanged', 'onReset']) {
-      if (original[hook]) {
-        plugin[hook] = function (...args) {
-          if (phase !== 'retired' && setup.status === 'succeeded') {
-            return original[hook].apply(original, args);
-          }
-        };
-      }
-    }
-    return {
-      queue(client) {
-        // add() queues on fresh clients but invokes setup immediately on
-        // ready clients. Neither await nor a private readiness flag is needed.
-        registrationPromise = client.add(plugin).promise.catch((error) => {
-          setup = { status: 'failed', error };
-        });
-        phase = 'initializing';
-      },
-      async complete(client) {
-        await registrationPromise;
-        if (setup.status === 'not-started') await client.add(plugin).promise;
-        if (setup.status === 'failed') throw setup.error;
-      },
-      async dispose(client) {
-        phase = 'retired';
-        try {
-          await client.remove(plugin.name).promise;
-        } finally {
-          // Also clean partial setup when registration never completed.
-          await teardown();
-        }
-      },
-    };
+    return window.engagement.plugin();
   };
-
-  var initializeClient = async function(client, args) {
+  var initializeClient = async function(client, args, state) {
       const argsLength = args.length;
       const configuration = args[argsLength - 1];
 
@@ -360,47 +288,66 @@ const LOG_PREFIX = '[Amplitude / GTM]';
         client.add(sessionReplayPlugin.plugin());
       }
 
-      let registration;
-      let preparationFailure;
-      if (guidesSurveys) {
-          try {
-              registration = createGuidesSurveysRegistration();
-              registration.queue(client);
-          } catch (error) {
-              preparationFailure = { error };
-          }
+      const firstInitialization = state.history.status === 'uninitialized';
+      if (guidesSurveys && firstInitialization) {
+        // Preserve startup forwarding through Analytics' existing plugin queue.
+        client.add(createGuidesSurveysPlugin());
       }
 
       try {
-          await client.init(...args).promise;
-          // Keep the GTM library override after Analytics initialization.
-          await client.add(gtmLibraryPlugin()).promise;
-          if (preparationFailure) throw preparationFailure.error;
-          if (registration) await registration.complete(client);
+        await client.init(...args).promise;
       } catch (error) {
-          if (registration) {
-              try {
-                  await registration.dispose(client);
-              } catch (cleanupError) {
-                  console.error(LOG_PREFIX, 'Failed to clean up G&S registration', cleanupError);
-              }
+        // Analytics may remain internally initializing after rejection. Do not
+        // mistake its early return on a later Init for successful recovery.
+        state.history = { status: 'failed', error };
+        throw error;
+      }
+      state.history = { status: 'initialized' };
+      // Keep the GTM library override after Analytics initialization.
+      await client.add(gtmLibraryPlugin()).promise;
+
+      if (guidesSurveys && !firstInitialization) {
+        const plugin = createGuidesSurveysPlugin();
+        try {
+          await client.add(plugin).promise;
+        } catch (error) {
+          try {
+            await client.remove(plugin.name).promise;
+          } catch (cleanupError) {
+            console.error(LOG_PREFIX, 'Failed to clean up G&S registration', cleanupError);
           }
           throw error;
+        }
       }
+
   };
 
-  var init = function(client, args) {
-      let initialization = clientInitializations.get(client);
-      if (!initialization) {
-        // Claim the operation before calling plugins. Overlapping Init calls use
-        // the owner's settings and wait through G&S setup, including failures.
-        initialization = Promise.resolve()
-          .then(() => initializeClient(client, args))
-          .finally(() => clientInitializations.delete(client));
-        clientInitializations.set(client, initialization);
-      }
-      return initialization;
+  var init = function (client, args) {
+    let state = clientInitializations.get(client);
+    if (!state) {
+      state = { history: { status: 'uninitialized' } };
+      clientInitializations.set(client, state);
+    }
+    if (state.initialization) return state.initialization;
+    if (state.history.status === 'failed') return Promise.reject(state.history.error);
+
+    const firstInitialization = state.history.status === 'uninitialized';
+    // Claim the operation before invoking plugins. Overlapping calls retain
+    // the owner's settings and wait through attachment and cleanup.
+    state.initialization = Promise.resolve()
+      .then(() => initializeClient(client, args, state))
+      .catch((error) => {
+        // Conservatively make all first-attempt failures terminal, even
+        // preparation failures before Analytics initialization starts.
+        if (firstInitialization) state.history = { status: 'failed', error };
+        throw error;
+      })
+      .finally(() => {
+        state.initialization = undefined;
+      });
+    return state.initialization;
   };
+
 
 
   // Build the command wrapper logic

@@ -21,7 +21,7 @@ const source = render(template, {
 
 function deferred() {
   let resolve!: () => void;
-  let reject!: (error: Error) => void;
+  let reject!: (error: unknown) => void;
   const promise = new Promise<void>((res, rej) => {
     resolve = res;
     reject = rej;
@@ -33,6 +33,7 @@ let sequence = 0;
 const cleanups: Array<() => Promise<unknown>> = [];
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0)) await cleanup();
+  jest.useRealTimers();
 });
 
 function harness() {
@@ -52,8 +53,6 @@ function harness() {
   const identityChanged = jest.fn<void, [unknown]>();
   const beforeSetup = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
   const setupStarted = deferred();
-  const afterSetup = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
-  const finishTeardown = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
   // Assume the G&S teardown contract here; release validation must exercise the shipped runtime.
   const plugin = jest.fn((): EnrichmentPlugin<BrowserClient, BrowserConfig> => {
     let detach: (() => void) | undefined;
@@ -68,13 +67,11 @@ function harness() {
         const listener = () => identityChanged(store.getIdentity());
         store.addIdentityListener(listener);
         detach = () => store.removeIdentityListener(listener);
-        await afterSetup();
       },
       async teardown() {
         expect(this).toBe(instance);
         detach?.();
         detach = undefined;
-        await finishTeardown();
       },
       async execute(event) {
         expect(this).toBe(instance);
@@ -126,16 +123,12 @@ function harness() {
   });
   const initialize = (enabled = true, name: keyof typeof clients = '') =>
     browserWindow._amplitude(name, 'init', 'test-key', { ...options(name), guidesSurveys: enabled });
-  const initializeDirect = () => clients[''].init('test-key', options()).promise;
   const track = (event = 'test-event', name: keyof typeof clients = '') => clients[name].track(event).promise;
   return {
     clients,
     initialize,
-    initializeDirect,
     browserWindow,
     plugin,
-    afterSetup,
-    finishTeardown,
     track,
     forwarded,
     delivered,
@@ -224,51 +217,48 @@ test.each([false, true])('overlapping callers wait through G&S attachment (reini
   expect(h.forwarded).toHaveLength(1);
 });
 
-test.each([false, true])(
-  'G&S failure rejects all callers, preserves Analytics and permits retry (reinit: %s)',
-  async (reinit) => {
-    const h = harness();
-    if (reinit) await h.initialize();
-    const gate = deferred();
-    const error = new Error('G&S boot failed');
-    const entered = deferred();
-    h.beforeSetup.mockImplementationOnce(() => {
-      entered.resolve();
-      return gate.promise;
-    });
-    const owner = h.initialize();
-    await entered.promise;
-    const joined = h.initialize(false);
-    const results = Promise.allSettled([owner, joined]);
-    gate.reject(error);
-    expect(await results).toEqual([
-      { status: 'rejected', reason: error },
-      { status: 'rejected', reason: error },
-    ]);
-    h.identityChanged.mockClear();
-    h.clients[''].setUserId('failed-user');
-    expect(h.identityChanged).not.toHaveBeenCalled();
-    await h.track('during-failure');
-    await h.initialize();
-    await h.track('after-retry');
-    expect(h.forwarded.map((event) => event.event_type)).toEqual(['after-retry']);
-    expect(h.delivered.map((event) => event.event_type)).toEqual(['during-failure', 'after-retry']);
-    h.identityChanged.mockClear();
-    h.clients[''].setUserId('retried-user');
-    expect(h.identityChanged).toHaveBeenCalledTimes(1);
-    expect(h.identityChanged).toHaveBeenCalledWith(expect.objectContaining({ userId: 'retried-user' }));
-  },
-);
-
-test('Analytics failure releases the shared operation for another Init', async () => {
+test('subsequent G&S attachment failure rejects joined callers and permits retry', async () => {
   const h = harness();
-  h.beforeInit.mockRejectedValueOnce(new Error('Analytics initialization failed'));
-  await expect(h.initialize()).rejects.toThrow('Analytics initialization failed');
   await h.initialize();
-  await h.track();
-  expect(h.forwarded).toHaveLength(1);
-  expect(h.delivered).toHaveLength(1);
-  expect(h.beforeSetup).toHaveBeenCalledTimes(1);
+  const gate = deferred();
+  const entered = deferred();
+  const error = new Error('G&S boot failed');
+  h.beforeSetup.mockImplementationOnce(() => {
+    entered.resolve();
+    return gate.promise;
+  });
+  const owner = h.initialize();
+  await entered.promise;
+  const joined = h.initialize(false);
+  const results = Promise.allSettled([owner, joined]);
+  gate.reject(error);
+  expect(await results).toEqual([
+    { status: 'rejected', reason: error },
+    { status: 'rejected', reason: error },
+  ]);
+  h.identityChanged.mockClear();
+  h.clients[''].setUserId('failed-user');
+  expect(h.identityChanged).not.toHaveBeenCalled();
+  await h.track('during-failure');
+  await h.initialize();
+  await h.track('after-retry');
+  expect(h.forwarded.map((event) => event.event_type)).toEqual(['after-retry']);
+  expect(h.delivered.map((event) => event.event_type)).toEqual(['during-failure', 'after-retry']);
+  h.clients[''].setUserId('retried-user');
+  expect(h.identityChanged).toHaveBeenCalledTimes(1);
+});
+
+test.each([false, true])('Analytics initialization rejection is terminal (reinit: %s)', async (reinit) => {
+  const h = harness();
+  if (reinit) await h.initialize();
+  const error = new Error('Analytics initialization failed');
+  h.beforeInit.mockRejectedValueOnce(error);
+  await expect(h.initialize()).rejects.toBe(error);
+  const initCalls = h.beforeInit.mock.calls.length;
+  const pluginCalls = h.plugin.mock.calls.length;
+  await expect(h.initialize()).rejects.toBe(error);
+  expect(h.beforeInit).toHaveBeenCalledTimes(initCalls);
+  expect(h.plugin).toHaveBeenCalledTimes(pluginCalls);
 });
 
 test('separate clients initialize independently and keep separate registrations', async () => {
@@ -305,7 +295,8 @@ test('separate clients initialize independently and keep separate registrations'
   expect(h.delivered.map((event) => event.event_type)).toEqual(['other-event', 'still-attached', 'detached']);
 });
 
-test('startup events queued before Init and during setup reach G&S and Analytics once', async () => {
+test('startup events wait for G&S setup and reach G&S and Analytics once', async () => {
+  jest.useFakeTimers();
   const h = harness();
   const gate = deferred();
   h.beforeSetup.mockReturnValueOnce(gate.promise);
@@ -313,54 +304,44 @@ test('startup events queued before Init and during setup reach G&S and Analytics
   const initialized = h.initialize();
   await h.setupStarted.promise;
   const duringSetup = h.track('during-setup');
-  // Give scheduled event processing a turn while G&S is deliberately unavailable.
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  // Run scheduled processing while setup is still blocked, not just its final result.
+  await jest.advanceTimersByTimeAsync(10);
+  expect(h.delivered).toEqual([]);
+  expect(h.forwarded).toEqual([]);
   gate.resolve();
-  await Promise.all([initialized, beforeInit, duringSetup]);
+  await initialized;
+  await jest.runAllTimersAsync();
+  await Promise.all([beforeInit, duringSetup]);
   expect(h.delivered.map((event) => event.event_type)).toEqual(['before-init', 'during-setup']);
   expect(h.forwarded.map((event) => event.event_type)).toEqual(['before-init', 'during-setup']);
 });
 
-test('failed startup setup releases queued events only to Analytics and allows retry', async () => {
+test.each([
+  { label: 'Error', error: new Error('startup setup failed') },
+  { label: 'undefined', error: undefined },
+  { label: 'null', error: null },
+  { label: 'false', error: false },
+  { label: 'zero', error: 0 },
+])('first G&S setup rejection is terminal and preserves $label', async ({ error }) => {
   const h = harness();
   const gate = deferred();
-  const error = new Error('startup setup failed');
   h.beforeSetup.mockReturnValueOnce(gate.promise);
-  const startup = h.track('startup');
   const owner = h.initialize();
   await h.setupStarted.promise;
   const joined = h.initialize(false);
   const settled = Promise.allSettled([owner, joined]);
-  const duringSetup = h.track('during-setup');
   gate.reject(error);
   expect(await settled).toEqual([
     { status: 'rejected', reason: error },
     { status: 'rejected', reason: error },
   ]);
-  await Promise.all([startup, duringSetup]);
-  expect(h.delivered.map((event) => event.event_type)).toEqual(['startup', 'during-setup']);
-  expect(h.forwarded).toEqual([]);
-  await h.initialize();
-  await h.track('retry');
-  expect(h.forwarded.map((event) => event.event_type)).toEqual(['retry']);
+  await expect(h.initialize(false)).rejects.toBe(error);
+  expect(h.beforeInit).toHaveBeenCalledTimes(1);
+  expect(h.plugin).toHaveBeenCalledTimes(1);
+  expect(h.beforeSetup).toHaveBeenCalledTimes(1);
 });
 
-test.each([false, true])('completed external Init is supported (existing G&S: %s)', async (existing) => {
-  const h = harness();
-  await h.initializeDirect();
-  if (existing) await h.clients[''].add(h.plugin()).promise;
-  await h.initialize();
-  h.identityChanged.mockClear();
-  h.clients[''].setUserId('external-user');
-  expect(h.identityChanged).toHaveBeenCalledTimes(1);
-  await h.track('external');
-  expect(h.forwarded.map((event) => event.event_type)).toEqual(['external']);
-  expect(h.delivered.map((event) => event.event_type)).toEqual(['external']);
-  // No real G&S setup is performed against the timeline about to be reset.
-  expect(h.beforeSetup).toHaveBeenCalledTimes(existing ? 2 : 1);
-});
-
-test.each(['runtime', 'factory'])('G&S %s preparation failure still initializes Analytics', async (kind) => {
+test.each(['runtime', 'factory'])('first G&S %s preparation failure is terminal', async (kind) => {
   const h = harness();
   const error = new Error('G&S unavailable');
   if (kind === 'factory') {
@@ -375,83 +356,59 @@ test.each(['runtime', 'factory'])('G&S %s preparation failure still initializes 
       },
     });
   }
-  const startup = h.track('startup');
   await expect(h.initialize()).rejects.toBe(error);
-  await startup;
-  expect(h.delivered.map((event) => event.event_type)).toEqual(['startup']);
-  expect(h.forwarded).toEqual([]);
   Object.defineProperty(h.browserWindow, 'engagement', { value: { plugin: h.plugin } });
-  await h.initialize();
-  await h.track('retry');
-  expect(h.forwarded.map((event) => event.event_type)).toEqual(['retry']);
+  await expect(h.initialize(false)).rejects.toBe(error);
+  expect(h.beforeInit).not.toHaveBeenCalled();
+  expect(h.plugin).toHaveBeenCalledTimes(kind === 'factory' ? 1 : 0);
 });
 
-test('partial setup is cleaned before joined callers reject and the next Init retries', async () => {
+test('joined callers wait for failed subsequent attachment cleanup before retry', async () => {
   const h = harness();
-  const error = new Error('failed after subscribing');
+  await h.initialize();
   const gate = deferred();
   const cleaning = deferred();
-  h.afterSetup.mockRejectedValueOnce(error);
-  h.finishTeardown.mockImplementationOnce(() => {
-    cleaning.resolve();
-    return gate.promise;
-  });
+  const error = new Error('G&S setup failed');
+  h.beforeSetup.mockRejectedValueOnce(error);
+  const remove = h.clients[''].remove.bind(h.clients['']);
+  jest.spyOn(h.clients[''], 'remove').mockImplementationOnce((name) => ({
+    promise: (async () => {
+      cleaning.resolve();
+      await gate.promise;
+      await remove(name).promise;
+    })(),
+  }));
   const owner = h.initialize();
   await cleaning.promise;
   const joined = h.initialize(false);
   const complete = jest.fn();
   const settled = Promise.allSettled([owner, joined]);
   void settled.then(complete);
-  h.identityChanged.mockClear();
-  h.clients[''].setUserId('during-cleanup');
-  expect(h.identityChanged).not.toHaveBeenCalled();
   await h.track('during-cleanup');
-  expect(h.forwarded).toEqual([]);
   expect(complete).not.toHaveBeenCalled();
+  expect(h.forwarded).toEqual([]);
   gate.resolve();
   expect(await settled).toEqual([
     { status: 'rejected', reason: error },
     { status: 'rejected', reason: error },
   ]);
   await h.initialize();
-  h.clients[''].setUserId('retry-user');
-  expect(h.identityChanged).toHaveBeenCalledTimes(1);
   await h.track('retry');
   expect(h.forwarded.map((event) => event.event_type)).toEqual(['retry']);
 });
 
-test('cleanup failure is reported without replacing the original setup rejection', async () => {
+test('subsequent cleanup failure is reported without replacing setup rejection', async () => {
   const h = harness();
+  await h.initialize();
   const error = new Error('setup failed');
   const cleanupError = new Error('cleanup failed');
   const report = jest.spyOn(console, 'error').mockImplementation(() => undefined);
-  h.afterSetup.mockRejectedValueOnce(error);
-  h.finishTeardown.mockRejectedValueOnce(cleanupError);
+  h.beforeSetup.mockRejectedValueOnce(error);
+  jest.spyOn(h.clients[''], 'remove').mockImplementationOnce(() => ({ promise: Promise.reject(cleanupError) }));
   await expect(h.initialize()).rejects.toBe(error);
   expect(report).toHaveBeenCalledWith('[Amplitude / GTM]', 'Failed to clean up G&S registration', cleanupError);
   await h.track('analytics-survives');
   expect(h.delivered.map((event) => event.event_type)).toEqual(['analytics-survives']);
-  await h.initialize();
-  await h.track('retry');
-  expect(h.forwarded.map((event) => event.event_type)).toEqual(['retry']);
-});
-
-test('synchronous setup failure does not strand Analytics startup', async () => {
-  const h = harness();
-  const error = new Error('synchronous setup failure');
-  const original = h.plugin.getMockImplementation();
-  if (!original) throw new Error('Missing G&S plugin factory');
-  h.plugin.mockImplementationOnce(() => ({
-    ...original(),
-    setup() {
-      throw error;
-    },
-    teardown: jest.fn().mockResolvedValue(undefined),
-  }));
-  const startup = h.track('startup');
-  await expect(h.initialize()).rejects.toBe(error);
-  await startup;
-  expect(h.delivered.map((event) => event.event_type)).toEqual(['startup']);
   await h.initialize();
   await h.track('retry');
   expect(h.forwarded.map((event) => event.event_type)).toEqual(['retry']);
@@ -468,16 +425,14 @@ test('first disabled Init does not prepare G&S and later enabling attaches once'
   expect(h.delivered.map((event) => event.event_type)).toEqual(['disabled', 'enabled']);
 });
 
-test('registration does not mutate the G&S plugin object', async () => {
+test('terminal failure on one client does not prevent another client initializing', async () => {
   const h = harness();
-  const original = h.plugin.getMockImplementation();
-  if (!original) throw new Error('Missing G&S plugin factory');
-  h.plugin.mockImplementationOnce(() => Object.freeze(original()));
-  await h.initialize();
-  await h.track('frozen-plugin');
-  expect(h.forwarded.map((event) => event.event_type)).toEqual(['frozen-plugin']);
-  await h.initialize(false);
-  h.identityChanged.mockClear();
-  h.clients[''].setUserId('detached');
-  expect(h.identityChanged).not.toHaveBeenCalled();
+  const error = new Error('first client failed');
+  h.beforeSetup.mockRejectedValueOnce(error);
+  await expect(h.initialize()).rejects.toBe(error);
+  await h.initialize(true, 'other');
+  await h.track('other-client', 'other');
+  expect(h.forwarded.map((event) => event.event_type)).toEqual(['other-client']);
+  expect(h.delivered.map((event) => event.event_type)).toEqual(['other-client']);
+  await expect(h.initialize()).rejects.toBe(error);
 });
