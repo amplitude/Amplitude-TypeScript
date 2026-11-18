@@ -48,6 +48,30 @@ describe('replay-driven feedback', () => {
     cleanup();
   });
 
+  test('seeds existing feedback silently when replay attaches an iframe document', () => {
+    const { replay, emit, cleanup } = setup();
+    document.body.innerHTML = '<section><div role="alert">Already present</div><dialog open>Already open</dialog></section>';
+    const section = document.body.firstChild!;
+    replay.mutation({ isAttachIframe: true, adds: [{ parentId: replay.id(document.body), node: replay.serialize(section) }] });
+    flush();
+    expect(emit).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  test('detects a live region created by role or aria-live attribute mutations', () => {
+    document.body.innerHTML = '<div>Ready</div><div>Loading</div>';
+    const { replay, emit, cleanup } = setup();
+    const [status, polite] = Array.from(document.body.children);
+    status.setAttribute('role', 'status');
+    replay.attrs(status, 'role');
+    polite.setAttribute('aria-live', 'polite');
+    replay.attrs(polite, 'aria-live');
+    flush();
+    expect(emit).toHaveBeenCalledWith('notice', expect.objectContaining({ text: 'Ready', role: 'status' }));
+    expect(emit).toHaveBeenCalledWith('notice', expect.objectContaining({ text: 'Loading', role: 'live' }));
+    cleanup();
+  });
+
   test('seeds existing dialogs silently and closes them after mirror removal with stable identity', () => {
     document.body.innerHTML = '<section><dialog open aria-label="Existing"></dialog></section>';
     const { replay, emit, cleanup } = setup();

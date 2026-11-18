@@ -39,6 +39,7 @@ function* changes(change: SemanticDomChange): Generator<Work> {
     for (const attr of change.attributes) {
       yield {
         id: attr.id,
+        text: ['role', 'aria-live'].some((key) => key in attr.attributes),
         dialogs: ['open', 'hidden', 'aria-hidden', 'role', 'aria-modal'].some((key) => key in attr.attributes),
       };
     }
@@ -50,8 +51,10 @@ function* changes(change: SemanticDomChange): Generator<Work> {
     };
     for (const remove of change.removes) yield parentChanged(remove.parentId);
     for (const add of change.adds) {
-      yield parentChanged(add.parentId);
-      yield* nodes(add.node, false);
+      if (!change.isAttachIframe) yield parentChanged(add.parentId);
+      // An iframe attach serializes an existing document, like a full snapshot.
+      // Seed its dialog state without announcing its existing feedback UI.
+      yield* nodes(add.node, change.isAttachIframe === true);
     }
   }
 }

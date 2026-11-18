@@ -142,6 +142,7 @@ export type SemanticDomChange =
   | { type: 'snapshot'; node: SemanticDomNode }
   | {
       type: 'mutation';
+      isAttachIframe?: boolean;
       adds: { parentId: number; node: SemanticDomNode }[];
       removes: { parentId: number; id: number }[];
       texts: { id: number }[];
