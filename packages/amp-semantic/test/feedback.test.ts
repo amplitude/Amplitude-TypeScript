@@ -50,9 +50,13 @@ describe('replay-driven feedback', () => {
 
   test('seeds existing feedback silently when replay attaches an iframe document', () => {
     const { replay, emit, cleanup } = setup();
-    document.body.innerHTML = '<section><div role="alert">Already present</div><dialog open>Already open</dialog></section>';
+    document.body.innerHTML =
+      '<section><div role="alert">Already present</div><dialog open>Already open</dialog></section>';
     const section = document.body.firstChild!;
-    replay.mutation({ isAttachIframe: true, adds: [{ parentId: replay.id(document.body), node: replay.serialize(section) }] });
+    replay.mutation({
+      isAttachIframe: true,
+      adds: [{ parentId: replay.id(document.body), node: replay.serialize(section) }],
+    });
     flush();
     expect(emit).not.toHaveBeenCalled();
     cleanup();
