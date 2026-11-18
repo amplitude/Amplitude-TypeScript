@@ -1,4 +1,4 @@
-import { getInputType, isMasked } from '@amplitude/session-replay-dom-privacy';
+import { getInputType } from '@amplitude/session-replay-dom-privacy';
 import { getHelpers, isAriaInvalid } from '../helpers';
 import type {
   NamedTarget,
@@ -189,12 +189,7 @@ export const interactionsRecorder: SemanticRecorder = {
       )
         return;
       if (!scoped.canEmit('field')) return;
-      const masked = isMasked(
-        'input',
-        host.getPrivacy(),
-        element as HTMLElement,
-        host.getUrl?.() ?? host.window.location.href,
-      );
+      const masked = helpers.masked(element);
       const payload: SemanticPayloads['field'] = {
         ...fieldDescription(scoped, element),
         states: helpers.states(element),

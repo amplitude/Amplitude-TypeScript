@@ -30,7 +30,7 @@ export const keysRecorder: SemanticRecorder = {
       const elements = path.filter((node): node is Element => (node as Node).nodeType === 1);
       const target = elements[0];
       if (!target || elements.some((element) => helpers.blocked(element))) return;
-      if (target.matches('input[type="password"], input[type="hidden"]')) return;
+      if (target.matches('input[type="password"], input[type="hidden"], input[data-rr-is-password]')) return;
       if (!context.canEmit('keys')) return;
       const description = helpers.name(target);
       // Exclude editable contents and input/button values from target names.
