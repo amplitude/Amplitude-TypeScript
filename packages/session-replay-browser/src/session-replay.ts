@@ -1435,6 +1435,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   stopRecordingEvents = (reason: SemanticRecordingSignal['reason'] = 'targeting', state: 'stop' | 'pause' = 'stop') => {
     try {
       this.useSemanticAdapter((adapter) => adapter.stop(reason, state));
+      // A terminal custom event may still be in the idle compressor queue.
+      // Drain it before callers send the closing sequence or cancel rrweb.
+      this.eventCompressor?.flushQueue();
       this.loggerProvider.log('Session Replay capture stopping.');
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
