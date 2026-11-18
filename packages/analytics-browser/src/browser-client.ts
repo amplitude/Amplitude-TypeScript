@@ -16,6 +16,8 @@ import {
 } from '@amplitude/analytics-core';
 import {
   getPageViewTrackingConfig,
+  getEngagedTimeTrackingConfig,
+  isEngagedTimeTrackingEnabled,
   getElementInteractionsConfig,
   getNetworkTrackingConfig,
   isAttributionTrackingEnabled,
@@ -36,6 +38,7 @@ import {
 import { getRuntimeEnvironment } from './utils/environment';
 import { BROWSER_PLATFORM } from './plugins/context';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
+import { engagedTimeTrackingPlugin } from '@amplitude/plugin-engaged-time-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { updateBrowserConfigWithRemoteConfig } from './config/joined-config';
@@ -158,6 +161,10 @@ export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserCli
         if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
           this.config.loggerProvider.debug('Adding custom enrichment plugin');
           await this.add(customEnrichmentPlugin()).promise;
+        }
+
+        if (isEngagedTimeTrackingEnabled(this.config.autocapture)) {
+          await this.add(engagedTimeTrackingPlugin(getEngagedTimeTrackingConfig(this.config))).promise;
         }
       },
 
