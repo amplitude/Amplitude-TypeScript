@@ -433,6 +433,25 @@ describe('interactions recorder', () => {
     expect(JSON.stringify(h.emitted)).not.toMatch(/PRIVATE/);
   });
 
+  it('fails closed when field URL or privacy lookup throws', () => {
+    document.body.innerHTML = '<input aria-label="Account" value="PRIVATE_VALUE">';
+    const h = harness({ defaultMaskLevel: 'light' });
+    h.context.host.getUrl = () => {
+      throw new Error('URL unavailable');
+    };
+    h.context.helpers = createHelpers(h.context.host);
+    cleanup = h.start();
+    dispatch(document.querySelector('input') as HTMLInputElement, 'change');
+    expect(h.emitted).toHaveLength(1);
+    expect(h.emitted[0].payload).toMatchObject({ masked: true });
+    expect(JSON.stringify(h.emitted)).not.toContain('PRIVATE_VALUE');
+    h.context.host.getPrivacy = () => {
+      throw new Error('Privacy unavailable');
+    };
+    dispatch(document.querySelector('input') as HTMLInputElement, 'change');
+    expect(h.emitted).toHaveLength(1);
+  });
+
   it('emits submits before the next task and reads defaultPrevented after form handlers', () => {
     document.body.innerHTML = '<form aria-label="Create"><button>Save</button></form>';
     const h = harness();
