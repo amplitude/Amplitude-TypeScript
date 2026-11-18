@@ -12,6 +12,7 @@
     <button id="next-video">Next video</button>
     <button id="stop-video">Stop Capturing</button>
     <button id="force-error">Force Error</button>
+    <button id="network-failures" aria-pressed="false">Simulate Network Failures</button>
     <button id="remove-video">Remove Video</button>
     <script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/mux-embed@latest/dist/mux.min.js"></script>
@@ -19,6 +20,30 @@
     <h1>Track HTML Video Test</h1>
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
+
+      const networkButton = document.getElementById('network-failures');
+      let simulateNetworkFailures = false;
+      networkButton.addEventListener('click', () => {
+        simulateNetworkFailures = !simulateNetworkFailures;
+        networkButton.textContent = simulateNetworkFailures ? 'Restore Analytics Network' : 'Simulate Network Failures';
+        networkButton.setAttribute('aria-pressed', String(simulateNetworkFailures));
+      });
+
+      // Reject only Amplitude ingestion requests, leaving video segments and Mux monitoring online.
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (input, init) => {
+        const url = new URL(input instanceof Request ? input.url : input, window.location.href);
+        const method = init?.method ?? (input instanceof Request ? input.method : 'GET');
+        if (
+          simulateNetworkFailures &&
+          method.toUpperCase() === 'POST' &&
+          /^\/2\/httpapi(?:\/delayed)?\/?$/.test(url.pathname)
+        ) {
+          console.warn('[Video analytics] Simulated network failure', url.href);
+          throw new TypeError('Failed to fetch (simulated analytics network failure)');
+        }
+        return originalFetch(input, init);
+      };
 
       // generate a View Session ID to be used for Mux and Amplitude
       // so that views can be linked together

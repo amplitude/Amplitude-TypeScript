@@ -4,6 +4,8 @@ import { BaseEvent, Delay } from './types/event/base-event';
 import { Result } from './types/result';
 import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
+import { isSuccessStatusCode } from './utils/status-code';
+import { buildResult } from './utils/result-builder';
 
 type DelayedEvent = BaseEvent & {
   delay: Delay;
@@ -48,18 +50,26 @@ export class Heartbeat {
       return [];
     }
 
-    // track all of the delayed events
+    // Retry unacknowledged instant events alongside the latest delayed snapshots.
     const trackedEvents = [];
     for (const event of this.events.values()) {
       const { event_type, event_properties, ...eventOptions } = event;
-      const eventPromise = this.client.track(event_type, event_properties, eventOptions).promise;
-
-      // if the event has no timeout, then it's instant ingested and we can
-      // delete it after it was ingested
-      if (this.isInstantEvent(event)) {
-        const insertId = event.insert_id;
-        void eventPromise.finally(() => this.events.delete(insertId));
-      }
+      const eventPromise = (async () => {
+        try {
+          const result = await this.client.track(event_type, event_properties, eventOptions).promise;
+          if (
+            this.isInstantEvent(event) &&
+            isSuccessStatusCode(result.code) &&
+            this.events.get(event.insert_id) === event
+          ) {
+            this.events.delete(event.insert_id);
+          }
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return buildResult(event, 0, message);
+        }
+      })();
       trackedEvents.push(eventPromise);
     }
     const res = await Promise.all(trackedEvents);
