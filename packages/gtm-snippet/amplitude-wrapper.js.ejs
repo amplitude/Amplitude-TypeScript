@@ -210,38 +210,7 @@ const LOG_PREFIX = '[Amplitude / GTM]';
 
   const clientInitializations = new WeakMap();
 
-  var createGuidesSurveysRegistration = function() {
-      // Only install the proxy for clients that enable G&S.
-      engagementSnippet();
-      const plugin = window.engagement.plugin();
-      const setup = plugin.setup;
-      let setupPromise;
-      let setupFailure;
-
-      plugin.setup = function(...args) {
-          if (!setupPromise) {
-              setupFailure = undefined;
-              setupPromise = Promise.resolve()
-                  .then(() => setup?.apply(this, args))
-                  .catch(error => {
-                      // Let Analytics finish its queued initialization so a later
-                      // wrapper Init can retry, instead of leaving Analytics busy.
-                      setupFailure = { error };
-                      setupPromise = undefined;
-                  });
-          }
-          return setupPromise;
-      };
-
-      return {
-          plugin,
-          assertSetupSucceeded() {
-              if (setupFailure) throw setupFailure.error;
-          },
-      };
-  };
-
-  var initializeClient = async function(client, args, state) {
+  var initializeClient = async function(client, args) {
       const argsLength = args.length;
       const configuration = args[argsLength - 1];
 
@@ -315,49 +284,37 @@ const LOG_PREFIX = '[Amplitude / GTM]';
         client.add(sessionReplayPlugin.plugin());
       }
 
-      if (guidesSurveys && !state.guidesSurveysRegistration) {
-          state.guidesSurveysRegistration = createGuidesSurveysRegistration();
-      }
-      const registration = state.guidesSurveysRegistration;
-      const registerBeforeInit = guidesSurveys && !state.initialized;
-      if (registerBeforeInit) {
-          client.add(registration.plugin);
-      }
-
+      // Analytics init resets its timeline, so attach G&S only after it completes.
       await client.init(...args).promise;
-      state.initialized = true;
-      // Keep library enrichment after Analytics initialization, as before.
-      client.add(gtmLibraryPlugin());
+      // Keep the GTM library override after Analytics initialization.
+      await client.add(gtmLibraryPlugin()).promise;
 
       if (guidesSurveys) {
-          try {
-              if (!registerBeforeInit) {
-                  await client.add(registration.plugin).promise;
-              }
-              registration.assertSetupSucceeded();
-          } catch (error) {
-              // Also unlock a registration whose setup failed, so the next Init
-              // can retry the same cached plugin.
-              await client.remove(registration.plugin.name).promise;
-              throw error;
-          }
+        let plugin;
+        try {
+          // Preserve an existing runtime; install the proxy only when G&S is needed.
+          if (!window.engagement) engagementSnippet();
+          plugin = window.engagement.plugin();
+          await client.add(plugin).promise;
+        } catch (error) {
+          // Analytics keeps failed setup names locked until explicitly removed.
+          if (plugin) await client.remove(plugin.name).promise;
+          throw error;
+        }
       }
   };
 
   var init = function(client, args) {
-      let state = clientInitializations.get(client);
-      if (!state) {
-          state = { initialized: false };
-          clientInitializations.set(client, state);
+      let initialization = clientInitializations.get(client);
+      if (!initialization) {
+        // Claim the operation before calling plugins. Overlapping Init calls use
+        // the owner's settings and wait through G&S setup, including failures.
+        initialization = Promise.resolve()
+          .then(() => initializeClient(client, args))
+          .finally(() => clientInitializations.delete(client));
+        clientInitializations.set(client, initialization);
       }
-      if (!state.initialization) {
-          // Claim the operation before invoking plugins. Concurrent calls join
-          // the owning Init through restoration and cannot change its settings.
-          state.initialization = Promise.resolve()
-              .then(() => initializeClient(client, args, state))
-              .finally(() => { state.initialization = undefined; });
-      }
-      return state.initialization;
+      return initialization;
   };
 
 

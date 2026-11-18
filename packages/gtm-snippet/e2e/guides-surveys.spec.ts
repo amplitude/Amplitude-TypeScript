@@ -142,6 +142,7 @@ for (const checklist of [false, true]) {
         logLevel: 0,
       };
       await w._amplitude('', 'init', 'test-api-key', 'gtm-user', { ...options });
+      history.pushState({}, '', '/next-route');
       await w._amplitude('', 'init', 'test-api-key', 'gtm-user', { ...options });
       await w._amplitude('', 'track', 'show-guide').promise;
     });
