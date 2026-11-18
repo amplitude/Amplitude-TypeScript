@@ -32,7 +32,12 @@ export interface SemanticCaptureController {
   stop: () => void;
   updateConfig: (config: SemanticCaptureConfig) => void;
   resetSession: () => void;
-  notify: (signal: 'snapshot', value: undefined) => void;
+  notify: <K extends keyof SemanticHostSignals>(signal: K, value: SemanticHostSignals[K]) => void;
+}
+/** Structural host signals shared with optional semantic capture implementations. */
+export interface SemanticHostSignals {
+  snapshot: undefined;
+  url: { url: string; timestamp: number };
 }
 export type SemanticCaptureFactory = (
   config: SemanticCaptureConfig,

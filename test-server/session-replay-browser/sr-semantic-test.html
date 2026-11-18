@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Semantic context, visibility, and lifecycle</title>
+    <title>Semantic capture playground</title>
     <style>
       body {
         max-width: 960px;
@@ -27,7 +27,7 @@
     </style>
   </head>
   <body>
-    <h1>Semantic context, visibility, and lifecycle</h1>
+    <h1>Semantic capture playground</h1>
     <p>
       <strong>Context:</strong> environment facts at each replay full snapshot: user agent, viewport, masking policy,
       visibility, focus and analytics configuration.
@@ -39,6 +39,10 @@
     <p>
       <strong>Lifecycle:</strong> pagehide, pageshow, BFCache restore, freeze, and resume browser boundaries. Browser
       support varies; navigate away and back to inspect page transitions.
+    </p>
+    <p>
+      <strong>Navigation:</strong> URL tracking plugin observations, with origin and query removed and identifier-shaped
+      path segments templated. Change the hash route to see a navigation event.
     </p>
     <section class="amp-block" aria-label="Local event inspector">
       <p>Local transport only. No API key required and no replay data sent to Amplitude.</p>

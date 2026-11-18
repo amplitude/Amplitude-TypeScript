@@ -9,7 +9,7 @@ const wire = (event: SemanticEvent) => ({
   data: { tag: `amp-semantic/${event.name}`, payload: event.payload },
 });
 
-test('validates actual context, visibility, and lifecycle payloads and rejects unshipped families', () => {
+test('validates shipped event families and rejects unshipped families', () => {
   const visibility = jest.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
   const events: SemanticEvent[] = [];
   const capture = createSemanticCapture(
@@ -27,8 +27,9 @@ test('validates actual context, visibility, and lifecycle payloads and rejects u
   visibility.mockReturnValue('hidden');
   document.dispatchEvent(new Event('visibilitychange'));
   window.dispatchEvent(new Event('pagehide'));
+  capture.notify('url', { url: 'https://example.com/accounts/8812?private=hidden', timestamp: 5 });
   capture.stop();
-  expect(events.map((event) => event.name)).toEqual(['context', 'visibility', 'lifecycle']);
+  expect(events.map((event) => event.name)).toEqual(['context', 'visibility', 'lifecycle', 'navigation']);
   for (const event of events) expect(validate(wire(event))).toBe(true);
   const invalid = wire(events[1]);
   invalid.data.tag = 'amp-semantic/click';
@@ -44,6 +45,7 @@ test('default capture exposes context and skips payload reads after its cap', ()
     semantic.contextRecorder,
     semantic.visibilityRecorder,
     semantic.lifecycleRecorder,
+    semantic.navigationRecorder,
   ]);
   const host = { document, window, sdk: 'test', getPrivacy: () => ({}), emit: jest.fn() };
   const capture = semantic.createSemanticCapture({ enabled: true }, host);
