@@ -54,7 +54,7 @@ function getMuxMetadata(videoEl: MuxElement) {
  *
  * @param videoEl - The HTML video element to track.
  * @param handlers - The video handlers to call when on video lifecycle events.
- * @returns A function to untrack the video.
+ * @returns A function that reports a final stop with the supplied reason (default: untracked), then removes listeners.
  */
 export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers: VideoHandler, vendor?: Vendor) {
   // reaching the end of the media fires `pause` right before `ended`, so end of media is
@@ -184,16 +184,34 @@ export function trackHtmlVideo(videoEl: HTMLMediaElement | MuxElement, handlers:
     playHandler();
   }
 
-  return () => {
-    videoEl.removeEventListener('play', playHandler);
-    videoEl.removeEventListener('ended', endedHandler);
-    videoEl.removeEventListener('pause', pauseHandler);
-    videoEl.removeEventListener('seeking', seekingHandler);
-    videoEl.removeEventListener('seeked', seekedHandler);
-    videoEl.removeEventListener('error', errorHandler);
-    videoEl.removeEventListener('timeupdate', timeupdateHandler);
-    videoEl.removeEventListener('loadstart', loadStartHandler);
-    videoEl.removeEventListener('emptied', emptiedHandler);
+  let isUntracked = false;
+  return (stopReason: VideoStopCause = 'untracked') => {
+    if (isUntracked) {
+      return;
+    }
+    isUntracked = true;
+    try {
+      if (!hasReportedEnded) {
+        hasReportedEnded = true;
+        handlers.onEnded(
+          {
+            ...getVideoData(videoEl, stopReason),
+            ...(vendor === 'mux' ? getMuxMetadata(videoEl) : {}),
+          },
+          stopReason,
+        );
+      }
+    } finally {
+      videoEl.removeEventListener('play', playHandler);
+      videoEl.removeEventListener('ended', endedHandler);
+      videoEl.removeEventListener('pause', pauseHandler);
+      videoEl.removeEventListener('seeking', seekingHandler);
+      videoEl.removeEventListener('seeked', seekedHandler);
+      videoEl.removeEventListener('error', errorHandler);
+      videoEl.removeEventListener('timeupdate', timeupdateHandler);
+      videoEl.removeEventListener('loadstart', loadStartHandler);
+      videoEl.removeEventListener('emptied', emptiedHandler);
+    }
   };
 }
 
