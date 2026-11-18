@@ -1,14 +1,11 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["e2e/**/*"],
+  "include": ["test/**/*", "e2e/**/*", "playwright*.ts"],
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
     "lib": ["dom"],
     "noEmit": true,
-    "rootDir": "."
+    "rootDir": "../.."
   }
 }
-
-
-
