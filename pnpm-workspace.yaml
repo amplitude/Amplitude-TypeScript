@@ -24,7 +24,7 @@ overrides:
 
 blockExoticSubdeps: true
 
-minimumReleaseAge: 4320
+minimumReleaseAge: 20160 # 14 days
 
 minimumReleaseAgeExclude:
   - '@amplitude/*'
