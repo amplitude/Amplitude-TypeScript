@@ -291,7 +291,8 @@ const LOG_PREFIX = '[Amplitude / GTM]';
 
       const firstInitialization = state.history.status === 'uninitialized';
       if (guidesSurveys && firstInitialization) {
-        // Preserve startup forwarding through Analytics' existing plugin queue.
+        // Register before the first init to receive queued and startup events.
+        // On later inits, wait until Analytics has reset its timeline.
         client.add(createGuidesSurveysPlugin());
       }
 
@@ -304,7 +305,8 @@ const LOG_PREFIX = '[Amplitude / GTM]';
         throw error;
       }
       state.history = { status: 'initialized' };
-      // Keep the GTM library override after Analytics initialization.
+      // Register after Analytics installs its enrichment plugins so the GTM
+      // library value overrides the Browser SDK value.
       await client.add(gtmLibraryPlugin()).promise;
 
       if (guidesSurveys && !firstInitialization) {
