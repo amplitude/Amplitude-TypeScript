@@ -185,6 +185,17 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
     }
     return normalizeText(output);
   };
+  const nameAttribute = (element: Element, key: string, value: string): string | null => {
+    try {
+      const privacy = host.getPrivacy();
+      if (element.closest('.amp-mask, [data-amp-mask]')) return null;
+      if (privacy.maskSelector?.some((selector) => element.closest(selector))) return null;
+      if (privacy.maskAttributes?.includes(key) && masked(element)) return null;
+      return normalizeText(value);
+    } catch {
+      return null;
+    }
+  };
   const name = (element: Element): { name: string | null; source: NameSource } => {
     const finish = (value: string | null, source: NameSource) => ({
       name: value || null,
@@ -204,7 +215,7 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       if (joined) return finish(joined, 'aria-labelledby');
     }
     const aria = element.getAttribute('aria-label');
-    if (aria?.trim()) return finish(text(element, aria), 'aria-label');
+    if (aria?.trim()) return finish(nameAttribute(element, 'aria-label', aria), 'aria-label');
     const labels = (element as HTMLInputElement).labels;
     if (labels?.length) {
       const label = labels[0];
@@ -233,21 +244,21 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       return finish(unsafe ? null : text(label, labelText), label.htmlFor ? 'label-for' : 'label-wrap');
     }
     if (element.tagName === 'IMG' && element.hasAttribute('alt'))
-      return finish(text(element, element.getAttribute('alt')), 'alt');
+      return finish(nameAttribute(element, 'alt', element.getAttribute('alt') ?? ''), 'alt');
     // Static button captions are attributes, never a live input value.
     if (
       element.tagName === 'INPUT' &&
       /^(button|submit|reset)$/i.test(element.getAttribute('type') ?? '') &&
       element.hasAttribute('value')
     )
-      return finish(text(element, element.getAttribute('value')), 'value');
+      return finish(nameAttribute(element, 'value', element.getAttribute('value') ?? ''), 'value');
     if (CONTENT_NAMES.has(roleOf(element))) {
       const content = text(element);
       if (content === null || content) return finish(content, 'text');
     }
     for (const attribute of ['title', 'placeholder'] as const) {
       const value = element.getAttribute(attribute);
-      if (value) return finish(text(element, value), attribute);
+      if (value) return finish(nameAttribute(element, attribute, value), attribute);
     }
     return finish('', 'unnamed');
   };
