@@ -148,7 +148,15 @@ describe('shared privacy helpers', () => {
     expect(helpers.name(document.querySelector('button')!).name).toBe(
       defaultMaskLevel === 'conservative' ? null : 'Save',
     );
-    expect(helpers.name(document.querySelector('input')!)).toEqual({ name: null, source: 'masked' });
+    expect(helpers.name(document.querySelector('input')!)).toEqual({ name: 'Email', source: 'aria-label' });
+  });
+  test('keeps explicitly masked attributes and elements private', () => {
+    document.body.innerHTML =
+      '<input aria-label="Private" placeholder="Hint"><input class="amp-mask" aria-label="Secret">';
+    const inputs = document.querySelectorAll('input');
+    const helpers = createHelpers(host({ defaultMaskLevel: 'medium', maskAttributes: ['aria-label'] }));
+    expect(helpers.name(inputs[0])).toEqual({ name: null, source: 'masked' });
+    expect(helpers.name(inputs[1])).toEqual({ name: null, source: 'masked' });
   });
   test('checks the source label and nested mask decisions', () => {
     document.body.innerHTML =
