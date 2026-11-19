@@ -1206,6 +1206,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
                 ? (event.data.payload as { state?: string } | undefined)?.state
                 : undefined;
             const semanticStop = recordingState === 'stop' || recordingState === 'pause';
+            const semanticBoundary = recordingState !== undefined;
             if (!semanticStop && (this.shouldOptOut() || !this.recordingEnabled)) {
               this.loggerProvider.log(
                 this.shouldOptOut()
@@ -1223,11 +1224,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
             if (this.eventCompressor) {
               // Schedule processing during idle time if the browser supports requestIdleCallback
-              this.eventCompressor.enqueueEvent(event, sessionId, semanticStop);
+              this.eventCompressor.enqueueEvent(event, sessionId, semanticBoundary);
             } else {
               // eventCompressor is not yet ready (concurrent call racing _init()).
               // Buffer the event so it can be flushed once the compressor is initialized.
-              this.pendingEmitEvents.push({ event, sessionId, forceSync: semanticStop });
+              this.pendingEmitEvents.push({ event, sessionId, forceSync: semanticBoundary });
             }
             this.useSemanticAdapter((adapter) => adapter.event(event));
           },
