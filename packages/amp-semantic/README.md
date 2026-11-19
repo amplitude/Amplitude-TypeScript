@@ -50,6 +50,8 @@ The initial state is present in context. The visibility budget is 200 events per
 
 `amp-semantic/recording` records SDK supplied start, stop, pause, and resume boundaries with a compact reason. Start/resume follows the first accepted replay full snapshot; stop/pause is emitted before rrweb teardown so it can be uploaded with the closing sequence. No event is emitted when semantic capture is disabled or sampled out. Disable only this family with `families: { recording: false }`. The budget is 200 events per session.
 
+The `restart` reason marks replacement of an eligible recorder within the same session. `capture_disabled` marks a project-level capture gate or semantic capture configuration being turned off.
+
 ## Interaction recorders
 
 `amp-semantic/click` describes the actionable target with its rrweb node ID, accessible name, role, states, container, stable key or selector, templated URL, and heading. When rrweb supplies native click events, the recorder shares the existing heatmap hook; auxiliary middle clicks use a small document listener. `amp-semantic/field` emits on change or focusout with value presence, checked state, validity, and a value only when Session Replay privacy settings allow it. Sensitive password and hidden fields are skipped. `amp-semantic/submit` captures form validity, submitter, and up to ten invalid field descriptions without calling `checkValidity()` or reading field text. These families have independent switches and budgets of 2,000, 1,000, and 300 events per session.

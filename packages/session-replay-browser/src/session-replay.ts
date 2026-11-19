@@ -264,7 +264,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
     this.urlChangeCleanup?.();
-    this.useSemanticAdapter((adapter) => adapter.stop());
+    this.useSemanticAdapter((adapter) => adapter.stop('restart'));
     this.semanticAdapter = undefined;
     // A new init always allows capture again. `stop()` only pauses the current instance.
     this.recordingEnabled = true;
@@ -1078,11 +1078,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!shouldRecord || !sessionId || !config) {
       if (this.semanticAdapter && this.recordCancelCallback)
         this.stopRecordingEvents(
-          this.shouldOptOut() ? 'opt_out' : config?.targetingConfig ? 'targeting' : 'sampled_out',
+          config?.captureEnabled === false
+            ? 'capture_disabled'
+            : this.shouldOptOut()
+            ? 'opt_out'
+            : config?.targetingConfig
+            ? 'targeting'
+            : 'sampled_out',
         );
       return;
     }
-    this.stopRecordingEvents();
+    this.stopRecordingEvents('restart');
     const generation = this.recordingGeneration;
 
     const recordFunction = await this.getRecordFunction();
@@ -1252,7 +1258,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.semanticAdapter = undefined;
       this.loggerProvider.debug('Semantic capture failed:', error);
       try {
-        adapter.stop();
+        adapter.stop('error');
       } catch (stopError) {
         this.loggerProvider.debug('Semantic capture stop failed:', stopError);
       }
@@ -1265,12 +1271,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const semanticCapture = config.semanticCapture;
     const createCapture = semanticCapture?.createCapture;
     if (!semanticCapture?.enabled || typeof createCapture !== 'function') {
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.stop('capture_disabled'));
       this.useSemanticAdapter((adapter) => adapter.prepare({ enabled: false }, sessionId));
       return;
     }
     if (this.semanticAdapter?.createCapture !== createCapture) {
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.stop('restart'));
       this.semanticAdapter = undefined;
       try {
         this.semanticAdapter = new ReplaySemanticAdapter(createCapture, {
@@ -1432,7 +1438,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   };
 
-  stopRecordingEvents = (reason: SemanticRecordingSignal['reason'] = 'targeting', state: 'stop' | 'pause' = 'stop') => {
+  stopRecordingEvents = (reason: SemanticRecordingSignal['reason'] = 'restart', state: 'stop' | 'pause' = 'stop') => {
     try {
       this.useSemanticAdapter((adapter) => adapter.stop(reason, state));
       // A terminal custom event may still be in the idle compressor queue.
