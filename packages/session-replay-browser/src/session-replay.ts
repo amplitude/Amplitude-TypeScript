@@ -264,6 +264,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
     this.urlChangeCleanup?.();
+    // The boundary state is stop; restart explains why this instance is ending.
     this.useSemanticAdapter((adapter) => adapter.stop('restart'));
     this.semanticAdapter = undefined;
     // A new init always allows capture again. `stop()` only pauses the current instance.
@@ -299,19 +300,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     );
 
     this.pageLeaveFns = [];
-
-    if (options.sessionId && this.config.interactionConfig?.enabled) {
-      const scrollWatcher = ScrollWatcher.default(
-        {
-          sessionId: options.sessionId,
-          type: 'interaction',
-        },
-        this.config,
-      );
-      this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this)).bind(scrollWatcher)];
-      this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
-      this.clickHandler = new ClickHandler(this.loggerProvider, scrollWatcher);
-    }
+    this.scrollHook = undefined;
+    this.clickHandler = undefined;
+    if (options.sessionId) this.ensureHeatmapHooks(this.config, options.sessionId);
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
     let { storeType } = this.config;
@@ -1071,21 +1062,32 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return !this.recordingEnabled || generation !== this.recordingGeneration;
   }
 
+  private ensureHeatmapHooks(config: SessionReplayJoinedConfig, sessionId: string | number): void {
+    if (!config.interactionConfig?.enabled || this.scrollHook) return;
+    const scrollWatcher = ScrollWatcher.default({ sessionId, type: 'interaction' }, config);
+    this.pageLeaveFns.push(scrollWatcher.send(this.getDeviceId.bind(this)).bind(scrollWatcher));
+    this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
+    // A semantic-only recorder may have created a selector helper without a
+    // scroll watcher. Replace it when heatmaps become enabled.
+    this.clickHandler = new ClickHandler(this.loggerProvider, scrollWatcher);
+  }
+
+  private getIneligibleRecordingReason(
+    config: SessionReplayJoinedConfig | undefined,
+  ): SemanticRecordingSignal['reason'] {
+    if (config?.captureEnabled === false) return 'capture_disabled';
+    if (this.shouldOptOut()) return 'opt_out';
+    if (config?.targetingConfig) return 'targeting';
+    return 'sampled_out';
+  }
+
   private async _recordEvents(shouldLogMetadata = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
       if (this.semanticAdapter && this.recordCancelCallback)
-        this.stopRecordingEvents(
-          config?.captureEnabled === false
-            ? 'capture_disabled'
-            : this.shouldOptOut()
-            ? 'opt_out'
-            : config?.targetingConfig
-            ? 'targeting'
-            : 'sampled_out',
-        );
+        this.stopRecordingEvents(this.getIneligibleRecordingReason(config));
       return;
     }
     this.stopRecordingEvents('restart');
@@ -1111,6 +1113,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     }, networkLoggingConfig);
     const { interactionConfig, loggingConfig } = config;
+
+    this.ensureHeatmapHooks(config, sessionId);
 
     const heatmapHook =
       interactionConfig?.enabled && this.eventsManager
@@ -1194,10 +1198,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
           config,
           hooks,
           (event: eventWithTime) => {
-            const semanticStop =
-              event.type === RRWebEventType.Custom &&
-              event.data.tag === 'amp-semantic/recording' &&
-              ['stop', 'pause'].includes((event.data.payload as { state?: string } | undefined)?.state ?? '');
+            const recordingState =
+              event.type === RRWebEventType.Custom && event.data.tag === 'amp-semantic/recording'
+                ? (event.data.payload as { state?: string } | undefined)?.state
+                : undefined;
+            const semanticStop = recordingState === 'stop' || recordingState === 'pause';
             if (!semanticStop && (this.shouldOptOut() || !this.recordingEnabled)) {
               this.loggerProvider.log(
                 this.shouldOptOut()
@@ -1286,6 +1291,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           getPrivacy: () => this.config?.privacyConfig ?? {},
           getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
           getUrl: () => this.currentPageUrl || scope.location.href,
+          filterUrl: (url) => getPageUrl(url, this.config?.interactionConfig?.ugcFilterRules ?? []),
           getSelector: (element) => {
             try {
               return this.clickHandler?.getSelector(element, this.config?.performanceConfig?.interaction) ?? null;

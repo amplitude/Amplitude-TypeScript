@@ -155,6 +155,8 @@ export interface SemanticHost<P extends object = SemanticPayloads> {
   getAnalyticsContext?: () => AnalyticsContext;
   getNodeId?: (node: Node) => number;
   getUrl?: () => string;
+  /** Apply host URL privacy rules before a path is templated into an event. */
+  filterUrl?: (url: string) => string;
   getSelector?: (element: Element) => string | null;
   /** True when the host forwards native clicks through notify('click'). */
   externalClicks?: boolean;

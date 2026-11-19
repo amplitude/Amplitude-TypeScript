@@ -23,6 +23,7 @@ export interface SemanticCaptureHost {
   getPrivacy: () => PrivacyConfig;
   getNodeId?: (node: Node) => number;
   getUrl?: () => string;
+  filterUrl?: (url: string) => string;
   getSelector?: (element: Element) => string | null;
   externalClicks?: boolean;
   externalAuxClicks?: boolean;

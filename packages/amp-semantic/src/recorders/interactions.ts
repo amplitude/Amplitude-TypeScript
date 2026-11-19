@@ -53,6 +53,13 @@ function fieldValue(element: Element, masked: boolean): { value?: string } {
   return { value: input.value };
 }
 
+function hasFieldValue(element: Element): boolean {
+  if (element.tagName === 'INPUT' && ['checkbox', 'radio'].includes((element as HTMLInputElement).type)) {
+    return (element as HTMLInputElement).checked;
+  }
+  return isFormControl(element) ? element.value.length > 0 : (element.textContent?.length ?? 0) > 0;
+}
+
 function validityOf(element: Element): { valid: boolean; validity: string[] } {
   const flags: string[] = [];
   if (isFormControl(element)) {
@@ -199,9 +206,7 @@ export const interactionsRecorder: SemanticRecorder = {
             : isFormControl(element)
             ? element.tagName.toLowerCase()
             : 'contenteditable',
-        value_state: (isFormControl(element) ? element.value.length > 0 : (element.textContent?.length ?? 0) > 0)
-          ? 'filled'
-          : 'empty',
+        value_state: hasFieldValue(element) ? 'filled' : 'empty',
         ...(element.tagName === 'INPUT' && ['checkbox', 'radio'].includes((element as HTMLInputElement).type)
           ? { checked: (element as HTMLInputElement).checked }
           : {}),
@@ -228,6 +233,21 @@ export const interactionsRecorder: SemanticRecorder = {
       return { id: description.id, role: description.role, name: description.name };
     };
 
+    const formValidity = (form: HTMLFormElement) => {
+      let valid = true;
+      const invalid_fields: SemanticPayloads['submit']['invalid_fields'] = [];
+      for (const control of Array.from(form.elements)) {
+        if (!isFormControl(control)) continue;
+        const result = validityOf(control);
+        if (result.valid) continue;
+        valid = false;
+        if (invalid_fields.length >= 10 || sensitiveField(control) || helpers.blocked(control)) continue;
+        const description = fieldDescription(scoped, control);
+        invalid_fields.push({ id: description.id, name: description.name, validity: result.validity });
+      }
+      return { valid, invalid_fields };
+    };
+
     const submit = (event: Event) => {
       if (!scoped.enabled('submit')) return;
       const form = eventElement(event) as HTMLFormElement | null;
@@ -238,14 +258,15 @@ export const interactionsRecorder: SemanticRecorder = {
       const emit = () => {
         if (!scoped.enabled('submit') || helpers.blocked(form)) return;
         if (!scoped.canEmit('submit')) return;
+        const { valid, invalid_fields } = formValidity(form);
         scoped.emit('submit', {
           form: describeForm(form, submitter && !helpers.blocked(submitter) ? submitter : null),
           submitter:
             submitter && !helpers.blocked(submitter)
               ? { id: helpers.id(submitter), role: helpers.role(submitter), name: helpers.name(submitter).name }
               : null,
-          valid: true,
-          invalid_fields: [],
+          valid,
+          invalid_fields,
           prevented: event.defaultPrevented,
         });
       };
