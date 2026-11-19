@@ -48,6 +48,16 @@
       <strong>Recording:</strong> start, stop, pause, or resume boundaries supplied by the replay SDK. Use the stop and
       resume buttons to inspect customer-controlled boundaries.
     </p>
+    <p>
+      <strong>Interactions:</strong> click records the actionable target, accessible name, states, and rrweb node ID.
+      Field records safe state at change or focusout; submit records form validity without reading typed text.
+    </p>
+    <button id="semantic-action">Save changes</button>
+    <form id="semantic-form">
+      <label for="semantic-email">Email</label>
+      <input id="semantic-email" type="email" required />
+      <button type="submit">Submit form</button>
+    </form>
     <section class="amp-block" aria-label="Local event inspector">
       <p>Local transport only. No API key required and no replay data sent to Amplitude.</p>
       <p id="status" role="status">Initializing…</p>

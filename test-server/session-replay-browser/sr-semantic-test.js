@@ -49,6 +49,7 @@ async function start() {
 document.querySelector('#flush').onclick = () => void flush().catch(report);
 document.querySelector('#stop').onclick = () => void stop().catch(report);
 document.querySelector('#start').onclick = () => void start().catch(report);
+document.querySelector('#semantic-form').addEventListener('submit', (event) => event.preventDefault());
 window.semanticHarness = {
   get ready() {
     return ready;
@@ -65,7 +66,7 @@ async function boot() {
   const families = Object.fromEntries(
     (params.get('disabled') ?? '')
       .split(',')
-      .filter((name) => ['context', 'visibility', 'lifecycle', 'navigation', 'recording'].includes(name))
+      .filter((name) => ['context', 'visibility', 'lifecycle', 'navigation', 'recording', 'click', 'field', 'submit'].includes(name))
       .map((name) => [name, false]),
   );
   await sessionReplay.init('semantic-local-test-key', {

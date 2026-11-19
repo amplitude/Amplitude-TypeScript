@@ -76,11 +76,47 @@ export const clickBatcher: PayloadBatcher = ({ version, events }) => {
 
 export class ClickHandler {
   private readonly logger: ILogger;
-  private readonly scrollWatcher: ScrollWatcher;
+  private readonly scrollWatcher?: ScrollWatcher;
+  private clickSelectors?: Map<Element, string | null>;
 
-  constructor(logger: ILogger, scrollWatcher: ScrollWatcher) {
+  constructor(logger: ILogger, scrollWatcher?: ScrollWatcher) {
     this.logger = logger;
     this.scrollWatcher = scrollWatcher;
+  }
+
+  /** Reuse the finder result when heatmaps and semantics see the same native click. */
+  getSelector(element: Element, options?: Partial<FinderOptions>): string | null {
+    if (this.clickSelectors?.has(element)) return this.clickSelectors.get(element) ?? null;
+    const selector = finder(element, options);
+    this.clickSelectors?.set(element, selector);
+    return selector;
+  }
+
+  createSharedHook(
+    heatmapHook?: mouseInteractionCallBack,
+    semanticClick?: (event: MouseEvent) => void,
+  ): mouseInteractionCallBack {
+    return (data, nativeEvent) => {
+      if (data.type !== MouseInteractions.Click) return;
+      const previous = this.clickSelectors;
+      this.clickSelectors = new Map();
+      try {
+        try {
+          heatmapHook?.(data);
+        } catch (error) {
+          this.logger.debug('Heatmap click hook failed', error);
+        }
+        if (nativeEvent?.type === 'click') {
+          try {
+            semanticClick?.(nativeEvent as MouseEvent);
+          } catch (error) {
+            this.logger.debug('Semantic click hook failed', error);
+          }
+        }
+      } finally {
+        this.clickSelectors = previous;
+      }
+    };
   }
 
   createHook: (context: Context) => mouseInteractionCallBack = ({
@@ -116,10 +152,11 @@ export class ClickHandler {
       let selector;
       if (node) {
         try {
-          selector = finder(
-            node as Element,
-            performanceOptions as Pick<FinderOptions, 'timeoutMs' | 'maxNumberOfTries' | 'threshold'>,
-          );
+          selector =
+            this.getSelector(
+              node as Element,
+              performanceOptions as Pick<FinderOptions, 'timeoutMs' | 'maxNumberOfTries' | 'threshold'>,
+            ) ?? undefined;
         } catch (err) {
           this.logger.debug('error resolving selector from finder');
         }
@@ -128,8 +165,8 @@ export class ClickHandler {
       const pageUrl = getPageUrl(location.href, ugcFilterRules);
 
       const event: ClickEvent = {
-        x: x + this.scrollWatcher.currentScrollX,
-        y: y + this.scrollWatcher.currentScrollY,
+        x: x + (this.scrollWatcher?.currentScrollX ?? 0),
+        y: y + (this.scrollWatcher?.currentScrollY ?? 0),
         selector,
 
         viewportHeight: innerHeight,
