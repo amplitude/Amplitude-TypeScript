@@ -40,6 +40,20 @@ describe('campaign-parser', () => {
         gclid: '123',
       });
     });
+
+    test('should decode campaign values from the query string', async () => {
+      const parser = new CampaignParser();
+      Object.defineProperty(document, 'referrer', { value: '', writable: true });
+      window.location.search = '?utm_source=news+letter&utm_content=a%3Db=c&gclid=abc==';
+
+      const campaign = await parser.parse();
+      expect(campaign).toEqual({
+        ...BASE_CAMPAIGN,
+        utm_source: 'news letter',
+        utm_content: 'a=b=c',
+        gclid: 'abc==',
+      });
+    });
   });
 
   describe('getUtmParam', () => {

@@ -8,9 +8,9 @@ export const getQueryParams = (): Record<string, string | undefined> => {
   }
   const pairs = globalScope.location.search.substring(1).split('&').filter(Boolean);
   const params = pairs.reduce<Record<string, string | undefined>>((acc, curr) => {
-    const query = curr.split('=', 2);
-    const key = tryDecodeURIComponent(query[0]);
-    const value = tryDecodeURIComponent(query[1]);
+    const separatorIndex = curr.indexOf('=');
+    const key = tryDecodeURIComponent(separatorIndex === -1 ? curr : curr.slice(0, separatorIndex));
+    const value = tryDecodeURIComponent(separatorIndex === -1 ? undefined : curr.slice(separatorIndex + 1), true);
     if (!value) {
       return acc;
     }
@@ -20,9 +20,9 @@ export const getQueryParams = (): Record<string, string | undefined> => {
   return params;
 };
 
-export const tryDecodeURIComponent = (value = '') => {
+export const tryDecodeURIComponent = (value = '', decodePlusAsSpace = false) => {
   try {
-    return decodeURIComponent(value);
+    return decodeURIComponent(decodePlusAsSpace ? value.replace(/\+/g, ' ') : value);
   } catch {
     return '';
   }
