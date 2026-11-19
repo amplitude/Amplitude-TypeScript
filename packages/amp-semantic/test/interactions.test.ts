@@ -521,6 +521,23 @@ describe('interactions recorder', () => {
     expect(h.emitted[0].payload).toMatchObject({ prevented: true });
   });
 
+  it('flushes a stopped-propagation native submit before page navigation', () => {
+    document.body.innerHTML = '<form><button>Save</button></form>';
+    const h = harness();
+    cleanup = h.start();
+    const form = document.querySelector('form') as HTMLFormElement;
+    form.addEventListener('submit', (event) => event.stopPropagation());
+    dispatch(form, 'submit');
+    expect(h.emitted).toHaveLength(0);
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    expect(h.emitted).toHaveLength(1);
+    expect(h.emitted[0].payload).toMatchObject({ prevented: false });
+    jest.runOnlyPendingTimers();
+    expect(h.emitted).toHaveLength(1);
+  });
+
   it('batches invalid fields per form, caps at ten and never reads validationMessage', () => {
     document.body.innerHTML =
       '<form aria-label="First">' +
