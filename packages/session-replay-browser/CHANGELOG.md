@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.53.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.52.0...@amplitude/session-replay-browser@1.53.0) (2026-11-19)
+
+
+### Features
+
+* **amp-semantic:** mirror replay URL observations ([#2151](https://github.com/amplitude/Amplitude-TypeScript/issues/2151)) ([2074e24](https://github.com/amplitude/Amplitude-TypeScript/commit/2074e247724a76868c96c2ff3692102c5d4d3251))
+
+
+
+
+
 # [1.52.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.51.8...@amplitude/session-replay-browser@1.52.0) (2026-11-16)
 
 

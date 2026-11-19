@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/amp-semantic@0.4.0...@amplitude/amp-semantic@0.5.0) (2026-11-19)
+
+
+### Features
+
+* **amp-semantic:** capture browser lifecycle boundaries ([#2150](https://github.com/amplitude/Amplitude-TypeScript/issues/2150)) ([15bb8ca](https://github.com/amplitude/Amplitude-TypeScript/commit/15bb8caf4b64227d8695ad0c2105568eb0b2a273))
+* **amp-semantic:** mirror replay URL observations ([#2151](https://github.com/amplitude/Amplitude-TypeScript/issues/2151)) ([2074e24](https://github.com/amplitude/Amplitude-TypeScript/commit/2074e247724a76868c96c2ff3692102c5d4d3251))
+
+
+
+
+
 # [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/amp-semantic@0.3.0...@amplitude/amp-semantic@0.4.0) (2026-11-16)
 
 

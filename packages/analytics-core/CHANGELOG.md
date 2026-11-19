@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.62.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.62.1...@amplitude/analytics-core@2.62.2) (2026-11-19)
+
+
+### Bug Fixes
+
+* **analytics-core:** save the event queue once when restoring unsent events ([#2136](https://github.com/amplitude/Amplitude-TypeScript/issues/2136)) ([2a3b980](https://github.com/amplitude/Amplitude-TypeScript/commit/2a3b9800bf79061f1cb8f9fe3ef323b31d7a27ba))
+* **autocapture:** mask sensitive strings before truncating ([#2171](https://github.com/amplitude/Amplitude-TypeScript/issues/2171)) ([e7f0905](https://github.com/amplitude/Amplitude-TypeScript/commit/e7f0905092ac9bf28f13f9e1b1fc204f8b84ff35))
+
+
+
+
+
 ## [2.62.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.62.0...@amplitude/analytics-core@2.62.1) (2026-11-06)
 
 **Note:** Version bump only for package @amplitude/analytics-core

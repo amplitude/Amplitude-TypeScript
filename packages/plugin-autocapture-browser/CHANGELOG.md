@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.31.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.3...@amplitude/plugin-autocapture-browser@1.31.4) (2026-11-19)
+
+
+### Bug Fixes
+
+* **autocapture:** mask sensitive strings before truncating ([#2171](https://github.com/amplitude/Amplitude-TypeScript/issues/2171)) ([e7f0905](https://github.com/amplitude/Amplitude-TypeScript/commit/e7f0905092ac9bf28f13f9e1b1fc204f8b84ff35))
+
+
+
+
+
 ## [1.31.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.2...@amplitude/plugin-autocapture-browser@1.31.3) (2026-11-16)
 
 
