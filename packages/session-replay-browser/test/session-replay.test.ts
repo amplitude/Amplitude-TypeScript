@@ -4549,7 +4549,7 @@ describe('SessionReplay', () => {
         emitFn(event);
 
         expect((sessionReplay as any).pendingEmitEvents).toHaveLength(0);
-        expect(enqueueSpy).toHaveBeenCalledWith(event, expect.anything());
+        expect(enqueueSpy).toHaveBeenCalledWith(event, expect.anything(), false);
       });
 
       test('pre-buffered events are drained into eventCompressor when _init() assigns it', async () => {

@@ -82,7 +82,7 @@ export class EventCompressor {
   }
 
   // Add an event to the task queue if idle callback is supported or compress the event directly
-  public enqueueEvent(event: eventWithTime, sessionId: string | number): void {
+  public enqueueEvent(event: eventWithTime, sessionId: string | number, forceSync = false): void {
     // Full snapshot (type 2) is the most critical event — a replay cannot be played without it.
     // Process and flush immediately rather than waiting for the idle scheduler or web worker,
     // maximising the chance it is delivered before the user exits the page.
@@ -103,6 +103,14 @@ export class EventCompressor {
       const compressedEvent = this.compressEvent(event);
       this.addCompressedEventToManager(compressedEvent, sessionId);
       this.onFullSnapshotProcessed?.();
+      return;
+    }
+
+    // Recording boundaries must reach the manager in order, including a quick
+    // start/stop pair. A worker reply or idle callback can arrive after the close.
+    if (forceSync) {
+      this.flushQueue();
+      this.addCompressedEventToManager(this.compressEvent(event), sessionId);
       return;
     }
 

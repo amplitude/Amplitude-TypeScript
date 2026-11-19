@@ -1,4 +1,5 @@
 import { ReplaySemanticAdapter } from './semantic';
+import type { SemanticRecordingSignal } from './semantic-types';
 import { getSemanticIdentity } from './semantic-identity';
 import {
   createPrivacyRecorderOptions,
@@ -133,7 +134,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * still self-starts when those gates later pass.
    */
   private startChildRecordingOnSetup = false;
-  private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
+  private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number; forceSync: boolean }> = [];
   /**
    * Tab hide/blur uploads are deferred by one macrotask. `visibilitychange` (hidden)
    * fires before `pagehide`, and the default memory store clears the beacon buffer
@@ -263,7 +264,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
     this.urlChangeCleanup?.();
-    this.useSemanticAdapter((adapter) => adapter.stop());
+    // The boundary state is stop; restart explains why this instance is ending.
+    this.useSemanticAdapter((adapter) => adapter.stop('restart'));
     this.semanticAdapter = undefined;
     // A new init always allows capture again. `stop()` only pauses the current instance.
     this.recordingEnabled = true;
@@ -393,8 +395,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // (e.g. a concurrent setSessionId() call that raced _init()'s async setup).
     if (this.pendingEmitEvents.length > 0) {
       const pending = this.pendingEmitEvents.splice(0);
-      for (const { event, sessionId } of pending) {
-        this.eventCompressor.enqueueEvent(event, sessionId);
+      for (const { event, sessionId, forceSync } of pending) {
+        this.eventCompressor.enqueueEvent(event, sessionId, forceSync);
       }
     }
 
@@ -483,15 +485,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.latestUrlChangeTargetingEvaluationId++;
     this.sessionTargetingMatch = false;
     this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
-    if (previousSessionId) {
-      this.sendEvents(previousSessionId);
-    }
-
     const isSessionChange = previousSessionId !== sessionId;
     if (isSessionChange && this.config?.semanticCapture?.enabled && this.semanticAdapter) {
       // Keep rrweb recording through the async config/targeting pass, as it does
-      // without semantic capture. Only detach the old session's semantic runtime.
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      // without semantic capture. Emit the old session's closing boundary before
+      // flushing its sequence and clearing its beacon buffer.
+      this.useSemanticAdapter((adapter) => adapter.stop('new_session'));
+    }
+    if (previousSessionId) {
+      if (isSessionChange) this.eventCompressor?.flushQueue();
+      this.sendEvents(previousSessionId);
     }
 
     // Drop any beacon-buffered events from the previous session BEFORE installing the
@@ -1069,15 +1072,27 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return !this.recordingEnabled || generation !== this.recordingGeneration;
   }
 
+  private getIneligibleRecordingReason(
+    config: SessionReplayJoinedConfig | undefined,
+  ): SemanticRecordingSignal['reason'] {
+    if (config?.captureEnabled === false) return 'capture_disabled';
+    if (this.shouldOptOut()) return 'opt_out';
+    if (config?.targetingConfig) return 'targeting';
+    return 'sampled_out';
+  }
+
   private async _recordEvents(shouldLogMetadata = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
-      if (this.semanticAdapter && this.recordCancelCallback) this.stopRecordingEvents();
+      if (this.semanticAdapter && this.recordCancelCallback)
+        this.stopRecordingEvents(this.getIneligibleRecordingReason(config));
       return;
     }
-    this.stopRecordingEvents();
+    const semanticEnabled =
+      config.semanticCapture?.enabled && typeof config.semanticCapture.createCapture === 'function';
+    this.stopRecordingEvents(semanticEnabled ? 'restart' : 'capture_disabled');
     const generation = this.recordingGeneration;
 
     const recordFunction = await this.getRecordFunction();
@@ -1174,13 +1189,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
           config,
           hooks,
           (event: eventWithTime) => {
-            if (this.shouldOptOut() || !this.recordingEnabled) {
+            const recordingState =
+              event.type === RRWebEventType.Custom && event.data.tag === 'amp-semantic/recording'
+                ? (event.data.payload as { state?: string } | undefined)?.state
+                : undefined;
+            const semanticStop = recordingState === 'stop' || recordingState === 'pause';
+            const semanticBoundary = recordingState !== undefined;
+            if (!semanticStop && (this.shouldOptOut() || !this.recordingEnabled)) {
               this.loggerProvider.log(
                 this.shouldOptOut()
                   ? `Opting session ${sessionId} out of recording due to optOut config.`
                   : `Session Replay capture stopping for ${sessionId}.`,
               );
-              this.stopRecordingEvents();
+              this.stopRecordingEvents(this.shouldOptOut() ? 'opt_out' : 'customer_stop');
               this.sendEvents();
               return;
             }
@@ -1191,11 +1212,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
             if (this.eventCompressor) {
               // Schedule processing during idle time if the browser supports requestIdleCallback
-              this.eventCompressor.enqueueEvent(event, sessionId);
+              this.eventCompressor.enqueueEvent(event, sessionId, semanticBoundary);
             } else {
               // eventCompressor is not yet ready (concurrent call racing _init()).
               // Buffer the event so it can be flushed once the compressor is initialized.
-              this.pendingEmitEvents.push({ event, sessionId });
+              this.pendingEmitEvents.push({ event, sessionId, forceSync: semanticBoundary });
             }
             this.useSemanticAdapter((adapter) => adapter.event(event));
           },
@@ -1219,7 +1240,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         void this.addCustomRRWebEvent(CustomRRwebEvent.METADATA, this.metadata);
       }
     } catch (error) {
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.stop('error'));
       this.loggerProvider.warn('Failed to initialize session replay:', error);
     }
   }
@@ -1234,7 +1255,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.semanticAdapter = undefined;
       this.loggerProvider.debug('Semantic capture failed:', error);
       try {
-        adapter.stop();
+        adapter.stop('error');
       } catch (stopError) {
         this.loggerProvider.debug('Semantic capture stop failed:', stopError);
       }
@@ -1247,12 +1268,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const semanticCapture = config.semanticCapture;
     const createCapture = semanticCapture?.createCapture;
     if (!semanticCapture?.enabled || typeof createCapture !== 'function') {
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.stop('capture_disabled'));
       this.useSemanticAdapter((adapter) => adapter.prepare({ enabled: false }, sessionId));
       return;
     }
     if (this.semanticAdapter?.createCapture !== createCapture) {
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.stop('restart'));
       this.semanticAdapter = undefined;
       try {
         this.semanticAdapter = new ReplaySemanticAdapter(createCapture, {
@@ -1403,9 +1424,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   };
 
-  stopRecordingEvents = () => {
+  stopRecordingEvents = (reason: SemanticRecordingSignal['reason'] = 'restart', state: 'stop' | 'pause' = 'stop') => {
     try {
-      this.useSemanticAdapter((adapter) => adapter.stop());
+      this.useSemanticAdapter((adapter) => adapter.stop(reason, state));
+      // A terminal custom event may still be in the idle compressor queue.
+      // Drain it before callers send the closing sequence or cancel rrweb.
+      this.eventCompressor?.flushQueue();
       this.loggerProvider.log('Session Replay capture stopping.');
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
@@ -1446,7 +1470,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordingGeneration++;
     this.cancelHiddenSend();
     this.windowFocus.stop();
-    this.stopRecordingEvents();
+    this.stopRecordingEvents('customer_stop');
     this.sendEvents();
   }
 
@@ -1469,7 +1493,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.crossOriginParentSignalCleanup?.();
     this.crossOriginParentSignalCleanup = null;
     this.teardownEventListeners(true);
-    this.stopRecordingEvents();
+    this.stopRecordingEvents('customer_stop');
     this.sendEvents();
   }
 
