@@ -4,6 +4,7 @@ import { getGlobalScope } from '@amplitude/analytics-core';
 import { EventType, MouseInteractions } from '@amplitude/rrweb-types';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayJoinedConfig } from '../src/config/types';
+import { ScrollWatcher } from '../src/hooks/scroll';
 
 jest.mock('@amplitude/analytics-core', () => ({
   ...jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core'),
@@ -82,6 +83,18 @@ describe('Session Replay context integration', () => {
     internal.prepareSemanticCapture(sdk.config, 1);
     expect(jest.mocked(createSemanticCapture).mock.lastCall?.[1].externalClicks).toBe(false);
     sdk.stopRecordingEvents();
+  });
+
+  test('applies replay UGC rules to semantic URLs', () => {
+    const { sdk } = prepare(true);
+    const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
+    sdk.config!.interactionConfig = {
+      enabled: true,
+      ugcFilterRules: [
+        { selector: 'https://example.com/accounts/*', replacement: 'https://example.com/accounts/redacted' },
+      ],
+    } as SessionReplayJoinedConfig['interactionConfig'];
+    expect(host.filterUrl?.('https://example.com/accounts/private-name')).toBe('https://example.com/accounts/redacted');
   });
 
   test('disabled capture does not construct a runtime or change session-switch behavior', async () => {
@@ -517,6 +530,39 @@ describe('Session Replay context integration', () => {
     expect(() => {
       record.mock.calls[0][0].hooks.mouseInteraction({ type: MouseInteractions.Click }, new MouseEvent('click'));
     }).not.toThrow();
+    sdk.stopRecordingEvents();
+  });
+
+  test('adds a scroll watcher when heatmaps start after semantic-only clicks', async () => {
+    const { sdk, record, internal } = prepare(true, true);
+    const watcher = {
+      hook: jest.fn(),
+      send: jest.fn(() => jest.fn()),
+      currentScrollX: 40,
+      currentScrollY: 60,
+    };
+    const createWatcher = jest.spyOn(ScrollWatcher, 'default').mockReturnValue(watcher as unknown as ScrollWatcher);
+    const previousClickHandler = { createSharedHook: jest.fn() };
+    internal.clickHandler = previousClickHandler;
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    sdk.config!.interactionConfig = { enabled: true } as SessionReplayJoinedConfig['interactionConfig'];
+    internal.recordingEnabled = true;
+    internal.eventsManager = { addEvent: jest.fn() };
+    jest.spyOn(internal, 'getShouldRecord').mockReturnValue(true);
+    jest.spyOn(internal, 'getRecordFunction').mockResolvedValue(record);
+    jest.spyOn(internal, 'initializeNetworkObservers').mockResolvedValue(undefined);
+    jest.spyOn(internal, 'getRecordingPlugins').mockResolvedValue([]);
+    jest.spyOn(sdk, 'addCustomRRWebEvent').mockResolvedValue(undefined);
+    record.mockReturnValue(jest.fn());
+
+    await internal._recordEvents();
+
+    expect(createWatcher).toHaveBeenCalledTimes(1);
+    expect(internal.clickHandler).not.toBe(previousClickHandler);
+    record.mock.calls[0][0].hooks.mouseInteraction({ id: 42, type: MouseInteractions.Click, x: 1, y: 2 });
+    const click = JSON.parse(internal.eventsManager.addEvent.mock.calls[0][0].event.data);
+    expect(click).toMatchObject({ x: 41, y: 62 });
+    createWatcher.mockRestore();
     sdk.stopRecordingEvents();
   });
 });

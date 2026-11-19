@@ -133,6 +133,15 @@ export function isAriaInvalid(element: Element): boolean {
 
 export function createHelpers(host: SemanticHost): SemanticHelpers {
   const getUrl = () => host.getUrl?.() ?? host.window.location.href;
+  const safeUrlTemplate = (value?: string): string => {
+    try {
+      const current = getUrl();
+      const absolute = new URL(value ?? current, current).href;
+      return urlTemplate(host.filterUrl?.(absolute) ?? absolute);
+    } catch {
+      return '/';
+    }
+  };
   const blocked = (element: Element): boolean => {
     try {
       const selectors = host.getPrivacy().blockSelector;
@@ -310,7 +319,7 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
     describe,
     visible,
     role: roleOf,
-    url: (value = getUrl()) => urlTemplate(value, getUrl()),
+    url: safeUrlTemplate,
     actionable: (element) => {
       let current: Element | null = element;
       let fallback = element;
@@ -369,7 +378,7 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       for (const key of ATTRIBUTES) {
         const value = element.getAttribute(key);
         if (value === null || (host.getPrivacy().maskAttributes?.includes(key) && masked(element))) continue;
-        result[key] = normalizeText(key === 'href' ? urlTemplate(value, getUrl()) : value);
+        result[key] = normalizeText(key === 'href' ? safeUrlTemplate(value) : value);
       }
       return result;
     },
