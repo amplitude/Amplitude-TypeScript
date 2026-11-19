@@ -269,6 +269,9 @@ export const interactionsRecorder: SemanticRecorder = {
           invalid_fields,
           prevented: event.defaultPrevented,
         });
+        // A submit handler may call checkValidity(), which dispatches invalid
+        // events for this same attempt. The real submit already carries validity.
+        invalidForms.delete(form);
       };
       // Flush at the end of bubbling, after form and document handlers but before
       // a native navigation can discard the deferred task. Keep the task as a
