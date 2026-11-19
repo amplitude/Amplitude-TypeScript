@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.32.0-cursorpage-x-y-plus-click-cell-9eb2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.30.4...@amplitude/plugin-autocapture-browser@1.32.0-cursorpage-x-y-plus-click-cell-9eb2.0) (2026-11-19)
+
+
+### Features
+
+* **analytics-browser:** add page context and SDK initialization offset ([#2067](https://github.com/amplitude/Amplitude-TypeScript/issues/2067)) ([cc7389f](https://github.com/amplitude/Amplitude-TypeScript/commit/cc7389fd5a3547f46d078ebd7971134f1c9f2411))
+* **plugin-autocapture-browser:** add [Amplitude] Page X/Y to Element Clicked ([385b3fb](https://github.com/amplitude/Amplitude-TypeScript/commit/385b3fb0839930610a637fee2c5023421d45a284))
+* **plugin-autocapture-browser:** add click cell properties to Element Clicked ([2d1f9e1](https://github.com/amplitude/Amplitude-TypeScript/commit/2d1f9e12530b8add9036978f49ed0104aa79852c))
+
+
+
+
+
 ## [1.31.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.31.1...@amplitude/plugin-autocapture-browser@1.31.2) (2026-11-06)
 
 

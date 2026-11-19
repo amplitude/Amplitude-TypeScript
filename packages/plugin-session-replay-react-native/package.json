@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-session-replay-react-native",
-  "version": "0.5.13",
+  "version": "0.5.14-cursorpage-x-y-plus-click-cell-9eb2.0",
   "description": "Amplitude Session Replay plugin for React Native",
   "keywords": [
     "analytics",
