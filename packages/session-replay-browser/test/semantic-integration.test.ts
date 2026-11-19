@@ -389,6 +389,11 @@ describe('Session Replay context integration', () => {
       data: { tag: 'amp-semantic/recording', payload: { state: 'start' } },
     });
     options.emit({ type: EventType.Custom, timestamp: 0, data: { tag: 'other', payload: { state: 'stop' } } });
+    expect(enqueued).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ tag: 'amp-semantic/recording' }) }),
+      1,
+      true,
+    );
     enqueued.mockClear();
     internal.recordingEnabled = false;
     options.emit({
