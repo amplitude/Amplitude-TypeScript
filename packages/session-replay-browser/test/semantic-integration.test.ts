@@ -342,7 +342,23 @@ describe('Session Replay context integration', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 
+  test('labels an eligible recorder replacement as a restart', async () => {
+    const { sdk, internal } = prepare(true);
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    sdk.recordCancelCallback = jest.fn();
+    internal.semanticAdapter.recordingReady();
+    internal.semanticAdapter.event({ type: EventType.FullSnapshot, timestamp: 1, data: {} });
+    capture.notify.mockClear();
+    jest.spyOn(internal, 'getShouldRecord').mockReturnValue(true);
+    jest.spyOn(internal, 'getRecordFunction').mockResolvedValue(null);
+
+    await internal._recordEvents();
+
+    expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'stop', reason: 'restart' });
+  });
+
   test.each([
+    { optOut: false, targeting: true, reason: 'capture_disabled' },
     { optOut: true, targeting: false, reason: 'opt_out' },
     { optOut: false, targeting: true, reason: 'targeting' },
     { optOut: false, targeting: false, reason: 'sampled_out' },
@@ -350,7 +366,11 @@ describe('Session Replay context integration', () => {
     const { sdk, internal } = prepare(true);
     sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
     sdk.recordCancelCallback = jest.fn();
-    sdk.config = { ...sdk.config!, targetingConfig: targeting ? ({} as any) : undefined };
+    sdk.config = {
+      ...sdk.config!,
+      captureEnabled: reason !== 'capture_disabled',
+      targetingConfig: targeting ? ({} as any) : undefined,
+    };
     jest.spyOn(internal, 'getShouldRecord').mockReturnValue(false);
     jest.spyOn(internal, 'shouldOptOut').mockReturnValue(optOut);
     const stop = jest.spyOn(sdk, 'stopRecordingEvents');
