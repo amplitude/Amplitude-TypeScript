@@ -399,6 +399,11 @@ describe('interactions recorder', () => {
       true,
       false,
     ]);
+    expect(h.emitted.map((entry) => (entry.payload as SemanticPayloads['field']).value_state)).toEqual([
+      'empty',
+      'filled',
+      'empty',
+    ]);
     expect(JSON.stringify(h.emitted)).not.toContain('PRIVATE');
   });
 
@@ -478,6 +483,24 @@ describe('interactions recorder', () => {
     expect(h.emitted[0].payload).toMatchObject({ prevented: false });
     jest.runOnlyPendingTimers();
     expect(h.emitted).toHaveLength(1);
+  });
+
+  it('reports invalid controls on a submit that bypasses browser validation', () => {
+    document.body.innerHTML =
+      '<form novalidate><input type="email" required aria-label="Email"><button>Save</button></form>';
+    const h = harness({ defaultMaskLevel: 'light' });
+    cleanup = h.start();
+    const input = document.querySelector('input') as HTMLInputElement;
+    Object.defineProperty(input, 'validationMessage', {
+      get: () => {
+        throw new Error('must not read');
+      },
+    });
+    dispatch(document.querySelector('form') as HTMLFormElement, 'submit');
+    expect(h.emitted[0].payload).toMatchObject({
+      valid: false,
+      invalid_fields: [{ name: null, validity: ['valueMissing'] }],
+    });
   });
 
   it('uses a deferred fallback when a submit handler stops propagation', () => {

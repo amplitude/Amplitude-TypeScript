@@ -300,19 +300,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     );
 
     this.pageLeaveFns = [];
-
-    if (options.sessionId && this.config.interactionConfig?.enabled) {
-      const scrollWatcher = ScrollWatcher.default(
-        {
-          sessionId: options.sessionId,
-          type: 'interaction',
-        },
-        this.config,
-      );
-      this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this)).bind(scrollWatcher)];
-      this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
-      this.clickHandler = new ClickHandler(this.loggerProvider, scrollWatcher);
-    }
+    this.scrollHook = undefined;
+    this.clickHandler = undefined;
+    if (options.sessionId) this.ensureHeatmapHooks(this.config, options.sessionId);
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
     let { storeType } = this.config;
@@ -1072,6 +1062,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return !this.recordingEnabled || generation !== this.recordingGeneration;
   }
 
+  private ensureHeatmapHooks(config: SessionReplayJoinedConfig, sessionId: string | number): void {
+    if (!config.interactionConfig?.enabled || this.scrollHook) return;
+    const scrollWatcher = ScrollWatcher.default({ sessionId, type: 'interaction' }, config);
+    this.pageLeaveFns.push(scrollWatcher.send(this.getDeviceId.bind(this)).bind(scrollWatcher));
+    this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
+    // A semantic-only recorder may have created a selector helper without a
+    // scroll watcher. Replace it when heatmaps become enabled.
+    this.clickHandler = new ClickHandler(this.loggerProvider, scrollWatcher);
+  }
+
   private getIneligibleRecordingReason(
     config: SessionReplayJoinedConfig | undefined,
   ): SemanticRecordingSignal['reason'] {
@@ -1113,6 +1113,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     }, networkLoggingConfig);
     const { interactionConfig, loggingConfig } = config;
+
+    this.ensureHeatmapHooks(config, sessionId);
 
     const heatmapHook =
       interactionConfig?.enabled && this.eventsManager
@@ -1289,6 +1291,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           getPrivacy: () => this.config?.privacyConfig ?? {},
           getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
           getUrl: () => this.currentPageUrl || scope.location.href,
+          filterUrl: (url) => getPageUrl(url, this.config?.interactionConfig?.ugcFilterRules ?? []),
           getSelector: (element) => {
             try {
               return this.clickHandler?.getSelector(element, this.config?.performanceConfig?.interaction) ?? null;
