@@ -377,6 +377,21 @@ export interface SessionReplayLocalConfig extends IConfig {
    */
   captureFullSnapshotOnFocus?: boolean;
   /**
+   * Stop capturing while the document is hidden, and start again with a fresh full snapshot
+   * when it becomes visible.
+   *
+   * Every tab of a site records into the same replay (they share the device and session id).
+   * rrweb numbers nodes per tab, and tabs of the same app produce nearly the same numbers, so
+   * a background tab's events land on whichever tab's snapshot the player last applied. For
+   * example, a background tab removing its own stylesheet removes the visible tab's stylesheet
+   * on playback. A hidden tab shows the user nothing, so not recording it loses nothing.
+   *
+   * Two windows that are both visible are not covered: neither one is hidden.
+   *
+   * @defaultValue true
+   */
+  stopRecordingWhenHidden?: boolean;
+  /**
    * Raw (uncompressed) UTF-8 byte cap for a single buffered events list before the store
    * splits it into its own request. Larger values produce fewer, larger requests (the primary
    * steady-state lever for request volume); smaller values split sooner. Payloads are gzipped

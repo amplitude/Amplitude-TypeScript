@@ -61,6 +61,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   flushIntervalConfig?: FlushIntervalConfig;
   eagerFullSnapshotSend?: boolean;
   captureFullSnapshotOnFocus?: boolean;
+  stopRecordingWhenHidden?: boolean;
   maxPersistedEventsSizeBytes?: number;
   maxSingleEventSizeBytes?: number;
   handleSendEvents?: SessionReplaySendEventsHandler;
@@ -107,6 +108,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     // switch that started while an iframe in this page was focused. Same-page iframe
     // focus does not.
     this.captureFullSnapshotOnFocus = options.captureFullSnapshotOnFocus ?? false;
+    this.stopRecordingWhenHidden = options.stopRecordingWhenHidden ?? true;
     if (options.maxPersistedEventsSizeBytes !== undefined) {
       this.maxPersistedEventsSizeBytes = sanitizeByteSize(
         options.maxPersistedEventsSizeBytes,
