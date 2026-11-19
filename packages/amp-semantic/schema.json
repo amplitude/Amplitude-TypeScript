@@ -282,7 +282,20 @@
               "type": "object",
               "properties": {
                 "state": { "enum": ["start", "stop", "pause", "resume"] },
-                "reason": { "enum": ["init", "new_session", "customer_stop", "sampled_out", "opt_out", "targeting", "focus", "error"] },
+                "reason": {
+                  "enum": [
+                    "init",
+                    "new_session",
+                    "customer_stop",
+                    "capture_disabled",
+                    "sampled_out",
+                    "opt_out",
+                    "targeting",
+                    "restart",
+                    "focus",
+                    "error"
+                  ]
+                },
                 "tab_id": { "type": "string", "minLength": 1 },
                 "document_id": { "type": "string", "minLength": 1 },
                 "v": { "const": 1 }
