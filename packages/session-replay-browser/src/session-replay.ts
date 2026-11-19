@@ -134,7 +134,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * still self-starts when those gates later pass.
    */
   private startChildRecordingOnSetup = false;
-  private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number }> = [];
+  private pendingEmitEvents: Array<{ event: eventWithTime; sessionId: string | number; forceSync: boolean }> = [];
   /**
    * Tab hide/blur uploads are deferred by one macrotask. `visibilitychange` (hidden)
    * fires before `pagehide`, and the default memory store clears the beacon buffer
@@ -395,8 +395,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // (e.g. a concurrent setSessionId() call that raced _init()'s async setup).
     if (this.pendingEmitEvents.length > 0) {
       const pending = this.pendingEmitEvents.splice(0);
-      for (const { event, sessionId } of pending) {
-        this.eventCompressor.enqueueEvent(event, sessionId);
+      for (const { event, sessionId, forceSync } of pending) {
+        this.eventCompressor.enqueueEvent(event, sessionId, forceSync);
       }
     }
 
@@ -1209,11 +1209,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
             if (this.eventCompressor) {
               // Schedule processing during idle time if the browser supports requestIdleCallback
-              this.eventCompressor.enqueueEvent(event, sessionId);
+              this.eventCompressor.enqueueEvent(event, sessionId, semanticStop);
             } else {
               // eventCompressor is not yet ready (concurrent call racing _init()).
               // Buffer the event so it can be flushed once the compressor is initialized.
-              this.pendingEmitEvents.push({ event, sessionId });
+              this.pendingEmitEvents.push({ event, sessionId, forceSync: semanticStop });
             }
             this.useSemanticAdapter((adapter) => adapter.event(event));
           },

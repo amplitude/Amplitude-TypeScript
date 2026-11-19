@@ -386,6 +386,8 @@ describe('Session Replay context integration', () => {
       data: { tag: 'amp-semantic/recording', payload: { state: 'pause' } },
     });
     expect(enqueued).toHaveBeenCalledTimes(2);
+    expect(enqueued).toHaveBeenNthCalledWith(1, expect.anything(), 1, true);
+    expect(enqueued).toHaveBeenNthCalledWith(2, expect.anything(), 1, true);
     expect(stop).not.toHaveBeenCalled();
   });
 
