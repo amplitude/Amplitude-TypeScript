@@ -36,6 +36,21 @@ export type RecordFunction = {
     maskTextSelector?: string;
     checkoutEveryNms?: number;
     recordCanvas?: boolean;
+    /**
+     * Partial rrweb sampling strategy. Only `canvas` is set by the SDK, from the local
+     * `canvas.sampling` config: `'all'` records every drawing call, and a number records
+     * image snapshots at most that many times per second.
+     */
+    sampling?: {
+      canvas?: 'all' | number;
+    };
+    /**
+     * Passed through from the local `canvas.dataURLOptions` config to rrweb's `dataURLOptions`.
+     */
+    dataURLOptions?: {
+      type?: string;
+      quality?: number;
+    };
     slimDOMOptions?: {
       script?: boolean;
       comment?: boolean;

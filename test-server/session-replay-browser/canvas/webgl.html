@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SR Canvas — WebGL</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 720px;
+        margin: 32px auto;
+        padding: 0 16px;
+        line-height: 1.5;
+      }
+      canvas {
+        display: block;
+        border: 1px solid #ccc;
+        background: #111;
+      }
+      button {
+        margin-top: 12px;
+        padding: 8px 14px;
+      }
+      pre {
+        background: #f4f4f4;
+        padding: 12px;
+        overflow: auto;
+      }
+      #status {
+        font-family: monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Canvas example: WebGL drawing commands</h1>
+    <p>
+      Passes <code>canvas.sampling: 'all'</code> through to rrweb and draws a triangle after recording
+      starts, so the WebGL calls are captured as canvas mutations.
+    </p>
+    <p id="status">loading</p>
+    <canvas id="demo" width="320" height="180"></canvas>
+    <button id="draw" type="button">Draw triangle again</button>
+    <pre id="config"></pre>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      window.sessionReplay = sessionReplay;
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'canvas-webgl-device';
+      const canvas = {
+        enabled: true,
+        sampling: 'all',
+      };
+      document.getElementById('config').textContent = JSON.stringify({ canvas }, null, 2);
+
+      const canvasEl = document.getElementById('demo');
+
+      function compile(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+      }
+
+      window.drawTriangle = () => {
+        const gl = canvasEl.getContext('webgl', { preserveDrawingBuffer: true });
+        if (!gl) {
+          window.webglUnavailable = true;
+          document.getElementById('status').textContent = 'webgl unavailable';
+          return false;
+        }
+        const program = gl.createProgram();
+        gl.attachShader(
+          program,
+          compile(gl, gl.VERTEX_SHADER, 'attribute vec2 a_position; void main() { gl_Position = vec4(a_position, 0.0, 1.0); }'),
+        );
+        gl.attachShader(
+          program,
+          compile(
+            gl,
+            gl.FRAGMENT_SHADER,
+            'precision mediump float; uniform vec4 u_color; void main() { gl_FragColor = u_color; }',
+          ),
+        );
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-0.6, -0.5, 0.6, -0.5, 0.0, 0.6]), gl.STATIC_DRAW);
+        const loc = gl.getAttribLocation(program, 'a_position');
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+        gl.uniform4f(gl.getUniformLocation(program, 'u_color'), 0.95, 0.45, 0.2, 1);
+        gl.viewport(0, 0, canvasEl.width, canvasEl.height);
+        gl.clearColor(0.08, 0.16, 0.28, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        window.webglDrew = true;
+        return true;
+      };
+
+      document.getElementById('draw').addEventListener('click', () => window.drawTriangle());
+
+      void (async () => {
+        try {
+          await sessionReplay.init('d90c5cf09ca2546a1626272906b99a76', {
+            deviceId,
+            sessionId,
+            sampleRate: 1,
+            canvas,
+          }).promise;
+          // Recording is active, so this draw is observed as WebGL canvas mutations.
+          window.drawTriangle();
+        } catch (err) {
+          document.getElementById('status').textContent = 'error: ' + err.message;
+          window.srError = err.message;
+        }
+        window.srReady = true;
+        if (!window.srError && !window.webglUnavailable) {
+          document.getElementById('status').textContent = 'ready';
+        }
+      })();
+    </script>
+  </body>
+</html>
