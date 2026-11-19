@@ -264,6 +264,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
     this.urlChangeCleanup?.();
+    // The boundary state is stop; restart explains why this instance is ending.
     this.useSemanticAdapter((adapter) => adapter.stop('restart'));
     this.semanticAdapter = undefined;
     // A new init always allows capture again. `stop()` only pauses the current instance.
@@ -1071,21 +1072,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return !this.recordingEnabled || generation !== this.recordingGeneration;
   }
 
+  private getIneligibleRecordingReason(
+    config: SessionReplayJoinedConfig | undefined,
+  ): SemanticRecordingSignal['reason'] {
+    if (config?.captureEnabled === false) return 'capture_disabled';
+    if (this.shouldOptOut()) return 'opt_out';
+    if (config?.targetingConfig) return 'targeting';
+    return 'sampled_out';
+  }
+
   private async _recordEvents(shouldLogMetadata = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
       if (this.semanticAdapter && this.recordCancelCallback)
-        this.stopRecordingEvents(
-          config?.captureEnabled === false
-            ? 'capture_disabled'
-            : this.shouldOptOut()
-            ? 'opt_out'
-            : config?.targetingConfig
-            ? 'targeting'
-            : 'sampled_out',
-        );
+        this.stopRecordingEvents(this.getIneligibleRecordingReason(config));
       return;
     }
     this.stopRecordingEvents('restart');
@@ -1194,10 +1196,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
           config,
           hooks,
           (event: eventWithTime) => {
-            const semanticStop =
-              event.type === RRWebEventType.Custom &&
-              event.data.tag === 'amp-semantic/recording' &&
-              ['stop', 'pause'].includes((event.data.payload as { state?: string } | undefined)?.state ?? '');
+            const recordingState =
+              event.type === RRWebEventType.Custom && event.data.tag === 'amp-semantic/recording'
+                ? (event.data.payload as { state?: string } | undefined)?.state
+                : undefined;
+            const semanticStop = recordingState === 'stop' || recordingState === 'pause';
             if (!semanticStop && (this.shouldOptOut() || !this.recordingEnabled)) {
               this.loggerProvider.log(
                 this.shouldOptOut()
