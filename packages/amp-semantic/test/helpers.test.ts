@@ -26,6 +26,23 @@ describe('shared privacy helpers', () => {
     expect(helpers.url()).toBe('/accounts/redacted');
     expect(helpers.attributes(link).href).toBe('/accounts/redacted');
   });
+  test('resolves names and text within an iframe document', () => {
+    document.body.innerHTML = '<span id="title">Wrong parent title</span><iframe></iframe>';
+    const frame = document.querySelector('iframe') as HTMLIFrameElement;
+    const frameDocument = frame.contentDocument;
+    if (!frameDocument) throw new Error('Expected an iframe document');
+    frameDocument.body.innerHTML =
+      '<span id="title">Frame title</span><dialog open aria-labelledby="title"></dialog><div role="status">Frame notice</div>';
+    const helpers = createHelpers(host({ defaultMaskLevel: 'light' }));
+    const dialog = frameDocument.querySelector('dialog') as HTMLDialogElement;
+    const notice = frameDocument.querySelector('[role="status"]') as Element;
+    const walk = jest.spyOn(frameDocument, 'createTreeWalker');
+
+    expect(helpers.name(dialog)).toEqual({ name: 'Frame title', source: 'aria-labelledby' });
+    expect(helpers.text(notice)).toBe('Frame notice');
+    expect(walk).toHaveBeenCalled();
+    walk.mockRestore();
+  });
   test('reuses heading discovery but rechecks text, masking, removal, and invalidation', () => {
     let time = 0;
     jest.spyOn(window.performance, 'now').mockImplementation(() => time);
