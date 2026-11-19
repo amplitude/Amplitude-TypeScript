@@ -505,6 +505,21 @@ describe('interactions recorder', () => {
     });
   });
 
+  it('skips valid controls and caps invalid details on a submitted form', () => {
+    document.body.innerHTML =
+      '<form novalidate><input aria-label="Complete" required value="done">' +
+      '<fieldset></fieldset>' +
+      Array.from({ length: 11 }, (_, i) => `<input aria-label="Missing ${i}" required>`).join('') +
+      '<button>Save</button></form>';
+    const h = harness({ defaultMaskLevel: 'light' });
+    cleanup = h.start();
+
+    dispatch(document.querySelector('form') as HTMLFormElement, 'submit');
+
+    expect((h.emitted[0].payload as SemanticPayloads['submit']).valid).toBe(false);
+    expect((h.emitted[0].payload as SemanticPayloads['submit']).invalid_fields).toHaveLength(10);
+  });
+
   it('uses a deferred fallback when a submit handler stops propagation', () => {
     document.body.innerHTML = '<form><button>Save</button></form>';
     const h = harness();

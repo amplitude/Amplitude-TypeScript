@@ -244,14 +244,14 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       return finish(unsafe ? null : text(label, labelText), label.htmlFor ? 'label-for' : 'label-wrap');
     }
     if (element.tagName === 'IMG' && element.hasAttribute('alt'))
-      return finish(nameAttribute(element, 'alt', element.getAttribute('alt') ?? ''), 'alt');
+      return finish(nameAttribute(element, 'alt', element.getAttribute('alt') as string), 'alt');
     // Static button captions are attributes, never a live input value.
     if (
       element.tagName === 'INPUT' &&
       /^(button|submit|reset)$/i.test(element.getAttribute('type') ?? '') &&
       element.hasAttribute('value')
     )
-      return finish(nameAttribute(element, 'value', element.getAttribute('value') ?? ''), 'value');
+      return finish(nameAttribute(element, 'value', element.getAttribute('value') as string), 'value');
     if (CONTENT_NAMES.has(roleOf(element))) {
       const content = text(element);
       if (content === null || content) return finish(content, 'text');

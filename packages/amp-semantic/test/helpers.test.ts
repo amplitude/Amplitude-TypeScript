@@ -25,6 +25,10 @@ describe('shared privacy helpers', () => {
     link.setAttribute('href', '/accounts/private-name?token=other');
     expect(helpers.url()).toBe('/accounts/redacted');
     expect(helpers.attributes(link).href).toBe('/accounts/redacted');
+    semanticHost.filterUrl = () => {
+      throw new Error('filter unavailable');
+    };
+    expect(helpers.url()).toBe('/');
   });
   test('resolves names and text within an iframe document', () => {
     document.body.innerHTML = '<span id="title">Wrong parent title</span><iframe></iframe>';
@@ -157,6 +161,14 @@ describe('shared privacy helpers', () => {
     const helpers = createHelpers(host({ defaultMaskLevel: 'medium', maskAttributes: ['aria-label'] }));
     expect(helpers.name(inputs[0])).toEqual({ name: null, source: 'masked' });
     expect(helpers.name(inputs[1])).toEqual({ name: null, source: 'masked' });
+    expect(createHelpers(host({ defaultMaskLevel: 'medium', maskSelector: ['input'] })).name(inputs[0])).toEqual({
+      name: null,
+      source: 'masked',
+    });
+    expect(createHelpers(host({ defaultMaskLevel: 'medium', maskSelector: ['['] })).name(inputs[0])).toEqual({
+      name: null,
+      source: 'masked',
+    });
   });
   test('checks the source label and nested mask decisions', () => {
     document.body.innerHTML =
