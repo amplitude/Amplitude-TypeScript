@@ -17,6 +17,8 @@ import {
   normalizePageUrl,
   resolveHistoryNavigationUrl,
   getClickPageCoordinates,
+  getClickCellProperties,
+  resolveClickCellConfig,
 } from '../src/helpers';
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import { mockWindowLocationFromURL } from './utils';
@@ -1019,5 +1021,148 @@ describe('getClickPageCoordinates', () => {
   test('returns no coordinates for null / undefined', () => {
     expect(getClickPageCoordinates(null)).toEqual({});
     expect(getClickPageCoordinates(undefined)).toEqual({});
+  });
+});
+
+describe('resolveClickCellConfig', () => {
+  test('uses the defaults when no options are given', () => {
+    expect(resolveClickCellConfig(undefined)).toEqual({ minCellSizePx: 64, maxCellsPerAxis: 10 });
+    expect(resolveClickCellConfig({})).toEqual({ minCellSizePx: 64, maxCellsPerAxis: 10 });
+    expect(resolveClickCellConfig({ enabled: true })).toEqual({ minCellSizePx: 64, maxCellsPerAxis: 10 });
+  });
+
+  test('returns null when disabled', () => {
+    expect(resolveClickCellConfig({ enabled: false, minCellSizePx: 32 })).toBeNull();
+  });
+
+  test('uses the given grid parameters', () => {
+    expect(resolveClickCellConfig({ minCellSizePx: 32, maxCellsPerAxis: 4 })).toEqual({
+      minCellSizePx: 32,
+      maxCellsPerAxis: 4,
+    });
+  });
+
+  test('rounds a fractional cap down', () => {
+    expect(resolveClickCellConfig({ maxCellsPerAxis: 3.7 })?.maxCellsPerAxis).toBe(3);
+  });
+
+  test.each([0, -8, NaN, Infinity, '32'])('falls back to the default minimum cell size for %p', (value) => {
+    expect(resolveClickCellConfig({ minCellSizePx: value as number })?.minCellSizePx).toBe(64);
+  });
+
+  test.each([0, 0.5, -2, NaN, Infinity, '4'])('falls back to the default cap for %p', (value) => {
+    expect(resolveClickCellConfig({ maxCellsPerAxis: value as number })?.maxCellsPerAxis).toBe(10);
+  });
+});
+
+describe('getClickCellProperties', () => {
+  const config = { minCellSizePx: 64, maxCellsPerAxis: 10 };
+
+  const elementWithRect = (rect: { left?: number; top?: number; width: number; height: number }) => {
+    const element = document.createElement('div');
+    element.getBoundingClientRect = () => ({ left: 0, top: 0, ...rect } as DOMRect);
+    return element;
+  };
+
+  const pointerClick = (clientX: number, clientY: number) => new MouseEvent('click', { detail: 1, clientX, clientY });
+
+  const cellOf = (event: Event, element: Element, cellConfig = config) =>
+    getClickCellProperties(event, element, cellConfig)['[Amplitude] Element Click Cell'];
+
+  test('returns the cell, the grid parameters and the rounded element size', () => {
+    const element = elementWithRect({ left: 100, top: 200, width: 300.4, height: 199.6 });
+    // about 300x200 at 64px is a 4x3 grid; the click is in the third column of the second row
+    expect(getClickCellProperties(pointerClick(275, 300), element, config)).toEqual({
+      '[Amplitude] Element Click Cell': '4x3:2,1',
+      '[Amplitude] Element Click Cell Min Size': 64,
+      '[Amplitude] Element Click Cell Max Per Axis': 10,
+      '[Amplitude] Element Width': 300,
+      '[Amplitude] Element Height': 200,
+    });
+  });
+
+  test.each([
+    [40, 40, '1x1'],
+    [64, 64, '1x1'],
+    [127.9, 127.9, '1x1'],
+    [128, 64, '2x1'],
+    [120, 40, '1x1'],
+    [280, 40, '4x1'],
+    [300, 200, '4x3'],
+    [640, 640, '10x10'],
+    [1216, 360, '10x5'],
+    [2000, 2000, '10x10'],
+  ])('sizes the grid per axis for a %px%p element as %s', (width, height, grid) => {
+    const element = elementWithRect({ width, height });
+    expect(cellOf(pointerClick(0, 0), element)).toBe(`${grid}:0,0`);
+  });
+
+  test.each([
+    ['top-left corner', 100, 200, '0,0'],
+    ['just inside the bottom-right corner', 399.9, 399.9, '3,2'],
+    ['exactly on the right and bottom edges', 400, 400, '3,2'],
+    ['a column boundary', 175, 200, '1,0'],
+    ['left of and above the box', 50, 100, '0,0'],
+    ['right of and below the box', 900, 900, '3,2'],
+  ])('places a click at the %s', (_name, clientX, clientY, cell) => {
+    const element = elementWithRect({ left: 100, top: 200, width: 300, height: 200 });
+    expect(cellOf(pointerClick(clientX, clientY), element)).toBe(`4x3:${cell}`);
+  });
+
+  test('uses the given grid parameters and reports them', () => {
+    const element = elementWithRect({ width: 300, height: 200 });
+    // 300 / 32 = 9 and 200 / 32 = 6, both capped at 3
+    expect(
+      getClickCellProperties(pointerClick(299, 199), element, { minCellSizePx: 32, maxCellsPerAxis: 3 }),
+    ).toMatchObject({
+      '[Amplitude] Element Click Cell': '3x3:2,2',
+      '[Amplitude] Element Click Cell Min Size': 32,
+      '[Amplitude] Element Click Cell Max Per Axis': 3,
+    });
+  });
+
+  test('returns nothing when the click cell is disabled', () => {
+    const element = elementWithRect({ width: 300, height: 200 });
+    expect(getClickCellProperties(pointerClick(10, 10), element, null)).toEqual({});
+  });
+
+  test.each([
+    ['a keyboard activation (detail === 0)', new MouseEvent('click', { detail: 0, clientX: 10, clientY: 10 })],
+    ['a plain Event', new Event('click')],
+    ['a missing event', null],
+  ])('returns nothing for %s', (_name, event) => {
+    const element = elementWithRect({ width: 300, height: 200 });
+    expect(getClickCellProperties(event, element, config)).toEqual({});
+  });
+
+  test.each([['clientX'], ['clientY']])('returns nothing when %s is not a finite number', (coordinate) => {
+    const element = elementWithRect({ width: 300, height: 200 });
+    const event = pointerClick(10, 10);
+    Object.defineProperty(event, coordinate, { value: NaN });
+    expect(getClickCellProperties(event, element, config)).toEqual({});
+  });
+
+  test.each([
+    ['a missing element', null],
+    ['a target without a bounding box', {} as Element],
+  ])('returns nothing for %s', (_name, element) => {
+    expect(getClickCellProperties(pointerClick(10, 10), element, config)).toEqual({});
+  });
+
+  test.each([
+    ['zero width', { width: 0, height: 200 }],
+    ['zero height', { width: 300, height: 0 }],
+    ['a non-finite width', { width: NaN, height: 200 }],
+    ['a non-finite height', { width: 300, height: NaN }],
+  ])('returns nothing for an element with %s', (_name, rect) => {
+    expect(getClickCellProperties(pointerClick(10, 10), elementWithRect(rect), config)).toEqual({});
+  });
+
+  test('returns nothing instead of throwing when the bounding box cannot be read', () => {
+    const element = document.createElement('div');
+    element.getBoundingClientRect = () => {
+      throw new Error('detached');
+    };
+    expect(getClickCellProperties(pointerClick(10, 10), element, config)).toEqual({});
   });
 });
