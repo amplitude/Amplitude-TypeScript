@@ -111,7 +111,7 @@ describe('ReplaySemanticAdapter', () => {
     expect(capture.notify).toHaveBeenCalledTimes(4);
     adapter.prepare({ enabled: false }, 1);
     adapter.event(plugin('https://example.com/disabled', 12));
-    expect(capture.notify).toHaveBeenLastCalledWith('recording', { state: 'stop', reason: 'targeting' });
+    expect(capture.notify).toHaveBeenLastCalledWith('recording', { state: 'stop', reason: 'capture_disabled' });
     expect(capture.notify).toHaveBeenCalledTimes(5);
   });
 
