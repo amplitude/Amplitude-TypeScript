@@ -23,6 +23,22 @@ export const AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP = '[Amplitude] Element Po
 export const AMPLITUDE_EVENT_PROP_PAGE_X = '[Amplitude] Page X';
 /** Pointer position of the click relative to the top-left of the document (MouseEvent.pageY), in CSS pixels. */
 export const AMPLITUDE_EVENT_PROP_PAGE_Y = '[Amplitude] Page Y';
+/**
+ * Where inside the clicked element the pointer was: the cell of a grid laid over the
+ * element's bounding box, formatted `<cols>x<rows>:<col>,<row>` (zero-based from the top-left).
+ */
+export const AMPLITUDE_EVENT_PROP_ELEMENT_CLICK_CELL = '[Amplitude] Element Click Cell';
+/** Minimum grid cell size, in CSS pixels, in effect when the click cell was computed. */
+export const AMPLITUDE_EVENT_PROP_ELEMENT_CLICK_CELL_MIN_SIZE = '[Amplitude] Element Click Cell Min Size';
+/** Largest number of grid cells per axis in effect when the click cell was computed. */
+export const AMPLITUDE_EVENT_PROP_ELEMENT_CLICK_CELL_MAX_PER_AXIS = '[Amplitude] Element Click Cell Max Per Axis';
+/** Width of the clicked element's bounding box, in CSS pixels. */
+export const AMPLITUDE_EVENT_PROP_ELEMENT_WIDTH = '[Amplitude] Element Width';
+/** Height of the clicked element's bounding box, in CSS pixels. */
+export const AMPLITUDE_EVENT_PROP_ELEMENT_HEIGHT = '[Amplitude] Element Height';
+
+export const DEFAULT_CLICK_CELL_MIN_SIZE_PX = 64;
+export const DEFAULT_CLICK_CELL_MAX_PER_AXIS = 10;
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL = '[Amplitude] Element Aria Label';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES = '[Amplitude] Element Attributes';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_PATH = '[Amplitude] Element Path';

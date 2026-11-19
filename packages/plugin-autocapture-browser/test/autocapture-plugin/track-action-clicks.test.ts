@@ -212,6 +212,49 @@ describe('action clicks:', () => {
       );
     });
 
+    test('should add the click cell of the element as it was when clicked', async () => {
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      const button = document.getElementById('addDivButton') as HTMLElement;
+      let rect = { left: 0, top: 0, width: 300, height: 200 };
+      button.getBoundingClientRect = () => rect as DOMRect;
+
+      // bottom-right cell of the 4x3 grid over the 300x200 box
+      button.dispatchEvent(new MouseEvent('click', { detail: 1, clientX: 290, clientY: 190 }));
+      // the action the click triggers moves and shrinks the element before the event is tracked
+      rect = { left: 500, top: 900, width: 40, height: 40 };
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.objectContaining({
+          '[Amplitude] Element ID': 'addDivButton',
+          '[Amplitude] Element Click Cell': '4x3:3,2',
+          '[Amplitude] Element Click Cell Min Size': 64,
+          '[Amplitude] Element Click Cell Max Per Axis': 10,
+          '[Amplitude] Element Width': 300,
+          '[Amplitude] Element Height': 200,
+        }),
+      );
+    });
+
+    test('should not add the click cell to action click for a keyboard activation', async () => {
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      const button = document.getElementById('addDivButton') as HTMLElement;
+      button.getBoundingClientRect = () => ({ left: 0, top: 0, width: 300, height: 200 } as DOMRect);
+      button.dispatchEvent(new MouseEvent('click', { detail: 0 }));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      const properties = track.mock.calls[0][1] as Record<string, unknown>;
+      expect(properties['[Amplitude] Element ID']).toBe('addDivButton');
+      expect(properties).not.toHaveProperty('[Amplitude] Element Click Cell');
+      expect(properties).not.toHaveProperty('[Amplitude] Element Width');
+    });
+
     test('should not trigger duplicate events if the immediate click target is in the action click allowlist', async () => {
       await plugin?.setup?.(config as BrowserConfig, instance);
 
