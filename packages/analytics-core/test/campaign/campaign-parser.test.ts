@@ -24,6 +24,21 @@ beforeAll(() => {
 
 describe('campaign-parser', () => {
   describe('parse', () => {
+    test('should preserve decoded campaign and click ID query values', async () => {
+      window.location.search = '?utm_source=news+letter&utm_term=C%2B%2B+tutorial&utm_content=a%3Db=c&gclid=abc==';
+
+      const campaign = await new CampaignParser().parse();
+
+      expect(campaign).toEqual(
+        expect.objectContaining({
+          utm_source: 'news letter',
+          utm_term: 'C++ tutorial',
+          utm_content: 'a=b=c',
+          gclid: 'abc==',
+        }),
+      );
+    });
+
     test('should return parameters', async () => {
       const parser = new CampaignParser();
       const referringDomain = 'https://google.com';
