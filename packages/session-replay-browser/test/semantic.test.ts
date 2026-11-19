@@ -144,5 +144,4 @@ describe('ReplaySemanticAdapter', () => {
     adapter.recordingReady();
     expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'start', reason: 'new_session' });
   });
-
 });
