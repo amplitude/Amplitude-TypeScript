@@ -2,10 +2,14 @@
  * @jest-environment jsdom
  */
 
-import { getQueryParams } from '../src/query-params';
+import { getQueryParams, tryDecodeURIComponent } from '../src/query-params';
 import * as GlobalScopeModule from '../src/global-scope';
 
 describe('query-params', () => {
+  test('should decode a missing component as an empty string', () => {
+    expect(tryDecodeURIComponent()).toBe('');
+  });
+
   describe('getQueryParams', () => {
     beforeAll(() => {
       Object.defineProperty(window, 'location', {
