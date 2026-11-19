@@ -1118,9 +1118,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.ensureHeatmapHooks(config, sessionId);
 
+    // ensureHeatmapHooks above creates this handler whenever heatmaps are enabled.
     const heatmapHook =
       interactionConfig?.enabled && this.eventsManager
-        ? this.clickHandler?.createHook({
+        ? (this.clickHandler as ClickHandler).createHook({
             eventsManager: this.eventsManager,
             sessionId,
             deviceIdFn: this.getDeviceId.bind(this),

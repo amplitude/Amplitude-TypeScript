@@ -93,15 +93,21 @@ describe('Session Replay context integration', () => {
   });
 
   test('applies replay UGC rules to semantic URLs', () => {
-    const { sdk } = prepare(true);
+    const { sdk, internal } = prepare(true);
     const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
+    const url = 'https://example.com/accounts/private-name';
+    expect(host.filterUrl?.(url)).toBe(url);
+    sdk.config!.interactionConfig = { enabled: true } as SessionReplayJoinedConfig['interactionConfig'];
+    expect(host.filterUrl?.(url)).toBe(url);
     sdk.config!.interactionConfig = {
       enabled: true,
       ugcFilterRules: [
         { selector: 'https://example.com/accounts/*', replacement: 'https://example.com/accounts/redacted' },
       ],
     } as SessionReplayJoinedConfig['interactionConfig'];
-    expect(host.filterUrl?.('https://example.com/accounts/private-name')).toBe('https://example.com/accounts/redacted');
+    expect(host.filterUrl?.(url)).toBe('https://example.com/accounts/redacted');
+    internal.config = undefined;
+    expect(host.filterUrl?.(url)).toBe(url);
   });
 
   test('disabled capture does not construct a runtime or change session-switch behavior', async () => {
