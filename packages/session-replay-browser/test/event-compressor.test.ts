@@ -601,22 +601,29 @@ describe('EventCompressor', () => {
     });
   });
 
-  test('writes a terminal event synchronously even with a worker and no idle processing', () => {
+  test('writes recording boundaries in order even with a worker and no idle processing', () => {
     const postMessage = jest.fn();
     eventCompressor.worker = { postMessage } as unknown as Worker;
     eventCompressor.canUseIdleCallback = false;
     const addEvent = jest.spyOn(eventsManager, 'addEvent');
+    const start = {
+      type: EventType.Custom,
+      timestamp: 122,
+      data: { tag: 'amp-semantic/recording', payload: { state: 'start' } },
+    } as eventWithTime;
     const terminal = {
       type: EventType.Custom,
       timestamp: 123,
       data: { tag: 'amp-semantic/recording', payload: { state: 'stop' } },
     } as eventWithTime;
 
+    eventCompressor.enqueueEvent(start, sessionId, true);
     eventCompressor.enqueueEvent(terminal, sessionId, true);
 
     expect(postMessage).not.toHaveBeenCalled();
-    expect(addEvent).toHaveBeenCalledTimes(1);
-    expect(addEvent.mock.calls[0][0].event.data).toContain('amp-semantic/recording');
+    expect(addEvent).toHaveBeenCalledTimes(2);
+    expect(addEvent.mock.calls[0][0].event.data).toContain('"state":"start"');
+    expect(addEvent.mock.calls[1][0].event.data).toContain('"state":"stop"');
   });
 
   describe('flushQueue', () => {
