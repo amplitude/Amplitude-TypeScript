@@ -106,8 +106,8 @@ export class EventCompressor {
       return;
     }
 
-    // Terminal recording boundaries must reach the manager before the closing send.
-    // A worker reply or idle callback can arrive after that send has already started.
+    // Recording boundaries must reach the manager in order, including a quick
+    // start/stop pair. A worker reply or idle callback can arrive after the close.
     if (forceSync) {
       this.flushQueue();
       this.addCompressedEventToManager(this.compressEvent(event), sessionId);
