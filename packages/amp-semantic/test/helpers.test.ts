@@ -16,6 +16,16 @@ describe('shared privacy helpers', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
   });
+  test('filters page and link URLs before templating them into click metadata', () => {
+    const semanticHost = host({ defaultMaskLevel: 'light' });
+    semanticHost.getUrl = () => 'https://example.com/accounts/private-name?token=secret';
+    semanticHost.filterUrl = (url) => url.replace('/accounts/private-name', '/accounts/redacted');
+    const helpers = createHelpers(semanticHost);
+    const link = document.createElement('a');
+    link.setAttribute('href', '/accounts/private-name?token=other');
+    expect(helpers.url()).toBe('/accounts/redacted');
+    expect(helpers.attributes(link).href).toBe('/accounts/redacted');
+  });
   test('reuses heading discovery but rechecks text, masking, removal, and invalidation', () => {
     let time = 0;
     jest.spyOn(window.performance, 'now').mockImplementation(() => time);

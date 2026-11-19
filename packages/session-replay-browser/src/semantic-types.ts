@@ -24,6 +24,7 @@ export interface SemanticCaptureHost {
   getNodeId?: (node: Node) => number;
   getNode?: (id: number) => Node | null;
   getUrl?: () => string;
+  filterUrl?: (url: string) => string;
   getSelector?: (element: Element) => string | null;
   externalClicks?: boolean;
   externalAuxClicks?: boolean;
