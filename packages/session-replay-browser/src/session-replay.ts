@@ -1090,7 +1090,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.stopRecordingEvents(this.getIneligibleRecordingReason(config));
       return;
     }
-    this.stopRecordingEvents('restart');
+    const semanticEnabled =
+      config.semanticCapture?.enabled && typeof config.semanticCapture.createCapture === 'function';
+    this.stopRecordingEvents(semanticEnabled ? 'restart' : 'capture_disabled');
     const generation = this.recordingGeneration;
 
     const recordFunction = await this.getRecordFunction();
