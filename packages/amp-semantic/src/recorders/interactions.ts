@@ -339,6 +339,11 @@ export const interactionsRecorder: SemanticRecorder = {
       listen('submit', submit);
       host.window.addEventListener('submit', flushSubmit);
       cleanups.push(() => host.window.removeEventListener('submit', flushSubmit));
+      const flushSubmitsOnExit = () => {
+        for (const event of pendingSubmits.keys()) flushSubmit(event);
+      };
+      host.window.addEventListener('pagehide', flushSubmitsOnExit);
+      cleanups.push(() => host.window.removeEventListener('pagehide', flushSubmitsOnExit));
       listen('invalid', invalid);
     }
     return () => {
