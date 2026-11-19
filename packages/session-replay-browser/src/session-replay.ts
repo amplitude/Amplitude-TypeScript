@@ -1294,7 +1294,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
           filterUrl: (url) => getPageUrl(url, this.config?.interactionConfig?.ugcFilterRules ?? []),
           getSelector: (element) => {
             try {
-              return this.clickHandler?.getSelector(element, this.config?.performanceConfig?.interaction) ?? null;
+              this.clickHandler ??= new ClickHandler(this.loggerProvider);
+              return this.clickHandler.getSelector(element, this.config?.performanceConfig?.interaction);
             } catch {
               return null;
             }

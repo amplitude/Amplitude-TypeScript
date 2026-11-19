@@ -5,6 +5,7 @@ import { EventType, MouseInteractions } from '@amplitude/rrweb-types';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayJoinedConfig } from '../src/config/types';
 import { ScrollWatcher } from '../src/hooks/scroll';
+import { ClickHandler } from '../src/hooks/click';
 
 jest.mock('@amplitude/analytics-core', () => ({
   ...jest.requireActual<typeof import('@amplitude/analytics-core')>('@amplitude/analytics-core'),
@@ -60,7 +61,8 @@ describe('Session Replay context integration', () => {
     const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
     expect(host.getNodeId!(document.body)).toBe(42);
     expect(host.getUrl!()).toBe(window.location.href);
-    expect(host.getSelector!(document.body)).toBeNull();
+    expect(host.getSelector!(document.body)).toBe('body');
+    expect(internal.clickHandler).toBeInstanceOf(ClickHandler);
     internal.clickHandler = { getSelector: jest.fn(() => 'button') };
     expect(host.getSelector!(document.body)).toBe('button');
     internal.config.performanceConfig = { interaction: { timeoutMs: 50 } };
