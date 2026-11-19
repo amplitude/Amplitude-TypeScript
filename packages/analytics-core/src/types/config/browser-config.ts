@@ -34,8 +34,9 @@ export interface ExternalBrowserConfig extends IConfig {
    */
   autocapture?: boolean | AutocaptureOptions;
   /**
-   * The configurations for custom enrichment.
+   *
    * @defaultValue `false`
+   * @deprecated This feature has been removed and takes no effect
    */
   customEnrichment?: boolean | CustomEnrichmentOptions;
   /**
