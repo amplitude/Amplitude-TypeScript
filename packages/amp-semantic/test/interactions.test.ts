@@ -518,6 +518,20 @@ describe('interactions recorder', () => {
     expect((h.emitted[0].payload as SemanticPayloads['submit']).invalid_fields).toHaveLength(10);
   });
 
+  it('coalesces validation events dispatched by a real submit handler', () => {
+    document.body.innerHTML = '<form novalidate><input required><button>Save</button></form>';
+    const h = harness();
+    cleanup = h.start();
+    const form = document.querySelector('form') as HTMLFormElement;
+    form.addEventListener('submit', () => form.checkValidity());
+
+    dispatch(form, 'submit');
+    jest.runOnlyPendingTimers();
+
+    expect(h.emitted.filter((event) => event.family === 'submit')).toHaveLength(1);
+    expect((h.emitted[0].payload as SemanticPayloads['submit']).valid).toBe(false);
+  });
+
   it('uses a deferred fallback when a submit handler stops propagation', () => {
     document.body.innerHTML = '<form><button>Save</button></form>';
     const h = harness();

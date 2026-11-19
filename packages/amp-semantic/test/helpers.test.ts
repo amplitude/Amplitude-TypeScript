@@ -153,6 +153,16 @@ describe('shared privacy helpers', () => {
       source: 'masked',
     });
   });
+  test('distinguishes unnamed input controls from masked names and reads image alt text', () => {
+    document.body.innerHTML =
+      '<input type="checkbox"><input type="radio" title="Choice"><input type="button" title="Run"><input type="image" alt="Search">';
+    const inputs = document.querySelectorAll('input');
+    const helpers = createHelpers(host({ defaultMaskLevel: 'medium' }));
+    expect(helpers.name(inputs[0])).toEqual({ name: null, source: 'unnamed' });
+    expect(helpers.name(inputs[1])).toEqual({ name: 'Choice', source: 'title' });
+    expect(helpers.name(inputs[2])).toEqual({ name: 'Run', source: 'title' });
+    expect(helpers.name(inputs[3])).toEqual({ name: 'Search', source: 'alt' });
+  });
   test('checks the source label and nested mask decisions', () => {
     document.body.innerHTML =
       '<label id="label" class="amp-mask">Private name</label><input aria-labelledby="label"><button>Save <span class="amp-mask">private account</span></button>';

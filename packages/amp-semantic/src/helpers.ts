@@ -243,7 +243,10 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       }
       return finish(unsafe ? null : text(label, labelText), label.htmlFor ? 'label-for' : 'label-wrap');
     }
-    if (element.tagName === 'IMG' && element.hasAttribute('alt'))
+    if (
+      (element.tagName === 'IMG' || (element.tagName === 'INPUT' && (element as HTMLInputElement).type === 'image')) &&
+      element.hasAttribute('alt')
+    )
       return finish(nameAttribute(element, 'alt', element.getAttribute('alt') as string), 'alt');
     // Static button captions are attributes, never a live input value.
     if (
@@ -254,7 +257,10 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       return finish(nameAttribute(element, 'value', element.getAttribute('value') as string), 'value');
     if (CONTENT_NAMES.has(roleOf(element))) {
       const content = text(element);
-      if (content === null || content) return finish(content, 'text');
+      // Input text is never read as a name; a null value here means "no text",
+      // not that an author-supplied attribute was masked.
+      if (content === null && element.tagName !== 'INPUT') return finish(null, 'text');
+      if (content) return finish(content, 'text');
     }
     for (const attribute of ['title', 'placeholder'] as const) {
       const value = element.getAttribute(attribute);
