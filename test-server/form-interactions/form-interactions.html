@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Interactions Test</title>
+</head>
+<body>
+  <h1>Form Interactions Test</h1>
+  <p>This page initializes Amplitude with autocapture.formInteractions enabled.</p>
+
+  <form name="contact" action="#" method="post">
+    <p>
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name">
+    </p>
+    <p>
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email">
+    </p>
+    <p>
+      <label for="message">Message</label>
+      <textarea id="message" name="message"></textarea>
+    </p>
+    <p>
+      <button type="submit">Submit</button>
+    </p>
+  </form>
+
+  <script type="module">
+    import * as amplitude from '@amplitude/analytics-browser';
+
+    window.amplitude = amplitude;
+
+    amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, undefined, {
+      fetchRemoteConfig: false,
+      autocapture: {
+        pageViews: false,
+        sessions: false,
+        formInteractions: {
+          shouldTrackAbandoned: true,
+        },
+      },
+    });
+  </script>
+</body>
+</html>
