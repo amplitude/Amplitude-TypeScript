@@ -34,6 +34,8 @@ export function trackClicks({
       ...click.targetElementProperties,
       // Pointer position in page pixels, for click maps. Omitted for keyboard / synthetic clicks.
       ...getClickPageCoordinates(click.event),
+      // Pointer position within the clicked element, read when the click was captured.
+      ...click.clickCellProperties,
     });
   });
 }
