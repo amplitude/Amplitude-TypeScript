@@ -31,7 +31,7 @@ export class ReplaySemanticAdapter {
   }
 
   prepare(config: SemanticCaptureConfig, sessionId: string | number): void {
-    this.stop();
+    this.stop(config.enabled ? 'restart' : 'capture_disabled');
     const newSession = this.sessionId !== sessionId;
     const startReason = this.sessionId === undefined ? 'init' : newSession ? 'new_session' : this.startSignal.reason;
     this.config = config;
@@ -103,7 +103,7 @@ export class ReplaySemanticAdapter {
     this.capture.notify('snapshot', undefined);
   }
 
-  stop(reason: SemanticRecordingSignal['reason'] = 'targeting', state: 'stop' | 'pause' = 'stop'): void {
+  stop(reason: SemanticRecordingSignal['reason'] = 'restart', state: 'stop' | 'pause' = 'stop'): void {
     if (this.ready && this.firstSnapshot) {
       this.resumeReason = reason;
       this.capture.notify('recording', { state, reason });

@@ -49,3 +49,5 @@ The initial state is present in context. The visibility budget is 200 events per
 ## Recording recorder
 
 `amp-semantic/recording` records SDK supplied start, stop, pause, and resume boundaries with a compact reason. Start/resume follows the first accepted replay full snapshot; stop/pause is emitted before rrweb teardown so it can be uploaded with the closing sequence. No event is emitted when semantic capture is disabled or sampled out. Disable only this family with `families: { recording: false }`. The budget is 200 events per session.
+
+The `restart` reason marks replacement of an eligible recorder within the same session. `capture_disabled` marks a project-level capture gate or semantic capture configuration being turned off.

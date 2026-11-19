@@ -57,7 +57,17 @@ export interface HostSignals {
 }
 export interface RecordingSignal {
   state: 'start' | 'stop' | 'pause' | 'resume';
-  reason: 'init' | 'new_session' | 'customer_stop' | 'sampled_out' | 'opt_out' | 'targeting' | 'focus' | 'error';
+  reason:
+    | 'init'
+    | 'new_session'
+    | 'customer_stop'
+    | 'capture_disabled'
+    | 'sampled_out'
+    | 'opt_out'
+    | 'targeting'
+    | 'restart'
+    | 'focus'
+    | 'error';
 }
 export type Cleanup = () => void;
 /** The host owns transport; the runtime has no rrweb dependency. */
