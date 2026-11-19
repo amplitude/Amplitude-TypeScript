@@ -377,6 +377,22 @@ describe('Session Replay context integration', () => {
     expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'stop', reason: 'restart' });
   });
 
+  test('labels a semantic disable during recorder replacement as capture_disabled', async () => {
+    const { sdk, internal } = prepare(true);
+    sdk.identifiers = { sessionId: 1, deviceId: 'device' } as typeof sdk.identifiers;
+    sdk.recordCancelCallback = jest.fn();
+    internal.semanticAdapter.recordingReady();
+    internal.semanticAdapter.event({ type: EventType.FullSnapshot, timestamp: 1, data: {} });
+    capture.notify.mockClear();
+    internal.config.semanticCapture = { enabled: false };
+    jest.spyOn(internal, 'getShouldRecord').mockReturnValue(true);
+    jest.spyOn(internal, 'getRecordFunction').mockResolvedValue(null);
+
+    await internal._recordEvents();
+
+    expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'stop', reason: 'capture_disabled' });
+  });
+
   test.each([
     { optOut: false, targeting: true, reason: 'capture_disabled' },
     { optOut: true, targeting: false, reason: 'opt_out' },
