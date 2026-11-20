@@ -152,6 +152,37 @@ export interface ElementInteractionsOptions {
    * is true. Default is 1. Clamped into [1, 10].
    */
   maxShadowDomDepth?: number;
+
+  /**
+   * Options for recording where inside the clicked element a pointer click
+   * landed. A grid is laid over the element's bounding box and the cell under
+   * the pointer is sent on `[Amplitude] Element Clicked` as
+   * `[Amplitude] Element Click Cell`, formatted `<cols>x<rows>:<col>,<row>`
+   * (zero-based, from the top-left), e.g. `4x3:2,1`.
+   *
+   * The grid adapts to the element's size, per axis:
+   * `clamp(floor(size / minCellSizePx), 1, maxCellsPerAxis)`.
+   *
+   * Applied at plugin initialization.
+   */
+  clickCell?: {
+    /**
+     * Whether the click cell properties are sent.
+     * Default is true.
+     */
+    enabled?: boolean;
+    /**
+     * Minimum width and height of a grid cell, in CSS pixels. Elements smaller
+     * than twice this size on an axis get one cell on that axis.
+     * Default is 64. Values that are not a positive number fall back to the default.
+     */
+    minCellSizePx?: number;
+    /**
+     * Largest number of cells along one axis.
+     * Default is 10. Values below 1 fall back to the default.
+     */
+    maxCellsPerAxis?: number;
+  };
 }
 
 type MatchingCondition = {

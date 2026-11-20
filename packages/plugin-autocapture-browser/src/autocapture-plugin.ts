@@ -22,8 +22,10 @@ import {
   type ElementBasedTimestampedEvent,
   type TimestampedEvent,
   type NavigateEvent,
+  getClickCellProperties,
   getNormalizedPageUrl,
   normalizePageUrl,
+  resolveClickCellConfig,
   resolveHistoryNavigationUrl,
 } from './helpers';
 import { enableVisualTagging } from './libs/messenger';
@@ -147,6 +149,7 @@ export const autocapturePlugin = (
   const subscriptions: Unsubscribable[] = [];
 
   const dataExtractor = new DataExtractor(options, context);
+  const clickCellConfig = resolveClickCellConfig(options.clickCell);
 
   // Page-level state shared across trackers, emitted in a single Page View End event on beforeunload
   // elementExposedForPage holds the total set of elements seen during the entire page view lifetime
@@ -161,15 +164,21 @@ export const autocapturePlugin = (
 
   const createObservables = (): AllWindowObservables => {
     const clickObservable = multicast(
-      createClickObservable().map(
-        (click) =>
-          dataExtractor.addAdditionalEventProperties(
-            click,
-            'click',
-            (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-            dataAttributePrefix,
-          ) as ElementBasedTimestampedEvent<MouseEvent>,
-      ),
+      createClickObservable().map((click) => {
+        const enrichedClick = dataExtractor.addAdditionalEventProperties(
+          click,
+          'click',
+          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+          dataAttributePrefix,
+        ) as ElementBasedTimestampedEvent<MouseEvent>;
+        // Read here, while the element is still laid out as it was when clicked.
+        enrichedClick.clickCellProperties = getClickCellProperties(
+          enrichedClick.event,
+          enrichedClick.closestTrackedAncestor,
+          clickCellConfig,
+        );
+        return enrichedClick;
+      }),
     );
 
     const changeObservable = multicast(
@@ -358,6 +367,7 @@ export const autocapturePlugin = (
       allObservables,
       options: options as AutoCaptureOptionsWithDefaults,
       getEventProperties: (...args) => dataExtractor.getEventProperties(...args, dataAttributePrefix),
+      clickCellConfig,
       amplitude,
       shouldTrackEvent,
       shouldTrackActionClick: shouldTrackActionClick,

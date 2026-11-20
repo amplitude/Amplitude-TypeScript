@@ -1,8 +1,11 @@
 import { AllWindowObservables, AutoCaptureOptionsWithDefaults } from '../autocapture-plugin';
 import { BrowserClient, ActionType, merge, asyncMap } from '@amplitude/analytics-core';
 import {
+  type ClickCellConfig,
   ElementBasedTimestampedEvent,
   filterOutNonTrackableEvents,
+  getClickCellProperties,
+  getClickPageCoordinates,
   getClosestElement,
   shouldTrackEvent,
   TimestampedEvent,
@@ -14,6 +17,7 @@ export function trackActionClick({
   allObservables,
   options,
   getEventProperties,
+  clickCellConfig,
   shouldTrackEvent,
   shouldTrackActionClick,
 }: {
@@ -21,6 +25,7 @@ export function trackActionClick({
   allObservables: AllWindowObservables;
   options: AutoCaptureOptionsWithDefaults;
   getEventProperties: (actionType: ActionType, element: Element) => Record<string, any>;
+  clickCellConfig: ClickCellConfig | null;
   shouldTrackActionClick: shouldTrackEvent;
   shouldTrackEvent: shouldTrackEvent;
 }) {
@@ -39,6 +44,9 @@ export function trackActionClick({
       if (click.closestTrackedAncestor !== null) {
         click.targetElementProperties = getEventProperties(click.type, click.closestTrackedAncestor);
       }
+      // The event is tracked only after a mutation or navigation follows the click, by which
+      // time the element may have moved, resized or left the page. Read the click cell now.
+      click.clickCellProperties = getClickCellProperties(click.event, click.closestTrackedAncestor, clickCellConfig);
       return click;
     })
     .filter(filterOutNonTrackableEvents)
@@ -83,10 +91,14 @@ export function trackActionClick({
 
   return actionClickObservable.subscribe((actionClick) => {
     if (!actionClick) return;
+    const click = actionClick as ElementBasedTimestampedEvent<MouseEvent>;
     /* istanbul ignore next */
-    amplitude?.track(
-      AMPLITUDE_ELEMENT_CLICKED_EVENT,
-      getEventProperties('click', (actionClick as ElementBasedTimestampedEvent<MouseEvent>).closestTrackedAncestor),
-    );
+    amplitude?.track(AMPLITUDE_ELEMENT_CLICKED_EVENT, {
+      ...getEventProperties('click', click.closestTrackedAncestor),
+      // Pointer position in page pixels, for click maps. Omitted for keyboard / synthetic clicks.
+      ...getClickPageCoordinates(click.event),
+      // Pointer position within the clicked element, read when the click was captured.
+      ...click.clickCellProperties,
+    });
   });
 }
