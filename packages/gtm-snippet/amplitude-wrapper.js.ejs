@@ -208,7 +208,14 @@ const LOG_PREFIX = '[Amplitude / GTM]';
   };
 
 
-  var init = function(client, args) {
+  const clientInitializations = new WeakMap();
+
+  var createGuidesSurveysPlugin = function () {
+    if (!window.engagement) engagementSnippet();
+    return window.engagement.plugin();
+  };
+
+  var initializeClient = async function(client, args, state) {
       const argsLength = args.length;
       const configuration = args[argsLength - 1];
 
@@ -282,18 +289,65 @@ const LOG_PREFIX = '[Amplitude / GTM]';
         client.add(sessionReplayPlugin.plugin());
       }
 
-      if (guidesSurveys) {
-        // Only initiate G/S here, otherwise, we'll auto-install the proxy for users who don't need it
-        engagementSnippet();
-        client.add(window.engagement.plugin());
+      const firstInitialization = state.history.status === 'uninitialized';
+      if (guidesSurveys && firstInitialization) {
+        // Register before the first init to receive queued and startup events.
+        // On later inits, wait until Analytics has reset its timeline.
+        client.add(createGuidesSurveysPlugin());
       }
 
-      // as plugin order cannot be adjusted, init first then add library plugin to overwrite the library value
-      let promise = client.init(...args).promise;
-      promise.then(
-          () => client.add(gtmLibraryPlugin())
-      );
-      return promise;
+      try {
+        await client.init(...args).promise;
+      } catch (error) {
+        // Analytics may remain internally initializing after rejection. Do not
+        // mistake its early return on a later Init for successful recovery.
+        state.history = { status: 'failed', error };
+        throw error;
+      }
+      state.history = { status: 'initialized' };
+      // Register after Analytics installs its enrichment plugins so the GTM
+      // library value overrides the Browser SDK value.
+      await client.add(gtmLibraryPlugin()).promise;
+
+      if (guidesSurveys && !firstInitialization) {
+        const plugin = createGuidesSurveysPlugin();
+        try {
+          await client.add(plugin).promise;
+        } catch (error) {
+          try {
+            await client.remove(plugin.name).promise;
+          } catch (cleanupError) {
+            console.error(LOG_PREFIX, 'Failed to clean up G&S registration', cleanupError);
+          }
+          throw error;
+        }
+      }
+  };
+
+  var init = function (client, args) {
+    let state = clientInitializations.get(client);
+    if (!state) {
+      state = { history: { status: 'uninitialized' } };
+      clientInitializations.set(client, state);
+    }
+    if (state.initialization) return state.initialization;
+    if (state.history.status === 'failed') return Promise.reject(state.history.error);
+
+    const firstInitialization = state.history.status === 'uninitialized';
+    // Claim the operation before invoking plugins. Overlapping calls retain
+    // the owner's settings and wait through attachment and cleanup.
+    state.initialization = Promise.resolve()
+      .then(() => initializeClient(client, args, state))
+      .catch((error) => {
+        // Conservatively make all first-attempt failures terminal, even
+        // preparation failures before Analytics initialization starts.
+        if (firstInitialization) state.history = { status: 'failed', error };
+        throw error;
+      })
+      .finally(() => {
+        state.initialization = undefined;
+      });
+    return state.initialization;
   };
 
 

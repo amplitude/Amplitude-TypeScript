@@ -51,10 +51,9 @@ const IMPLICIT_PACKAGE_DEPS = {
     '@types/babel__traverse',
   ],
 
-  // The GTM wrapper inlines the *built* bundles of these two, read from their
-  // lib/ directories by scripts/build-snippet.js. They are declared so
-  // lerna/nx build them first, so nothing imports them.
-  'gtm-snippet': ['@amplitude/analytics-browser', '@amplitude/plugin-session-replay-browser'],
+  // The GTM wrapper reads this built bundle from lib/ in scripts/build-snippet.js.
+  // It is declared so lerna/nx builds it first; Browser is also imported by tests.
+  'gtm-snippet': ['@amplitude/plugin-session-replay-browser'],
 
   // Named as rollup manualChunks string literals to split them out of the ESM bundle.
   'plugin-session-replay-browser': ['@amplitude/rrweb-plugin-console-record', '@amplitude/rrweb-record'],
