@@ -1001,17 +1001,29 @@ describe('createEventsManager min session duration gate (in-memory store)', () =
     expect(sent()).toContain('s2-full-snapshot');
   });
 
-  test('does not send held batches when a different session passes the gate', async () => {
+  test('does not send another session’s held batches when a session with nothing held passes', async () => {
     const { recordGatedSession, eventsManager, openGate, sent } = await setup();
     await recordGatedSession(111);
     openGate();
     eventsManager.sendCurrentSequenceEvents({ sessionId: 222, deviceId: 'd' });
     await settle();
     expect(sent()).toEqual([]);
-    // And they are gone, not just deferred: session 111 can't release them later either.
-    eventsManager.sendCurrentSequenceEvents({ sessionId: 111, deviceId: 'd' });
-    await settle();
-    expect(sent()).not.toContain('full-snapshot');
+  });
+
+  test('keeps held batches for at most two sessions, evicting the oldest', async () => {
+    const { add, eventsManager, openGate, sent } = await setup();
+    for (const [i, sessionId] of [111, 222, 333].entries()) {
+      await add(`${sessionId}-full-snapshot`, i * 10_000, sessionId);
+      await add(`${sessionId}-inc`, i * 10_000 + 1000, sessionId);
+    }
+    openGate();
+    for (const sessionId of [111, 222, 333]) {
+      eventsManager.sendCurrentSequenceEvents({ sessionId, deviceId: 'd' });
+      await settle();
+    }
+    expect(sent()).not.toContain('111-full-snapshot');
+    expect(sent()).toContain('222-full-snapshot');
+    expect(sent()).toContain('333-full-snapshot');
   });
 
   test('keeps held batches at the front of the beacon buffer until they are released', async () => {
@@ -1029,6 +1041,23 @@ describe('createEventsManager min session duration gate (in-memory store)', () =
     await add('after-gate', 30_000);
     expect(eventsManager.getBeaconEvents()).not.toContain('full-snapshot');
     expect(eventsManager.getBeaconEvents()).toContain('after-gate');
+  });
+
+  test('a late split from the previous session does not discard the current session’s held batches', async () => {
+    const { add, eventsManager, openGate, sent } = await setup();
+    // Session 111 has an open (unsplit) sequence when the session changes.
+    await add('s1-event', 0, 111);
+    // Session 222 starts and holds its baseline while gated.
+    await add('s2-full-snapshot', 1000, 222);
+    await add('s2-inc-1', 2000, 222);
+    await add('s2-inc-2', 3000, 222);
+    // A compression-worker callback for session 111 lands late and splits 111's sequence.
+    await add('s1-late', 10_000, 111);
+    openGate();
+    eventsManager.sendCurrentSequenceEvents({ sessionId: 222, deviceId: 'd' });
+    await settle();
+    expect(sent()[0]).toBe('s2-full-snapshot');
+    expect(sent()).toEqual(['s2-full-snapshot', 's2-inc-1', 's2-inc-2']);
   });
 
   test('does not hand held batches to sendStoredEvents', async () => {

@@ -126,17 +126,32 @@ export const createEventsManager = async <Type extends EventType>({
   // dropping it leaves the uploaded replay with no baseline to render. They are kept here, in
   // memory only, rather than in the store, so sendStoredEvents can't replay them on a later
   // page load for a session that never passed the gate. Released in order once the same
-  // session passes; batches from any other session are discarded.
+  // session passes.
+  //
+  // Grouped by session so a late split for an older session (e.g. a compression-worker
+  // callback that lands after a session change) never touches the current session's held
+  // batches. When a session releases, held batches of sessions held before it are dropped:
+  // those sessions ended without passing. At most MAX_HELD_SESSIONS are kept, oldest
+  // evicted, so a long-lived page that sees many short sessions can't accumulate them.
   //
   // Held events also stay in the beacon buffer (they are its oldest entries, so the beacon's
   // prefix trim keeps them first). If the session passes the gate and the page closes before
   // anything releases them, e.g. an idle background tab, the page-leave beacon still carries
   // them. `beaconEndIdx` is the absolute beacon index just past the batch.
-  let heldSequences: { sessionId: number; events: string[]; beaconEndIdx: number }[] = [];
+  const MAX_HELD_SESSIONS = 2;
+  const heldBySession = new Map<number, { events: string[]; beaconEndIdx: number }[]>();
 
   const holdSequence = (sessionId: number, events: string[], beaconEndIdx: number) => {
-    heldSequences = heldSequences.filter((seq) => seq.sessionId === sessionId);
-    heldSequences.push({ sessionId, events, beaconEndIdx });
+    const held = heldBySession.get(sessionId);
+    if (held) {
+      held.push({ events, beaconEndIdx });
+      return;
+    }
+    heldBySession.set(sessionId, [{ events, beaconEndIdx }]);
+    if (heldBySession.size > MAX_HELD_SESSIONS) {
+      // Map iterates in insertion order, so the first key is the oldest held session.
+      heldBySession.delete(heldBySession.keys().next().value as number);
+    }
   };
 
   /**
@@ -218,11 +233,14 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   const releaseHeldSequences = (sessionId: number, deviceId: string) => {
-    if (!heldSequences.length) return;
-    const held = heldSequences;
-    heldSequences = [];
+    const held = heldBySession.get(sessionId);
+    if (!held) return;
+    // Drop sessions held before this one, then this one's entry, in insertion order.
+    for (const heldSessionId of Array.from(heldBySession.keys())) {
+      heldBySession.delete(heldSessionId);
+      if (heldSessionId === sessionId) break;
+    }
     held.forEach((seq) => {
-      if (seq.sessionId !== sessionId) return;
       // No sequenceId: the store entry was already cleaned up when the batch was held.
       sendEventsList({ events: seq.events, sessionId, deviceId });
       advanceBeaconWindow(seq.beaconEndIdx);
