@@ -1099,9 +1099,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return !this.recordingEnabled || generation !== this.recordingGeneration || this.isHiddenAndPaused();
   }
 
-  /** True while `stopRecordingWhenHidden` is on and the document is hidden. */
+  /**
+   * True while `stopRecordingWhenHidden` is on and the document is hidden. Semantic capture
+   * records tab visibility and page context through the replay, so it keeps capture running.
+   */
   private isHiddenAndPaused(): boolean {
-    return this.config?.stopRecordingWhenHidden !== false && getGlobalScope()?.document?.visibilityState === 'hidden';
+    const config = this.config;
+    return (
+      config?.stopRecordingWhenHidden !== false &&
+      !config?.semanticCapture?.enabled &&
+      getGlobalScope()?.document?.visibilityState === 'hidden'
+    );
   }
 
   private async _recordEvents(shouldLogMetadata = true) {

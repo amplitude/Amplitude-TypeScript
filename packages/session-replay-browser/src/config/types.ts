@@ -388,6 +388,9 @@ export interface SessionReplayLocalConfig extends IConfig {
    *
    * Two windows that are both visible are not covered: neither one is hidden.
    *
+   * Ignored while `semanticCapture` is enabled: semantic capture records tab visibility and
+   * page context, which needs capture to keep running while the tab is hidden.
+   *
    * @defaultValue true
    */
   stopRecordingWhenHidden?: boolean;

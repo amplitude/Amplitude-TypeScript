@@ -2136,6 +2136,24 @@ describe('SessionReplay', () => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           expect((sessionReplay as any).recordCancelCallback).toBe(cancelCapture);
         });
+
+        test('keeps capturing while hidden when semantic capture is enabled', async () => {
+          await sessionReplay.init(apiKey, { ...mockOptions, semanticCapture: { enabled: true } }).promise;
+          await jest.runAllTimersAsync();
+          const cancelCapture = jest.fn();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (sessionReplay as any).recordCancelCallback = cancelCapture;
+          sessionReplay.sendEvents = jest.fn();
+          mockDocument.visibilityState = 'hidden';
+
+          sessionReplay.visibilityListener();
+
+          expect(cancelCapture).not.toHaveBeenCalled();
+          sessionReplay.stopRecordingEvents();
+          mockRecordFunction.mockClear();
+          await sessionReplay.recordEvents();
+          expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+        });
       });
 
       test('a second hide while a send is already deferred only flushes', async () => {
