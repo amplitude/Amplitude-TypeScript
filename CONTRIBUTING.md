@@ -108,6 +108,25 @@ For a normal stable SDK release, open **GitHub Actions → Publish v2.x → Run 
 
 This workflow validates, versions, and publishes SDK packages. The first-time bootstrap procedure above is only for a package name that does not yet exist on npm. Do not use it for a new version of an existing package.
 
+##### S3 release uploads
+
+The S3 uploaders use the scoped `gha-amplitude-typescript-role`. Versioned
+artifacts use conditional PUT (`If-None-Match: *`): a 412 response means the key
+already exists and is skipped for recovery runs, without verifying its contents.
+Other upload failures fail the publisher and release. Uploads do not need
+`HeadObject`/`GetObject` or ACL permissions; public reads depend on bucket policy.
+
+The unversioned `console-plugin-min.js.gz`, `rrweb-record-min.js.gz`, and
+`targeting-min.js.gz` chunks still update in place. Their explicit exception must
+stay aligned with the release IAM policy until chunk publishing is versioned.
+
+Before the next production publish, coordinate with Platform to confirm the IAM
+role and bucket policy are deployed and validate the approved v2 `main` release
+path. The role currently trusts only `Publish v2.x` on `main` in `npm-release`;
+`v1.x` and `hotfix/*` need separate agreement on workflow trust, allowed artifact
+paths, and branch/environment protections before using it. Merging uploader
+changes does not establish that these infrastructure prerequisites are ready.
+
 #### Recovering a partial `publish-v2` workflow run
 
 Use this only when a previous `Publish v2.x` workflow run already created the release version and partially published packages to npm, but the workflow failed before all packages finished publishing.
