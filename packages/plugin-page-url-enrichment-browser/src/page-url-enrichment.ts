@@ -28,10 +28,18 @@ enum PreviousPageType {
   External = 'external', // for different domains
 }
 
+// session_end is generated when a new session starts and is backdated to the end
+// of the previous session. By that point `location` already reflects the first
+// page of the new session, so enriching it would attach the wrong page URL (the
+// next session's landing page) rather than the ended session's last page. Skip it
+// and let the page URL be derived from previous events via a persisted property.
+const SESSION_END_EVENT_TYPE = 'session_end';
+
 export const EXCLUDED_DEFAULT_EVENT_TYPES = new Set<string>([
   SpecialEventType.IDENTIFY,
   SpecialEventType.GROUP_IDENTIFY,
   SpecialEventType.REVENUE,
+  SESSION_END_EVENT_TYPE,
 ]);
 
 export const isPageUrlEnrichmentEnabled = (option: unknown): boolean => {
