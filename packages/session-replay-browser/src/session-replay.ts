@@ -121,6 +121,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * `getShouldRecord()` will refuse to start rrweb until `start()` or a new `init()`.
    */
   private recordingEnabled = true;
+  /** Set when a hide stopped capture under `stopRecordingWhenHidden`; the next show restarts it. */
+  private capturePausedWhileHidden = false;
+  /** Set by that show; once the restart is recording, its opening snapshot is sent right away. */
+  private sendSnapshotOnRestart = false;
   /**
    * Bumped by `stop()` / `shutdown()` so an in-flight `_recordEvents()` that already
    * passed `getShouldRecord()` cannot start rrweb after capture was paused.
@@ -606,6 +610,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (visibilityState === 'hidden') {
       this.windowFocus.onDocumentHidden();
       this.scheduleHiddenSend();
+      // A hidden tab keeps changing (timers, redirects, CSS-in-JS), and those events use this
+      // tab's node ids, which match the other tabs' ids closely enough to land on their DOM
+      // in the shared replay. Stop capturing; the next show restarts with a full snapshot.
+      if (this.isHiddenAndPaused()) {
+        this.capturePausedWhileHidden = true;
+        this.sendSnapshotOnRestart = false;
+        this.stopRecordingEvents();
+      }
       return;
     }
     if (visibilityState === 'visible') {
@@ -614,6 +626,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // event that follows a tab return does not take a second checkout.
       this.windowFocus.onDocumentVisible();
       this.cancelHiddenSend();
+      if (this.capturePausedWhileHidden) {
+        // Capture stopped on hide. Ship what the hide flushed, then restart: the new
+        // recording opens with a full snapshot. recordEvents queues a rerun when a start
+        // is still in flight (one abandoned because the tab was hidden), so this restart
+        // is never skipped. Like the checkout path, the new snapshot is sent as soon as the
+        // restart records it, not on the next batch.
+        this.capturePausedWhileHidden = false;
+        this.sendEvents();
+        if (this.recordingEnabled) {
+          this.sendSnapshotOnRestart = true;
+          void this.recordEvents(false);
+        }
+        return;
+      }
       this.captureVisibleTab();
     }
   };
@@ -1059,6 +1085,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.recordEventsPendingShouldLogMetadata = null;
         await this._recordEvents(pendingArgs);
       }
+      if (this.sendSnapshotOnRestart && this.recordCancelCallback) {
+        this.sendSnapshotOnRestart = false;
+        this.flushPendingReplayEvents();
+      }
     } finally {
       this.recordEventsInFlight = false;
       this.recordEventsPendingShouldLogMetadata = null;
@@ -1066,7 +1096,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   private shouldAbandonRecordStart(generation: number): boolean {
-    return !this.recordingEnabled || generation !== this.recordingGeneration;
+    return !this.recordingEnabled || generation !== this.recordingGeneration || this.isHiddenAndPaused();
+  }
+
+  /**
+   * True while `stopRecordingWhenHidden` is on and the document is hidden. Semantic capture
+   * records tab visibility and page context through the replay, so it keeps capture running.
+   */
+  private isHiddenAndPaused(): boolean {
+    const config = this.config;
+    return (
+      config?.stopRecordingWhenHidden !== false &&
+      !config?.semanticCapture?.enabled &&
+      getGlobalScope()?.document?.visibilityState === 'hidden'
+    );
   }
 
   private async _recordEvents(shouldLogMetadata = true) {
@@ -1078,6 +1121,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.stopRecordingEvents();
+    // Paused while hidden: the visibilitychange to visible starts recording.
+    if (this.isHiddenAndPaused()) {
+      this.loggerProvider.log('Session Replay capture paused while the document is hidden.');
+      return;
+    }
     const generation = this.recordingGeneration;
 
     const recordFunction = await this.getRecordFunction();
