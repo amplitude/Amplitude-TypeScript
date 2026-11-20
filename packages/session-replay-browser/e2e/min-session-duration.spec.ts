@@ -59,6 +59,33 @@ for (const storeType of ['memory', 'idb'] as const) {
       expect(events.some((e) => e.type === EVENT_FULL_SNAPSHOT)).toBe(true);
     });
 
+    test('a session that passes the threshold while idle sends its full snapshot in the page-leave beacon', async ({
+      page,
+    }) => {
+      await openPage(page, storeType);
+      // Activity while gated, so batches are split off and held...
+      await typeFor(page, MIN_SESSION_DURATION_MS - 1000);
+      // ...then pass the threshold with no further events, so nothing releases them.
+      await page.waitForTimeout(2000);
+      await page.evaluate(() => {
+        const w = window as unknown as { __beaconBodies: Promise<string>[] };
+        w.__beaconBodies = [];
+        navigator.sendBeacon = (_url: string | URL, data?: BodyInit | null) => {
+          w.__beaconBodies.push(new Response(data).text());
+          return true;
+        };
+        window.dispatchEvent(new Event('pagehide'));
+      });
+      const beaconBodies = await page.evaluate(() =>
+        Promise.all((window as unknown as { __beaconBodies: Promise<string>[] }).__beaconBodies),
+      );
+
+      const events = decodeEvents(beaconBodies);
+      expect(events.length).toBeGreaterThan(0);
+      expect(events[0].type).toBe(EVENT_META);
+      expect(events.some((e) => e.type === EVENT_FULL_SNAPSHOT)).toBe(true);
+    });
+
     test('a session that ends below the threshold uploads nothing', async ({ page }) => {
       const { getBodies } = await openPage(page, storeType);
       await typeFor(page, MIN_SESSION_DURATION_MS - 1500);

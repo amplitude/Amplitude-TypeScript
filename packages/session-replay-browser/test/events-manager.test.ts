@@ -566,8 +566,8 @@ describe('createEventsManager', () => {
           // Split events were atomically moved to sequencesToSend by the store; if we don't
           // clean them up they'd be unconditionally replayed via sendStoredEvents on next load.
           expect(mockIDBStore.cleanUpSessionEventsStore).toHaveBeenCalledWith(123, 1);
-          // The split batch must also be removed from the beacon buffer so it can't be
-          // sent via sendBeacon on page unload (potentially attributed to a later session).
+          // The held batch stays in the beacon buffer (the page-leave beacon is gated on the
+          // same threshold, and a session change drops the buffer).
           expect(eventsManager.getBeaconEvents()).toEqual([mockEventString]);
         });
     });
@@ -1012,6 +1012,23 @@ describe('createEventsManager min session duration gate (in-memory store)', () =
     eventsManager.sendCurrentSequenceEvents({ sessionId: 111, deviceId: 'd' });
     await settle();
     expect(sent()).not.toContain('full-snapshot');
+  });
+
+  test('keeps held batches at the front of the beacon buffer until they are released', async () => {
+    const { recordGatedSession, eventsManager } = await setup();
+    await recordGatedSession();
+    // Covers a session that passes the gate and closes before anything releases the held
+    // batches (e.g. an idle background tab): the page-leave beacon still carries them.
+    expect(eventsManager.getBeaconEvents()).toEqual(ALL_EVENTS);
+  });
+
+  test('removes released batches from the beacon buffer so the beacon does not resend them', async () => {
+    const { recordGatedSession, add, eventsManager, openGate } = await setup();
+    await recordGatedSession();
+    openGate();
+    await add('after-gate', 30_000);
+    expect(eventsManager.getBeaconEvents()).not.toContain('full-snapshot');
+    expect(eventsManager.getBeaconEvents()).toContain('after-gate');
   });
 
   test('does not hand held batches to sendStoredEvents', async () => {

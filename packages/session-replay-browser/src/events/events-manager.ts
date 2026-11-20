@@ -127,11 +127,16 @@ export const createEventsManager = async <Type extends EventType>({
   // memory only, rather than in the store, so sendStoredEvents can't replay them on a later
   // page load for a session that never passed the gate. Released in order once the same
   // session passes; batches from any other session are discarded.
-  let heldSequences: { sessionId: number; events: string[] }[] = [];
+  //
+  // Held events also stay in the beacon buffer (they are its oldest entries, so the beacon's
+  // prefix trim keeps them first). If the session passes the gate and the page closes before
+  // anything releases them, e.g. an idle background tab, the page-leave beacon still carries
+  // them. `beaconEndIdx` is the absolute beacon index just past the batch.
+  let heldSequences: { sessionId: number; events: string[]; beaconEndIdx: number }[] = [];
 
-  const holdSequence = (sessionId: number, events: string[]) => {
+  const holdSequence = (sessionId: number, events: string[], beaconEndIdx: number) => {
     heldSequences = heldSequences.filter((seq) => seq.sessionId === sessionId);
-    heldSequences.push({ sessionId, events });
+    heldSequences.push({ sessionId, events, beaconEndIdx });
   };
 
   /**
@@ -220,6 +225,7 @@ export const createEventsManager = async <Type extends EventType>({
       if (seq.sessionId !== sessionId) return;
       // No sequenceId: the store entry was already cleaned up when the batch was held.
       sendEventsList({ events: seq.events, sessionId, deviceId });
+      advanceBeaconWindow(seq.beaconEndIdx);
     });
   };
 
@@ -311,16 +317,15 @@ export const createEventsManager = async <Type extends EventType>({
           if (!canSend) {
             // The split atomically moved events to sequencesToSend; without cleanup
             // they would be unconditionally replayed on next page load via
-            // sendStoredEvents, bypassing the min session duration gate. The split
-            // batch must also be dropped from the beacon buffer so it isn't sent
-            // via sendBeacon on page unload (potentially attributed to a later session).
-            // Keep the events in memory so they can still be sent if this session
-            // passes the gate later.
+            // sendStoredEvents, bypassing the min session duration gate. Keep the
+            // events in memory instead so they can still be sent if this session
+            // passes the gate later. They stay in the beacon buffer: the page-leave
+            // beacon is gated on the same threshold, and asyncSetSessionId drops the
+            // buffer on a session change, so they can't leak into another session.
             store.cleanUpSessionEventsStore(sequenceToSend.sessionId, sequenceToSend.sequenceId).catch((e) => {
               config.loggerProvider.warn('Failed to clean up held session replay sequence:', e);
             });
-            advanceBeaconWindow(absIdx);
-            holdSequence(sessionId, sequenceToSend.events);
+            holdSequence(sessionId, sequenceToSend.events, absIdx);
             return;
           }
           // Events before absIdx belong to the split batch being sent; advance window.
