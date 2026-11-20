@@ -10,6 +10,8 @@ export interface SessionReplayTargetingDB extends DBSchema {
     value: {
       sessionId: string;
       targetingMatch: boolean;
+      targetingConditionName?: string;
+      targetingConditionId?: string;
       lastUpdated: number;
     };
   };
@@ -53,10 +55,27 @@ export class TargetingIDBStore {
       const db = await this.openOrCreateDB(apiKey);
       const sessionIdStr = String(sessionId);
       const targetingMatchForSession = await db.get<'sessionTargetingMatch'>('sessionTargetingMatch', sessionIdStr);
-
       return targetingMatchForSession?.targetingMatch;
     } catch (e) {
       logIdbError(loggerProvider, `Failed to get targeting match for session id ${sessionId}: ${e as string}`, e);
+    }
+    return undefined;
+  };
+
+  getTargetingDetailsForSession = async ({
+    loggerProvider,
+    apiKey,
+    sessionId,
+  }: {
+    loggerProvider: ILogger;
+    apiKey: string;
+    sessionId: string | number;
+  }) => {
+    try {
+      const db = await this.openOrCreateDB(apiKey);
+      return await db.get<'sessionTargetingMatch'>('sessionTargetingMatch', String(sessionId));
+    } catch (e) {
+      logIdbError(loggerProvider, `Failed to get targeting details for session id ${sessionId}: ${e as string}`, e);
     }
     return undefined;
   };
@@ -66,17 +85,23 @@ export class TargetingIDBStore {
     apiKey,
     sessionId,
     targetingMatch,
+    targetingConditionName,
+    targetingConditionId,
   }: {
     loggerProvider: ILogger;
     apiKey: string;
     sessionId: string | number;
     targetingMatch: boolean;
+    targetingConditionName?: string;
+    targetingConditionId?: string;
   }) => {
     try {
       const db = await this.openOrCreateDB(apiKey);
       const sessionIdStr = String(sessionId);
       const targetingMatchForSession = await db.put<'sessionTargetingMatch'>('sessionTargetingMatch', {
         targetingMatch,
+        ...(targetingConditionName !== undefined ? { targetingConditionName } : {}),
+        ...(targetingConditionId !== undefined ? { targetingConditionId } : {}),
         sessionId: sessionIdStr,
         lastUpdated: Date.now(),
       });

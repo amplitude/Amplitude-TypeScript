@@ -2531,14 +2531,14 @@ describe('SessionReplay', () => {
         remoteConfig: undefined,
       });
 
-      let resolveStaleEvaluation!: (value: boolean) => void;
-      const staleEvaluationPromise = new Promise<boolean>((resolve) => {
+      let resolveStaleEvaluation!: (value: targetingManager.TargetingEvaluationResult) => void;
+      const staleEvaluationPromise = new Promise<targetingManager.TargetingEvaluationResult>((resolve) => {
         resolveStaleEvaluation = resolve;
       });
       jest
         .spyOn(targetingManager, 'evaluateTargetingAndStore')
         .mockImplementationOnce(() => staleEvaluationPromise)
-        .mockResolvedValueOnce(false);
+        .mockResolvedValueOnce({ targetingMatch: false });
       sessionReplay.sessionTargetingMatch = false;
 
       (
@@ -2555,7 +2555,7 @@ describe('SessionReplay', () => {
       );
 
       await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
-      resolveStaleEvaluation(true);
+      resolveStaleEvaluation({ targetingMatch: true });
       await staleUrlEvaluation;
 
       expect(sessionReplay.sessionTargetingMatch).toBe(false);
@@ -5626,7 +5626,7 @@ describe('SessionReplay', () => {
       const page = { url: 'https://replay-page-test.example.com/path' };
       const evaluateTargetingAndStoreSpy = jest
         .spyOn(targetingManager, 'evaluateTargetingAndStore')
-        .mockResolvedValue(true);
+        .mockResolvedValue({ targetingMatch: true });
 
       const sessionReplay = new SessionReplay();
       mockRemoteConfig = {
@@ -5652,6 +5652,35 @@ describe('SessionReplay', () => {
       );
     });
 
+    test('should add the matched targeting condition to replay metadata', async () => {
+      const sessionReplay = new SessionReplay();
+      mockRemoteConfig = {
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [],
+        },
+      };
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.sessionTargetingMatch = false;
+      jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue({
+        targetingMatch: true,
+        targetingConditionName: 'Checkout errors',
+        targetingConditionId: 'condition-123',
+      });
+
+      await sessionReplay.evaluateTargetingAndCapture({});
+
+      expect((sessionReplay as any).metadata).toEqual(
+        expect.objectContaining({
+          targetingConditionName: 'Checkout errors',
+          targetingConditionId: 'condition-123',
+        }),
+      );
+    });
+
     test('should pass page undefined when targetingParams.page is not provided', async () => {
       const mockGlobalScope = {
         location: { href: 'https://global-url.example.com/ignored' },
@@ -5661,7 +5690,7 @@ describe('SessionReplay', () => {
       jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope as any);
       const evaluateTargetingAndStoreSpy = jest
         .spyOn(targetingManager, 'evaluateTargetingAndStore')
-        .mockResolvedValue(true);
+        .mockResolvedValue({ targetingMatch: true });
 
       const sessionReplay = new SessionReplay();
       mockRemoteConfig = {
@@ -5696,7 +5725,7 @@ describe('SessionReplay', () => {
       } as any);
       const evaluateTargetingAndStoreSpy = jest
         .spyOn(targetingManager, 'evaluateTargetingAndStore')
-        .mockResolvedValue(true);
+        .mockResolvedValue({ targetingMatch: true });
 
       const sessionReplay = new SessionReplay();
       mockRemoteConfig = {
@@ -5725,7 +5754,7 @@ describe('SessionReplay', () => {
     test('should pass page undefined when targetingParams.page not provided and getGlobalScope returns undefined', async () => {
       const evaluateTargetingAndStoreSpy = jest
         .spyOn(targetingManager, 'evaluateTargetingAndStore')
-        .mockResolvedValue(true);
+        .mockResolvedValue({ targetingMatch: true });
 
       const sessionReplay = new SessionReplay();
       mockRemoteConfig = {
@@ -5816,7 +5845,7 @@ describe('SessionReplay', () => {
 
       sessionReplay.sessionTargetingMatch = true;
       sessionReplay.recordCancelCallback = jest.fn();
-      jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue(true);
+      jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockResolvedValue({ targetingMatch: true });
       const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
 
       await sessionReplay.evaluateTargetingAndCapture(
@@ -5867,8 +5896,8 @@ describe('SessionReplay', () => {
         };
       }
 
-      let resolveEvaluation!: (value: boolean) => void;
-      const evaluationPromise = new Promise<boolean>((resolve) => {
+      let resolveEvaluation!: (value: targetingManager.TargetingEvaluationResult) => void;
+      const evaluationPromise = new Promise<targetingManager.TargetingEvaluationResult>((resolve) => {
         resolveEvaluation = resolve;
       });
       jest.spyOn(targetingManager, 'evaluateTargetingAndStore').mockImplementationOnce(() => evaluationPromise);
@@ -5891,7 +5920,7 @@ describe('SessionReplay', () => {
           latestUrlChangeTargetingEvaluationId: number;
         }
       ).latestUrlChangeTargetingEvaluationId = 2;
-      resolveEvaluation(true);
+      resolveEvaluation({ targetingMatch: true });
       await evalPromise;
 
       expect(sessionReplay.sessionTargetingMatch).toBe(false);
@@ -5912,15 +5941,15 @@ describe('SessionReplay', () => {
         };
       }
 
-      let resolveUrlChangeEvaluation!: (value: boolean) => void;
-      const urlChangeEvaluationPromise = new Promise<boolean>((resolve) => {
+      let resolveUrlChangeEvaluation!: (value: targetingManager.TargetingEvaluationResult) => void;
+      const urlChangeEvaluationPromise = new Promise<targetingManager.TargetingEvaluationResult>((resolve) => {
         resolveUrlChangeEvaluation = resolve;
       });
 
       jest
         .spyOn(targetingManager, 'evaluateTargetingAndStore')
         .mockImplementationOnce(() => urlChangeEvaluationPromise)
-        .mockResolvedValueOnce(true);
+        .mockResolvedValueOnce({ targetingMatch: true });
 
       sessionReplay.sessionTargetingMatch = false;
       const urlChangeEval = sessionReplay.evaluateTargetingAndCapture(
@@ -5933,7 +5962,7 @@ describe('SessionReplay', () => {
       await sessionReplay.evaluateTargetingAndCapture({ event: { event_type: 'regular_event' } as any });
       expect(sessionReplay.sessionTargetingMatch).toBe(true);
 
-      resolveUrlChangeEvaluation(false);
+      resolveUrlChangeEvaluation({ targetingMatch: false });
       await urlChangeEval;
 
       expect(sessionReplay.sessionTargetingMatch).toBe(true);
@@ -5957,7 +5986,7 @@ describe('SessionReplay', () => {
       const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
       const evaluateTargetingAndStoreSpy = jest
         .spyOn(targetingManager, 'evaluateTargetingAndStore')
-        .mockResolvedValue(false);
+        .mockResolvedValue({ targetingMatch: false });
 
       await sessionReplay.evaluateTargetingAndCapture(
         { page: { url: 'https://example.com/non-matching' } },
@@ -6041,12 +6070,12 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       sessionReplay.recordCancelCallback = jest.fn();
 
-      let resolveFirst!: (value: boolean) => void;
-      let resolveSecond!: (value: boolean) => void;
-      const firstEvaluation = new Promise<boolean>((resolve) => {
+      let resolveFirst!: (value: targetingManager.TargetingEvaluationResult) => void;
+      let resolveSecond!: (value: targetingManager.TargetingEvaluationResult) => void;
+      const firstEvaluation = new Promise<targetingManager.TargetingEvaluationResult>((resolve) => {
         resolveFirst = resolve;
       });
-      const secondEvaluation = new Promise<boolean>((resolve) => {
+      const secondEvaluation = new Promise<targetingManager.TargetingEvaluationResult>((resolve) => {
         resolveSecond = resolve;
       });
       jest
@@ -6063,12 +6092,12 @@ describe('SessionReplay', () => {
       onUrlChange?.('https://example.com/route-a');
       onUrlChange?.('https://example.com/route-b');
 
-      resolveSecond(true);
+      resolveSecond({ targetingMatch: true });
       await Promise.resolve();
       await Promise.resolve();
       expect(sessionReplay.sessionTargetingMatch).toBe(true);
 
-      resolveFirst(false);
+      resolveFirst({ targetingMatch: false });
       await Promise.resolve();
       await Promise.resolve();
 
