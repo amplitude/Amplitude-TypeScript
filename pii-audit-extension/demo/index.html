@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PII Audit Demo — Acme Billing</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        background: #f4f6f8;
+        color: #1a1a2e;
+      }
+      .shell {
+        max-width: 42rem;
+        margin: 2rem auto;
+        padding: 0 1rem 3rem;
+      }
+      .card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      }
+      h1 {
+        margin: 0 0 0.25rem;
+        font-size: 1.5rem;
+      }
+      h2 {
+        margin: 1.5rem 0 0.75rem;
+        font-size: 1.1rem;
+      }
+      label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: #5b6b7b;
+      }
+      input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+      }
+      button {
+        padding: 0.55rem 1.1rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background: #2d6cdf;
+        color: #fff;
+      }
+      .btn-secondary {
+        background: #e8ecf0;
+        color: #1a1a2e;
+      }
+      .btn-link {
+        background: none;
+        color: #2d6cdf;
+        padding: 0;
+        text-decoration: underline;
+      }
+      .hidden {
+        display: none;
+      }
+      .account-holder {
+        font-size: 1.05rem;
+        margin: 0.5rem 0 1rem;
+      }
+      .masked-value {
+        font-family: ui-monospace, monospace;
+        letter-spacing: 0.05em;
+      }
+      .row {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      pre {
+        background: #1a1a2e;
+        color: #a8e6a3;
+        padding: 1rem;
+        border-radius: 8px;
+        overflow: auto;
+        font-size: 0.8rem;
+        max-height: 12rem;
+      }
+      .hint {
+        font-size: 0.85rem;
+        color: #5b6b7b;
+        margin-bottom: 1rem;
+      }
+      .badge {
+        display: inline-block;
+        background: #eaf7ee;
+        color: #2e7d46;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <p class="hint">
+        Load with the PII Audit extension. Click <strong>Start PII audit</strong> in the popup (page
+        reloads), then log in and interact below.
+      </p>
+
+      <!-- Login view -->
+      <div id="login-view" class="card">
+        <h1>Acme Billing</h1>
+        <p class="hint">Sign in to manage your account.</p>
+        <form id="login-form">
+          <label for="username">Email</label>
+          <input id="username" type="email" value="m.chen@example.com" autocomplete="username" />
+          <label for="password">Password</label>
+          <input id="password" type="password" value="hunter2" autocomplete="current-password" />
+          <button type="submit" class="btn-primary">Sign in</button>
+        </form>
+      </div>
+
+      <!-- Account / billing view -->
+      <div id="account-view" class="card hidden">
+        <span class="badge">Logged in</span>
+        <h1>Account &amp; Billing</h1>
+        <p class="account-holder" id="holder-name">Primary account holder: Margaret Chen</p>
+
+        <h2>Payment method</h2>
+        <label for="card-number">Card number</label>
+        <input id="card-number" type="text" value="4242 4242 4242 4242" />
+
+        <h2>Billing contact</h2>
+        <label for="billing-email">Billing email</label>
+        <input id="billing-email" type="email" value="m.chen@example.com" />
+
+        <h2>Tax ID</h2>
+        <div class="row">
+          <span id="tax-id-display" class="masked-value">•••-••-6789</span>
+          <button type="button" id="reveal-btn" class="btn-link">Reveal full SSN</button>
+        </div>
+
+        <h2>Actions</h2>
+        <button id="track-btn" type="button" class="btn-secondary">Track test event</button>
+        <button id="autocapture-btn" type="button" class="btn-primary" data-amp-default-track>
+          Save billing changes
+        </button>
+        <button id="logout-btn" type="button" class="btn-link" style="margin-left: 1rem">Log out</button>
+
+        <h2>Captured events (interceptor)</h2>
+        <pre id="log">Waiting for interceptor messages…</pre>
+      </div>
+    </div>
+
+    <script src="https://cdn.amplitude.com/libs/analytics-browser-2.11.1-min.js.gz"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
