@@ -588,7 +588,7 @@ describe('createEventsManager', () => {
       await Promise.resolve();
       await Promise.resolve();
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
-        'Failed to clean up dropped session replay sequence:',
+        'Failed to clean up held session replay sequence:',
         expect.any(Error),
       );
     });
@@ -880,5 +880,145 @@ describe('createEventsManager', () => {
       // Warning should only be logged once
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('createEventsManager min session duration gate (in-memory store)', () => {
+  const START = 1_000_000;
+  const loggerProvider = {
+    error: jest.fn(),
+    log: jest.fn(),
+    disable: jest.fn(),
+    enable: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  };
+  const config = new SessionReplayLocalConfig('static_key', { loggerProvider, sampleRate: 1 });
+
+  const settle = async () => {
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+  };
+
+  // Uses the real InMemoryEventsStore so its time-based batch splitting actually happens
+  // while the gate is closed (the IDB-mocked tests above can't exercise that).
+  const setup = async () => {
+    let gateOpen = false;
+    const eventsManager = await createEventsManager<'replay'>({
+      config,
+      type: 'replay',
+      storeType: 'memory',
+      shouldSend: () => gateOpen,
+    });
+    const trackDestination = (SessionReplayTrackDestination as jest.Mock).mock.instances.slice(-1)[0];
+    const calls = () =>
+      (trackDestination.sendEventsList as jest.Mock).mock.calls.map(
+        (call: [{ events: string[]; sessionId: string | number }]) => call[0],
+      );
+    const add = async (data: string, atMs: number, sessionId = 123) => {
+      jest.setSystemTime(START + atMs);
+      eventsManager.addEvent({ event: { type: 'replay', data }, sessionId, deviceId: 'd' });
+      await settle();
+    };
+    // Ten seconds of gated activity: enough for the store to split several times.
+    const recordGatedSession = async (sessionId = 123) => {
+      await add('full-snapshot', 0, sessionId);
+      for (let s = 1; s <= 10; s++) await add(`inc-${s}`, s * 1000, sessionId);
+    };
+    return {
+      eventsManager,
+      add,
+      recordGatedSession,
+      sent: () => calls().flatMap((c) => c.events),
+      sentSessionIds: () => calls().map((c) => c.sessionId),
+      openGate: () => {
+        gateOpen = true;
+      },
+    };
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(START);
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.clearAllMocks();
+  });
+
+  const ALL_EVENTS = ['full-snapshot', ...Array.from({ length: 10 }, (_, i) => `inc-${i + 1}`)];
+
+  test('sends nothing while the gate is closed', async () => {
+    const { recordGatedSession, eventsManager, sent } = await setup();
+    await recordGatedSession();
+    eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: 'd' });
+    await settle();
+    expect(sent()).toEqual([]);
+  });
+
+  test('sends every held batch, in order, when sendCurrentSequenceEvents passes the gate', async () => {
+    const { recordGatedSession, eventsManager, openGate, sent } = await setup();
+    await recordGatedSession();
+    openGate();
+    eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: 'd' });
+    await settle();
+    // Before the fix only the last un-split batch was sent and the full snapshot was lost.
+    expect(sent()).toEqual(ALL_EVENTS);
+  });
+
+  test('sends held batches ahead of new events when the first event after the gate is recorded', async () => {
+    const { recordGatedSession, add, openGate, sent } = await setup();
+    await recordGatedSession();
+    openGate();
+    // Long enough after the last split that this event splits off the current sequence.
+    await add('after-gate', 30_000);
+    expect(sent()[0]).toBe('full-snapshot');
+    expect(sent()).toEqual(ALL_EVENTS);
+  });
+
+  test('releases held batches only once', async () => {
+    const { recordGatedSession, add, eventsManager, openGate, sent } = await setup();
+    await recordGatedSession();
+    openGate();
+    eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: 'd' });
+    await settle();
+    await add('later', 60_000);
+    eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: 'd' });
+    await settle();
+    expect(sent().filter((e) => e === 'full-snapshot')).toHaveLength(1);
+  });
+
+  test('discards held batches from a session that never passed the gate', async () => {
+    const { recordGatedSession, add, eventsManager, openGate, sent, sentSessionIds } = await setup();
+    await recordGatedSession(111);
+    // Session 222 starts and later passes its own gate.
+    await add('s2-full-snapshot', 20_000, 222);
+    await add('s2-inc', 21_000, 222);
+    openGate();
+    eventsManager.sendCurrentSequenceEvents({ sessionId: 222, deviceId: 'd' });
+    await settle();
+    expect(sentSessionIds().every((id) => id === 222)).toBe(true);
+    expect(sent()).not.toContain('full-snapshot');
+    expect(sent()).toContain('s2-full-snapshot');
+  });
+
+  test('does not send held batches when a different session passes the gate', async () => {
+    const { recordGatedSession, eventsManager, openGate, sent } = await setup();
+    await recordGatedSession(111);
+    openGate();
+    eventsManager.sendCurrentSequenceEvents({ sessionId: 222, deviceId: 'd' });
+    await settle();
+    expect(sent()).toEqual([]);
+    // And they are gone, not just deferred: session 111 can't release them later either.
+    eventsManager.sendCurrentSequenceEvents({ sessionId: 111, deviceId: 'd' });
+    await settle();
+    expect(sent()).not.toContain('full-snapshot');
+  });
+
+  test('does not hand held batches to sendStoredEvents', async () => {
+    const { recordGatedSession, eventsManager, sent } = await setup();
+    await recordGatedSession();
+    await eventsManager.sendStoredEvents({ deviceId: 'd' });
+    await settle();
+    expect(sent()).toEqual([]);
   });
 });

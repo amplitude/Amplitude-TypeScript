@@ -121,6 +121,19 @@ export const createEventsManager = async <Type extends EventType>({
     }
   };
 
+  // Batches split off while the min-session-duration gate is closed. The store splits on a
+  // timer (first split ~500ms in), so the first held batch carries the initial FullSnapshot;
+  // dropping it leaves the uploaded replay with no baseline to render. They are kept here, in
+  // memory only, rather than in the store, so sendStoredEvents can't replay them on a later
+  // page load for a session that never passed the gate. Released in order once the same
+  // session passes; batches from any other session are discarded.
+  let heldSequences: { sessionId: number; events: string[] }[] = [];
+
+  const holdSequence = (sessionId: number, events: string[]) => {
+    heldSequences = heldSequences.filter((seq) => seq.sessionId === sessionId);
+    heldSequences.push({ sessionId, events });
+  };
+
   /**
    * Immediately sends events to the track destination.
    */
@@ -199,6 +212,17 @@ export const createEventsManager = async <Type extends EventType>({
     });
   };
 
+  const releaseHeldSequences = (sessionId: number, deviceId: string) => {
+    if (!heldSequences.length) return;
+    const held = heldSequences;
+    heldSequences = [];
+    held.forEach((seq) => {
+      if (seq.sessionId !== sessionId) return;
+      // No sequenceId: the store entry was already cleaned up when the batch was held.
+      sendEventsList({ events: seq.events, sessionId, deviceId });
+    });
+  };
+
   const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
     lastKnownDeviceId = deviceId;
     // Evaluate shouldSend synchronously before the async store read. asyncSetSessionId
@@ -212,6 +236,9 @@ export const createEventsManager = async <Type extends EventType>({
     store
       .storeCurrentSequence(sessionId)
       .then((currentSequence) => {
+        // Inside the .then so batches held by earlier, still-pending addEvent calls are
+        // already in heldSequences, and they are queued ahead of the current sequence.
+        releaseHeldSequences(sessionId, deviceId);
         if (currentSequence) {
           advanceBeaconWindow(snapshotAbsIdx);
           sendEventsList({
@@ -275,6 +302,11 @@ export const createEventsManager = async <Type extends EventType>({
     store
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
+        if (canSend) {
+          // First event recorded after the session passed the gate: send what was held
+          // while it was closed, ahead of any batch split off by this event.
+          releaseHeldSequences(sessionId, deviceId);
+        }
         if (sequenceToSend) {
           if (!canSend) {
             // The split atomically moved events to sequencesToSend; without cleanup
@@ -282,10 +314,13 @@ export const createEventsManager = async <Type extends EventType>({
             // sendStoredEvents, bypassing the min session duration gate. The split
             // batch must also be dropped from the beacon buffer so it isn't sent
             // via sendBeacon on page unload (potentially attributed to a later session).
+            // Keep the events in memory so they can still be sent if this session
+            // passes the gate later.
             store.cleanUpSessionEventsStore(sequenceToSend.sessionId, sequenceToSend.sequenceId).catch((e) => {
-              config.loggerProvider.warn('Failed to clean up dropped session replay sequence:', e);
+              config.loggerProvider.warn('Failed to clean up held session replay sequence:', e);
             });
             advanceBeaconWindow(absIdx);
+            holdSequence(sessionId, sequenceToSend.events);
             return;
           }
           // Events before absIdx belong to the split batch being sent; advance window.
