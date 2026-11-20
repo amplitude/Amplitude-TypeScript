@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.2.1-cursorvideo-click-cell-9eb2.0 (2026-11-20)
+
+**Note:** Version bump only for package @amplitude/amp-semantic
+
+
+
+
+
 # 0.2.0 (2026-11-06)
 
 

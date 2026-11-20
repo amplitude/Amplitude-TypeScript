@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.8.0-cursorvideo-click-cell-9eb2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.34...@amplitude/plugin-page-url-enrichment-browser@0.8.0-cursorvideo-click-cell-9eb2.0) (2026-11-20)
+
+
+### Bug Fixes
+
+* **browser:** preserve page context on engagement replays (SDK-692) ([#2168](https://github.com/amplitude/Amplitude-TypeScript/issues/2168)) ([857b3f6](https://github.com/amplitude/Amplitude-TypeScript/commit/857b3f602f739898117bf624c4fede5a432db405))
+
+
+### Features
+
+* **browser-analytics:** add engaged-time tracking ([#2062](https://github.com/amplitude/Amplitude-TypeScript/issues/2062)) ([25e7804](https://github.com/amplitude/Amplitude-TypeScript/commit/25e7804721d65be5c564c7341fab1d3199f37fe3))
+
+
+
+
+
 ## [0.7.36](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-url-enrichment-browser@0.7.35...@amplitude/plugin-page-url-enrichment-browser@0.7.36) (2026-11-06)
 
 **Note:** Version bump only for package @amplitude/plugin-page-url-enrichment-browser

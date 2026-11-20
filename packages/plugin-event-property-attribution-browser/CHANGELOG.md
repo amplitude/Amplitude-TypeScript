@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.27-cursorvideo-click-cell-9eb2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.24...@amplitude/plugin-event-property-attribution-browser@0.2.27-cursorvideo-click-cell-9eb2.0) (2026-11-20)
+
+**Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser
+
+
+
+
+
 ## [0.2.26](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-event-property-attribution-browser@0.2.25...@amplitude/plugin-event-property-attribution-browser@0.2.26) (2026-11-06)
 
 **Note:** Version bump only for package @amplitude/plugin-event-property-attribution-browser

@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-engaged-time-tracking-browser",
-  "version": "1.0.0",
+  "version": "1.1.0-cursorvideo-click-cell-9eb2.0",
   "description": "Engaged-time tracking for default and custom browser page-view events",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
