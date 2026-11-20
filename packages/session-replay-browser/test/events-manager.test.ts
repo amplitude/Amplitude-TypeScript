@@ -538,23 +538,22 @@ describe('createEventsManager', () => {
     });
   });
 
-  describe('shouldSend callback', () => {
-    test('should block sendEventsList in addEvent when shouldSend returns false', async () => {
+  describe('getSendDecision callback', () => {
+    test('should block sendEventsList in addEvent when the decision is hold', async () => {
       const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
-      let shouldSendCallCount = 0;
+      const getSendDecision = jest.fn().mockReturnValue('hold');
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
         storeType: 'idb',
-        shouldSend: () => {
-          shouldSendCallCount++;
-          return false;
-        },
+        getSendDecision,
       });
       eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
-      // shouldSend must be evaluated synchronously (before the async store resolves).
-      expect(shouldSendCallCount).toBe(1);
+      // The decision must be made synchronously (before the async store resolves), for
+      // the batch's own session.
+      expect(getSendDecision).toHaveBeenCalledTimes(1);
+      expect(getSendDecision).toHaveBeenCalledWith(123);
       jest.runAllTimers();
       return mockAddEventPromise
         .catch(() => {
@@ -572,7 +571,7 @@ describe('createEventsManager', () => {
         });
     });
 
-    test('should log warning when cleanUpSessionEventsStore rejects on canSend=false split', async () => {
+    test('should log warning when cleanUpSessionEventsStore rejects on a gated split', async () => {
       const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
       (mockIDBStore.cleanUpSessionEventsStore as jest.Mock).mockRejectedValueOnce(new Error('idb gone'));
@@ -580,7 +579,7 @@ describe('createEventsManager', () => {
         config,
         type: 'replay',
         storeType: 'idb',
-        shouldSend: () => false,
+        getSendDecision: () => 'hold',
       });
       eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       // Let the addEvent .then() chain and the cleanUp .catch() chain both settle.
@@ -588,22 +587,22 @@ describe('createEventsManager', () => {
       await Promise.resolve();
       await Promise.resolve();
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
-        'Failed to clean up held session replay sequence:',
+        'Failed to clean up gated session replay sequence:',
         expect.any(Error),
       );
     });
 
-    test('should block sendEventsList in sendCurrentSequenceEvents when shouldSend returns false', async () => {
+    test('should block sendEventsList in sendCurrentSequenceEvents when the decision is hold', async () => {
       const mockStoreEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
       (mockIDBStore.storeCurrentSequence as jest.Mock).mockReturnValue(mockStoreEventPromise);
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
         storeType: 'idb',
-        shouldSend: () => false,
+        getSendDecision: () => 'hold',
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
-      // shouldSend is evaluated synchronously — storeCurrentSequence must not be called at all.
+      // The decision is made synchronously — storeCurrentSequence must not be called at all.
       expect(mockIDBStore.storeCurrentSequence).not.toHaveBeenCalled();
       jest.runAllTimers();
       await mockStoreEventPromise;
@@ -611,14 +610,14 @@ describe('createEventsManager', () => {
       expect(trackDestinationInstance.sendEventsList).not.toHaveBeenCalled();
     });
 
-    test('should allow sendEventsList when shouldSend returns true', async () => {
+    test('should allow sendEventsList when the decision is send', async () => {
       const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
         storeType: 'idb',
-        shouldSend: () => true,
+        getSendDecision: () => 'send',
       });
       eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -900,38 +899,56 @@ describe('createEventsManager min session duration gate (in-memory store)', () =
   };
 
   // Uses the real InMemoryEventsStore so its time-based batch splitting actually happens
-  // while the gate is closed (the IDB-mocked tests above can't exercise that).
+  // while the gate is closed (the IDB-mocked tests above can't exercise that). The decision
+  // function mirrors SessionReplay.getSendDecision: the current session is held until its
+  // gate opens; a past session is dropped or sent by the verdict recorded when it ended.
   const setup = async () => {
+    let currentSessionId = 123;
     let gateOpen = false;
+    const pastVerdicts = new Map<number, boolean>();
     const eventsManager = await createEventsManager<'replay'>({
       config,
       type: 'replay',
       storeType: 'memory',
-      shouldSend: () => gateOpen,
+      getSendDecision: (sessionId) => {
+        if (sessionId === currentSessionId) return gateOpen ? 'send' : 'hold';
+        return pastVerdicts.get(sessionId) === false ? 'drop' : 'send';
+      },
     });
     const trackDestination = (SessionReplayTrackDestination as jest.Mock).mock.instances.slice(-1)[0];
     const calls = () =>
       (trackDestination.sendEventsList as jest.Mock).mock.calls.map(
         (call: [{ events: string[]; sessionId: string | number }]) => call[0],
       );
-    const add = async (data: string, atMs: number, sessionId = 123) => {
+    const add = async (data: string, atMs: number, sessionId = currentSessionId) => {
       jest.setSystemTime(START + atMs);
       eventsManager.addEvent({ event: { type: 'replay', data }, sessionId, deviceId: 'd' });
       await settle();
     };
+    const send = async (sessionId = currentSessionId) => {
+      eventsManager.sendCurrentSequenceEvents({ sessionId, deviceId: 'd' });
+      await settle();
+    };
     // Ten seconds of gated activity: enough for the store to split several times.
-    const recordGatedSession = async (sessionId = 123) => {
-      await add('full-snapshot', 0, sessionId);
-      for (let s = 1; s <= 10; s++) await add(`inc-${s}`, s * 1000, sessionId);
+    const recordGatedSession = async () => {
+      await add('full-snapshot', 0);
+      for (let s = 1; s <= 10; s++) await add(`inc-${s}`, s * 1000);
     };
     return {
       eventsManager,
       add,
+      send,
       recordGatedSession,
       sent: () => calls().flatMap((c) => c.events),
       sentSessionIds: () => calls().map((c) => c.sessionId),
       openGate: () => {
         gateOpen = true;
+      },
+      // Session change: record the outgoing session's verdict, close the gate for the new one.
+      changeSession: (nextSessionId: number) => {
+        pastVerdicts.set(currentSessionId, gateOpen);
+        currentSessionId = nextSessionId;
+        gateOpen = false;
       },
     };
   };
@@ -948,19 +965,17 @@ describe('createEventsManager min session duration gate (in-memory store)', () =
   const ALL_EVENTS = ['full-snapshot', ...Array.from({ length: 10 }, (_, i) => `inc-${i + 1}`)];
 
   test('sends nothing while the gate is closed', async () => {
-    const { recordGatedSession, eventsManager, sent } = await setup();
+    const { recordGatedSession, send, sent } = await setup();
     await recordGatedSession();
-    eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: 'd' });
-    await settle();
+    await send();
     expect(sent()).toEqual([]);
   });
 
   test('sends every held batch, in order, when sendCurrentSequenceEvents passes the gate', async () => {
-    const { recordGatedSession, eventsManager, openGate, sent } = await setup();
+    const { recordGatedSession, send, openGate, sent } = await setup();
     await recordGatedSession();
     openGate();
-    eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: 'd' });
-    await settle();
+    await send();
     // Before the fix only the last un-split batch was sent and the full snapshot was lost.
     expect(sent()).toEqual(ALL_EVENTS);
   });
@@ -976,54 +991,89 @@ describe('createEventsManager min session duration gate (in-memory store)', () =
   });
 
   test('releases held batches only once', async () => {
-    const { recordGatedSession, add, eventsManager, openGate, sent } = await setup();
+    const { recordGatedSession, add, send, openGate, sent } = await setup();
     await recordGatedSession();
     openGate();
-    eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: 'd' });
-    await settle();
+    await send();
     await add('later', 60_000);
-    eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: 'd' });
-    await settle();
+    await send();
     expect(sent().filter((e) => e === 'full-snapshot')).toHaveLength(1);
   });
 
-  test('discards held batches from a session that never passed the gate', async () => {
-    const { recordGatedSession, add, eventsManager, openGate, sent, sentSessionIds } = await setup();
-    await recordGatedSession(111);
-    // Session 222 starts and later passes its own gate.
-    await add('s2-full-snapshot', 20_000, 222);
-    await add('s2-inc', 21_000, 222);
+  test('discards held batches of a session that ended below the threshold', async () => {
+    const { recordGatedSession, add, send, openGate, changeSession, sent, sentSessionIds } = await setup();
+    await recordGatedSession();
+    changeSession(222);
+    await add('s2-full-snapshot', 20_000);
+    await add('s2-inc', 21_000);
     openGate();
-    eventsManager.sendCurrentSequenceEvents({ sessionId: 222, deviceId: 'd' });
-    await settle();
+    await send();
+    // A late event for the short session must not release (or resurrect) its batches.
+    await add('s1-late', 40_000, 123);
+    await send(123);
     expect(sentSessionIds().every((id) => id === 222)).toBe(true);
     expect(sent()).not.toContain('full-snapshot');
-    expect(sent()).toContain('s2-full-snapshot');
+    expect(sent()).not.toContain('s1-late');
+    expect(sent()[0]).toBe('s2-full-snapshot');
   });
 
-  test('does not send another session’s held batches when a session with nothing held passes', async () => {
-    const { recordGatedSession, eventsManager, openGate, sent } = await setup();
-    await recordGatedSession(111);
+  test('sends held batches of the previous session when it passed before the session changed', async () => {
+    const { recordGatedSession, send, openGate, changeSession, sent } = await setup();
+    await recordGatedSession();
     openGate();
-    eventsManager.sendCurrentSequenceEvents({ sessionId: 222, deviceId: 'd' });
+    // Mirrors asyncSetSessionId: sendEvents(previous) runs before the session switches.
+    send(123).catch(() => undefined);
+    changeSession(222);
     await settle();
-    expect(sent()).toEqual([]);
+    expect(sent()).toEqual(ALL_EVENTS);
+  });
+
+  test('a late split from the previous session does not discard the current session’s held batches', async () => {
+    const { add, send, openGate, changeSession, sent } = await setup();
+    // Session 123 has an open (unsplit) sequence when the session changes.
+    await add('s1-event', 0);
+    changeSession(222);
+    // Session 222 holds its baseline while gated.
+    await add('s2-full-snapshot', 1000);
+    await add('s2-inc-1', 2000);
+    await add('s2-inc-2', 3000);
+    // A compression-worker callback for session 123 lands late and splits its sequence.
+    await add('s1-late', 10_000, 123);
+    // ...and another late one for 123 after 222 has passed its gate.
+    openGate();
+    await add('s1-later', 20_000, 123);
+    await send();
+    expect(sent()).toEqual(['s2-full-snapshot', 's2-inc-1', 's2-inc-2']);
   });
 
   test('keeps held batches for at most two sessions, evicting the oldest', async () => {
-    const { add, eventsManager, openGate, sent } = await setup();
+    // Defensive cap, independent of the decision function: hold for three sessions at once.
+    let gateOpen = false;
+    const eventsManager = await createEventsManager<'replay'>({
+      config,
+      type: 'replay',
+      storeType: 'memory',
+      getSendDecision: () => (gateOpen ? 'send' : 'hold'),
+    });
+    const trackDestination = (SessionReplayTrackDestination as jest.Mock).mock.instances.slice(-1)[0];
     for (const [i, sessionId] of [111, 222, 333].entries()) {
-      await add(`${sessionId}-full-snapshot`, i * 10_000, sessionId);
-      await add(`${sessionId}-inc`, i * 10_000 + 1000, sessionId);
+      for (const [j, data] of ['full-snapshot', 'inc'].entries()) {
+        jest.setSystemTime(START + i * 10_000 + j * 1000);
+        eventsManager.addEvent({ event: { type: 'replay', data: `${sessionId}-${data}` }, sessionId, deviceId: 'd' });
+        await settle();
+      }
     }
-    openGate();
+    gateOpen = true;
     for (const sessionId of [111, 222, 333]) {
       eventsManager.sendCurrentSequenceEvents({ sessionId, deviceId: 'd' });
       await settle();
     }
-    expect(sent()).not.toContain('111-full-snapshot');
-    expect(sent()).toContain('222-full-snapshot');
-    expect(sent()).toContain('333-full-snapshot');
+    const sent = (trackDestination.sendEventsList as jest.Mock).mock.calls.flatMap(
+      (call: [{ events: string[] }]) => call[0].events,
+    );
+    expect(sent).not.toContain('111-full-snapshot');
+    expect(sent).toContain('222-full-snapshot');
+    expect(sent).toContain('333-full-snapshot');
   });
 
   test('keeps held batches at the front of the beacon buffer until they are released', async () => {
@@ -1041,23 +1091,6 @@ describe('createEventsManager min session duration gate (in-memory store)', () =
     await add('after-gate', 30_000);
     expect(eventsManager.getBeaconEvents()).not.toContain('full-snapshot');
     expect(eventsManager.getBeaconEvents()).toContain('after-gate');
-  });
-
-  test('a late split from the previous session does not discard the current session’s held batches', async () => {
-    const { add, eventsManager, openGate, sent } = await setup();
-    // Session 111 has an open (unsplit) sequence when the session changes.
-    await add('s1-event', 0, 111);
-    // Session 222 starts and holds its baseline while gated.
-    await add('s2-full-snapshot', 1000, 222);
-    await add('s2-inc-1', 2000, 222);
-    await add('s2-inc-2', 3000, 222);
-    // A compression-worker callback for session 111 lands late and splits 111's sequence.
-    await add('s1-late', 10_000, 111);
-    openGate();
-    eventsManager.sendCurrentSequenceEvents({ sessionId: 222, deviceId: 'd' });
-    await settle();
-    expect(sent()[0]).toBe('s2-full-snapshot');
-    expect(sent()).toEqual(['s2-full-snapshot', 's2-inc-1', 's2-inc-2']);
   });
 
   test('does not hand held batches to sendStoredEvents', async () => {

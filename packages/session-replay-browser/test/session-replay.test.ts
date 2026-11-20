@@ -2772,6 +2772,72 @@ describe('SessionReplay', () => {
         false,
       );
     });
+
+    describe('per-session send decision', () => {
+      const decide = (sessionId: string | number) =>
+        (sessionReplay as unknown as { getSendDecision: (id: string | number) => string }).getSendDecision(sessionId);
+      const setThreshold = (ms: number | undefined, elapsedMs: number) => {
+        if (!sessionReplay.config) throw new Error('init');
+        sessionReplay.config.minSessionDurationMs = ms;
+        sessionReplay.sessionStartTime = Date.now() - elapsedMs;
+      };
+
+      test('sends everything when no threshold is configured', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        setThreshold(undefined, 0);
+        expect(decide(123)).toBe('send');
+        expect(decide(999)).toBe('send');
+      });
+
+      test('holds the current session until it passes, then sends it', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        setThreshold(5000, 1000);
+        expect(decide(123)).toBe('hold');
+        expect(decide('123')).toBe('hold');
+        setThreshold(5000, 6000);
+        expect(decide(123)).toBe('send');
+      });
+
+      test('sends a session with no recorded verdict, including when there is no current session', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        setThreshold(5000, 1000);
+        expect(decide(999)).toBe('send');
+        sessionReplay.identifiers = undefined;
+        expect(decide(123)).toBe('send');
+      });
+
+      test('judges a previous session by the verdict recorded when it ended', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        if (!sessionReplay.eventsManager) throw new Error('init');
+        sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+        // Session 123 ends below the threshold.
+        setThreshold(5000, 1000);
+        await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+        // Session 456 passes before it ends.
+        setThreshold(5000, 6000);
+        await (sessionReplay as any).asyncSetSessionId(789, '9l8m7n');
+        setThreshold(5000, 0);
+        expect(decide(123)).toBe('drop');
+        expect(decide(456)).toBe('send');
+        // The new current session is still held, unaffected by either verdict.
+        expect(decide(789)).toBe('hold');
+      });
+
+      test('keeps only the most recent past-session verdicts', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        if (!sessionReplay.eventsManager) throw new Error('init');
+        sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
+        // Eleven short sessions in a row; the first verdict (for 123) falls off the cap of 10.
+        for (let next = 1000; next <= 1010; next++) {
+          setThreshold(5000, 1000);
+          await (sessionReplay as any).asyncSetSessionId(next, '9l8m7n');
+        }
+        setThreshold(5000, 0);
+        expect(decide(123)).toBe('send');
+        expect(decide(1000)).toBe('drop');
+        expect(decide(1009)).toBe('drop');
+      });
+    });
   });
 
   describe('getSessionId', () => {
