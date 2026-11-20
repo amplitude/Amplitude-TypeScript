@@ -132,7 +132,7 @@ export const autocapturePlugin = (
         try {
           acc.push(new RegExp(excludePattern.pattern));
         } catch (regexError) {
-          console.warn(`Invalid regex pattern: ${excludePattern.pattern}`, regexError);
+          console.warn('Invalid regex pattern: %s', excludePattern.pattern, regexError);
           return acc;
         }
       }

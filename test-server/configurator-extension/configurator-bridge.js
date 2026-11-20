@@ -9,8 +9,8 @@ const RESPONSE_SOURCE = 'amplitude-configurator-extension';
 document.documentElement.dataset.amplitudeConfigurator = chrome.runtime.getManifest().version;
 
 window.addEventListener('message', (event) => {
-  // Only messages this page sent to itself: anything cross-window is somebody else's business.
-  if (event.source !== window || event.data?.source !== REQUEST_SOURCE) {
+  // Only accept messages this page sent to itself.
+  if (event.origin !== window.location.origin || event.source !== window || event.data?.source !== REQUEST_SOURCE) {
     return;
   }
   const { id, action, payload } = event.data;

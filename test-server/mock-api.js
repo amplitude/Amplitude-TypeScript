@@ -75,20 +75,14 @@ export function configureMockApiMiddleware(middlewares) {
   // Session Replay custom-transport echo endpoint (SR-4497).
   // Used to verify that handleSendEvents / handleFetchConfig actually attach a custom auth
   // header to outbound requests. Point trackServerUrl / configServerUrl at this endpoint and
-  // watch the server console: it logs the Authorization header it received (i.e. the JWT the
-  // callback injected), simulating a customer's authenticating proxy.
+  // watch the server console to confirm whether the Authorization header arrived.
   //
   //   - GET  /api/sr-echo/config/<apiKey>?config_group=browser  → returns a minimal SR remote
   //          config (capture enabled) so the SDK proceeds to capture and send events.
   //   - POST /api/sr-echo/track?device_id=...                   → 200, so the send is treated
   //          as successful.
   middlewares.use('/api/sr-echo', (req, res) => {
-    const auth = req.headers['authorization'];
     const isConfig = req.method === 'GET';
-    // eslint-disable-next-line no-console
-    console.log(
-      `\n🔐 [sr-echo] ${req.method} ${req.url}\n   Authorization: ${auth ?? '(none — header NOT attached!)'}\n`,
-    );
 
     // Same-origin in the test server, but set permissive CORS + allow Authorization so this
     // also works if the page is served from a different origin or a proxy is added later.
@@ -101,6 +95,12 @@ export function configureMockApiMiddleware(middlewares) {
       res.end();
       return;
     }
+
+    const requestType = isConfig ? 'Config fetch' : 'Event upload';
+    const auth = req.headers.authorization;
+    const authStatus = auth ? 'present' : 'missing';
+    // eslint-disable-next-line no-console
+    console.log('[sr-echo] %s; Authorization header %s', requestType, authStatus);
 
     res.setHeader('Content-Type', 'application/json');
     res.statusCode = 200;

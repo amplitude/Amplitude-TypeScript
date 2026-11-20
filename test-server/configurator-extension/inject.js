@@ -27,12 +27,13 @@
   // on its own. Whether that mattered is worth saying out loud either way.
   if (handover.csp?.blocked.length) {
     console.warn(
-      `[amplitude-configurator] ${handover.csp.summary} It was removed for this tab, so this run says nothing` +
+      '[amplitude-configurator] %s It was removed for this tab, so this run says nothing' +
         ' about whether the site can run Amplitude as it stands.',
+      handover.csp.summary,
       handover.csp.policy,
     );
   } else if (handover.csp) {
-    console.log(`[amplitude-configurator] ${handover.csp.summary}`, handover.csp.policy);
+    console.log('[amplitude-configurator] %s', handover.csp.summary, handover.csp.policy);
   }
 
   const { payload } = handover;

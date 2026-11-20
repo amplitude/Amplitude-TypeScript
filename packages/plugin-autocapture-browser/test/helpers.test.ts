@@ -699,7 +699,7 @@ describe('autocapture-plugin helpers', () => {
         autocapturePlugin(options);
 
         // Verify that warning was logged
-        expect(consoleWarnSpy).toHaveBeenCalledWith('Invalid regex pattern: [invalid-regex', expect.any(Error));
+        expect(consoleWarnSpy).toHaveBeenCalledWith('Invalid regex pattern: %s', '[invalid-regex', expect.any(Error));
 
         // Verify that valid items are still processed and invalid ones are skipped
         expect(options.pageUrlExcludelist).toEqual(['https://valid.com', 'https://another-valid.com']);
@@ -719,8 +719,8 @@ describe('autocapture-plugin helpers', () => {
 
         // Verify that warnings were logged for both invalid patterns
         expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
-        expect(consoleWarnSpy).toHaveBeenNthCalledWith(1, 'Invalid regex pattern: [invalid1', expect.any(Error));
-        expect(consoleWarnSpy).toHaveBeenNthCalledWith(2, 'Invalid regex pattern: *invalid2', expect.any(Error));
+        expect(consoleWarnSpy).toHaveBeenNthCalledWith(1, 'Invalid regex pattern: %s', '[invalid1', expect.any(Error));
+        expect(consoleWarnSpy).toHaveBeenNthCalledWith(2, 'Invalid regex pattern: %s', '*invalid2', expect.any(Error));
 
         // Valid items should still be processed
         expect(options.pageUrlExcludelist).toHaveLength(2);
