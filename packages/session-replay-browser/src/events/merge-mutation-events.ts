@@ -132,18 +132,20 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
   const first = events[0];
 
   // Track first/last event index for each node's adds and removes.
-  // lastParentById: final parent from most recent add (last-write-wins).
+  // lastParentById / lastNextIdById: final parent and next sibling from most recent add (last-write-wins).
   const firstAddEventIndex = new Map<number, number>();
   const lastAddEventIndex = new Map<number, number>();
   const firstRemoveEventIndex = new Map<number, number>();
   const lastRemoveEventIndex = new Map<number, number>();
   const lastParentById = new Map<number, number>();
+  const lastNextIdById = new Map<number, number | null>();
   events.forEach((e, i) => {
     const data = e.data as mutationData;
     for (const add of data.adds) {
       if (!firstAddEventIndex.has(add.node.id)) firstAddEventIndex.set(add.node.id, i);
       lastAddEventIndex.set(add.node.id, i);
       lastParentById.set(add.node.id, add.parentId);
+      lastNextIdById.set(add.node.id, add.nextId);
     }
     for (const remove of data.removes) {
       if (!firstRemoveEventIndex.has(remove.id)) firstRemoveEventIndex.set(remove.id, i);
@@ -262,17 +264,47 @@ function mergeGroup(events: eventWithTime[]): eventWithTime {
       )
     : allAttributes;
 
+  // A surviving add's nextId was recorded against the DOM of its own event. After merging, that
+  // sibling may be gone from the replayer by the time the adds run: its add was elided above, or
+  // a later event removed it (the replayer applies every remove before any add). The replayer
+  // then waits for the sibling forever and drops the add together with its whole subtree.
+  // Point such adds at the node that followed the missing sibling instead.
+  const elidedAddIds = new Set([...transientIds, ...preExistingTransientIds, ...cascadeDropAddsOnlyIds]);
+  const isAbsentAfterMerge = (id: number): boolean => {
+    if (elidedAddIds.has(id)) return true;
+    const lastRemoveIdx = lastRemoveEventIndex.get(id);
+    if (lastRemoveIdx === undefined) return false;
+    const lastAddIdx = lastAddEventIndex.get(id);
+    return lastAddIdx === undefined || lastAddIdx < lastRemoveIdx;
+  };
+  const resolveNextId = (nextId: number | null): number | null => {
+    const visited = new Set<number>();
+    let current = nextId;
+    while (current !== null && isAbsentAfterMerge(current)) {
+      if (visited.has(current)) return null;
+      visited.add(current);
+      // A pre-existing node has no add in this window, so its next sibling is unknown: append.
+      current = lastNextIdById.get(current) ?? null;
+    }
+    return current;
+  };
+
+  const keptAdds = needsFilter
+    ? allAdds.filter(
+        (a) =>
+          !transientIds.has(a.node.id) &&
+          !preExistingTransientIds.has(a.node.id) &&
+          !cascadeDropAddsOnlyIds.has(a.node.id),
+      )
+    : allAdds;
+
   const merged: mutationData = {
     source: IncrementalSource.Mutation,
     removes: filteredRemoves,
-    adds: needsFilter
-      ? allAdds.filter(
-          (a) =>
-            !transientIds.has(a.node.id) &&
-            !preExistingTransientIds.has(a.node.id) &&
-            !cascadeDropAddsOnlyIds.has(a.node.id),
-        )
-      : allAdds,
+    adds: keptAdds.map((a) => {
+      const nextId = resolveNextId(a.nextId);
+      return nextId === a.nextId ? a : { ...a, nextId };
+    }),
     texts: needsFilter
       ? allTexts.filter(
           (t) => !transientIds.has(t.id) && !preExistingTransientIds.has(t.id) && !cascadeDropAddsOnlyIds.has(t.id),

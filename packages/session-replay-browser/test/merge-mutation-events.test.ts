@@ -731,4 +731,116 @@ describe('mergeMutationEvents', () => {
       expect(data.removes).toEqual([{ parentId: 1, id: 99 }]);
     });
   });
+
+  describe('nextId of surviving adds', () => {
+    test('points past an elided transient sibling to the node that followed it', () => {
+      // placeholder 10 mounts before pre-existing 5, content 11 is inserted before the placeholder,
+      // then the placeholder is removed
+      const e1 = makeMutation(1000, { adds: [{ parentId: 1, nextId: 5, node: { id: 10 } as any }] });
+      const e2 = makeMutation(1010, {
+        adds: [
+          { parentId: 1, nextId: 10, node: { id: 11 } as any },
+          { parentId: 11, nextId: null, node: { id: 12 } as any },
+        ],
+      });
+      const e3 = makeMutation(1020, { removes: [{ parentId: 1, id: 10 }] });
+
+      const result = mergeMutationEvents([e1, e2, e3]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toEqual([
+        { parentId: 1, nextId: 5, node: { id: 11 } },
+        { parentId: 11, nextId: null, node: { id: 12 } },
+      ]);
+      expect(data.removes).toEqual([]);
+    });
+
+    test('follows a chain of elided siblings and appends when the chain ends', () => {
+      const e1 = makeMutation(1000, {
+        adds: [
+          { parentId: 1, nextId: null, node: { id: 20 } as any },
+          { parentId: 1, nextId: 20, node: { id: 21 } as any },
+          { parentId: 1, nextId: 21, node: { id: 22 } as any },
+        ],
+      });
+      const e2 = makeMutation(1010, {
+        removes: [
+          { parentId: 1, id: 20 },
+          { parentId: 1, id: 21 },
+        ],
+      });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toEqual([{ parentId: 1, nextId: null, node: { id: 22 } }]);
+    });
+
+    test('appends when the sibling is a pre-existing node removed later in the window', () => {
+      const e1 = makeMutation(1000, { adds: [{ parentId: 1, nextId: 99, node: { id: 30 } as any }] });
+      const e2 = makeMutation(1010, { removes: [{ parentId: 1, id: 99 }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toEqual([{ parentId: 1, nextId: null, node: { id: 30 } }]);
+      expect(data.removes).toEqual([{ parentId: 1, id: 99 }]);
+    });
+
+    test('keeps the sibling when it is removed and then re-added in the window', () => {
+      const e1 = makeMutation(1000, { adds: [{ parentId: 1, nextId: 40, node: { id: 41 } as any }] });
+      const e2 = makeMutation(1010, { removes: [{ parentId: 1, id: 40 }] });
+      const e3 = makeMutation(1020, { adds: [{ parentId: 2, nextId: null, node: { id: 40 } as any }] });
+
+      const result = mergeMutationEvents([e1, e2, e3]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toEqual([
+        { parentId: 1, nextId: 40, node: { id: 41 } },
+        { parentId: 2, nextId: null, node: { id: 40 } },
+      ]);
+    });
+
+    test('skips a sibling that was moved and then removed in the window', () => {
+      // 50 moves in front of pre-existing 6 (remove + add in one event), 51 is inserted before it,
+      // then 50 is removed
+      const e1 = makeMutation(1000, {
+        removes: [{ parentId: 2, id: 50 }],
+        adds: [
+          { parentId: 1, nextId: 6, node: { id: 50 } as any },
+          { parentId: 1, nextId: 50, node: { id: 51 } as any },
+        ],
+      });
+      const e2 = makeMutation(1010, { removes: [{ parentId: 1, id: 50 }] });
+
+      const result = mergeMutationEvents([e1, e2]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toContainEqual({ parentId: 1, nextId: 6, node: { id: 51 } });
+    });
+
+    test('appends when elided siblings point at each other', () => {
+      const e1 = makeMutation(1000, { adds: [{ parentId: 1, nextId: null, node: { id: 60 } as any }] });
+      const e2 = makeMutation(1010, { adds: [{ parentId: 1, nextId: 60, node: { id: 61 } as any }] });
+      // 60 moves in front of 61, then 62 is inserted before 61
+      const e3 = makeMutation(1020, {
+        removes: [{ parentId: 1, id: 60 }],
+        adds: [
+          { parentId: 1, nextId: 61, node: { id: 60 } as any },
+          { parentId: 1, nextId: 61, node: { id: 62 } as any },
+        ],
+      });
+      const e4 = makeMutation(1030, {
+        removes: [
+          { parentId: 1, id: 60 },
+          { parentId: 1, id: 61 },
+        ],
+      });
+
+      const result = mergeMutationEvents([e1, e2, e3, e4]);
+
+      const data = result[0].data as mutationData;
+      expect(data.adds).toEqual([{ parentId: 1, nextId: null, node: { id: 62 } }]);
+    });
+  });
 });
