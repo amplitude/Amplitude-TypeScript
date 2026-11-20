@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { S3Client, PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+const { uploadArtifact } = require('./s3-upload');
 const { getName, getVersion } = require('../utils');
 
 const bucket = process.env.S3_BUCKET_NAME;
@@ -27,7 +27,7 @@ let totalFiles = 0;
  */
 async function uploadFile(file, contentType, contentEncoding) {
   const filePath = path.join(location, file);
-  
+
   if (!fs.existsSync(filePath)) {
     console.log(`[Publish to AWS S3] ${file} not found. Skipping.`);
     return;
@@ -38,39 +38,16 @@ async function uploadFile(file, contentType, contentEncoding) {
   const suffix = file.includes('-gtm-') ? '-gtm' : file.includes('-lite-') ? '-lite' : '';
   const replacement = `amplitude${suffix}`;
   const key = `libs/${file.replace(replacement, `${getName()}${suffix}-${getVersion()}`)}`;
-  const client = new S3Client();
-
-  const headObject = new HeadObjectCommand({
+  const uploaded = await uploadArtifact({
+    Body: body,
     Bucket: bucket,
+    CacheControl: 'max-age=31536000',
+    ContentType: contentType,
+    ...(contentEncoding ? { ContentEncoding: contentEncoding } : {}),
     Key: key,
   });
-
-  console.log(`[Publish to AWS S3] Checking if ${key} exists in target bucket...`);
-
-  try {
-    await client.send(headObject);
-    console.log(`[Publish to AWS S3] ${key} exists in target bucket. Skipping upload.`);
-  } catch {
-    console.log(`[Publish to AWS S3] ${key} does not exist. Uploading to S3...`);
-    const putObjectParams = {
-      ACL: 'public-read',
-      Body: body,
-      Bucket: bucket,
-      CacheControl: 'max-age=31536000',
-      ContentType: contentType,
-      Key: key,
-    };
-    if (contentEncoding) {
-      putObjectParams.ContentEncoding = contentEncoding;
-    }
-    const putObject = new PutObjectCommand(putObjectParams);
-    try {
-      await client.send(putObject);
-      console.log(`[Publish to AWS S3] Upload success for ${key}.`);
-      deployedCount++;
-    } catch (err) {
-      console.error(`[Publish to AWS S3] Upload failed for ${key}:`, err.message);
-    }
+  if (uploaded) {
+    deployedCount++;
   }
 }
 
