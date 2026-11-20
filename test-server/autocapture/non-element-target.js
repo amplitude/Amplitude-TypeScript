@@ -90,7 +90,7 @@ async function run() {
         const result = isElementPointerCursor(event.target, 'click');
         addRow('#helper-results', [label, event.target.constructor.name, String(result)]);
       } catch (error) {
-        console.error(`Local helper, ${label}:`, error);
+        console.error('Local helper, %s:', label, error);
         addRow('#helper-results', [label, event.target.constructor.name, `${error.name}: ${error.message}`], true);
       }
     });

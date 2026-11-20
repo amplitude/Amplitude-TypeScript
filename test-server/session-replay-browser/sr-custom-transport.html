@@ -123,7 +123,7 @@
             logLevel: 'debug',
             useWebWorker: workerEl.checked,
             // Point both transports at the local sr-echo endpoint (mock-api.js). The server
-            // console logs the Authorization header it receives, simulating an auth proxy.
+            // console reports whether the Authorization header arrived.
             trackServerUrl: `${location.origin}/api/sr-echo/track`,
             configServerUrl: `${location.origin}/api/sr-echo/config`,
             handleSendEvents: async ({ url, method, headers, body, keepalive }) => {
