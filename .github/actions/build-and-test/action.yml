@@ -89,5 +89,5 @@ runs:
       uses: aws-actions/configure-aws-credentials@99214aa6889fcddfa57764031d71add364327e59 # v6.1.3
       if: inputs.configure-aws == 'true' && github.event.inputs.releaseType != 'dry-run'
       with:
-        role-to-assume: ${{ github.event.inputs.releaseType == 'release' && github.ref == 'refs/heads/main' && (github.event.inputs.branch == '' || github.event.inputs.branch == 'main') && 'arn:aws:iam::358203115967:role/gha-amplitude-typescript-role' || 'arn:aws:iam::358203115967:role/github-actions-role' }}
+        role-to-assume: arn:aws:iam::358203115967:role/gha-amplitude-typescript-role
         aws-region: us-west-2
