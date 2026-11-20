@@ -12,7 +12,6 @@
 //     networkTrackingOptions (use autocapture.networkTracking)
 //   - `transport` is offered as its TransportType string; the TransportOptions object form
 //     (headers/enableKeepalive/referrerPolicy) is not exposed
-//   - `customEnrichment` is offered as a boolean; its object form takes a `body` of JS source
 export const CONFIG_SECTIONS = [
   {
     title: 'Identity',
@@ -335,14 +334,6 @@ export const CONFIG_SECTIONS = [
               'Custom server URL for remote configuration requests. If not provided, defaults to the standard Amplitude remote config endpoint based on serverZone (US or EU). Use this to proxy remote config requests through your own server.',
           },
         ],
-      },
-      {
-        key: 'customEnrichment',
-        label: 'Custom enrichment',
-        type: 'boolean',
-        defaultValue: false,
-        hint: '(experimental · boolean form only)',
-        description: 'The configurations for custom enrichment.',
       },
     ],
   },
