@@ -27,6 +27,14 @@ export type EventsManagerWithBeacon<Type extends EventType> = AmplitudeSessionRe
   trackDestination: SessionReplayTrackDestination;
 };
 
+/**
+ * Min-session-duration gate verdict for a batch, decided per session:
+ * - `send`: no gate, or the batch's session has passed it.
+ * - `hold`: the batch's session is the current one and hasn't passed yet.
+ * - `drop`: the batch's session ended without passing, so it never will.
+ */
+export type SendDecision = 'send' | 'hold' | 'drop';
+
 export const createEventsManager = async <Type extends EventType>({
   config,
   minInterval,
@@ -36,7 +44,7 @@ export const createEventsManager = async <Type extends EventType>({
   payloadBatcher,
   storeType,
   trackDestinationWorkerScript,
-  shouldSend,
+  getSendDecision,
 }: {
   config: SessionReplayJoinedConfig;
   type: Type;
@@ -46,7 +54,7 @@ export const createEventsManager = async <Type extends EventType>({
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
   trackDestinationWorkerScript?: string;
-  shouldSend?: () => boolean;
+  getSendDecision?: (sessionId: number) => SendDecision;
 }): Promise<EventsManagerWithBeacon<Type>> => {
   // Configurable per-single-event drop cap (defaults to MAX_SINGLE_EVENT_SIZE); enforced both
   // here as a pre-send backstop and at capture time in EventCompressor.
@@ -118,6 +126,38 @@ export const createEventsManager = async <Type extends EventType>({
     if (trimCount > 0) {
       beaconBuffer.splice(0, trimCount);
       beaconWindowStart = upToAbsoluteIdx;
+    }
+  };
+
+  // Batches split off while the min-session-duration gate is closed. The store splits on a
+  // timer (first split ~500ms in), so the first held batch carries the initial FullSnapshot;
+  // dropping it leaves the uploaded replay with no baseline to render. They are kept here, in
+  // memory only, rather than in the store, so sendStoredEvents can't replay them on a later
+  // page load for a session that never passed the gate. Released in order once the same
+  // session passes; discarded once its session gets a `drop` verdict.
+  //
+  // The verdict is per session (getSendDecision), so a late batch for an older session, e.g.
+  // a compression-worker callback that lands after a session change, is judged by that
+  // session's own verdict and never touches the current session's held batches. Only the
+  // current session gets `hold`; MAX_HELD_SESSIONS is a backstop on memory, oldest evicted.
+  //
+  // Held events also stay in the beacon buffer (they are its oldest entries, so the beacon's
+  // prefix trim keeps them first). If the session passes the gate and the page closes before
+  // anything releases them, e.g. an idle background tab, the page-leave beacon still carries
+  // them. `beaconEndIdx` is the absolute beacon index just past the batch.
+  const MAX_HELD_SESSIONS = 2;
+  const heldBySession = new Map<number, { events: string[]; beaconEndIdx: number }[]>();
+
+  const holdSequence = (sessionId: number, events: string[], beaconEndIdx: number) => {
+    const held = heldBySession.get(sessionId);
+    if (held) {
+      held.push({ events, beaconEndIdx });
+      return;
+    }
+    heldBySession.set(sessionId, [{ events, beaconEndIdx }]);
+    if (heldBySession.size > MAX_HELD_SESSIONS) {
+      // Map iterates in insertion order, so the first key is the oldest held session.
+      heldBySession.delete(heldBySession.keys().next().value as number);
     }
   };
 
@@ -199,19 +239,35 @@ export const createEventsManager = async <Type extends EventType>({
     });
   };
 
+  const releaseHeldSequences = (sessionId: number, deviceId: string) => {
+    const held = heldBySession.get(sessionId);
+    if (!held) return;
+    heldBySession.delete(sessionId);
+    held.forEach((seq) => {
+      // No sequenceId: the store entry was already cleaned up when the batch was held.
+      sendEventsList({ events: seq.events, sessionId, deviceId });
+      advanceBeaconWindow(seq.beaconEndIdx);
+    });
+  };
+
   const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
     lastKnownDeviceId = deviceId;
-    // Evaluate shouldSend synchronously before the async store read. asyncSetSessionId
-    // updates sessionStartTime immediately after calling sendEvents(), so by the time
-    // storeCurrentSequence resolves the start time would reflect the new session and
-    // the elapsed check would compute ~0ms, silently dropping the previous session's events.
-    if (shouldSend && !shouldSend()) return;
+    // Decide synchronously, before the async store read: asyncSetSessionId switches the
+    // current session right after calling sendEvents() for the previous one.
+    const decision = getSendDecision?.(sessionId) ?? 'send';
+    if (decision !== 'send') {
+      if (decision === 'drop') heldBySession.delete(sessionId);
+      return;
+    }
     // Snapshot the absolute end-index before the async store read so that any events
     // pushed after this point are NOT considered sent and remain in the beacon buffer.
     const snapshotAbsIdx = beaconWindowStart + beaconBuffer.length;
     store
       .storeCurrentSequence(sessionId)
       .then((currentSequence) => {
+        // Inside the .then so batches held by earlier, still-pending addEvent calls are
+        // already in heldBySession, and they are queued ahead of the current sequence.
+        releaseHeldSequences(sessionId, deviceId);
         if (currentSequence) {
           advanceBeaconWindow(snapshotAbsIdx);
           sendEventsList({
@@ -262,11 +318,9 @@ export const createEventsManager = async <Type extends EventType>({
     deviceId: string;
   }) => {
     lastKnownDeviceId = deviceId;
-    // Capture shouldSend synchronously before the async store write, for the same
-    // reason as sendCurrentSequenceEvents: asyncSetSessionId updates sessionStartTime
-    // synchronously, so evaluating inside the .then() would use the new session's
-    // start time and compute ~0ms elapsed, silently dropping a valid batch.
-    const canSend = !shouldSend || shouldSend();
+    // Decide synchronously before the async store write, for the same reason as
+    // sendCurrentSequenceEvents.
+    const decision = getSendDecision?.(sessionId) ?? 'send';
     // Record the absolute index of this event in the beacon buffer before the async
     // store operation. If a batch split occurs, we advance the window up to (but not
     // including) this event so that it starts the next pending window.
@@ -275,17 +329,25 @@ export const createEventsManager = async <Type extends EventType>({
     store
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
+        if (decision === 'send') {
+          // First event recorded after the session passed the gate: send what was held
+          // while it was closed, ahead of any batch split off by this event.
+          releaseHeldSequences(sessionId, deviceId);
+        } else if (decision === 'drop') {
+          heldBySession.delete(sessionId);
+        }
         if (sequenceToSend) {
-          if (!canSend) {
+          if (decision !== 'send') {
             // The split atomically moved events to sequencesToSend; without cleanup
             // they would be unconditionally replayed on next page load via
-            // sendStoredEvents, bypassing the min session duration gate. The split
-            // batch must also be dropped from the beacon buffer so it isn't sent
-            // via sendBeacon on page unload (potentially attributed to a later session).
+            // sendStoredEvents, bypassing the min session duration gate. On `hold`, keep
+            // the events in memory so they can still be sent once this session passes.
+            // They stay in the beacon buffer: the page-leave beacon is gated on the same
+            // threshold, and asyncSetSessionId drops the buffer on a session change.
             store.cleanUpSessionEventsStore(sequenceToSend.sessionId, sequenceToSend.sequenceId).catch((e) => {
-              config.loggerProvider.warn('Failed to clean up dropped session replay sequence:', e);
+              config.loggerProvider.warn('Failed to clean up gated session replay sequence:', e);
             });
-            advanceBeaconWindow(absIdx);
+            if (decision === 'hold') holdSequence(sessionId, sequenceToSend.events, absIdx);
             return;
           }
           // Events before absIdx belong to the split batch being sent; advance window.

@@ -42,7 +42,7 @@ import {
 } from './constants';
 import { getServerUrl, getDebugConfig, getPageUrl, getStorageSize, getCurrentUrl } from './helpers';
 import { EventCompressor } from './events/event-compressor';
-import { createEventsManager, EventsManagerWithBeacon } from './events/events-manager';
+import { createEventsManager, EventsManagerWithBeacon, SendDecision } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
 import { clickBatcher, ClickHandler, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
@@ -77,6 +77,9 @@ import { WindowFocusTracker } from './window-focus';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
+// A late batch can only belong to a recent session; older verdicts are never consulted.
+const MAX_PAST_SESSION_GATE_VERDICTS = 10;
+
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
   config: SessionReplayJoinedConfig | undefined;
@@ -106,6 +109,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private suppressedSendCount = 0;
   /** True once REPLAY_GATE_DECISION has been emitted for the current session. */
   private hasEmittedGateDecision = false;
+  /**
+   * Final min-session-duration verdicts (passed or not) for sessions that are no longer
+   * current, recorded at the session change. Late batches for those sessions, e.g. from a
+   * compression-worker callback, are judged by their own session's verdict rather than the
+   * current session's gate. Keyed by String(sessionId); capped to the most recent few.
+   */
+  private pastSessionGateVerdicts = new Map<string, boolean>();
   private scrollHook?: scrollCallback;
   private clickHandler?: ClickHandler;
   private networkObservers?: NetworkObservers;
@@ -254,6 +264,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return Date.now() - this.sessionStartTime < minSessionDurationMs;
   }
 
+  /**
+   * Per-session gate verdict for the events manager. The current session is held until it
+   * passes; a previous session is dropped if it ended below the threshold. Sessions with
+   * no recorded verdict are sent, as before the gate existed.
+   */
+  private getSendDecision(sessionId: string | number): SendDecision {
+    if (this.config?.minSessionDurationMs === undefined) return 'send';
+    if (this.identifiers?.sessionId !== undefined && String(sessionId) === String(this.identifiers.sessionId)) {
+      return this.isBelowMinSessionDuration() ? 'hold' : 'send';
+    }
+    return this.pastSessionGateVerdicts.get(String(sessionId)) === false ? 'drop' : 'send';
+  }
+
   private getCurrentPageForTargeting(): SessionReplayTargetingInput['page'] {
     const currentUrl = getGlobalScope()?.location?.href;
     return currentUrl != null ? { url: currentUrl } : undefined;
@@ -338,7 +361,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maxPersistedEventsSize: this.config.maxPersistedEventsSizeBytes,
         storeType,
         trackDestinationWorkerScript,
-        shouldSend: () => !this.isBelowMinSessionDuration(),
+        getSendDecision: (sessionId) => this.getSendDecision(sessionId),
       });
       this.rrwebEventManager = rrwebEventManager;
       managers.push({ name: 'replay', manager: rrwebEventManager });
@@ -501,6 +524,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // the buffer belongs to the *continuing* session and should ship via beacon as normal.
     if (isSessionChange) {
       this.rrwebEventManager?.dropPendingBeaconEvents();
+    }
+
+    // Record the previous session's final verdict while it is still current, so late
+    // batches for it are dropped (or sent) on its own merit rather than the new session's.
+    if (isSessionChange && previousSessionId !== undefined) {
+      this.pastSessionGateVerdicts.set(String(previousSessionId), !this.isBelowMinSessionDuration());
+      if (this.pastSessionGateVerdicts.size > MAX_PAST_SESSION_GATE_VERDICTS) {
+        this.pastSessionGateVerdicts.delete(this.pastSessionGateVerdicts.keys().next().value as string);
+      }
     }
 
     const deviceIdForReplayId = deviceId || this.getDeviceId();
