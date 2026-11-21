@@ -46,7 +46,11 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
         return;
       }
 
+      const addedLinkNodes = new WeakSet<HTMLAnchorElement>();
       const addFileDownloadListener = (a: HTMLAnchorElement) => {
+        if (addedLinkNodes.has(a)) {
+          return;
+        }
         let url: URL;
         try {
           // eslint-disable-next-line no-restricted-globals
@@ -59,6 +63,7 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
         const fileExtension = result?.[1];
 
         if (fileExtension) {
+          addedLinkNodes.add(a);
           addEventListener(a, 'click', () => {
             if (fileExtension) {
               amplitude.track(DEFAULT_FILE_DOWNLOAD_EVENT, {
@@ -103,6 +108,16 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
                 config.loggerProvider.warn(`Failed to track file downloads for an added node: ${String(error)}`);
               }
             });
+          });
+          // Drop listener records for detached links, including descendants of
+          // removed containers, and allow registration if they are reinserted.
+          eventListeners = eventListeners.filter(({ element, type, handler }) => {
+            if (element.isConnected) {
+              return true;
+            }
+            element.removeEventListener(type, handler);
+            addedLinkNodes.delete(element as HTMLAnchorElement);
+            return false;
           });
         });
 

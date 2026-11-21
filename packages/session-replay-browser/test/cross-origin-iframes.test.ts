@@ -215,6 +215,43 @@ describe('CrossOriginIframeCoordinator', () => {
     expect(pm1).not.toHaveBeenCalled();
   });
 
+  it('cancels pending listeners in removed containers and on restart', async () => {
+    coordinator.start();
+    const wrapper = document.createElement('div');
+    const iframe = document.createElement('iframe');
+    wrapper.appendChild(iframe);
+    document.body.appendChild(wrapper);
+    await Promise.resolve();
+    const removeListener = jest.spyOn(iframe, 'removeEventListener');
+    wrapper.remove();
+    await Promise.resolve();
+    expect(removeListener).toHaveBeenCalledWith('load', expect.any(Function));
+    expect((coordinator as any).pendingLoadListeners.size).toBe(0);
+
+    document.body.appendChild(wrapper);
+    await Promise.resolve();
+    removeListener.mockClear();
+    coordinator.start();
+    expect(removeListener).toHaveBeenCalledWith('load', expect.any(Function));
+    expect((coordinator as any).pendingLoadListeners.size).toBe(0);
+    wrapper.remove();
+  });
+
+  it('does not duplicate pending load listeners when an iframe moves before loading', async () => {
+    coordinator.start();
+    const wrapper = document.createElement('div');
+    const iframe = document.createElement('iframe');
+    const postMessage = jest.fn();
+    Object.defineProperty(iframe, 'contentWindow', { value: { postMessage }, configurable: true });
+    document.body.append(wrapper, iframe);
+    await Promise.resolve();
+    wrapper.appendChild(iframe);
+    await Promise.resolve();
+    iframe.dispatchEvent(new Event('load'));
+    expect(postMessage).toHaveBeenCalledTimes(1);
+    wrapper.remove();
+  });
+
   it('ignores non-element added nodes such as text nodes', async () => {
     coordinator.start();
     const pm1 = (iframe1.contentWindow as any).postMessage as jest.Mock;
