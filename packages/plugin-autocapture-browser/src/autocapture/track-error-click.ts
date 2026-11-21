@@ -36,25 +36,25 @@ export function trackErrorClicks({
   });
 
   let errorClickTimer: ReturnType<typeof setTimeout> | null = null;
-  let latestClickEvent: ElementBasedTimestampedEvent<MouseEvent> | null = null;
+  let latestClickProperties: Record<string, any> | null = null;
 
   const clearClickTimer = () => {
     if (errorClickTimer !== null) {
       clearTimeout(errorClickTimer);
       errorClickTimer = null;
     }
-    latestClickEvent = null;
+    latestClickProperties = null;
   };
 
-  return merge(filteredClickObservable, browserErrorObservable).subscribe((event: ClickOrErrorEvent) => {
+  const subscription = merge(filteredClickObservable, browserErrorObservable).subscribe((event: ClickOrErrorEvent) => {
     if (event.type === 'click') {
       clearClickTimer();
-      latestClickEvent = event as ElementBasedTimestampedEvent<MouseEvent>;
+      latestClickProperties = (event as ElementBasedTimestampedEvent<MouseEvent>).targetElementProperties;
       errorClickTimer = setTimeout(clearClickTimer, ERROR_CLICK_TIMEOUT);
       return;
     }
 
-    if (event.type === 'error' && latestClickEvent) {
+    if (event.type === 'error' && latestClickProperties) {
       amplitude.track(AMPLITUDE_ELEMENT_ERROR_CLICKED_EVENT, {
         ['[Amplitude] Kind']: event.event.kind,
         ['[Amplitude] Message']: event.event.message,
@@ -62,9 +62,15 @@ export function trackErrorClicks({
         ['[Amplitude] Filename']: event.event.filename,
         ['[Amplitude] Line Number']: event.event.lineNumber,
         ['[Amplitude] Column Number']: event.event.columnNumber,
-        ...latestClickEvent.targetElementProperties,
+        ...latestClickProperties,
       });
       clearClickTimer();
     }
   });
+  return {
+    unsubscribe: () => {
+      subscription.unsubscribe();
+      clearClickTimer();
+    },
+  };
 }
