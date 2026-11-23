@@ -3856,7 +3856,7 @@ describe('SessionReplay', () => {
       expect(recordArg?.hooks?.scroll).toBeDefined();
     });
 
-    test('should handle interaction config enabled without clickHandler initialized', async () => {
+    test('initializes heatmap hooks when a session ID arrives after init', async () => {
       // enable interaction config
       mockRemoteConfig = {
         sr_sampling_config: samplingConfig,
@@ -3876,10 +3876,8 @@ describe('SessionReplay', () => {
       await sessionReplay.setSessionId(123456).promise;
 
       const recordArg = mockRecordFunction.mock.calls[0][0];
-      // mouseInteraction should be undefined because clickHandler was never initialized
-      expect(recordArg?.hooks?.mouseInteraction).toBeUndefined();
-      // scroll should still be undefined because scrollHook was never initialized either
-      expect(recordArg?.hooks?.scroll).toBeUndefined();
+      expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
+      expect(recordArg?.hooks?.scroll).toBeDefined();
     });
 
     test('should warn if record throws during recordEvents', async () => {

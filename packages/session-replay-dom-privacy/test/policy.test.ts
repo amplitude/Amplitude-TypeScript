@@ -126,8 +126,8 @@ describe('DOM privacy policy', () => {
         },
         {
           el: (element: HTMLElement): HTMLElement => {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (element as any).autocomplete = undefined; // we are given an HTMLElement so this is a edge case safety check
+            // HTMLInputElement coerces assignment to a string; emulate an element without the property.
+            Object.defineProperty(element, 'autocomplete', { value: undefined });
             return element;
           },
           masked: false,

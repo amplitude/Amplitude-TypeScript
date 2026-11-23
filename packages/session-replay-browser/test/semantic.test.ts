@@ -111,6 +111,20 @@ describe('ReplaySemanticAdapter', () => {
     expect(capture.notify).toHaveBeenCalledTimes(5);
   });
 
+  test('forwards native clicks only while capture is ready and active', () => {
+    const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
+    const click = new MouseEvent('click');
+    adapter.click(click);
+    adapter.prepare({ enabled: true }, 1);
+    adapter.recordingReady();
+    capture.isActive.mockReturnValue(false);
+    adapter.click(click);
+    expect(capture.notify).not.toHaveBeenCalled();
+    capture.isActive.mockReturnValue(true);
+    adapter.click(click);
+    expect(capture.notify).toHaveBeenCalledWith('click', click);
+  });
+
   test('emits stop before teardown and resumes the same session after a new snapshot', () => {
     const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
     adapter.prepare({ enabled: true }, 1);

@@ -72,6 +72,10 @@ export class ReplaySemanticAdapter {
     }
   }
 
+  click(event: MouseEvent): void {
+    if (this.ready && this.capture.isActive()) this.capture.notify('click', event);
+  }
+
   private url(url: string, timestamp: number): void {
     if (!this.config.enabled) return;
     if (!this.ready) {

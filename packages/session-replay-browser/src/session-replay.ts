@@ -305,19 +305,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     );
 
     this.pageLeaveFns = [];
-
-    if (options.sessionId && this.config.interactionConfig?.enabled) {
-      const scrollWatcher = ScrollWatcher.default(
-        {
-          sessionId: options.sessionId,
-          type: 'interaction',
-        },
-        this.config,
-      );
-      this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this)).bind(scrollWatcher)];
-      this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
-      this.clickHandler = new ClickHandler(this.loggerProvider, scrollWatcher);
-    }
+    this.scrollHook = undefined;
+    this.clickHandler = undefined;
+    if (options.sessionId) this.ensureHeatmapHooks(this.config, options.sessionId);
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
     let { storeType } = this.config;
@@ -1079,6 +1069,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return !this.recordingEnabled || generation !== this.recordingGeneration;
   }
 
+  private ensureHeatmapHooks(config: SessionReplayJoinedConfig, sessionId: string | number): void {
+    if (!config.interactionConfig?.enabled || this.scrollHook) return;
+    const scrollWatcher = ScrollWatcher.default({ sessionId, type: 'interaction' }, config);
+    this.pageLeaveFns.push(scrollWatcher.send(this.getDeviceId.bind(this)).bind(scrollWatcher));
+    this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
+    // A semantic-only recorder may have created a selector helper without a
+    // scroll watcher. Replace it when heatmaps become enabled.
+    this.clickHandler = new ClickHandler(this.loggerProvider, scrollWatcher);
+  }
+
   private getIneligibleRecordingReason(
     config: SessionReplayJoinedConfig | undefined,
   ): SemanticRecordingSignal['reason'] {
@@ -1123,21 +1123,33 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }, networkLoggingConfig);
     const { interactionConfig, loggingConfig } = config;
 
-    const hooks = interactionConfig?.enabled
-      ? {
-          mouseInteraction:
-            this.eventsManager &&
-            this.clickHandler?.createHook({
-              eventsManager: this.eventsManager,
-              sessionId,
-              deviceIdFn: this.getDeviceId.bind(this),
-              mirror: recordFunction.mirror,
-              ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
-              performanceOptions: config.performanceConfig?.interaction,
-            }),
-          scroll: this.scrollHook,
-        }
-      : {};
+    this.ensureHeatmapHooks(config, sessionId);
+
+    // ensureHeatmapHooks above creates this handler whenever heatmaps are enabled.
+    const heatmapHook =
+      interactionConfig?.enabled && this.eventsManager
+        ? (this.clickHandler as ClickHandler).createHook({
+            eventsManager: this.eventsManager,
+            sessionId,
+            deviceIdFn: this.getDeviceId.bind(this),
+            mirror: recordFunction.mirror,
+            ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
+            performanceOptions: config.performanceConfig?.interaction,
+          })
+        : undefined;
+    const sharedSemanticClicks =
+      config.semanticCapture?.enabled &&
+      typeof config.semanticCapture.createCapture === 'function' &&
+      recordFunction.supportsNativeMouseInteraction === true;
+    let mouseInteraction = heatmapHook;
+    if (sharedSemanticClicks) {
+      const clickHandler = this.clickHandler ?? (this.clickHandler = new ClickHandler(this.loggerProvider));
+      mouseInteraction = clickHandler.createSharedHook(heatmapHook, (event) => this.semanticAdapter?.click(event));
+    }
+    const hooks = {
+      ...(mouseInteraction ? { mouseInteraction } : {}),
+      ...(interactionConfig?.enabled ? { scroll: this.scrollHook } : {}),
+    };
 
     const ugcFilterRules =
       interactionConfig?.enabled && interactionConfig.ugcFilterRules ? interactionConfig.ugcFilterRules : [];
@@ -1288,6 +1300,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
           window: scope,
           sdk: `@amplitude/session-replay-browser@${VERSION}`,
           getPrivacy: () => this.config?.privacyConfig ?? {},
+          getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
+          getUrl: () => this.currentPageUrl || scope.location.href,
+          filterUrl: (url) => getPageUrl(url, this.config?.interactionConfig?.ugcFilterRules ?? []),
+          getSelector: (element) => {
+            try {
+              this.clickHandler ??= new ClickHandler(this.loggerProvider);
+              return this.clickHandler.getSelector(element, this.config?.performanceConfig?.interaction);
+            } catch {
+              return null;
+            }
+          },
+          externalClicks: this.recordFunction?.supportsNativeMouseInteraction === true,
+          externalAuxClicks: false,
           getIdentity: () => getSemanticIdentity(scope),
           getAnalyticsContext: () => this.config?.semanticAnalyticsContext ?? { present: false, autocapture: [] },
           inlineStylesheet: config.shouldInlineStylesheet,

@@ -65,6 +65,7 @@ export function createCapture<P extends object = SemanticPayloads>(
   const context: Omit<RecorderContext<P>, 'onCleanup'> = {
     host,
     now,
+    enabled,
     canEmit,
     dropped: () => ({ ...dropped }),
     clearDropped: () => {
