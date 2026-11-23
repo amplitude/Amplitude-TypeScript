@@ -372,6 +372,25 @@ describe('SessionReplay', () => {
       expect((sessionReplay as any).semanticAdapter).toBeUndefined();
     });
 
+    test('reinitialization closes the old replay before replacing its manager', async () => {
+      const order: string[] = [];
+      (sessionReplay as any).semanticAdapter = { stop: jest.fn(() => order.push('boundary')) };
+      sessionReplay.recordCancelCallback = jest.fn(() => order.push('cancel'));
+      sessionReplay.eventCompressor = {
+        flushQueue: jest.fn(() => order.push('flush')),
+        terminate: jest.fn(),
+      } as any;
+      jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => {
+        order.push('send');
+      });
+
+      const init = sessionReplay.init(apiKey, mockOptions).promise;
+      expect((sessionReplay as any).recordingEnabled).toBe(false);
+      expect(order.slice(0, 4)).toEqual(['boundary', 'flush', 'cancel', 'send']);
+      await init;
+      expect((sessionReplay as any).recordingEnabled).toBe(true);
+    });
+
     test('should pass current page to evaluateTargetingAndCapture during init', async () => {
       const evaluateTargetingAndCaptureSpy = jest.spyOn(sessionReplay, 'evaluateTargetingAndCapture');
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -4549,7 +4568,7 @@ describe('SessionReplay', () => {
         emitFn(event);
 
         expect((sessionReplay as any).pendingEmitEvents).toHaveLength(0);
-        expect(enqueueSpy).toHaveBeenCalledWith(event, expect.anything());
+        expect(enqueueSpy).toHaveBeenCalledWith(event, expect.anything(), false);
       });
 
       test('pre-buffered events are drained into eventCompressor when _init() assigns it', async () => {

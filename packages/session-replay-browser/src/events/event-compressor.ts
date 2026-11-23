@@ -16,6 +16,8 @@ const DEFAULT_TIMEOUT = 2000;
 export class EventCompressor {
   taskQueue: TaskQueue[] = [];
   pendingQueue: TaskQueue[] = [];
+  private pendingWorkerEvents: TaskQueue[] = [];
+  private workerResponsesToIgnore = 0;
   isProcessing = false;
   eventsManager?: SessionReplayEventsManager<'replay' | 'interaction', string>;
   config: SessionReplayJoinedConfig;
@@ -53,10 +55,16 @@ export class EventCompressor {
           config.loggerProvider.error(
             `Worker failed, falling back to non-worker compression: ${e.message} (${e.filename}:${e.lineno})`,
           );
+          this.flushPendingWorkerEvents();
           worker.terminate();
           this.worker = undefined;
         };
         worker.onmessage = (e) => {
+          if (this.workerResponsesToIgnore > 0) {
+            this.workerResponsesToIgnore--;
+            return;
+          }
+          this.pendingWorkerEvents.shift();
           const { compressedEvent, sessionId } = e.data as Record<string, string>;
           this.addCompressedEventToManager(compressedEvent, sessionId);
         };
@@ -82,27 +90,28 @@ export class EventCompressor {
   }
 
   // Add an event to the task queue if idle callback is supported or compress the event directly
-  public enqueueEvent(event: eventWithTime, sessionId: string | number): void {
+  public enqueueEvent(event: eventWithTime, sessionId: string | number, forceSync = false): void {
     // Full snapshot (type 2) is the most critical event — a replay cannot be played without it.
     // Process and flush immediately rather than waiting for the idle scheduler or web worker,
     // maximising the chance it is delivered before the user exits the page.
     if (event.type === RRWebEventType.FullSnapshot) {
       this.config.loggerProvider.debug('Processing full snapshot immediately.');
-      // Drain any events still pending in the idle-callback queue first.
+      // Drain any events still pending in the worker or idle-callback queue first.
       // Those events reference the pre-snapshot DOM and must be sent before
       // the full snapshot; if we let them be processed later they'd arrive at
       // the server after the snapshot and cause "node not found" replay errors.
-      if (this.taskQueue.length > 0 || this.pendingQueue.length > 0) {
-        const allTasks = [...this.taskQueue.splice(0), ...this.mergeMutationTasks(this.pendingQueue.splice(0))];
-        for (const task of allTasks) {
-          const compressed = this.compressEvent(task.event);
-          this.addCompressedEventToManager(compressed, task.sessionId);
-        }
-        this.isProcessing = false;
-      }
+      this.flushQueue();
       const compressedEvent = this.compressEvent(event);
       this.addCompressedEventToManager(compressedEvent, sessionId);
       this.onFullSnapshotProcessed?.();
+      return;
+    }
+
+    // Recording boundaries must reach the manager in order, including a quick
+    // start/stop pair. A worker reply or idle callback can arrive after the close.
+    if (forceSync) {
+      this.flushQueue();
+      this.addCompressedEventToManager(this.compressEvent(event), sessionId);
       return;
     }
 
@@ -182,6 +191,7 @@ export class EventCompressor {
   public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
     if (this.worker) {
       // This indirectly compresses the event.
+      this.pendingWorkerEvents.push({ event, sessionId });
       try {
         this.worker.postMessage({ event, sessionId });
       } catch (err: any) {
@@ -190,6 +200,7 @@ export class EventCompressor {
           // fallback: serialize
           this.worker.postMessage(JSON.stringify({ event, sessionId }));
         } else {
+          this.pendingWorkerEvents.pop();
           this.config.loggerProvider.warn('Unexpected error while posting message to worker:', err);
         }
       }
@@ -204,6 +215,9 @@ export class EventCompressor {
    * data loss from events waiting in the requestIdleCallback queue.
    */
   public flushQueue = () => {
+    // A worker reply may arrive after a recording stop or a full snapshot.
+    // Write outstanding posts now, in post order, and discard their late replies.
+    this.flushPendingWorkerEvents();
     // Merge any events still in pendingQueue into taskQueue first.
     // Events land in pendingQueue when the idle callback hasn't fired yet;
     // without this step they would be silently lost on page unload.
@@ -224,6 +238,13 @@ export class EventCompressor {
       }
     }
     this.isProcessing = false;
+  };
+
+  private flushPendingWorkerEvents = () => {
+    this.workerResponsesToIgnore += this.pendingWorkerEvents.length;
+    for (const task of this.pendingWorkerEvents.splice(0)) {
+      this.addCompressedEventToManager(this.compressEvent(task.event), task.sessionId);
+    }
   };
 
   // Merge consecutive mutation tasks with the same sessionId before processing,

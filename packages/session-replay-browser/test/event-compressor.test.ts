@@ -601,6 +601,67 @@ describe('EventCompressor', () => {
     });
   });
 
+  test('writes recording boundaries in order even with a worker and no idle processing', () => {
+    const postMessage = jest.fn();
+    eventCompressor.worker = { postMessage } as unknown as Worker;
+    eventCompressor.canUseIdleCallback = false;
+    const addEvent = jest.spyOn(eventsManager, 'addEvent');
+    const start = {
+      type: EventType.Custom,
+      timestamp: 122,
+      data: { tag: 'amp-semantic/recording', payload: { state: 'start' } },
+    } as eventWithTime;
+    const terminal = {
+      type: EventType.Custom,
+      timestamp: 123,
+      data: { tag: 'amp-semantic/recording', payload: { state: 'stop' } },
+    } as eventWithTime;
+
+    eventCompressor.enqueueEvent(start, sessionId, true);
+    eventCompressor.enqueueEvent(terminal, sessionId, true);
+
+    expect(postMessage).not.toHaveBeenCalled();
+    expect(addEvent).toHaveBeenCalledTimes(2);
+    expect(addEvent.mock.calls[0][0].event.data).toContain('"state":"start"');
+    expect(addEvent.mock.calls[1][0].event.data).toContain('"state":"stop"');
+  });
+
+  test('drains in-flight worker events before a recording boundary and ignores late replies', async () => {
+    class MockWorker {
+      postMessage = jest.fn();
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror = null;
+      terminate = jest.fn();
+    }
+    global.Worker = MockWorker as unknown as typeof global.Worker;
+    URL.createObjectURL = jest.fn();
+    eventsManager = await createEventsManager<'replay'>({ config, type: 'replay', storeType: 'memory' });
+    eventCompressor = new EventCompressor(eventsManager, config, deviceId, 'console.log("hi")');
+    const worker = eventCompressor.worker as unknown as MockWorker;
+    eventCompressor.canUseIdleCallback = false;
+    const addEvent = jest.spyOn(eventsManager, 'addEvent');
+    const terminal = {
+      type: EventType.Custom,
+      timestamp: 123,
+      data: { tag: 'amp-semantic/recording', payload: { state: 'stop' } },
+    } as eventWithTime;
+
+    eventCompressor.enqueueEvent(mockEvent, sessionId);
+    expect(addEvent).not.toHaveBeenCalled();
+    eventCompressor.enqueueEvent(terminal, sessionId, true);
+    expect(addEvent).toHaveBeenCalledTimes(2);
+    expect(addEvent.mock.calls[0][0].event.data).toContain('"href"');
+    expect(addEvent.mock.calls[1][0].event.data).toContain('"state":"stop"');
+
+    worker.onmessage?.({ data: { compressedEvent: 'late', sessionId } } as MessageEvent);
+    expect(addEvent).toHaveBeenCalledTimes(2);
+
+    eventCompressor.enqueueEvent(mockEvent, sessionId);
+    worker.onmessage?.({ data: { compressedEvent: 'next', sessionId } } as MessageEvent);
+    expect(addEvent).toHaveBeenCalledTimes(3);
+    expect(addEvent.mock.calls[2][0].event.data).toBe('next');
+  });
+
   describe('flushQueue', () => {
     test('should synchronously drain all queued events and reset isProcessing', () => {
       const addEventMock = jest.spyOn(eventsManager, 'addEvent');
