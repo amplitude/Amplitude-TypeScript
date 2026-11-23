@@ -50,6 +50,13 @@ document.querySelector('#flush').onclick = () => void flush().catch(report);
 document.querySelector('#stop').onclick = () => void stop().catch(report);
 document.querySelector('#start').onclick = () => void start().catch(report);
 document.querySelector('#semantic-form').addEventListener('submit', (event) => event.preventDefault());
+document.querySelector('#show-feedback').addEventListener('click', () => {
+  document.querySelector('#feedback-region').innerHTML =
+    '<div role="status">Changes saved</div><div role="dialog" aria-label="Confirm changes"><button id="close-feedback">Close</button></div>';
+  document.querySelector('#close-feedback').addEventListener('click', () => {
+    document.querySelector('[role="dialog"]').remove();
+  });
+});
 window.semanticHarness = {
   get ready() {
     return ready;
@@ -66,7 +73,7 @@ async function boot() {
   const families = Object.fromEntries(
     (params.get('disabled') ?? '')
       .split(',')
-      .filter((name) => ['context', 'visibility', 'lifecycle', 'navigation', 'recording', 'click', 'field', 'submit', 'keys', 'resource-error'].includes(name))
+      .filter((name) => ['context', 'visibility', 'lifecycle', 'navigation', 'recording', 'click', 'field', 'submit', 'keys', 'resource-error', 'notice', 'dialog'].includes(name))
       .map((name) => [name, false]),
   );
   await sessionReplay.init('semantic-local-test-key', {

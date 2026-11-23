@@ -1301,6 +1301,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           sdk: `@amplitude/session-replay-browser@${VERSION}`,
           getPrivacy: () => this.config?.privacyConfig ?? {},
           getNodeId: (node) => this.recordFunction?.mirror.getId?.(node) ?? -1,
+          getNode: (id) => this.recordFunction?.mirror.getNode(id) ?? null,
           getUrl: () => this.currentPageUrl || scope.location.href,
           filterUrl: (url) => getPageUrl(url, this.config?.interactionConfig?.ugcFilterRules ?? []),
           getSelector: (element) => {

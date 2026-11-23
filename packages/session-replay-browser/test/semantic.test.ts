@@ -1,6 +1,10 @@
 import type { SemanticCaptureFactory, SemanticCaptureHost } from '../src/semantic-types';
-import { eventWithTime, EventType } from '@amplitude/rrweb-types';
-import { ReplaySemanticAdapter, MAX_PENDING_SEMANTIC_SNAPSHOTS } from '../src/semantic';
+import { eventWithTime, EventType, IncrementalSource } from '@amplitude/rrweb-types';
+import {
+  ReplaySemanticAdapter,
+  MAX_PENDING_SEMANTIC_SNAPSHOTS,
+  MAX_PENDING_SEMANTIC_DOM_CHANGES,
+} from '../src/semantic';
 
 describe('ReplaySemanticAdapter', () => {
   const capture = {
@@ -143,5 +147,67 @@ describe('ReplaySemanticAdapter', () => {
     adapter.event(snapshot);
     adapter.recordingReady();
     expect(capture.notify).toHaveBeenCalledWith('recording', { state: 'start', reason: 'new_session' });
+  });
+
+  test('forwards accepted rrweb snapshots and mutations to feedback after startup', () => {
+    const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
+    const node = { id: 7, type: 2, tagName: 'dialog', attributes: { open: '' }, childNodes: [] };
+    const full = { type: EventType.FullSnapshot, timestamp: 1, data: { node } } as unknown as eventWithTime;
+    const mutation = {
+      type: EventType.IncrementalSnapshot,
+      timestamp: 2,
+      data: {
+        source: IncrementalSource.Mutation,
+        adds: [],
+        removes: [],
+        texts: [],
+        attributes: [{ id: 7, attributes: { open: '' } }],
+      },
+    } as eventWithTime;
+    adapter.prepare({ enabled: true }, 1);
+    adapter.event(full);
+    adapter.event(mutation);
+    expect(capture.notify).not.toHaveBeenCalled();
+    adapter.recordingReady();
+    expect(capture.notify.mock.calls).toEqual([
+      ['dom', { type: 'snapshot', node }],
+      ['recording', { state: 'start', reason: 'init' }],
+      ['snapshot', undefined],
+      ['dom', expect.objectContaining({ type: 'mutation', attributes: [{ id: 7, attributes: { open: '' } }] })],
+    ]);
+    adapter.event(mutation);
+    expect(capture.notify).toHaveBeenLastCalledWith('dom', expect.objectContaining({ type: 'mutation' }));
+    capture.isActive.mockReturnValue(false);
+    adapter.event(mutation);
+    expect(capture.notify).toHaveBeenCalledTimes(5);
+  });
+
+  test('skips DOM input when both feedback families are disabled and bounds startup retention', () => {
+    const adapter = new ReplaySemanticAdapter(createSemanticCapture, host);
+    const node = { id: 7, type: 2, tagName: 'dialog' };
+    const full = { type: EventType.FullSnapshot, timestamp: 1, data: { node } } as unknown as eventWithTime;
+    adapter.prepare({ enabled: false }, 1);
+    adapter.event(full);
+    adapter.prepare({ enabled: true, families: { notice: false, dialog: false } }, 1);
+    adapter.event(full);
+    adapter.recordingReady();
+    expect(capture.notify.mock.calls.filter(([signal]) => signal === 'dom')).toHaveLength(0);
+    adapter.prepare({ enabled: true, families: { notice: false } }, 1);
+    for (let i = 0; i < MAX_PENDING_SEMANTIC_DOM_CHANGES + 1; i++) adapter.event(full);
+    adapter.recordingReady();
+    expect(capture.notify.mock.calls.filter(([signal]) => signal === 'dom')).toHaveLength(
+      MAX_PENDING_SEMANTIC_DOM_CHANGES,
+    );
+    adapter.prepare({ enabled: true, families: { notice: true, dialog: false } }, 1);
+    adapter.event(full);
+    adapter.recordingReady();
+    expect(capture.notify.mock.calls.filter(([signal]) => signal === 'dom')).toHaveLength(
+      MAX_PENDING_SEMANTIC_DOM_CHANGES + 1,
+    );
+    for (const families of [{ notice: false, dialog: true }, { dialog: false }, { notice: false, dialog: undefined }]) {
+      adapter.prepare({ enabled: true, families }, 1);
+      adapter.event(full);
+      adapter.recordingReady();
+    }
   });
 });

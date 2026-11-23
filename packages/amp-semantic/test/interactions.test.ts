@@ -61,6 +61,7 @@ function harness(privacy: PrivacyConfig = { defaultMaskLevel: 'medium' }, disabl
   const context: RecorderContext & { helpers: SemanticHelpers } = {
     onCleanup: () => undefined,
     canEmit: () => true,
+    hasCapacity: () => true,
     host: {
       document,
       window,
@@ -84,6 +85,7 @@ function harness(privacy: PrivacyConfig = { defaultMaskLevel: 'medium' }, disabl
         signals.delete(signal);
       };
     },
+    subscribe: () => () => undefined,
     dropped: () => ({}),
     clearDropped: () => undefined,
   };

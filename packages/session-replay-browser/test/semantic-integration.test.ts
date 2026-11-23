@@ -57,9 +57,13 @@ describe('Session Replay context integration', () => {
   });
 
   test('supplies rrweb node IDs, current URL, and safe selector fallbacks', () => {
-    const { sdk, internal } = prepare(true, true);
+    const { sdk, record, internal } = prepare(true, true);
     const host = jest.mocked(createSemanticCapture).mock.calls[0][1];
     expect(host.getNodeId!(document.body)).toBe(42);
+    record.mirror.getNode.mockReturnValue(document.body);
+    expect(host.getNode!(42)).toBe(document.body);
+    record.mirror.getNode.mockReturnValue(undefined);
+    expect(host.getNode!(42)).toBeNull();
     expect(host.getUrl!()).toBe(window.location.href);
     expect(host.getSelector!(document.body)).toBe('body');
     expect(internal.clickHandler).toBeInstanceOf(ClickHandler);
@@ -81,6 +85,7 @@ describe('Session Replay context integration', () => {
     expect(host.getUrl!()).toBe('https://example.com/current');
     internal.recordFunction = undefined;
     expect(host.getNodeId!(document.body)).toBe(-1);
+    expect(host.getNode!(42)).toBeNull();
     internal.semanticAdapter = undefined;
     internal.prepareSemanticCapture(sdk.config, 1);
     expect(jest.mocked(createSemanticCapture).mock.lastCall?.[1].externalClicks).toBe(false);

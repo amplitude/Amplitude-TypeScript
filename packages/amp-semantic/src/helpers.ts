@@ -170,7 +170,7 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
   const text = (element: Element, value?: string | null): string | null => {
     if (masked(element) || editable(element) || (value === undefined && INPUTS.has(element.tagName))) return null;
     if (value !== undefined) return value === null ? null : normalizeText(value);
-    const walker = host.document.createTreeWalker(element, 1 | 4);
+    const walker = element.ownerDocument.createTreeWalker(element, 1 | 4);
     let node: Node | null;
     let visited = 0;
     let output = '';
@@ -207,7 +207,7 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       const references = labelledby.trim().split(/\s+/);
       if (references.length > 20) return finish(null, 'masked');
       const parts = references
-        .map((id) => host.document.getElementById(id))
+        .map((id) => element.ownerDocument.getElementById(id))
         .filter((el): el is HTMLElement => !!el)
         .map((el) => text(el));
       if (parts.some((part) => part === null)) return finish(null, 'masked');
@@ -223,7 +223,7 @@ export function createHelpers(host: SemanticHost): SemanticHelpers {
       let labelText = '';
       if (masked(label)) return finish(null, 'masked');
       let unsafe = false;
-      const walker = host.document.createTreeWalker(label, 1 | 4);
+      const walker = label.ownerDocument.createTreeWalker(label, 1 | 4);
       let child: Node | null;
       let visited = 0;
       while ((child = walker.nextNode())) {
