@@ -1,7 +1,5 @@
 import { LogLevel } from '@amplitude/analytics-types';
 
-const PREFIX = 'Amplitude Session Replay ';
-
 export const createSessionReplayLogger = () => {
   let logLevel: LogLevel = LogLevel.Warn;
 
@@ -14,28 +12,28 @@ export const createSessionReplayLogger = () => {
       if (logLevel < LogLevel.Verbose) {
         return;
       }
-      console.log(`${PREFIX}[Log]:`, ...args);
+      console.log('Amplitude Session Replay [Log]:', ...args);
     },
 
     warn: function warn(...args: unknown[]): void {
       if (logLevel < LogLevel.Warn) {
         return;
       }
-      console.warn(`${PREFIX}[Warn]:`, ...args);
+      console.warn('Amplitude Session Replay [Warn]:', ...args);
     },
 
     error: function error(...args: unknown[]): void {
       if (logLevel < LogLevel.Error) {
         return;
       }
-      console.error(`${PREFIX}[Error]:`, ...args);
+      console.error('Amplitude Session Replay [Error]:', ...args);
     },
 
     debug: function debug(...args: unknown[]): void {
       if (logLevel < LogLevel.Debug) {
         return;
       }
-      console.log(`${PREFIX}[Debug]:`, ...args);
+      console.log('Amplitude Session Replay [Debug]:', ...args);
     },
   };
 };

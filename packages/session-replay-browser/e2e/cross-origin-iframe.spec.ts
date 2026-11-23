@@ -122,18 +122,22 @@ test.describe('cross-origin iframe recording', () => {
         body: JSON.stringify({ result: 'iframe-response-body' }),
       }),
     );
-    // Record every rrweb message the parent window receives from the child.
-    await page.addInitScript(() => {
-      if (window !== window.top) return;
-      (window as any).childRrwebEvents = [];
-      window.addEventListener('message', (e) => {
-        if (e.data && e.data.type === 'rrweb') (window as any).childRrwebEvents.push(e.data.event);
-      });
-    });
-
     // localhost vs 127.0.0.1 makes the child a genuinely different origin.
     const crossOrigin = new URL(baseURL!);
     crossOrigin.hostname = crossOrigin.hostname === '127.0.0.1' ? 'localhost' : '127.0.0.1';
+
+    // Record rrweb messages from the test iframe.
+    await page.addInitScript((childOrigin) => {
+      if (window !== window.top) return;
+      (window as any).childRrwebEvents = [];
+      window.addEventListener('message', (e) => {
+        if (e.origin !== childOrigin) return;
+        const child = document.querySelector<HTMLIFrameElement>('#child-frame');
+        if (child && e.source === child.contentWindow && e.data?.type === 'rrweb') {
+          (window as any).childRrwebEvents.push(e.data.event);
+        }
+      });
+    }, crossOrigin.origin);
     await page.goto(
       buildUrl(PARENT_PAGE, { sessionId: TEST_SESSION_ID, childSrc: new URL(CHILD_PAGE, crossOrigin).toString() }),
     );
@@ -153,13 +157,13 @@ test.describe('cross-origin iframe recording', () => {
     // recording) reaches the parent; a duplicate start just restarts child recording.
     await expect
       .poll(() =>
-        page.evaluate(() => {
+        page.evaluate((childOrigin) => {
           (document.getElementById('child-frame') as HTMLIFrameElement).contentWindow!.postMessage(
             { type: 'amplitude-sr-iframe', action: 'start' },
-            '*',
+            childOrigin,
           );
           return ((window as any).childRrwebEvents as Array<{ type: number }>).some((e) => e.type === 2);
-        }),
+        }, crossOrigin.origin),
       )
       .toBe(true);
 

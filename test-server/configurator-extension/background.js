@@ -85,7 +85,7 @@ function guard(name, handler) {
       if (isMissingTab(error)) {
         return;
       }
-      console.error(`[amplitude-configurator] ${name} failed`, error);
+      console.error('[amplitude-configurator] %s failed', name, error);
     });
 }
 
@@ -189,14 +189,14 @@ function clearStoredSession(prefixes) {
         removed.push(`${label} ${key}`);
       }
     } catch (error) {
-      console.warn(`[amplitude-configurator] ${label} could not be read, so nothing was cleared from it`, error);
+      console.warn('[amplitude-configurator] %s could not be read, so nothing was cleared from it', label, error);
     }
   }
 
   // Named individually: "the session was cleared" and "the session was already empty" lead to different
   // places when a run doesn't look the way it was expected to.
   if (removed.length) {
-    console.log(`[amplitude-configurator] cleared ${removed.length} stored Amplitude entries`, removed);
+    console.log('[amplitude-configurator] cleared %d stored Amplitude entries', removed.length, removed);
   } else {
     console.log('[amplitude-configurator] no stored Amplitude state to clear on this origin');
   }

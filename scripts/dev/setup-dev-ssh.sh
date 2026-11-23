@@ -1,15 +1,9 @@
 #!/bin/bash
 
-# Run setup scripts
-sh ./scripts/dev/setup-local-domain.sh
-if [ $? -ne 0 ]; then
-    exit 1
-fi
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
 
-sh ./scripts/dev/generate-signed-cert.sh
-if [ $? -ne 0 ]; then
-    exit 1
-fi
+sh "$script_dir/setup-local-domain.sh" || exit 1
+sh "$script_dir/generate-signed-cert.sh" || exit 1
 
 # Show completion message
 echo ""

@@ -93,7 +93,7 @@ export async function decodeStateFromUrl(defaults, search = window.location.sear
     return mergeOverDefaults(defaults, JSON.parse(await inflate(fromBase64Url(saved))));
   } catch (error) {
     // A truncated or hand-edited link shouldn't leave the page blank.
-    console.warn(`Ignoring unreadable ?${STATE_PARAM} parameter`, error);
+    console.warn('Ignoring unreadable ?%s parameter', STATE_PARAM, error);
     return defaults;
   }
 }
