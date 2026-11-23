@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.53.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.53.0...@amplitude/session-replay-browser@1.53.1) (2026-11-23)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** keep batches split off below min session duration ([#2194](https://github.com/amplitude/Amplitude-TypeScript/issues/2194)) ([e086d65](https://github.com/amplitude/Amplitude-TypeScript/commit/e086d657c6061d90bd37b9a4b65578a86aaf6725))
+
+
+
+
+
 # [1.53.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.52.0...@amplitude/session-replay-browser@1.53.0) (2026-11-19)
 
 

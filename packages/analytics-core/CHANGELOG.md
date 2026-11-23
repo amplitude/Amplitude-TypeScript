@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.63.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.62.2...@amplitude/analytics-core@2.63.0) (2026-11-23)
+
+
+### Bug Fixes
+
+* **analytics-core:** decode form query parameters without truncation ([#2189](https://github.com/amplitude/Amplitude-TypeScript/issues/2189)) ([ae35aec](https://github.com/amplitude/Amplitude-TypeScript/commit/ae35aecfa78a9d662f3e5e671797b6a4f5bb84d1))
+
+
+### Features
+
+* **analytics-browser:** remove custom enrichment plugin ([#2190](https://github.com/amplitude/Amplitude-TypeScript/issues/2190)) ([d656d16](https://github.com/amplitude/Amplitude-TypeScript/commit/d656d16bea9aba05a7266f76b12fc6c15ca052d7))
+* **analytics-react-native:** support Dead Clicks in react native ([#2132](https://github.com/amplitude/Amplitude-TypeScript/issues/2132)) ([b94a033](https://github.com/amplitude/Amplitude-TypeScript/commit/b94a0333beda4bf5fe87ff286e01fb962fe8aa82))
+
+
+
+
+
 ## [2.62.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.62.1...@amplitude/analytics-core@2.62.2) (2026-11-19)
 
 

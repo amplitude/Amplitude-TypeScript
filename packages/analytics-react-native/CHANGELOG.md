@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.14.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.13.3...@amplitude/analytics-react-native@1.14.0) (2026-11-23)
+
+
+### Features
+
+* **analytics-react-native:** support Dead Clicks in react native ([#2132](https://github.com/amplitude/Amplitude-TypeScript/issues/2132)) ([b94a033](https://github.com/amplitude/Amplitude-TypeScript/commit/b94a0333beda4bf5fe87ff286e01fb962fe8aa82))
+
+
+
+
+
 ## [1.13.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.13.2...@amplitude/analytics-react-native@1.13.3) (2026-11-19)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

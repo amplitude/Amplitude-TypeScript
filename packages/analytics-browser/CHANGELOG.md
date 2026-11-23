@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.50.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.49.4...@amplitude/analytics-browser@2.50.0) (2026-11-23)
+
+
+### Features
+
+* **analytics-browser:** remove custom enrichment plugin ([#2190](https://github.com/amplitude/Amplitude-TypeScript/issues/2190)) ([d656d16](https://github.com/amplitude/Amplitude-TypeScript/commit/d656d16bea9aba05a7266f76b12fc6c15ca052d7))
+
+
+
+
+
 ## [2.49.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.49.3...@amplitude/analytics-browser@2.49.4) (2026-11-19)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
