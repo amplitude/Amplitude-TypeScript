@@ -74,11 +74,6 @@ jobs:
       - name: Verify packages exist on npm
         run: pnpm deploy:publish:check-packages
 
-      - name: Verify pinned custom enrichment version is already published
-        run: |
-          version=$(node -p "require('./packages/analytics-browser/package.json').dependencies['@amplitude/plugin-custom-enrichment-browser']")
-          bash scripts/publish/verify-custom-enrichment.sh "$version"
-
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
@@ -275,7 +270,6 @@ jobs:
 
           echo "✅ Successfully created release version"
 
-      # Custom enrichment is released independently; all SDK packages can go live together.
       - name: Publish SDK packages to NPM
         run: |
           GH_TOKEN=${{ steps.app-token.outputs.token }} pnpm deploy:publish

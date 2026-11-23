@@ -29,7 +29,6 @@ import * as networkConnectivityChecker from '../src/plugins/network-connectivity
 import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as joinedConfig from '../src/config/joined-config';
 import * as pageUrlEnrichment from '@amplitude/plugin-page-url-enrichment-browser';
-import * as customEnrichment from '@amplitude/plugin-custom-enrichment-browser';
 
 // Mock RemoteConfigClient constructor
 const mockRemoteConfigClient = {
@@ -62,6 +61,8 @@ describe('browser-client', () => {
   let client = new AmplitudeBrowser();
   const testDeviceId = 'test-device-id';
   const testSessionId = 12345;
+  const customEnrichmentWarning =
+    'The custom enrichment plugin has been removed from the Amplitude Browser SDK. The "customEnrichment" option will take no effect.';
   const url = new URL(`https://www.example.com?ampDeviceId=${testDeviceId}&ampSessionId=${testSessionId}`);
   const defaultTracking = {
     attribution: false,
@@ -1267,71 +1268,63 @@ describe('browser-client', () => {
       );
     });
 
-    test('should add custom enrichment plugin when customEnrichment is an object with enabled=true', async () => {
-      const customEnrichmentPlugin = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
-      await client.init(apiKey, userId, {
-        customEnrichment: { enabled: true, body: 'test' },
-      }).promise;
-      expect(customEnrichmentPlugin).toHaveBeenCalledTimes(1);
+    test.each([
+      [true, true],
+      [{ enabled: true, body: 'test' }, true],
+      [undefined, false],
+      [false, false],
+      [{ enabled: false, body: 'test' }, false],
+    ] as const)('should accept deprecated customEnrichment option %p', async (customEnrichment, expectWarning) => {
+      const loggerProvider = new core.Logger();
+      const warn = jest.spyOn(loggerProvider, 'warn').mockImplementation(() => undefined);
+      await client.init(apiKey, userId, { customEnrichment, loggerProvider }).promise;
+
+      expect(warn.mock.calls.some(([message]) => message === customEnrichmentWarning)).toBe(expectWarning);
+      expect(client.plugin('@amplitude/plugin-custom-enrichment-browser')).toBeUndefined();
     });
 
-    test('should NOT add custom enrichment plugin when customEnrichment is undefined', async () => {
-      const customEnrichmentPlugin = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
-      await client.init(apiKey, userId).promise;
-      expect(customEnrichmentPlugin).toHaveBeenCalledTimes(0);
-    });
+    test.each([undefined, false] as const)(
+      'should respect local %p when remote config enables custom enrichment',
+      async (customEnrichment) => {
+        const mockRemoteConfigWithCustomEnrichment = {
+          subscribe: jest
+            .fn()
+            .mockImplementation(
+              (
+                configKey: string,
+                _eventType: string,
+                callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
+              ) => {
+                if (configKey === 'configs.analyticsSDK.browserSDK') {
+                  callback({ customEnrichment: { enabled: true, body: 'return event;' } }, 'cache', new Date());
+                } else {
+                  callback(null, 'cache', new Date());
+                }
+              },
+            ),
+          unsubscribe: jest.fn(),
+          updateConfigs: jest.fn(),
+        };
 
-    test('should NOT add custom enrichment plugin when customEnrichment is an object with enabled=false', async () => {
-      const customEnrichmentPlugin = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
-      await client.init(apiKey, userId, {
-        customEnrichment: { enabled: false, body: 'test' },
-      }).promise;
-      expect(customEnrichmentPlugin).toHaveBeenCalledTimes(0);
-    });
+        MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigWithCustomEnrichment);
+        Object.defineProperty(core, 'RemoteConfigClient', {
+          value: MockedRemoteConfigClient,
+          writable: true,
+          configurable: true,
+        });
 
-    test('should NOT add custom enrichment plugin when customEnrichment is false', async () => {
-      const customEnrichmentPluginSpy = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
-      await client.init(apiKey, userId, {
-        customEnrichment: false,
-      }).promise;
-      expect(customEnrichmentPluginSpy).toHaveBeenCalledTimes(0);
-    });
-
-    test('should NOT add custom enrichment plugin when customEnrichment is false even if remote config enables it', async () => {
-      const mockRemoteConfigWithCustomEnrichment = {
-        subscribe: jest
-          .fn()
-          .mockImplementation(
-            (
-              configKey: string,
-              _eventType: string,
-              callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
-            ) => {
-              if (configKey === 'configs.analyticsSDK.browserSDK') {
-                callback({ customEnrichment: { enabled: true, body: 'return event;' } }, 'cache', new Date());
-              } else {
-                callback(null, 'cache', new Date());
-              }
-            },
-          ),
-        unsubscribe: jest.fn(),
-        updateConfigs: jest.fn(),
-      };
-
-      MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigWithCustomEnrichment);
-      Object.defineProperty(core, 'RemoteConfigClient', {
-        value: MockedRemoteConfigClient,
-        writable: true,
-        configurable: true,
-      });
-
-      const customEnrichmentPluginSpy = jest.spyOn(customEnrichment, 'customEnrichmentPlugin');
-      await client.init(apiKey, userId, {
-        fetchRemoteConfig: true,
-        customEnrichment: false,
-      }).promise;
-      expect(customEnrichmentPluginSpy).toHaveBeenCalledTimes(0);
-    });
+        const loggerProvider = new core.Logger();
+        const warn = jest.spyOn(loggerProvider, 'warn').mockImplementation(() => undefined);
+        await client.init(apiKey, userId, {
+          fetchRemoteConfig: true,
+          customEnrichment,
+          loggerProvider,
+        }).promise;
+        const warned = warn.mock.calls.some(([message]) => message === customEnrichmentWarning);
+        expect(warned).toBe(customEnrichment !== false);
+        expect(client.plugin('@amplitude/plugin-custom-enrichment-browser')).toBeUndefined();
+      },
+    );
 
     test.each([[url], [new URL(`https://www.example.com?deviceId=${testDeviceId}`)]])(
       'should set device id from url',

@@ -47,7 +47,6 @@ import { eventPropertyTrackingPlugin } from '@amplitude/plugin-event-property-at
 import { LIBPREFIX } from './lib-prefix';
 import { VERSION } from './version';
 import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
-import { customEnrichmentPlugin } from '@amplitude/plugin-custom-enrichment-browser';
 import { isEventPropertyAttributionEnabled, isUserPropertyAttributionEnabled } from './attribution/tracking-methods';
 import { AmplitudeBrowserLite, AutocaptureAdapter } from './browser-client-lite';
 
@@ -148,8 +147,9 @@ export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserCli
         }
 
         if (isCustomEnrichmentEnabled(this.config.customEnrichment)) {
-          this.config.loggerProvider.debug('Adding custom enrichment plugin');
-          await this.add(customEnrichmentPlugin()).promise;
+          this.config.loggerProvider.warn(
+            'The custom enrichment plugin has been removed from the Amplitude Browser SDK. The "customEnrichment" option will take no effect.',
+          );
         }
       },
 
