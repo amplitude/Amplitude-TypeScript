@@ -122,6 +122,14 @@ describe('keys', () => {
     expect(events).toHaveLength(3);
     expect(JSON.stringify(events)).not.toContain('PRIVATE');
   });
+  test('retains text names inside a non-editable island', () => {
+    document.body.innerHTML = '<div contenteditable="false"><button>Close</button></div>';
+    start(keysRecorder);
+    key(document.querySelector('button') as HTMLButtonElement, 'Escape');
+    expect(events[0].payload).toMatchObject({
+      target: { role: 'button', name: 'Close', name_source: 'text' },
+    });
+  });
   test('reads key target states and name provenance at each observation', () => {
     document.body.innerHTML =
       '<input aria-label="Search" aria-expanded="false" readonly><input placeholder="Hint"><input><input type="button" value="PRIVATE"><button class="amp-mask">PRIVATE</button>';
