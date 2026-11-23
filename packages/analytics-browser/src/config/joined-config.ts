@@ -12,23 +12,13 @@ import {
   transformNetworkTrackingRemoteConfig,
 } from '@amplitude/analytics-core';
 
-/** Wire representation of the boolean | EngagedTimeOptions SDK option. */
+/** Wire representation of engagement options, including primary and secondary event names. */
 export interface EngagedTimeOptionsRemoteConfig extends EngagedTimeOptions {
   enabled?: boolean;
 }
 
-/**
- * Remote page-view controls. Other local PageTrackingOptions are not part of
- * this authoring contract. The shared translator removes the enabled wrappers
- * before these values are applied to the browser configuration.
- */
-export interface PageTrackingOptionsRemoteConfig {
-  enabled?: boolean;
-  trackEngagedTime?: boolean | EngagedTimeOptionsRemoteConfig;
-}
-
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
-  pageViews?: boolean | PageTrackingOptionsRemoteConfig;
+  engagedTimeTracking?: boolean | EngagedTimeOptionsRemoteConfig;
   elementInteractions?: boolean | ElementInteractionsOptionsRemoteConfig;
   networkTracking?: boolean | NetworkTrackingOptionsRemoteConfig;
 }

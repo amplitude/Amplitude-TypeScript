@@ -36,7 +36,7 @@ export class VideoObserver {
   };
 
   private waitingInterval: ReturnType<typeof setTimeout> | null = null;
-  private untrack: () => void;
+  private untrack: (stopReason?: VideoStopCause) => void;
   private onStateChange: (previousState: State, nextState: State) => void;
   private handler: VideoHandler = {
     onPlay: (evt: VideoEvent) => {
@@ -176,8 +176,8 @@ export class VideoObserver {
     this.stateChangeHandler(previousState, nextState);
   }
 
-  destroy() {
+  destroy(stopReason: VideoStopCause = 'untracked') {
     this.clearWaitingInterval();
-    this.untrack();
+    this.untrack(stopReason);
   }
 }

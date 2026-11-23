@@ -191,9 +191,9 @@ export const pageUrlEnrichmentPlugin = ({ internalDomains = [] }: PageUrlEnrichm
       }
     },
     execute: async (event: Event) => {
-      // Engagement snapshots carry their original page context.
-      // Replaying them must not read the source of a later navigation.
-      if (event.extra?.pageEngagementSnapshot) return event;
+      // Only engagement replays have already received their page context and counter.
+      // Other delayed events, including Video Analytics, still need normal enrichment.
+      if (event.extra?.engagedTimeReplay === true) return event;
       const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
 
       if (sessionStorage && isStorageEnabled) {

@@ -9,6 +9,8 @@ export const EU_AMPLITUDE_SERVER_URL = 'https://api.eu.amplitude.com/2/httpapi';
 export const AMPLITUDE_BATCH_SERVER_URL = 'https://api2.amplitude.com/batch';
 export const EU_AMPLITUDE_BATCH_SERVER_URL = 'https://api.eu.amplitude.com/batch';
 
+export const DEFAULT_PAGE_VIEW_EVENT = '[Amplitude] Page Viewed';
+
 // Campaign constants
 export const UTM_CAMPAIGN = 'utm_campaign';
 export const UTM_CONTENT = 'utm_content';

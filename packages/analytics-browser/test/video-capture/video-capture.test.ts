@@ -239,6 +239,29 @@ describe('VideoCapture', () => {
     beforeEach(() => {
       resetMockVideoObserver();
     });
+    it('should emit the supplied teardown reason for an embedded player', async () => {
+      const untrack = trackVideo(mockAmplitude, {} as EmbeddedVideoPlayer);
+      if (untrack instanceof Error) {
+        throw untrack;
+      }
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused' },
+        { playbackState: 'playing', position: 4, lastEvent: { duration: 10, position: 4 } },
+      );
+      await flushHeartbeat();
+      jest.clearAllMocks();
+
+      untrack('content_changed');
+      await flushHeartbeat();
+
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      expect(mockAmplitude.track).toHaveBeenCalledWith(
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({ '[Streaming] Stop Reason': 'content_changed' }),
+        expect.objectContaining({ delay: { id: expect.any(String) } }),
+      );
+    });
+
     it('should capture start and stop events', async () => {
       const stopVideoCapture = trackVideo(mockAmplitude, document.createElement('video'), {
         vendor: 'mux',
@@ -843,92 +866,79 @@ describe('VideoCapture', () => {
     });
   });
 
-  describe('stops capturing when track fails', () => {
-    const playingState: VideoState = {
-      playbackState: 'playing',
-      lastEvent: { duration: 10, position: undefined },
-    };
-    const pausedState: VideoState = { playbackState: 'paused', lastEvent: undefined };
-
-    /** The "[Streaming] Stream Stopped" event flushed by stop(). */
-    const untrackedStopEvent = expect.objectContaining({
-      event_type: '[Streaming] Stream Stopped',
-      event_properties: expect.objectContaining({ '[Streaming] Stop Reason': 'untracked' }),
-    });
-
-    let track: jest.Mock;
-    let trackNoDelay: jest.Mock;
-    let capture: VideoCapture;
-
-    beforeEach(() => {
-      track = jest.fn().mockResolvedValue({ code: 200, event: {} });
-      trackNoDelay = jest.fn().mockResolvedValue({ code: 200, event: {} });
-      mockGetHeartbeatInstance.mockReturnValue({
-        track,
-        trackNoDelay,
-        stop: jest.fn(),
-        update: jest.fn(),
+  describe('continues capturing when track fails', () => {
+    it.each(['trackNoDelay', 'track'] as const)('warns when %s rejects while queuing a play', async (method) => {
+      const error = new Error('queue failed');
+      const heartbeat = {
+        trackNoDelay: jest.fn().mockResolvedValue(undefined),
+        track: jest.fn().mockResolvedValue(undefined),
         beforePageHide: jest.fn().mockReturnValue(jest.fn()),
-      });
-      capture = new VideoCapture(mockAmplitude)
-        .withVideoElement(document.createElement('video'))
-        .captureVideoStarted()
-        .start();
+      };
+      heartbeat[method].mockRejectedValueOnce(error);
+      mockGetHeartbeatInstance.mockReturnValue(heartbeat);
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      new VideoCapture(mockAmplitude).withVideoElement(document.createElement('video')).captureVideoStarted().start();
+
+      currentVideoObserver!.emitStateChange(
+        { playbackState: 'paused', lastEvent: undefined },
+        { playbackState: 'playing', lastEvent: undefined },
+      );
+      await flushHeartbeat();
+
+      expect(heartbeat.trackNoDelay).toHaveBeenCalledTimes(1);
+      expect(heartbeat.track).toHaveBeenCalledTimes(1);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('Amplitude video capture'), error);
     });
 
-    afterEach(() => {
-      capture.stop();
-    });
-
-    it('should stop when trackNoDelay rejects on video start', async () => {
-      trackNoDelay.mockRejectedValue(new Error('trackNoDelay failed'));
-
-      currentVideoObserver!.emitStateChange(pausedState, playingState);
-      await jest.advanceTimersByTimeAsync(0);
-
-      expect(trackNoDelay).toHaveBeenCalledWith(untrackedStopEvent);
-
-      // the observer is detached, so no further events are captured
-      trackNoDelay.mockClear();
-      track.mockClear();
-      currentVideoObserver!.emitStateChange(pausedState, playingState);
-      expect(trackNoDelay).not.toHaveBeenCalled();
-      expect(track).not.toHaveBeenCalled();
-    });
-
-    it('should stop when track rejects on video start', async () => {
-      track.mockRejectedValue(new Error('track failed'));
-
-      currentVideoObserver!.emitStateChange(pausedState, playingState);
-      await jest.advanceTimersByTimeAsync(0);
-
-      expect(trackNoDelay).toHaveBeenCalledWith(untrackedStopEvent);
-    });
-
-    it('should stop when trackNoDelay rejects on video stop', async () => {
-      capture.stop();
-      trackNoDelay
-        .mockResolvedValueOnce({ code: 200, event: {} })
-        .mockRejectedValueOnce(new Error('trackNoDelay failed'));
-      capture = new VideoCapture(mockAmplitude)
+    it.each([
+      ['stream start', 0],
+      ['delayed stop', 1],
+      ['instant stop', 2],
+    ] as const)('keeps capturing after a rejected %s send', async (_name, failedCall) => {
+      const track = mockAmplitude.track as jest.Mock;
+      let calls = 0;
+      track.mockImplementation((event_type, event_properties, options) => ({
+        promise:
+          calls++ === failedCall
+            ? Promise.reject(new Error('delivery failed'))
+            : Promise.resolve({ event: { event_type, event_properties, ...options }, code: 200, message: 'success' }),
+      }));
+      const capture = new VideoCapture(mockAmplitude)
         .withVideoElement(document.createElement('video'))
         .captureVideoStarted()
         .captureVideoStopped()
         .start();
+      const playingState: VideoState = {
+        playbackState: 'playing',
+        lastEvent: { duration: 10, position: 0 },
+      };
+      const pausedState: VideoState = { playbackState: 'paused', lastEvent: undefined };
 
       currentVideoObserver!.emitStateChange(pausedState, playingState);
-      await jest.advanceTimersByTimeAsync(0);
-      currentVideoObserver!.emitStateChange(playingState, {
-        playbackState: 'paused',
-        lastEvent: { duration: 10, position: 5 },
-        position: 5,
-      });
-      await jest.advanceTimersByTimeAsync(0);
+      await flushHeartbeat();
+      currentVideoObserver!.emitStateChange(playingState, pausedState);
+      await flushHeartbeat();
+      track.mockClear();
 
-      // the stop event was already flushed with stop_reason "paused", so tearing down
-      // the capture must not send it a second time
-      expect(trackNoDelay).toHaveBeenCalledTimes(2);
-      expect(trackNoDelay).not.toHaveBeenCalledWith(untrackedStopEvent);
+      currentVideoObserver!.emitStateChange(pausedState, playingState);
+      await flushHeartbeat();
+      expect(track).toHaveBeenCalledWith('[Streaming] Stream Started', expect.any(Object), expect.any(Object));
+      expect(track).toHaveBeenCalledWith(
+        '[Streaming] Stream Stopped',
+        expect.any(Object),
+        expect.objectContaining({
+          delay: expect.objectContaining({ timeout: expect.any(Number) }),
+        }),
+      );
+      expect(track).not.toHaveBeenCalledWith(
+        '[Streaming] Stream Stopped',
+        expect.objectContaining({
+          '[Streaming] Stop Reason': 'untracked',
+        }),
+        expect.any(Object),
+      );
+      capture.stop();
+      await flushHeartbeat();
     });
   });
 
@@ -957,7 +967,7 @@ describe('VideoCapture', () => {
       return { capture, observer: currentVideoObserver! };
     }
 
-    it('should flush a stream stopped event when the page is not persisted', async () => {
+    it('should flush an untracked stop mid-video when the page is not persisted', async () => {
       const { observer } = startCapture();
       observer.emitStateChange(idleState, playingState);
       await flushHeartbeat();
@@ -969,7 +979,7 @@ describe('VideoCapture', () => {
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         '[Streaming] Stream Stopped',
         expect.objectContaining({
-          '[Streaming] Stop Reason': 'ended',
+          '[Streaming] Stop Reason': 'untracked',
           '[Streaming] Position Sec': 4,
           '[Streaming] Play Time Sec': 4,
           '[Streaming] Play Time Total Sec': 4,
@@ -999,15 +1009,15 @@ describe('VideoCapture', () => {
         expect.arrayContaining([
           expect.arrayContaining([
             '[Streaming] Stream Stopped',
-            expect.objectContaining({ video: 'first', '[Streaming] Stop Reason': 'ended' }),
+            expect.objectContaining({ video: 'first', '[Streaming] Stop Reason': 'untracked' }),
           ]),
           expect.arrayContaining([
             '[Streaming] Stream Stopped',
-            expect.objectContaining({ video: 'second', '[Streaming] Stop Reason': 'ended' }),
+            expect.objectContaining({ video: 'second', '[Streaming] Stop Reason': 'untracked' }),
           ]),
         ]),
       );
-      expect(stopped.every((call) => call[1]['[Streaming] Stop Reason'] === 'ended')).toBe(true);
+      expect(stopped.every((call) => call[1]['[Streaming] Stop Reason'] === 'untracked')).toBe(true);
     });
 
     it('should not stop when the page is persisted in the back/forward cache', async () => {
@@ -1051,7 +1061,7 @@ describe('VideoCapture', () => {
       // itself never ends the play session
       expect(mockAmplitude.track).not.toHaveBeenCalledWith(
         '[Streaming] Stream Stopped',
-        expect.objectContaining({ '[Streaming] Stop Reason': 'ended' }),
+        expect.objectContaining({ '[Streaming] Stop Reason': 'untracked' }),
         expect.anything(),
       );
     });

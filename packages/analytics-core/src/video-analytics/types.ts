@@ -1,6 +1,6 @@
 export type Vendor = 'mux'; // | 'vimeo' | 'youtube' | 'other'
 
-export type VideoStopReason = 'paused' | 'ended' | 'seeking';
+export type VideoStopReason = VideoStopCause | 'seeking';
 
 export type VideoStopCause = 'timeout' | 'paused' | 'ended' | 'error' | 'untracked' | 'content_changed';
 

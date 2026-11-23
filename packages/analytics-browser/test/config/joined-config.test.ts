@@ -1,4 +1,4 @@
-import { getPageViewTrackingConfig } from '../../src/default-tracking';
+import { getEngagedTimeTrackingConfig, isEngagedTimeTrackingEnabled } from '../../src/default-tracking';
 import { updateBrowserConfigWithRemoteConfig } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
 import {
@@ -30,50 +30,41 @@ describe('joined-config', () => {
         heartbeatIntervalMillis: 20_000,
         inactivityTimeoutMillis: 120_000,
       };
-
       test.each([
-        { remote: { enabled: true }, expected: true },
+        { remote: { enabled: true }, expected: undefined },
         { remote: { enabled: true, ...timings }, expected: timings },
-        { remote: { enabled: false, ...timings }, expected: false },
-        { remote: true, expected: true },
-        { remote: false, expected: false },
+        { remote: { enabled: false, ...timings }, expected: undefined },
+        { remote: true, expected: undefined },
+        { remote: false, expected: undefined },
         { remote: {}, expected: {} },
         { remote: timings, expected: timings },
-      ])('translates and forwards remote trackEngagedTime: $remote', ({ remote, expected }) => {
-        localConfig.autocapture = { pageViews: { trackEngagedTime: expected === false } };
+      ])('translates independent remote engagement: $remote', ({ remote, expected }) => {
+        localConfig.autocapture = { pageViews: false, engagedTimeTracking: timings };
         updateBrowserConfigWithRemoteConfig(
-          {
-            autocapture: {
-              pageViews: { enabled: true, trackEngagedTime: typeof remote === 'object' ? { ...remote } : remote },
-            },
-          },
+          { autocapture: { engagedTimeTracking: typeof remote === 'object' ? { ...remote } : remote } },
           localConfig,
         );
-        expect(getPageViewTrackingConfig(localConfig).trackEngagedTime).toEqual(expected);
+        expect(getEngagedTimeTrackingConfig(localConfig)).toEqual(expected);
       });
-
-      test('keeps local engagement settings when remote config omits pageViews', () => {
-        localConfig.autocapture = { pageViews: { trackEngagedTime: timings } };
-        updateBrowserConfigWithRemoteConfig({ autocapture: { sessions: false } }, localConfig);
-        expect(getPageViewTrackingConfig(localConfig).trackEngagedTime).toEqual(timings);
-      });
-
-      test('keeps the existing shallow merge when remote config replaces pageViews', () => {
-        localConfig.autocapture = { pageViews: { trackEngagedTime: timings } };
+      test('preserves local engagement when only pageViews changes remotely', () => {
+        localConfig.autocapture = { engagedTimeTracking: timings };
         updateBrowserConfigWithRemoteConfig({ autocapture: { pageViews: { enabled: true } } }, localConfig);
-        expect(getPageViewTrackingConfig(localConfig)).not.toHaveProperty('trackEngagedTime');
+        expect(getEngagedTimeTrackingConfig(localConfig)).toEqual(timings);
       });
-
-      test('does not enable engagement when the parent pageViews feature is disabled', () => {
+      test('replaces the engagement options object using the existing shallow merge', () => {
+        localConfig.autocapture = { engagedTimeTracking: timings };
+        updateBrowserConfigWithRemoteConfig({ autocapture: { engagedTimeTracking: { enabled: true } } }, localConfig);
+        expect(getEngagedTimeTrackingConfig(localConfig)).toBeUndefined();
+        expect(isEngagedTimeTrackingEnabled(localConfig.autocapture)).toBe(true);
+      });
+      test('enables independent engagement while pageViews is disabled', () => {
         updateBrowserConfigWithRemoteConfig(
-          {
-            autocapture: { pageViews: { enabled: false, trackEngagedTime: { enabled: true } } },
-          },
+          { autocapture: { pageViews: false, engagedTimeTracking: { enabled: true } } },
           localConfig,
         );
-        const options = getPageViewTrackingConfig(localConfig);
-        expect(options).not.toHaveProperty('trackEngagedTime');
-        expect(typeof options.trackOn === 'function' && options.trackOn()).toBe(false);
+        expect(getEngagedTimeTrackingConfig(localConfig)).toBeUndefined();
+        expect(isEngagedTimeTrackingEnabled(localConfig.autocapture)).toBe(true);
+        expect(localConfig.autocapture).toMatchObject({ pageViews: false });
       });
     });
 
