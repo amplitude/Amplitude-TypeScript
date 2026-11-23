@@ -426,14 +426,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
     //
     // Known cross-session race: if asyncSetSessionId fired and its async
     // storeCurrentSequence hasn't resolved before unload, the beacon buffer can still
-    // hold previous-session events. The gate below reads the *new* session's
-    // sessionStartTime, so legitimately-sendable old-session events get suppressed.
-    // Follow-up: track start time per buffered batch instead of globally.
+    // hold previous-session events. The beacon only carries the current session's events,
+    // so those old-session events are not sent on this page exit.
     this.pageLeaveFns = [
       ...this.pageLeaveFns,
       () => {
         if (!this.config || !this.identifiers?.sessionId || !rrwebEventManager) return;
-        const events = rrwebEventManager.getBeaconEvents();
+        // Only the current session's events: a previous session's late events must not be
+        // sent under this session's id or judged by this session's gate.
+        const events = rrwebEventManager.getBeaconEvents(this.identifiers.sessionId);
         if (!events.length) return;
         const deviceId = this.getDeviceId();
         if (!deviceId) return;

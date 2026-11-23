@@ -1093,6 +1093,36 @@ describe('createEventsManager min session duration gate (in-memory store)', () =
     expect(eventsManager.getBeaconEvents()).toContain('after-gate');
   });
 
+  test('a late split from a previous session that passed does not trim the current session’s beacon events', async () => {
+    const { add, openGate, changeSession, eventsManager, sent } = await setup();
+    // Session 123 passed the gate and still has an open (unsplit) sequence when it ends.
+    openGate();
+    await add('s1-event', 0);
+    changeSession(222);
+    // Session 222 holds its baseline while gated; it is at the front of its beacon events.
+    await add('s2-full-snapshot', 1000);
+    await add('s2-inc-1', 2000);
+    await add('s2-inc-2', 3000);
+    // A compression-worker callback for session 123 lands late, splits, and is sent.
+    await add('s1-late', 10_000, 123);
+    expect(sent()).toEqual(['s1-event']);
+    // Marking 123's batch as sent must not remove 222's held Meta/FullSnapshot from the beacon.
+    expect(eventsManager.getBeaconEvents(222)).toEqual(['s2-full-snapshot', 's2-inc-1', 's2-inc-2']);
+    // String session ids (as SessionReplay may pass) select the same events.
+    expect(eventsManager.getBeaconEvents('222')).toEqual(['s2-full-snapshot', 's2-inc-1', 's2-inc-2']);
+    // The previous session's unsent late event is not handed to the current session's beacon.
+    expect(eventsManager.getBeaconEvents(222)).not.toContain('s1-late');
+  });
+
+  test('removes a short previous session’s events from the beacon buffer when its late event arrives', async () => {
+    const { recordGatedSession, add, changeSession, eventsManager } = await setup();
+    await recordGatedSession();
+    changeSession(222);
+    await add('s2-full-snapshot', 20_000);
+    await add('s1-late', 21_000, 123);
+    expect(eventsManager.getBeaconEvents()).toEqual(['s2-full-snapshot']);
+  });
+
   test('does not hand held batches to sendStoredEvents', async () => {
     const { recordGatedSession, eventsManager, sent } = await setup();
     await recordGatedSession();

@@ -16,9 +16,11 @@ import { InMemoryEventsStore } from './events-memory-store';
 export type EventsManagerWithBeacon<Type extends EventType> = AmplitudeSessionReplayEventsManager<Type, string> & {
   /**
    * Returns current pending events (since last flush) for synchronous access on page exit.
-   * Used to populate a sendBeacon payload when the page is unloading.
+   * Used to populate a sendBeacon payload when the page is unloading. Pass a sessionId to
+   * get only that session's events; the buffer can briefly hold a previous session's late
+   * events (e.g. compression-worker callbacks) after a session change.
    */
-  getBeaconEvents(): string[];
+  getBeaconEvents(sessionId?: number | string): string[];
   /**
    * Drops all pending beacon events. Used when the session is decided to be below
    * the min duration threshold so its events don't leak into a later session's beacon.
@@ -114,19 +116,20 @@ export const createEventsManager = async <Type extends EventType>({
 
   store = storeType === 'idb' ? await getIdbStoreOrFallback() : getMemoryStore();
 
-  // Beacon buffer: a sliding window of pending (unsent) event strings for synchronous
-  // access on page exit. Uses an absolute index counter to correctly handle concurrent
-  // async flushes without losing events added between the flush call and its resolution.
-  const beaconBuffer: string[] = [];
-  let beaconWindowStart = 0; // absolute index of the first element in beaconBuffer
+  // Beacon buffer: pending (unsent) event strings for synchronous access on page exit.
+  // Each entry carries an absolute index, so concurrent async flushes don't lose events added
+  // between the flush call and its resolution, and its sessionId, so marking one session's
+  // events as sent never removes another session's. After a session change, a late event for
+  // the previous session (e.g. a compression-worker callback) lands behind the current
+  // session's held Meta/FullSnapshot; trimming by index alone would drop those.
+  let beaconBuffer: { sessionId: number; idx: number; data: string }[] = [];
+  let nextBeaconIdx = 0;
 
-  const advanceBeaconWindow = (upToAbsoluteIdx: number) => {
-    if (upToAbsoluteIdx <= beaconWindowStart) return;
-    const trimCount = Math.min(upToAbsoluteIdx - beaconWindowStart, beaconBuffer.length);
-    if (trimCount > 0) {
-      beaconBuffer.splice(0, trimCount);
-      beaconWindowStart = upToAbsoluteIdx;
-    }
+  // Removes `sessionId`'s entries with an absolute index below `upToAbsoluteIdx`.
+  const advanceBeaconWindow = (sessionId: number, upToAbsoluteIdx: number) => {
+    beaconBuffer = beaconBuffer.filter(
+      (entry) => String(entry.sessionId) !== String(sessionId) || entry.idx >= upToAbsoluteIdx,
+    );
   };
 
   // Batches split off while the min-session-duration gate is closed. The store splits on a
@@ -246,7 +249,7 @@ export const createEventsManager = async <Type extends EventType>({
     held.forEach((seq) => {
       // No sequenceId: the store entry was already cleaned up when the batch was held.
       sendEventsList({ events: seq.events, sessionId, deviceId });
-      advanceBeaconWindow(seq.beaconEndIdx);
+      advanceBeaconWindow(sessionId, seq.beaconEndIdx);
     });
   };
 
@@ -261,7 +264,7 @@ export const createEventsManager = async <Type extends EventType>({
     }
     // Snapshot the absolute end-index before the async store read so that any events
     // pushed after this point are NOT considered sent and remain in the beacon buffer.
-    const snapshotAbsIdx = beaconWindowStart + beaconBuffer.length;
+    const snapshotAbsIdx = nextBeaconIdx;
     store
       .storeCurrentSequence(sessionId)
       .then((currentSequence) => {
@@ -269,7 +272,7 @@ export const createEventsManager = async <Type extends EventType>({
         // already in heldBySession, and they are queued ahead of the current sequence.
         releaseHeldSequences(sessionId, deviceId);
         if (currentSequence) {
-          advanceBeaconWindow(snapshotAbsIdx);
+          advanceBeaconWindow(sessionId, snapshotAbsIdx);
           sendEventsList({
             sequenceId: currentSequence.sequenceId,
             events: currentSequence.events,
@@ -324,8 +327,8 @@ export const createEventsManager = async <Type extends EventType>({
     // Record the absolute index of this event in the beacon buffer before the async
     // store operation. If a batch split occurs, we advance the window up to (but not
     // including) this event so that it starts the next pending window.
-    const absIdx = beaconWindowStart + beaconBuffer.length;
-    beaconBuffer.push(event.data);
+    const absIdx = nextBeaconIdx++;
+    beaconBuffer.push({ sessionId, idx: absIdx, data: event.data });
     store
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
@@ -335,6 +338,8 @@ export const createEventsManager = async <Type extends EventType>({
           releaseHeldSequences(sessionId, deviceId);
         } else if (decision === 'drop') {
           heldBySession.delete(sessionId);
+          // A session that never passed the gate: nothing of it should reach a beacon.
+          advanceBeaconWindow(sessionId, Infinity);
         }
         if (sequenceToSend) {
           if (decision !== 'send') {
@@ -351,7 +356,7 @@ export const createEventsManager = async <Type extends EventType>({
             return;
           }
           // Events before absIdx belong to the split batch being sent; advance window.
-          advanceBeaconWindow(absIdx);
+          advanceBeaconWindow(sessionId, absIdx);
           sendEventsList({
             sequenceId: sequenceToSend.sequenceId,
             events: sequenceToSend.events,
@@ -369,10 +374,13 @@ export const createEventsManager = async <Type extends EventType>({
     return trackDestination.flush(useRetry);
   }
 
-  const getBeaconEvents = (): string[] => [...beaconBuffer];
+  const getBeaconEvents = (sessionId?: number | string): string[] =>
+    beaconBuffer
+      .filter((entry) => sessionId === undefined || String(entry.sessionId) === String(sessionId))
+      .map((entry) => entry.data);
 
   const dropPendingBeaconEvents = () => {
-    advanceBeaconWindow(beaconWindowStart + beaconBuffer.length);
+    beaconBuffer = [];
   };
 
   return {
