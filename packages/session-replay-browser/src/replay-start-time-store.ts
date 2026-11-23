@@ -34,6 +34,33 @@ const getLocalStorage = (): Storage | undefined => {
   }
 };
 
+const isFreshStartTime = (parsed: number, now: number) =>
+  Number.isFinite(parsed) && parsed > 0 && parsed <= now && now - parsed < REPLAY_START_TIME_TTL_MS;
+
+/**
+ * Returns the persisted replay start time for this sessionId if one exists and is fresh,
+ * otherwise undefined. Never writes. Used on init, where recording may not start at all
+ * (e.g. targeted replay capture that hasn't matched yet).
+ */
+export const getReplayStartTime = (
+  apiKey: string,
+  sessionId: string | number,
+  now: number,
+  logger?: ILogger,
+): number | undefined => {
+  const storage = getLocalStorage();
+  if (!storage) return undefined;
+  try {
+    const raw = storage.getItem(buildKey(apiKey, sessionId));
+    if (raw === null) return undefined;
+    const parsed = Number(raw);
+    return isFreshStartTime(parsed, now) ? parsed : undefined;
+  } catch (e) {
+    logger?.debug(`Failed to read replay start time from storage: ${String(e)}`);
+    return undefined;
+  }
+};
+
 /**
  * Returns the persisted replay start time for this sessionId if one exists and is fresh,
  * otherwise writes `now` and returns it. Returns undefined only if storage is unavailable
@@ -47,13 +74,13 @@ export const getOrInitReplayStartTime = (
 ): number | undefined => {
   const storage = getLocalStorage();
   if (!storage) return undefined;
-  const key = buildKey(apiKey, sessionId);
   try {
+    const key = buildKey(apiKey, sessionId);
     const raw = storage.getItem(key);
     if (raw !== null) {
       const parsed = Number(raw);
       // Treat NaN, non-finite, future-dated, and stale entries as missing.
-      if (Number.isFinite(parsed) && parsed > 0 && parsed <= now && now - parsed < REPLAY_START_TIME_TTL_MS) {
+      if (isFreshStartTime(parsed, now)) {
         return parsed;
       }
     }

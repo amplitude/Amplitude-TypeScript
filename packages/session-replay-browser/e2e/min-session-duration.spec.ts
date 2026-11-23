@@ -94,3 +94,60 @@ for (const storeType of ['memory', 'idb'] as const) {
     });
   });
 }
+
+// With targeted replay capture, the clock starts when the session matches and starts
+// recording, not when the session starts.
+test.describe('min_session_duration_ms with targeted replay capture', () => {
+  const remoteConfig = {
+    configs: {
+      sessionReplay: {
+        sr_sampling_config: {
+          capture_enabled: true,
+          sample_rate: 0.0,
+          min_session_duration_ms: MIN_SESSION_DURATION_MS,
+        },
+        // Captures only once the URL contains /should-capture.
+        sr_targeting_config: {
+          key: 'sr_targeting_config',
+          variants: { on: { key: 'on' }, off: { key: 'off' } },
+          segments: [
+            {
+              metadata: { segmentName: 'Should capture' },
+              bucket: {
+                selector: ['context', 'session_id'],
+                salt: 'trc_test_salt',
+                allocations: [{ range: [0, 100], distributions: [{ variant: 'on', range: [0, 42949673] }] }],
+              },
+              conditions: [[{ selector: ['context', 'page', 'url'], op: 'contains', values: ['/should-capture'] }]],
+            },
+            { variant: 'off' },
+          ],
+        },
+      },
+    },
+  };
+
+  test('measures the threshold from when the session matches, not from session start', async ({ page }) => {
+    await mockRemoteConfig(page, remoteConfig);
+    const { getBodies } = await captureTrackRequests(page);
+    await page.goto(buildUrl('/session-replay-browser/sr-capture-test.html', { sessionId: Date.now() }));
+    await waitForReady(page);
+
+    // The session is already past the threshold when it matches.
+    await page.waitForTimeout(MIN_SESSION_DURATION_MS + 1000);
+    await page.evaluate(() => history.pushState({}, '', '/should-capture'));
+
+    // Recording, but not yet for the threshold: nothing is uploaded.
+    await typeFor(page, MIN_SESSION_DURATION_MS - 1500);
+    await flushRecording(page);
+    expect(getBodies()).toEqual([]);
+
+    // Past the threshold since the match: the replay uploads from its first event.
+    await typeFor(page, 2500);
+    await flushRecording(page);
+    const events = decodeEvents(getBodies());
+    expect(events.length).toBeGreaterThan(0);
+    expect(events[0].type).toBe(EVENT_META);
+    expect(events.some((e) => e.type === EVENT_FULL_SNAPSHOT)).toBe(true);
+  });
+});
