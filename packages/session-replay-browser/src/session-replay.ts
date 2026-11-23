@@ -264,11 +264,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Re-init should always tear down any previous URL-change subscription, even when the
     // next config has no targeting config and we don't subscribe again.
     this.urlChangeCleanup?.();
-    // The boundary state is stop; restart explains why this instance is ending.
-    this.useSemanticAdapter((adapter) => adapter.stop('restart'));
+    // Keep the old recorder and event manager together until its closing boundary
+    // is stored and sent. No old rrweb events should arrive after that boundary.
+    this.recordingEnabled = false;
+    this.recordingGeneration++;
+    this.cancelHiddenSend();
+    if (this.recordCancelCallback || this.semanticAdapter) {
+      this.stopRecordingEvents('restart');
+      this.sendEvents();
+    }
     this.semanticAdapter = undefined;
-    // A new init always allows capture again. `stop()` only pauses the current instance.
-    this.recordingEnabled = true;
     this.startChildRecordingOnSetup = false;
 
     this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
@@ -435,6 +440,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
+    // A new init allows capture again after the replacement manager is ready.
+    this.recordingEnabled = true;
     await this.evaluateTargetingAndCapture(
       { userProperties: options.userProperties, page: this.getCurrentPageForTargeting() },
       true,

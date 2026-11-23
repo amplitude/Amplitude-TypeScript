@@ -36,7 +36,8 @@ export const keysRecorder: SemanticRecorder = {
       // Exclude editable contents and input/button values from target names.
       const suppressName =
         description.source === 'value' ||
-        (description.source === 'text' && !!target.closest('input,textarea,select,[contenteditable]'));
+        (description.source === 'text' &&
+          !!target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])'));
       context.emit('keys', {
         key: [
           event.ctrlKey ? 'Ctrl' : '',
