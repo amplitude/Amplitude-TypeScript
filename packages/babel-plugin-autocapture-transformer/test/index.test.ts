@@ -19,6 +19,22 @@ describe('@amplitude/babel-plugin-autocapture-transformer', () => {
     expect(PLUGIN_NAME).toBe(PACKAGE_NAME);
   });
 
+  it('does not transform files inside node_modules', () => {
+    const input = `function Inspector() {
+  return <Button title="Go" onPress={() => {}} />;
+}`;
+
+    const output = transformSync(input, {
+      plugins: [autocaptureTransformer],
+      presets: ['@babel/preset-typescript', '@babel/preset-react'],
+      filename: '/app/node_modules/react-native/Libraries/Inspector/ElementProperties.js',
+      configFile: false,
+      babelrc: false,
+    })?.code;
+
+    expect(output).not.toContain('ampCapture');
+  });
+
   it('wraps Button onPress handlers and adds ampCapture import', () => {
     const input = `function HomeScreen() {
   return <Button title="Go" onPress={() => console.log('pressed')} />;

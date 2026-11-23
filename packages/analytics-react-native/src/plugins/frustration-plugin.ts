@@ -5,6 +5,7 @@ import {
   ReactNativeFrustrationInteractionsOptions,
 } from '@amplitude/analytics-core';
 import * as Capture from '../amp-capture';
+import { createDeadClickTracker } from '../autocapture/dead-click';
 import {
   createErrorClickTracker,
   createErrorObservable,
@@ -12,7 +13,11 @@ import {
 } from '../autocapture/error-click';
 import { getElementInteractionEventProperties } from '../autocapture/element-interaction';
 import { createRageClickTracker, getRageClickEventProperties, getRageClickStartTime } from '../autocapture/rage-click';
-import { DEFAULT_ELEMENT_ERROR_CLICKED_EVENT, DEFAULT_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
+import {
+  DEFAULT_ELEMENT_DEAD_CLICKED_EVENT,
+  DEFAULT_ELEMENT_ERROR_CLICKED_EVENT,
+  DEFAULT_ELEMENT_RAGE_CLICKED_EVENT,
+} from '../constants';
 
 export const FRUSTRATION_PLUGIN_NAME = '@amplitude/plugin-frustration-react-native';
 
@@ -39,8 +44,24 @@ export const frustrationPlugin = (options: FrustrationPluginOptions = {}): React
   const errorClicksEnabled = options.errorClick !== false;
 
   let subscriptions: (() => void)[] = [];
+  let clearPendingDeadClicks: (() => void) | undefined;
 
   const setup: ReactNativeEnrichmentPlugin['setup'] = async (config, amplitude) => {
+    if (options.deadClick !== false) {
+      const deadClickTracker = createDeadClickTracker(config, (properties, time) => {
+        amplitude.track(DEFAULT_ELEMENT_DEAD_CLICKED_EVENT, properties, { time });
+      });
+      clearPendingDeadClicks = deadClickTracker.clearPending;
+      const captureUnsubscribe = Capture.subscribe((properties, coordinates) => {
+        if (properties.action === 'Press' && coordinates) {
+          deadClickTracker.registerClickEvent(
+            coordinates,
+            getElementInteractionEventProperties(properties, options.getScreenName?.()),
+          );
+        }
+      });
+      subscriptions.push(captureUnsubscribe, deadClickTracker.teardown);
+    }
     if (rageClicksEnabled) {
       const rageClickTracker = createRageClickTracker((clickData) => {
         const time = getRageClickStartTime(clickData);
@@ -94,6 +115,7 @@ export const frustrationPlugin = (options: FrustrationPluginOptions = {}): React
       unsubscribe();
     }
     subscriptions = [];
+    clearPendingDeadClicks = undefined;
   };
 
   return {
@@ -102,5 +124,7 @@ export const frustrationPlugin = (options: FrustrationPluginOptions = {}): React
     setup,
     execute,
     teardown,
+    onOptOutChanged: async () => clearPendingDeadClicks?.(),
+    onSessionIdChanged: async () => clearPendingDeadClicks?.(),
   };
 };
