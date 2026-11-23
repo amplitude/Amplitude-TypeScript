@@ -28,7 +28,7 @@ describe('VideoCapture with HTML media observers', () => {
       if (untrack instanceof Error) {
         throw untrack;
       }
-      video.dispatchEvent(new Event('play'));
+      video.dispatchEvent(new Event('playing'));
       await jest.advanceTimersByTimeAsync(0);
       track.mockClear();
 
@@ -47,7 +47,7 @@ describe('VideoCapture with HTML media observers', () => {
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
       track.mockClear();
-      video.dispatchEvent(new Event('play'));
+      video.dispatchEvent(new Event('playing'));
       await jest.advanceTimersByTimeAsync(60_000);
       expect(track).not.toHaveBeenCalled();
     },
@@ -72,7 +72,7 @@ describe('VideoCapture with HTML media observers', () => {
         .captureVideoStopped()
         .start();
 
-      video.dispatchEvent(new Event('play'));
+      video.dispatchEvent(new Event('playing'));
       await jest.advanceTimersByTimeAsync(0);
       track.mockClear();
       video.currentTime = 4;
@@ -96,7 +96,7 @@ describe('VideoCapture with HTML media observers', () => {
         expect.objectContaining({ delay: { id: expect.any(String) } }),
       );
       track.mockClear();
-      video.dispatchEvent(new Event('play'));
+      video.dispatchEvent(new Event('playing'));
       video.dispatchEvent(new Event('ended'));
       await jest.advanceTimersByTimeAsync(60_000);
       expect(track).not.toHaveBeenCalled();

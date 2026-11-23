@@ -101,6 +101,11 @@ export function createMockVideo(options: { isMux: boolean } = { isMux: false }):
         value: 10,
       });
       video.dispatchEvent(new Event('play'));
+      Object.defineProperty(video, 'readyState', {
+        configurable: true,
+        value: HTMLMediaElement.HAVE_ENOUGH_DATA,
+      });
+      video.dispatchEvent(new Event('playing'));
       return Promise.resolve(undefined);
     }),
   });
