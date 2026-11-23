@@ -5,6 +5,7 @@ import { lifecycleRecorder } from './recorders/lifecycle';
 import { navigationRecorder } from './recorders/navigation';
 import { recordingRecorder } from './recorders/recording';
 import { interactionsRecorder } from './recorders/interactions';
+import { keysRecorder } from './recorders/keys';
 import type { SemanticCaptureConfig, SemanticHost, SemanticRecorder } from './types';
 
 export { createCapture, DEFAULT_SEMANTIC_CAP } from './capture';
@@ -15,6 +16,7 @@ export {
   navigationRecorder,
   recordingRecorder,
   interactionsRecorder,
+  keysRecorder,
 };
 export const defaultRecorders: readonly SemanticRecorder[] = [
   contextRecorder,
@@ -23,6 +25,7 @@ export const defaultRecorders: readonly SemanticRecorder[] = [
   navigationRecorder,
   recordingRecorder,
   interactionsRecorder,
+  keysRecorder,
 ];
 export const SEMANTIC_CAPS = {
   context: DEFAULT_SEMANTIC_CAP,
@@ -33,6 +36,7 @@ export const SEMANTIC_CAPS = {
   click: 2000,
   field: 1000,
   submit: 300,
+  keys: 1000,
 };
 export * from './types';
 export type { SemanticCapture } from './capture';

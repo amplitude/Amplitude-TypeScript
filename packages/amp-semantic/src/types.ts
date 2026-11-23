@@ -42,6 +42,7 @@ export interface SemanticPayloads {
   lifecycle: { type: 'pagehide' | 'pageshow' | 'pageshow_bfcache' | 'freeze' | 'resume' };
   navigation: { url: string };
   recording: RecordingSignal;
+  keys: { key: string; target: NamedTarget & { states: string[] } };
   click: NamedTarget & {
     container: TargetDescription | null;
     states: string[];

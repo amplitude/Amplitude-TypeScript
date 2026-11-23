@@ -42,6 +42,11 @@ test('validates shipped event families and rejects unshipped families', () => {
     'recording',
   ]);
   for (const event of events) expect(validate(wire(event))).toBe(true);
+  const capped = {
+    ...wire(events[0]),
+    data: { tag: 'amp-semantic/context', payload: { ...events[0].payload, caps_hit: { keys: 1 } } },
+  };
+  expect(validate(capped)).toBe(true);
   const invalid = wire(events[1]);
   invalid.data.tag = 'amp-semantic/click';
   expect(validate(invalid)).toBe(false);
@@ -59,6 +64,7 @@ test('default capture exposes context and skips payload reads after its cap', ()
     semantic.navigationRecorder,
     semantic.recordingRecorder,
     semantic.interactionsRecorder,
+    semantic.keysRecorder,
   ]);
   const host = { document, window, sdk: 'test', getPrivacy: () => ({}), emit: jest.fn() };
   const capture = semantic.createSemanticCapture({ enabled: true }, host);
