@@ -67,6 +67,28 @@ describe('TargetingIDBStore', () => {
     });
   });
 
+  describe('getTargetingDetailsForSession', () => {
+    test('should catch errors', async () => {
+      const mockDB: IDBPDatabase<SessionReplayTargetingDB> = {
+        get: jest.fn().mockImplementation(() => Promise.reject('error')),
+      } as unknown as IDBPDatabase<SessionReplayTargetingDB>;
+      jest.spyOn(targetingIDBStore, 'openOrCreateDB').mockResolvedValueOnce(mockDB);
+
+      const targetingDetails = await targetingIDBStore.getTargetingDetailsForSession({
+        loggerProvider: mockLoggerProvider,
+        sessionId: 123,
+        apiKey,
+      });
+
+      expect(targetingDetails).toBeUndefined();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
+        'Failed to get targeting details for session id 123: error',
+      );
+    });
+  });
+
   describe('storeTargetingMatchForSession', () => {
     test('should add the targeting match to idb store', async () => {
       await targetingIDBStore.storeTargetingMatchForSession({
@@ -81,6 +103,30 @@ describe('TargetingIDBStore', () => {
         apiKey,
       });
       expect(targetingMatch).toEqual(true);
+    });
+    test('should store targeting condition details', async () => {
+      await targetingIDBStore.storeTargetingMatchForSession({
+        loggerProvider: mockLoggerProvider,
+        sessionId: 123,
+        apiKey,
+        targetingMatch: true,
+        targetingConditionName: 'Checkout errors',
+        targetingConditionId: 'condition-123',
+      });
+
+      const targetingDetails = await targetingIDBStore.getTargetingDetailsForSession({
+        loggerProvider: mockLoggerProvider,
+        sessionId: 123,
+        apiKey,
+      });
+
+      expect(targetingDetails).toEqual({
+        sessionId: '123',
+        targetingMatch: true,
+        targetingConditionName: 'Checkout errors',
+        targetingConditionId: 'condition-123',
+        lastUpdated: expect.any(Number),
+      });
     });
     test('should catch errors', async () => {
       const mockDB: IDBPDatabase<SessionReplayTargetingDB> = {

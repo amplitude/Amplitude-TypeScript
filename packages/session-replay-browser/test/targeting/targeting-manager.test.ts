@@ -50,26 +50,35 @@ describe('Targeting Manager', () => {
 
   describe('evaluateTargetingAndStore', () => {
     let storeTargetingMatchForSessionMock: jest.SpyInstance;
-    let getTargetingMatchForSessionMock: jest.SpyInstance;
+    let getTargetingDetailsForSessionMock: jest.SpyInstance;
     beforeEach(() => {
       storeTargetingMatchForSessionMock = jest.spyOn(targetingIDBStore, 'storeTargetingMatchForSession');
-      getTargetingMatchForSessionMock = jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession');
+      getTargetingDetailsForSessionMock = jest.spyOn(targetingIDBStore, 'getTargetingDetailsForSession');
     });
     test('should return a true match from IndexedDB', async () => {
-      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(true);
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
+      jest.spyOn(targetingIDBStore, 'getTargetingDetailsForSession').mockResolvedValueOnce({
+        sessionId: '123',
+        targetingMatch: true,
+        targetingConditionName: 'Checkout errors',
+        targetingConditionId: 'condition-123',
+        lastUpdated: Date.now(),
+      });
+      const targetingResult = await evaluateTargetingAndStore({
         sessionId: 123,
         loggerProvider: config.loggerProvider,
         apiKey: config.apiKey,
         targetingConfig: flagConfig,
       });
-      expect(getTargetingMatchForSessionMock).toHaveBeenCalled();
+      expect(getTargetingDetailsForSessionMock).toHaveBeenCalled();
       expect(evaluateTargeting).not.toHaveBeenCalled();
-      expect(sessionTargetingMatch).toBe(true);
+      expect(targetingResult).toEqual({
+        targetingMatch: true,
+        targetingConditionName: 'Checkout errors',
+        targetingConditionId: 'condition-123',
+      });
     });
 
     test('should use remote config to determine targeting match', async () => {
-      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       (evaluateTargeting as jest.Mock).mockResolvedValueOnce({
         sr_targeting_config: {
@@ -80,7 +89,7 @@ describe('Targeting Manager', () => {
         country: 'US',
         city: 'San Francisco',
       };
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
+      const targetingResult = await evaluateTargetingAndStore({
         sessionId: 123,
         loggerProvider: config.loggerProvider,
         apiKey: config.apiKey,
@@ -96,11 +105,38 @@ describe('Targeting Manager', () => {
         sessionId: 123,
         userProperties: mockUserProperties,
       });
-      expect(sessionTargetingMatch).toBe(true);
+      expect(targetingResult.targetingMatch).toBe(true);
+    });
+
+    test('should store the matched targeting condition name and id', async () => {
+      (evaluateTargeting as jest.Mock).mockResolvedValueOnce({
+        sr_targeting_config: {
+          key: 'on',
+          metadata: {
+            segmentName: 'Checkout errors',
+            segmentId: 'condition-123',
+          },
+        },
+      });
+
+      await evaluateTargetingAndStore({
+        sessionId: 123,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
+      });
+
+      expect(storeTargetingMatchForSessionMock).toHaveBeenCalledWith({
+        targetingMatch: true,
+        targetingConditionName: 'Checkout errors',
+        targetingConditionId: 'condition-123',
+        sessionId: 123,
+        apiKey: config.apiKey,
+        loggerProvider: mockLoggerProvider,
+      });
     });
 
     test('should pass page to evaluateTargeting when provided in targetingParams', async () => {
-      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       (evaluateTargeting as jest.Mock).mockResolvedValueOnce({
         sr_targeting_config: {
@@ -108,7 +144,7 @@ describe('Targeting Manager', () => {
         },
       });
       const page = { url: 'https://example.com/analytics' };
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
+      const targetingResult = await evaluateTargetingAndStore({
         sessionId: 123,
         loggerProvider: config.loggerProvider,
         apiKey: config.apiKey,
@@ -127,16 +163,20 @@ describe('Targeting Manager', () => {
           page,
         }),
       );
-      expect(sessionTargetingMatch).toBe(true);
+      expect(targetingResult.targetingMatch).toBe(true);
     });
 
     test('should re-evaluate when urlChange is true even if IDB cache is true (URL change)', async () => {
-      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(true);
+      jest.spyOn(targetingIDBStore, 'getTargetingDetailsForSession').mockResolvedValueOnce({
+        sessionId: '123',
+        targetingMatch: true,
+        lastUpdated: Date.now(),
+      });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       (evaluateTargeting as jest.Mock).mockResolvedValueOnce({
         sr_targeting_config: { key: 'off' },
       });
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
+      const targetingResult = await evaluateTargetingAndStore({
         sessionId: 123,
         loggerProvider: config.loggerProvider,
         apiKey: config.apiKey,
@@ -145,7 +185,7 @@ describe('Targeting Manager', () => {
         urlChange: true,
       });
       expect(evaluateTargeting).toHaveBeenCalled();
-      expect(sessionTargetingMatch).toBe(false);
+      expect(targetingResult.targetingMatch).toBe(false);
     });
 
     test('should store sessionTargetingMatch', async () => {
@@ -155,7 +195,7 @@ describe('Targeting Manager', () => {
           key: 'on',
         },
       });
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
+      const targetingResult = await evaluateTargetingAndStore({
         sessionId: 123,
         loggerProvider: config.loggerProvider,
         apiKey: config.apiKey,
@@ -167,33 +207,32 @@ describe('Targeting Manager', () => {
         apiKey: config.apiKey,
         loggerProvider: mockLoggerProvider,
       });
-      expect(sessionTargetingMatch).toBe(true);
+      expect(targetingResult.targetingMatch).toBe(true);
     });
     test('should handle error', async () => {
       jest.spyOn(targetingIDBStore, 'storeTargetingMatchForSession').mockImplementationOnce(() => {
         throw new Error('storage error');
       });
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
+      const targetingResult = await evaluateTargetingAndStore({
         sessionId: 123,
         loggerProvider: config.loggerProvider,
         apiKey: config.apiKey,
         targetingConfig: flagConfig,
       });
-      expect(sessionTargetingMatch).toBe(true);
+      expect(targetingResult.targetingMatch).toBe(true);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('storage error');
     });
 
     test('should parse string sessionId to number when calling evaluateTargeting', async () => {
-      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
       (evaluateTargeting as jest.Mock).mockResolvedValueOnce({
         sr_targeting_config: {
           key: 'on',
         },
       });
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
+      const targetingResult = await evaluateTargetingAndStore({
         sessionId: '456',
         loggerProvider: config.loggerProvider,
         apiKey: config.apiKey,
@@ -205,7 +244,7 @@ describe('Targeting Manager', () => {
         flag: flagConfig,
         sessionId: 456,
       });
-      expect(sessionTargetingMatch).toBe(true);
+      expect(targetingResult.targetingMatch).toBe(true);
     });
   });
 });

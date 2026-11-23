@@ -468,6 +468,8 @@ export interface SessionReplayMetadata {
   replaySDKVersion: string | undefined;
   standaloneSDKType: string;
   standaloneSDKVersion: string | undefined;
+  targetingConditionName?: string;
+  targetingConditionId?: string;
 }
 
 export interface SessionReplayVersion {
