@@ -8,7 +8,7 @@ on:
 
 jobs:
   check-affected:
-    name: Check @amplitude/analytics-react-native affected
+    name: Check React Native SDKs affected
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event_name == 'pull_request'
@@ -36,22 +36,21 @@ jobs:
       - name: Install project dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check if analytics-react-native is affected
+      - name: Check if a React Native SDK is affected
         id: package-unaffected
         run: |
-          set +e
-          sh scripts/is-package-unaffected.sh @amplitude/analytics-react-native
-          code=$?
-          set -e
-          if [ "$code" -eq 0 ]; then
-            echo "unaffected=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "unaffected=false" >> "$GITHUB_OUTPUT"
-          fi
+          unaffected=true
+          for package in @amplitude/analytics-react-native @amplitude/plugin-session-replay-react-native @amplitude/session-replay-react-native; do
+            if ! sh scripts/is-package-unaffected.sh "$package"; then
+              unaffected=false
+              break
+            fi
+          done
+          echo "unaffected=$unaffected" >> "$GITHUB_OUTPUT"
 
       - name: Skip smoke test (package not affected)
         if: steps.package-unaffected.outputs.unaffected == 'true'
-        run: echo "Skipping React Native smoke test — @amplitude/analytics-react-native is not in the affected set."
+        run: echo "Skipping React Native smoke test — no React Native SDK is in the affected set."
 
   ios-smoke:
     name: iOS Simulator Smoke (Maestro, newArch=${{ matrix.new-arch }})
@@ -295,7 +294,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('examples/react-native/app/android/**/*.gradle*', 'examples/react-native/app/android/gradle/wrapper/gradle-wrapper.properties', 'packages/analytics-react-native/android/**/*.gradle*') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('examples/react-native/app/android/**/*.gradle*', 'examples/react-native/app/android/gradle/wrapper/gradle-wrapper.properties', 'packages/analytics-react-native/android/**/*.gradle*', 'packages/plugin-session-replay-react-native/android/**/*.gradle*', 'packages/session-replay-react-native/android/**/*.gradle*') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
@@ -304,12 +303,17 @@ jobs:
         # Relies on the Android SDK preinstalled on ubuntu-latest (ANDROID_HOME set, platform
         # 34 + build-tools 34.0.0 present, licenses accepted). newArchEnabled=false keeps this
         # a pure unit-test run (no codegen/NDK), so the :app native build is never required.
-        run: ./gradlew :amplitude_analytics-react-native:testDebugUnitTest -PnewArchEnabled=false --console=plain
+        run: >-
+          ./gradlew
+          :amplitude_analytics-react-native:testDebugUnitTest
+          :amplitude_plugin-session-replay-react-native:testDebugUnitTest
+          :amplitude_session-replay-react-native:testDebugUnitTest
+          -PnewArchEnabled=false -PtestSessionReplayModules=true --console=plain
 
       - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: android-unit-test-report
-          path: packages/analytics-react-native/android/build/reports/tests/testDebugUnitTest
+          path: packages/*/android/build/reports/tests/testDebugUnitTest
           if-no-files-found: ignore
