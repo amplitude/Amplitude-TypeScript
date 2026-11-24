@@ -72,11 +72,11 @@ export class Heartbeat {
       })();
       trackedEvents.push(eventPromise);
     }
-    const res = await Promise.all(trackedEvents);
     if (flushClient) {
+      // Start delivery now. The track promises can stay pending until the client flushes.
       this.client.flush();
     }
-    return res;
+    return Promise.all(trackedEvents);
   }
 
   async resetHeartbeat() {
