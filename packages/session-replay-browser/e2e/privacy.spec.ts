@@ -104,6 +104,44 @@ test.describe('privacy — privacyConfig option', () => {
     expect(isMaskedText(getTextContent(el!))).toBe(true);
   });
 
+  test('local maskTextFn keeps static copy and maskInputFn rewrites the input', async ({ page }) => {
+    const privacyConfig = JSON.stringify({ defaultMaskLevel: 'conservative' });
+    await mockRemoteConfig(page, remoteConfigRecording);
+    const { getBodies } = await captureTrackRequests(page);
+
+    await page.goto(buildUrl(PRIVACY_PAGE, { sessionId: TEST_SESSION_ID, privacyConfig, localMask: '1' }));
+    await waitForReady(page);
+    await page.waitForTimeout(SNAPSHOT_SETTLE_MS);
+    await flushRecording(page);
+
+    const root = getSnapshotRoot(getBodies());
+    expect(root).not.toBeNull();
+
+    const staticCopy = findById(root!, 'static-copy');
+    expect(staticCopy).toBeDefined();
+    expect(getTextContent(staticCopy!)).toContain('static:Account overview');
+    expect(isMaskedText(getTextContent(staticCopy!))).toBe(false);
+
+    const userData = findById(root!, 'user-data');
+    expect(userData).toBeDefined();
+    expect(isMaskedText(getTextContent(userData!))).toBe(true);
+    expect(getTextContent(userData!)).not.toContain('Jane');
+
+    // Explicit amp-mask is not delegated to the callback.
+    const ampMask = findById(root!, 'amp-mask-text');
+    expect(ampMask).toBeDefined();
+    expect(isMaskedText(getTextContent(ampMask!))).toBe(true);
+    expect(getTextContent(ampMask!)).not.toContain('Secret');
+
+    const customInput = findById(root!, 'custom-input');
+    expect(customInput).toBeDefined();
+    expect(String(customInput!.attributes?.value ?? '')).toBe('INPUT_KEPT');
+
+    const passwordInput = findById(root!, 'password-input');
+    expect(passwordInput).toBeDefined();
+    expect(isMaskedText(String(passwordInput!.attributes?.value ?? ''))).toBe(true);
+  });
+
   test('defaultMaskLevel light does not mask plain text input values', async ({ page }) => {
     const privacyConfig = JSON.stringify({ defaultMaskLevel: 'light' });
     await mockRemoteConfig(page, remoteConfigRecording);

@@ -1,11 +1,31 @@
+import fs from 'fs';
+import path from 'path';
 import { test, expect } from '@playwright/test';
 import { parseRequestBody } from './helpers';
 
+// The wrapper snippet loads this from the CDN and checks its integrity against the
+// uncompressed bundle. Serve the local build so the test does not depend on the CDN
+// having the same bytes (a mismatch leaves the page on the queue stub, which never sends).
+const LOCAL_GTM_SDK = fs.readFileSync(
+  path.resolve(__dirname, '../../analytics-browser/lib/scripts/amplitude-gtm-min.js'),
+);
+
 test.describe('GTM Snippet Page', () => {
   let requests: any[] = [];
+  let servedLocalSdk = false;
 
   test.beforeEach(async ({ page }) => {
     requests = [];
+    servedLocalSdk = false;
+    await page.route('https://cdn.amplitude.com/libs/analytics-browser-gtm-*.js.gz', async (route) => {
+      servedLocalSdk = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/javascript',
+        headers: { 'access-control-allow-origin': '*' },
+        body: LOCAL_GTM_SDK,
+      });
+    });
     // Intercept Amplitude API calls
     await page.route('https://api2.amplitude.com/2/httpapi', async (route) => {
       const request = route.request();
@@ -13,7 +33,7 @@ test.describe('GTM Snippet Page', () => {
       if (data) {
         requests.push(data);
       }
-      await route.continue();
+      await route.fulfill({ status: 200, contentType: 'application/json', body: '{"code":200}' });
     });
   });
 
@@ -27,13 +47,11 @@ test.describe('GTM Snippet Page', () => {
     // Check if the response was successful
     expect(response?.status()).toBe(200);
 
-    // Wait for the Amplitude SDK to be available
-    await page.waitForFunction(
-      () => {
-        return typeof (window as any).amplitude !== 'undefined';
-      },
-      { timeout: 10000 },
-    );
+    // The snippet installs a queue stub immediately. Wait until the SDK bundle replaces it.
+    await page.waitForFunction(() => typeof (window as any).amplitudeGTM?.runQueuedFunctions === 'function', {
+      timeout: 10000,
+    });
+    expect(servedLocalSdk).toBe(true);
 
     // Verify amplitude is defined
     const amplitudeDefined = await page.evaluate(() => {
