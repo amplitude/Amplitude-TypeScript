@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.59](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.58...@amplitude/segment-session-replay-plugin@0.0.59) (2026-11-24)
+
+
+### Bug Fixes
+
+* **publish:** support scoped S3 release role (SDKW-85) ([#2196](https://github.com/amplitude/Amplitude-TypeScript/issues/2196)) ([804158a](https://github.com/amplitude/Amplitude-TypeScript/commit/804158a20a66ba2eb9b02f7a09078e84f6d64375))
+
+
+
+
+
 ## [0.0.58](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.57...@amplitude/segment-session-replay-plugin@0.0.58) (2026-11-23)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin

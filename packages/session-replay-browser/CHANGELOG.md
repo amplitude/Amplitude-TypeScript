@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.53.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.53.1...@amplitude/session-replay-browser@1.53.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* **publish:** support scoped S3 release role (SDKW-85) ([#2196](https://github.com/amplitude/Amplitude-TypeScript/issues/2196)) ([804158a](https://github.com/amplitude/Amplitude-TypeScript/commit/804158a20a66ba2eb9b02f7a09078e84f6d64375))
+* **session-replay-browser:** ignore same-origin iframe windows in URL tracking ([#2202](https://github.com/amplitude/Amplitude-TypeScript/issues/2202)) ([84a5cca](https://github.com/amplitude/Amplitude-TypeScript/commit/84a5cca766ba73c721dfd324c68795205bae74c5))
+* **session-replay-browser:** start min session duration clock when recording starts ([#2197](https://github.com/amplitude/Amplitude-TypeScript/issues/2197)) ([17287b1](https://github.com/amplitude/Amplitude-TypeScript/commit/17287b1ecd74ddd9281872f3fd674031c3bf1ac2))
+
+
+
+
+
 ## [1.53.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.53.0...@amplitude/session-replay-browser@1.53.1) (2026-11-23)
 
 
