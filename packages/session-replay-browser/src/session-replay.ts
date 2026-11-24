@@ -50,9 +50,9 @@ import { SessionIdentifiers } from './identifiers';
 import { SafeLoggerProvider } from './logger';
 import {
   getOrInitReplayStartTime,
+  getReplayStartTime,
   pruneStaleReplayStartTimes,
   removeReplayStartTime,
-  setReplayStartTime,
 } from './replay-start-time-store';
 import { evaluateTargetingAndStore } from './targeting/targeting-manager';
 import {
@@ -248,20 +248,35 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   /**
    * Single source of truth for the min_session_duration_ms gate. Returns true when the
-   * current session has not yet reached the configured threshold (and we have both a
-   * configured value and a recorded start time). Returns false when there's no
-   * threshold, no recorded start time, or the threshold has been met — i.e. it
-   * answers "should this batch be suppressed?".
+   * current session has not yet reached the configured threshold, including when it has
+   * not started recording yet (no start time). Returns false when there's no threshold or
+   * the threshold has been met — i.e. it answers "should this batch be suppressed?".
    *
    * Centralizing the check means future changes (clock-skew tolerance, switching to
    * performance.now(), etc.) are one-line edits.
    */
   private isBelowMinSessionDuration(): boolean {
     const minSessionDurationMs = this.config?.minSessionDurationMs;
-    if (minSessionDurationMs === undefined || this.sessionStartTime === undefined) {
+    if (minSessionDurationMs === undefined) {
       return false;
     }
+    // No start time means this session hasn't started recording yet, so it has no replay
+    // duration to speak of.
+    if (this.sessionStartTime === undefined) {
+      return true;
+    }
     return Date.now() - this.sessionStartTime < minSessionDurationMs;
+  }
+
+  /**
+   * Starts the min_session_duration_ms clock the first time a session starts recording.
+   * Later calls (stop/start, re-evaluation, page reloads that recovered a stored start
+   * time) keep the original start. Storage failures fall back to a transient Date.now().
+   */
+  private markRecordingStarted(sessionId: string | number, apiKey: string) {
+    if (this.sessionStartTime !== undefined) return;
+    const now = Date.now();
+    this.sessionStartTime = getOrInitReplayStartTime(apiKey, sessionId, now, this.loggerProvider) ?? now;
   }
 
   /**
@@ -297,15 +312,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.enable(options.logLevel as LogLevel);
     this.currentPageUrl = getCurrentUrl();
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
-    // Persist replay start time per sessionId so the min_session_duration_ms gate
-    // measures replay duration (survives page reloads within a session) rather than
-    // page-load duration. Storage failures fall back to a transient Date.now().
+    // The min_session_duration_ms gate measures replay duration: the clock starts when the
+    // session first starts recording (markRecordingStarted), not at init, so with targeted
+    // replay capture it starts when the session matches. The start time is persisted per
+    // sessionId so it survives page reloads; here we only pick up an existing one.
     const now = Date.now();
     pruneStaleReplayStartTimes(apiKey, now, this.loggerProvider);
     this.sessionStartTime =
       options.sessionId !== undefined
-        ? getOrInitReplayStartTime(apiKey, options.sessionId, now, this.loggerProvider) ?? now
-        : now;
+        ? getReplayStartTime(apiKey, options.sessionId, now, this.loggerProvider)
+        : undefined;
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig();
     this.config = joinedConfig;
@@ -547,11 +563,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // and stored start time with a fresh Date.now() — restarting the gate clock for what is
     // supposed to be a continuing session.
     if (isSessionChange) {
-      this.sessionStartTime = Date.now();
+      // The new session's clock starts when it starts recording (markRecordingStarted).
+      this.sessionStartTime = undefined;
       this.suppressedSendCount = 0;
       this.hasEmittedGateDecision = false;
       if (this.config?.apiKey) {
-        setReplayStartTime(this.config.apiKey, sessionId, this.sessionStartTime, this.loggerProvider);
         if (previousSessionId !== undefined) {
           removeReplayStartTime(this.config.apiKey, previousSessionId, this.loggerProvider);
         }
@@ -872,13 +888,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const deviceId = this.getDeviceId();
     if (this.eventsManager && sessionIdToSend && deviceId) {
       if (this.isBelowMinSessionDuration()) {
-        // Safe to dereference: isBelowMinSessionDuration() only returns true when both
-        // this.config and this.sessionStartTime are defined.
-        const startTime = this.sessionStartTime as number;
+        // Safe to dereference: isBelowMinSessionDuration() only returns true when
+        // this.config.minSessionDurationMs is defined.
         const minMs = (this.config as SessionReplayJoinedConfig).minSessionDurationMs as number;
-        this.loggerProvider.log(
-          `Session ${sessionIdToSend} not sent: duration ${Date.now() - startTime}ms is below minimum ${minMs}ms.`,
-        );
+        const duration =
+          this.sessionStartTime === undefined
+            ? 'recording has not started'
+            : `duration ${Date.now() - this.sessionStartTime}ms`;
+        this.loggerProvider.log(`Session ${sessionIdToSend} not sent: ${duration}, below minimum ${minMs}ms.`);
         // We deliberately do NOT clear the beacon buffer here. Blur/visibility-change
         // can call sendEvents() mid-session; if the session later crosses the threshold
         // those buffered events are legitimately sendable via beacon on page exit.
@@ -903,7 +920,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.recordFunction
       ) {
         this.hasEmittedGateDecision = true;
-        const elapsedMs = this.sessionStartTime !== undefined ? Date.now() - this.sessionStartTime : undefined;
+        // Defined here: with a threshold set, the gate only passes once recording has started.
+        const elapsedMs = Date.now() - (this.sessionStartTime as number);
         void this.addCustomRRWebEvent(
           CustomRRwebEvent.REPLAY_GATE_DECISION,
           {
@@ -1033,6 +1051,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         enablePolling: this.config?.enableUrlChangePolling || false,
         pollingInterval: this.config?.urlChangePollingInterval,
         captureDocumentTitle: this.config?.captureDocumentTitle,
+        // Scope URL tracking to this window so same-origin iframes rrweb records
+        // (e.g. an embedded chat widget) don't overwrite the page URL in the replay.
+        trackingWindow: getGlobalScope() as Window | undefined,
       });
 
       plugins.push(urlTrackingPlugin);
@@ -1110,6 +1131,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       if (this.semanticAdapter && this.recordCancelCallback) this.stopRecordingEvents();
       return;
     }
+    this.markRecordingStarted(sessionId, config.apiKey);
     this.stopRecordingEvents();
     const generation = this.recordingGeneration;
 

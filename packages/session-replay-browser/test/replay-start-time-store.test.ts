@@ -1,6 +1,7 @@
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import {
   getOrInitReplayStartTime,
+  getReplayStartTime,
   pruneStaleReplayStartTimes,
   REPLAY_START_TIME_TTL_MS,
   removeReplayStartTime,
@@ -140,6 +141,58 @@ describe('replay-start-time-store', () => {
       try {
         const result = getOrInitReplayStartTime(apiKey, 'sess1', 1_700_000_000_000);
         expect(result).toBeUndefined();
+      } finally {
+        restore();
+      }
+    });
+  });
+
+  describe('getReplayStartTime', () => {
+    test('returns a fresh stored entry', () => {
+      const earlier = 1_700_000_000_000;
+      globalThis.localStorage.setItem(`${prefix}sess1`, String(earlier));
+      expect(getReplayStartTime(apiKey, 'sess1', earlier + 60_000, logger)).toBe(earlier);
+    });
+
+    test('returns undefined and writes nothing when no entry exists', () => {
+      expect(getReplayStartTime(apiKey, 'sess1', 1_700_000_000_000, logger)).toBeUndefined();
+      expect(globalThis.localStorage.getItem(`${prefix}sess1`)).toBeNull();
+    });
+
+    test('returns undefined for a stale entry', () => {
+      const stale = 1_000_000_000_000;
+      globalThis.localStorage.setItem(`${prefix}sess1`, String(stale));
+      expect(getReplayStartTime(apiKey, 'sess1', stale + REPLAY_START_TIME_TTL_MS + 1, logger)).toBeUndefined();
+    });
+
+    test('returns undefined and logs when storage throws', () => {
+      const restore = overrideStorageMethod('getItem', () => {
+        throw new Error('boom');
+      });
+      try {
+        expect(getReplayStartTime(apiKey, 'sess1', 1_700_000_000_000, logger)).toBeUndefined();
+        expect(logger.debug).toHaveBeenCalled();
+      } finally {
+        restore();
+      }
+    });
+
+    test('returns undefined when globalThis.localStorage is unavailable', () => {
+      const orig = globalThis.localStorage;
+      Object.defineProperty(globalThis, 'localStorage', { value: undefined, configurable: true });
+      try {
+        expect(getReplayStartTime(apiKey, 'sess1', 1_700_000_000_000)).toBeUndefined();
+      } finally {
+        Object.defineProperty(globalThis, 'localStorage', { value: orig, configurable: true });
+      }
+    });
+
+    test('works without logger', () => {
+      const restore = overrideStorageMethod('getItem', () => {
+        throw new Error('boom');
+      });
+      try {
+        expect(getReplayStartTime(apiKey, 'sess1', 1_700_000_000_000)).toBeUndefined();
       } finally {
         restore();
       }

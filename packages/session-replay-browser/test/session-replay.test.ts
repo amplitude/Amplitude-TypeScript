@@ -354,12 +354,38 @@ describe('SessionReplay', () => {
       }
     });
 
-    test('uses Date.now() when sessionId is undefined', async () => {
-      const before = Date.now();
+    test('leaves the start time unset when sessionId is undefined', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
+      expect(sessionReplay.sessionStartTime).toBeUndefined();
+    });
+
+    test('does not start the clock while the session is not recording (e.g. targeting not matched)', async () => {
+      jest.spyOn(sessionReplay, 'getShouldRecord').mockReturnValue(false);
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.sessionStartTime).toBeUndefined();
+      expect(globalThis.localStorage.getItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`)).toBeNull();
+    });
+
+    test('starts the clock when the session first starts recording', async () => {
+      const shouldRecordSpy = jest.spyOn(sessionReplay, 'getShouldRecord').mockReturnValue(false);
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      // e.g. targeted replay capture matches later in the session.
+      shouldRecordSpy.mockReturnValue(true);
+      const before = Date.now();
+      await sessionReplay.recordEvents();
       const after = Date.now();
       expect(sessionReplay.sessionStartTime).toBeGreaterThanOrEqual(before);
       expect(sessionReplay.sessionStartTime).toBeLessThanOrEqual(after);
+      const stored = globalThis.localStorage.getItem(`AMP_SR_START_${apiKey.substring(0, 10)}_123`);
+      expect(Number(stored)).toBe(sessionReplay.sessionStartTime);
+    });
+
+    test('keeps the original start time when recording restarts in the same session', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const pinned = Date.now() - 10_000;
+      sessionReplay.sessionStartTime = pinned;
+      await sessionReplay.recordEvents();
+      expect(sessionReplay.sessionStartTime).toBe(pinned);
     });
   });
 
@@ -2582,6 +2608,21 @@ describe('SessionReplay', () => {
       expect(newStart).toBe(sessionReplay.sessionStartTime);
     });
 
+    test('does not start the new session clock until the new session records', async () => {
+      globalThis.localStorage.clear();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const prevKey = `AMP_SR_START_${apiKey.substring(0, 10)}_123`;
+      const nextKey = `AMP_SR_START_${apiKey.substring(0, 10)}_456`;
+      // e.g. targeted replay capture: the new session hasn't matched yet.
+      jest.spyOn(sessionReplay, 'getShouldRecord').mockReturnValue(false);
+
+      await (sessionReplay as any).asyncSetSessionId(456, '9l8m7n');
+
+      expect(globalThis.localStorage.getItem(prevKey)).toBeNull();
+      expect(globalThis.localStorage.getItem(nextKey)).toBeNull();
+      expect(sessionReplay.sessionStartTime).toBeUndefined();
+    });
+
     test('preserves stored and in-memory start time when sessionId is unchanged', async () => {
       globalThis.localStorage.clear();
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -3496,7 +3537,7 @@ describe('SessionReplay', () => {
       expect(() => sessionReplay.sendEvents()).not.toThrow();
       expect(sendEventsMock).not.toHaveBeenCalled();
     });
-    test('it should send if minSessionDurationMs is set but sessionStartTime is undefined', async () => {
+    test('it should not send if minSessionDurationMs is set and recording has not started', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (!sessionReplay.eventsManager || !sessionReplay.config) {
         throw new Error('Did not call init');
@@ -3506,7 +3547,10 @@ describe('SessionReplay', () => {
       sessionReplay.config.minSessionDurationMs = 5000;
       sessionReplay.sessionStartTime = undefined;
       sessionReplay.sendEvents();
-      expect(sendEventsMock).toHaveBeenCalled();
+      expect(sendEventsMock).not.toHaveBeenCalled();
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith(
+        'Session 123 not sent: recording has not started, below minimum 5000ms.',
+      );
     });
     test('it should send if config is undefined', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -3608,26 +3652,6 @@ describe('SessionReplay', () => {
       expect(addCustomSpy).toHaveBeenCalledWith(
         'replay-gate-decision',
         expect.objectContaining({ sessionId: 123 }),
-        false,
-      );
-    });
-    test('emits elapsedMs as undefined when sessionStartTime is missing at first send-after-pass', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager || !sessionReplay.config) {
-        throw new Error('Did not call init');
-      }
-      sessionReplay.eventsManager.sendCurrentSequenceEvents = jest.fn();
-      const addCustomSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent').mockResolvedValue(undefined);
-      sessionReplay.recordCancelCallback = jest.fn();
-      (sessionReplay as any).recordFunction = { addCustomEvent: jest.fn() };
-      sessionReplay.config.minSessionDurationMs = 5000;
-      // sessionStartTime undefined makes isBelowMinSessionDuration() return false, so the
-      // pass-path fires but elapsedMs can't be computed.
-      sessionReplay.sessionStartTime = undefined;
-      sessionReplay.sendEvents();
-      expect(addCustomSpy).toHaveBeenCalledWith(
-        'replay-gate-decision',
-        expect.objectContaining({ elapsedMs: undefined }),
         false,
       );
     });
@@ -5166,6 +5190,10 @@ describe('SessionReplay', () => {
       expect(plugins).toBeDefined();
       expect(plugins?.length).toBe(1); // URL tracking plugin is always present
       expect(plugins?.[0].name).toBe('amplitude/url-tracking@1');
+      // URL tracking is scoped to the recorder's window so same-origin iframes are ignored
+      expect(mockCreateUrlTrackingPlugin).toHaveBeenLastCalledWith(
+        expect.objectContaining({ trackingWindow: mockGlobalScope }),
+      );
     });
     test('enabled console logging', async () => {
       const loggingConfig: LoggingConfig = {

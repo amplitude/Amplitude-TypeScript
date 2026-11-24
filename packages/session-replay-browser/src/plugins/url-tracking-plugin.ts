@@ -32,6 +32,13 @@ export interface URLTrackingPluginOptions {
   pollingInterval?: number;
   /** Whether to capture document title in URL change events (default: false) */
   captureDocumentTitle?: boolean;
+  /**
+   * The window the recorder was started in. rrweb also runs plugin observers for every
+   * same-origin iframe it records, passing the iframe's window; when this is set, the
+   * plugin ignores those windows so an embedded frame's URL is never reported as the
+   * page URL. When unset, every window rrweb passes is tracked.
+   */
+  trackingWindow?: Window;
 }
 
 /** Options for subscribeToUrlChanges (polling vs history + hash) */
@@ -208,10 +215,11 @@ export function createUrlTrackingPlugin(
       const pollingInterval = config.pollingInterval ?? DEFAULT_URL_CHANGE_POLLING_INTERVAL;
       const captureDocumentTitle = config.captureDocumentTitle ?? false;
 
-      // Early return if no global scope is available
-      if (!globalScope) {
+      // Early return if no global scope is available, or if rrweb is observing a
+      // descendant iframe rather than the window the recorder was started in.
+      if (!globalScope || (config.trackingWindow && (globalScope as unknown) !== config.trackingWindow)) {
         return () => {
-          // No cleanup needed if no global scope available
+          // Nothing was subscribed, so there is nothing to clean up
         };
       }
 
