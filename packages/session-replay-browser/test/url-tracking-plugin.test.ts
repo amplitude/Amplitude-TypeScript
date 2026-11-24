@@ -390,6 +390,75 @@ describe('URL Tracking Plugin', () => {
     });
   });
 
+  describe('trackingWindow (same-origin iframe scoping)', () => {
+    // rrweb calls plugin observers once for the recorder's window and again for every
+    // same-origin iframe it records, passing that iframe's window.
+    let iframeScope: MockGlobalScope;
+
+    beforeEach(() => {
+      iframeScope = createMockGlobalScope({
+        location: { href: 'https://example.com/chat/flora' },
+        innerHeight: 0,
+        innerWidth: 0,
+      });
+    });
+
+    test('should not emit or subscribe for a window other than trackingWindow', () => {
+      const plugin = createUrlTrackingPlugin({ trackingWindow: mockGlobalScope as unknown as Window });
+      const originalPushState = iframeScope.history?.pushState;
+      const cleanup = callObserver(plugin, iframeScope);
+
+      expect(mockCallback).not.toHaveBeenCalled();
+      expect(iframeScope.addEventListener).not.toHaveBeenCalled();
+      expect(iframeScope.setInterval).not.toHaveBeenCalled();
+      // The iframe's history must be left untouched
+      expect(iframeScope.history?.pushState).toBe(originalPushState);
+
+      if (iframeScope.location) iframeScope.location.href = 'https://example.com/chat/flora/conversation';
+      iframeScope.history?.pushState({}, '', '/chat/flora/conversation');
+      expect(mockCallback).not.toHaveBeenCalled();
+      expect(() => cleanup()).not.toThrow();
+    });
+
+    test('should not poll a window other than trackingWindow when polling is enabled', () => {
+      const plugin = createUrlTrackingPlugin({
+        trackingWindow: mockGlobalScope as unknown as Window,
+        enablePolling: true,
+      });
+      callObserver(plugin, iframeScope);
+      expect(iframeScope.setInterval).not.toHaveBeenCalled();
+      expect(mockCallback).not.toHaveBeenCalled();
+    });
+
+    test('should keep tracking trackingWindow while an iframe window is ignored', () => {
+      const plugin = createUrlTrackingPlugin({ trackingWindow: mockGlobalScope as unknown as Window });
+      const cleanupTop = callObserver(plugin, mockGlobalScope);
+      const cleanupIframe = callObserver(plugin, iframeScope);
+
+      expect(mockCallback).toHaveBeenCalledTimes(1);
+      expect(mockCallback).toHaveBeenLastCalledWith(
+        expect.objectContaining({ href: 'https://example.com/initial', viewportWidth: 1024 }),
+      );
+
+      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/product/123';
+      mockGlobalScope.history?.pushState({}, '', '/product/123');
+      expect(mockCallback).toHaveBeenCalledTimes(2);
+      expect(mockCallback).toHaveBeenLastCalledWith(
+        expect.objectContaining({ href: 'https://example.com/product/123' }),
+      );
+
+      cleanupIframe();
+      cleanupTop();
+    });
+
+    test('should track every window passed by rrweb when trackingWindow is not set', () => {
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, iframeScope);
+      expect(mockCallback).toHaveBeenCalledWith(expect.objectContaining({ href: 'https://example.com/chat/flora' }));
+      cleanup();
+    });
+  });
+
   describe('History API + Hash routing mode (scenario 2)', () => {
     test('should detect URL changes via pushState', () => {
       const plugin = createUrlTrackingPlugin();

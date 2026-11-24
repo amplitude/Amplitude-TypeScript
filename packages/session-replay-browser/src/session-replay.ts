@@ -1051,6 +1051,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         enablePolling: this.config?.enableUrlChangePolling || false,
         pollingInterval: this.config?.urlChangePollingInterval,
         captureDocumentTitle: this.config?.captureDocumentTitle,
+        // Scope URL tracking to this window so same-origin iframes rrweb records
+        // (e.g. an embedded chat widget) don't overwrite the page URL in the replay.
+        trackingWindow: getGlobalScope() as Window | undefined,
       });
 
       plugins.push(urlTrackingPlugin);
