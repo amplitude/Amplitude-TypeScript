@@ -5166,6 +5166,10 @@ describe('SessionReplay', () => {
       expect(plugins).toBeDefined();
       expect(plugins?.length).toBe(1); // URL tracking plugin is always present
       expect(plugins?.[0].name).toBe('amplitude/url-tracking@1');
+      // URL tracking is scoped to the recorder's window so same-origin iframes are ignored
+      expect(mockCreateUrlTrackingPlugin).toHaveBeenLastCalledWith(
+        expect.objectContaining({ trackingWindow: mockGlobalScope }),
+      );
     });
     test('enabled console logging', async () => {
       const loggingConfig: LoggingConfig = {
