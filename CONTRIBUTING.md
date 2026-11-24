@@ -54,6 +54,25 @@ $ pnpm test
 
 When writing commit message, follow [PR Commit Title Conventions](#PR-Commit-Title-Conventions) for the format. A git hook will also run to verify that the format is followed.
 
+#### Test against a local rrweb build
+
+Session Replay depends on the published `@amplitude/rrweb-record`, `@amplitude/rrweb-types` and `@amplitude/rrweb-plugin-console-record` packages from [amplitude/rrweb](https://github.com/amplitude/rrweb). To try an rrweb change here before it is released, build your rrweb checkout and link it:
+
+```
+# in your rrweb checkout (one time, and again after each rrweb change)
+$ pnpm install
+$ pnpm build:all
+
+# in this repo
+$ pnpm rrweb:link ../rrweb       # path defaults to ../rrweb
+$ cd packages/session-replay-browser
+$ RRWEB_LOCAL=true npx jest test/dom-privacy.test.ts --coverage=false
+$ cd ../..
+$ pnpm rrweb:unlink              # restores pnpm-workspace.yaml and pnpm-lock.yaml
+```
+
+`pnpm rrweb:link` adds `link:` overrides to `pnpm-workspace.yaml`, and `pnpm rrweb:status` shows whether they are active. Do not commit the linked `pnpm-workspace.yaml` or `pnpm-lock.yaml`; CI installs with `--frozen-lockfile`. Tests that need an rrweb change that is not yet released are gated behind `RRWEB_LOCAL=true` so they stay skipped in CI.
+
 #### Unused Dependencies
 
 Dependencies that are declared in a `package.json` but never used by that package are reported by [knip](https://knip.dev):

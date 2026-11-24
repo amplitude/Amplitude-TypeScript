@@ -46,6 +46,49 @@ describe('shared privacy recorder integration', () => {
     }
   });
 
+  // Needs an @amplitude/rrweb-record that forwards maskAttributeFn to nodes added after the
+  // first snapshot (SR-5751). The pinned release predates that fix, so this only runs against a
+  // local rrweb build: `pnpm rrweb:link ../rrweb && RRWEB_LOCAL=true npx jest test/dom-privacy.test.ts`
+  // (see CONTRIBUTING.md). Drop the gate once the rrweb pins include the fix.
+  const describeWithLocalRrweb = process.env.RRWEB_LOCAL === 'true' ? describe : describe.skip;
+
+  describeWithLocalRrweb('nodes added after the first snapshot', () => {
+    test('maskAttributes applies to added elements and their descendants', async () => {
+      document.body.innerHTML = '<main id="root"></main>';
+      const events: unknown[] = [];
+      const stop = record({
+        ...createPrivacyRecorderOptions({
+          defaultMaskLevel: 'conservative',
+          maskAttributes: ['title', 'aria-label'],
+        }),
+        emit: (event) => {
+          events.push(event);
+        },
+      });
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        events.length = 0;
+        const root = document.getElementById('root');
+        if (!root) throw new Error('Missing fixture element');
+        const row = document.createElement('div');
+        row.setAttribute('title', 'Jane Member');
+        row.setAttribute('data-keep', 'visible_attribute');
+        const button = document.createElement('button');
+        button.setAttribute('aria-label', 'John Member');
+        row.appendChild(button);
+        root.appendChild(row);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        const mutations = JSON.stringify(events);
+        expect(mutations).toContain('visible_attribute');
+        expect(mutations).not.toContain('Jane');
+        expect(mutations).not.toContain('John');
+      } finally {
+        stop?.();
+        document.body.innerHTML = '';
+      }
+    });
+  });
+
   test('unmask attributes preserve text under conservative masking', async () => {
     document.body.innerHTML = '<span data-amp-unmask="false">visible_initial</span><span>hidden_initial</span>';
     const events: unknown[] = [];
