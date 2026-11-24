@@ -17,8 +17,7 @@ test.describe('GTM Snippet Page', () => {
     });
   });
 
-  // TODO(SDKW-85): Re-enable once the generated snippet's versioned CDN asset is published.
-  test.skip('should load GTM snippet page and track event', async ({ page }) => {
+  test('should load GTM snippet page and track event', async ({ page }) => {
     // Navigate to the GTM snippet page
     const response = await page.goto('/gtm-snippet/gtm-snippet.html', {
       waitUntil: 'networkidle',
