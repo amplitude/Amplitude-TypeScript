@@ -186,7 +186,8 @@ export class SessionReplayJoinedConfigGenerator {
     if (remotePrivacyConfig) {
       const localPrivacyConfig: PrivacyConfig = config.privacyConfig ?? {};
 
-      const joinedPrivacyConfig: Required<PrivacyConfig> & { blockSelector: string[] } = {
+      const joinedPrivacyConfig: Required<Omit<PrivacyConfig, 'maskTextFn' | 'maskInputFn'>> &
+        Pick<PrivacyConfig, 'maskTextFn' | 'maskInputFn'> & { blockSelector: string[] } = {
         defaultMaskLevel: remotePrivacyConfig.defaultMaskLevel ?? localPrivacyConfig.defaultMaskLevel ?? 'medium',
         blockSelector: [],
         maskSelector: [],
@@ -196,6 +197,13 @@ export class SessionReplayJoinedConfigGenerator {
         ],
         urlMaskLevels: [...(remotePrivacyConfig.urlMaskLevels ?? []), ...(localPrivacyConfig.urlMaskLevels ?? [])],
       };
+      // Callbacks are local-only; remote config is JSON and cannot supply them.
+      if (localPrivacyConfig.maskTextFn) {
+        joinedPrivacyConfig.maskTextFn = localPrivacyConfig.maskTextFn;
+      }
+      if (localPrivacyConfig.maskInputFn) {
+        joinedPrivacyConfig.maskInputFn = localPrivacyConfig.maskInputFn;
+      }
 
       const privacyConfigSelectorMap = (privacyConfig: PrivacyConfig): Record<string, 'mask' | 'unmask' | 'block'> => {
         const selectorMap: Record<string, 'mask' | 'unmask' | 'block'> = {};

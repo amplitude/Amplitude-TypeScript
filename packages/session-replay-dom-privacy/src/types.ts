@@ -25,4 +25,17 @@ export type PrivacyConfig = {
    * ]
    */
   urlMaskLevels?: Array<{ match: string; maskLevel: MaskLevel }>;
+  /**
+   * Local-only callback that replaces the default `*` redaction for text the SDK would
+   * otherwise mask (for example text masked by `defaultMaskLevel: 'conservative'`).
+   * Return the text to record. It is never called for blocked elements, for elements
+   * explicitly masked via `amp-mask` / `maskSelector`, or for text that is not masked.
+   * If it throws or returns a non-string, the text is fully redacted.
+   * It cannot be set via remote config and runs synchronously on the main thread.
+   */
+  maskTextFn?: (text: string, element: HTMLElement | null) => string;
+  /**
+   * Same as `maskTextFn`, for input values. Never called for password inputs.
+   */
+  maskInputFn?: (text: string, element: HTMLElement | null) => string;
 };

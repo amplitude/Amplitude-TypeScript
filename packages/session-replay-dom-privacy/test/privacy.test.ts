@@ -62,4 +62,18 @@ describe('shared DOM privacy contract', () => {
     expect(parsePrivacyConfig(input, validate)).toEqual({ blockSelector: ['.secret'] });
     expect(input.blockSelector).toBe('.secret');
   });
+
+  test('parsePrivacyConfig does not accept callbacks from remote policy', () => {
+    const parsed = parsePrivacyConfig({ defaultMaskLevel: 'conservative', maskTextFn: 'x' }, validate);
+    expect(parsed.maskTextFn).toBeUndefined();
+  });
+
+  test('recorder options route through custom maskTextFn', () => {
+    const options = createPrivacyRecorderOptions({
+      defaultMaskLevel: 'conservative',
+      maskTextFn: (text) => text.toUpperCase(),
+    });
+    expect(options.maskTextSelector).toBe('*');
+    expect(options.maskTextFn('abc', null)).toBe('ABC');
+  });
 });
