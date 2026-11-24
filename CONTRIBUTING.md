@@ -110,7 +110,13 @@ This workflow validates, versions, and publishes SDK packages. The first-time bo
 
 ##### S3 release uploads
 
-The S3 uploaders use the scoped `gha-amplitude-typescript-role`. Versioned
+All package S3 publish commands call `scripts/publish/upload-to-s3.js` from the
+package directory. Its package-specific configuration selects artifact files and
+versioned keys; Replay and GTM artifacts are required, while absent generic
+bundles/maps are skipped. GTM uses the sibling Browser package version and honors
+`DRY_RUN`. Keep these configurations in the shared uploader when adding artifacts.
+
+The uploader uses the scoped `gha-amplitude-typescript-role`. Versioned
 artifacts use conditional PUT (`If-None-Match: *`): a 412 response means the key
 already exists and is skipped for recovery runs, without verifying its contents.
 Other upload failures fail the publisher and release. Uploads do not need

@@ -9,7 +9,7 @@ const repo = path.resolve(__dirname, '../..');
 const publishers = [
   {
     name: 'analytics-browser',
-    script: 'scripts/publish/upload-to-s3.js',
+    optionalFiles: true,
     files: [
       'amplitude-min.js.gz',
       'amplitude-min.umd.js.gz',
@@ -31,19 +31,23 @@ const publishers = [
   },
   {
     name: 'plugin-stub-browser',
-    script: 'scripts/publish/upload-to-s3.js',
+    optionalFiles: true,
     files: ['amplitude-min.js.gz', 'amplitude-min.js.map'],
     keys: ['plugin-stub-browser-2.0.0-min.js.gz', 'plugin-stub-browser-2.0.0-min.js.map'],
   },
+  ...['plugin-autocapture-browser', 'plugin-network-capture-browser', 'targeting'].map((name) => ({
+    name,
+    optionalFiles: true,
+    files: ['amplitude-min.js.gz', 'amplitude-min.js.map'],
+    keys: [`${name}-2.0.0-min.js.gz`, `${name}-2.0.0-min.js.map`],
+  })),
   {
     name: 'gtm-snippet',
-    script: 'packages/gtm-snippet/scripts/upload-to-s3.js',
     files: ['analytics-browser-gtm-wrapper.min.js.br'],
     keys: ['analytics-browser-gtm-wrapper-2.0.0.min.js.br'],
   },
   {
     name: 'session-replay-browser',
-    script: 'packages/session-replay-browser/scripts/publish/upload-to-s3.js',
     files: [
       'session-replay-browser-esm.js.gz',
       'session-replay-browser-min.js.gz',
@@ -61,7 +65,6 @@ const publishers = [
   },
   {
     name: 'plugin-session-replay-browser',
-    script: 'packages/plugin-session-replay-browser/scripts/publish/upload-to-s3.js',
     files: [
       'plugin-session-replay-browser-esm.js.gz',
       'plugin-session-replay-browser-min.js.gz',
@@ -77,7 +80,6 @@ const publishers = [
   },
   {
     name: 'segment-session-replay-plugin',
-    script: 'packages/segment-session-replay-plugin/scripts/publish/upload-to-s3.js',
     files: ['segment-session-replay-wrapper-esm.js.gz'],
     keys: ['segment-session-replay-plugin-2.0.0-esm.js.gz'],
   },
@@ -94,7 +96,7 @@ function fixture(t, publisher) {
     path.join(cwd, 'package.json'),
     JSON.stringify({
       name: `@amplitude/${publisher.name}`,
-      version: '2.0.0',
+      version: publisher.name === 'gtm-snippet' ? '9.9.9' : '2.0.0',
     }),
   );
   // GTM derives its version from the sibling Browser package.
@@ -103,6 +105,13 @@ function fixture(t, publisher) {
     fs.writeFileSync(path.join(root, 'analytics-browser/package.json'), '{"version":"2.0.0"}');
   }
   for (const file of publisher.files) fs.writeFileSync(path.join(artifacts, file), `artifact:${file}`);
+  // Execute the command actually wired into each package, so stale paths fail.
+  const manifest = require(path.join(repo, 'packages', publisher.name, 'package.json'));
+  const command = manifest.scripts['publish:s3'] || manifest.scripts.publish;
+  const match = /^node (.+)$/.exec(command);
+  assert.ok(match, `Expected a direct uploader command for ${publisher.name}: ${command}`);
+  const script = path.resolve(repo, 'packages', publisher.name, match[1]);
+  assert.equal(script, path.join(repo, 'scripts/publish/upload-to-s3.js'));
   const requests = path.join(root, 'requests.jsonl');
   const preload = path.join(root, 's3-transport.cjs');
   // Exercise the real SDK serializer/deserializer and the actual CLI entry point.
@@ -143,8 +152,11 @@ s3.S3Client = class extends RealClient {
 `,
   );
   return {
+    removeFile(file) {
+      fs.unlinkSync(path.join(artifacts, file));
+    },
     execute(response = '200', env = {}) {
-      const result = spawnSync(process.execPath, ['--require', preload, path.join(repo, publisher.script)], {
+      const result = spawnSync(process.execPath, ['--require', preload, script], {
         cwd,
         encoding: 'utf8',
         timeout: 15000,
@@ -168,6 +180,7 @@ for (const publisher of publishers) {
   test(`${publisher.name}: uploads the expected keys without ACL or read permissions`, (t) => {
     const result = fixture(t, publisher).execute();
     assert.equal(result.status, 0, result.stderr);
+    assert.ok(result.stdout.includes(`Deployed ${publisher.files.length}/${publisher.files.length} files.`));
     assert.deepEqual(
       result.calls.map((call) => call.path),
       publisher.keys.map((key) => `/libs/${key}`),
@@ -206,6 +219,28 @@ for (const publisher of publishers) {
     });
   }
 
+  if (publisher.optionalFiles) {
+    test(`${publisher.name}: missing optional bundles and maps are skipped`, (t) => {
+      const f = fixture(t, publisher);
+      for (const file of publisher.files) f.removeFile(file);
+      const result = f.execute();
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.calls.length, 0);
+      assert.match(result.stdout, /not found. Skipping/);
+      assert.match(result.stdout, /Nothing to deploy/);
+    });
+  } else {
+    test(`${publisher.name}: a missing required artifact fails before uploading`, (t) => {
+      const f = fixture(t, publisher);
+      f.removeFile(publisher.files[0]);
+      const result = f.execute();
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(result.stderr, /ENOENT/);
+      assert.equal(result.calls.length, 0);
+      assert.doesNotMatch(result.stdout, /Success!|Nothing to deploy/);
+    });
+  }
+
   if (publisher.files.some((file) => mutableFiles.includes(file))) {
     test(`${publisher.name}: a mutable chunk's 412 is not an existing-version skip`, (t) => {
       const result = fixture(t, publisher).execute('412');
@@ -219,5 +254,15 @@ test('GTM dry run does not send any S3 requests', (t) => {
   const publisher = publishers.find((publisher) => publisher.name === 'gtm-snippet');
   const result = fixture(t, publisher).execute('403', { DRY_RUN: 'true' });
   assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.calls.length, 0);
+});
+
+test('GTM dry run still requires the built wrapper', (t) => {
+  const publisher = publishers.find((publisher) => publisher.name === 'gtm-snippet');
+  const f = fixture(t, publisher);
+  f.removeFile(publisher.files[0]);
+  const result = f.execute('403', { DRY_RUN: 'true' });
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stderr, /ENOENT/);
   assert.equal(result.calls.length, 0);
 });

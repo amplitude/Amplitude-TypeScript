@@ -1,72 +1,158 @@
 const fs = require('fs');
 const path = require('path');
-const { uploadArtifact } = require('./s3-upload');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getName, getVersion } = require('../utils');
 
-const bucket = process.env.S3_BUCKET_NAME;
-const location = path.join(process.cwd(), 'lib', 'scripts');
-const isAnalyticsBrowser = location.includes('analytics-browser');
+// Keep package-specific artifact names and replacement prefixes explicit. Replay
+// chunks without the package prefix retain their legacy, unversioned keys.
+const replayPackages = {
+  'session-replay-browser': {
+    prefix: 'session-replay-browser',
+    files: [
+      'session-replay-browser-esm.js.gz',
+      'session-replay-browser-min.js.gz',
+      'console-plugin-min.js.gz',
+      'rrweb-record-min.js.gz',
+      'targeting-min.js.gz',
+    ],
+  },
+  'plugin-session-replay-browser': {
+    prefix: 'plugin-session-replay-browser',
+    files: [
+      'plugin-session-replay-browser-esm.js.gz',
+      'plugin-session-replay-browser-min.js.gz',
+      'console-plugin-min.js.gz',
+      'rrweb-record-min.js.gz',
+    ],
+  },
+  'segment-session-replay-plugin': {
+    prefix: 'segment-session-replay-wrapper',
+    files: ['segment-session-replay-wrapper-esm.js.gz'],
+  },
+};
 
-// Minified JS files to upload (gzipped)
-const jsFiles = ['amplitude-min.js.gz', 'amplitude-min.umd.js.gz'];
-if (isAnalyticsBrowser) {
-  jsFiles.push('amplitude-gtm-min.js.gz', 'amplitude-lite-min.js.gz');
+// Keep this exact allowlist aligned with UpdateLegacySessionReplayChunks in
+// platform-infra's release IAM role until these chunks are versioned.
+const mutableKeys = new Set([
+  'libs/console-plugin-min.js.gz',
+  'libs/rrweb-record-min.js.gz',
+  'libs/targeting-min.js.gz',
+]);
+
+function artifact(file, key, contentEncoding = 'gzip', contentType = 'application/javascript') {
+  return { file, key, contentEncoding, contentType };
 }
 
-// Source map files to upload (for stack trace unminification)
-const sourceMapFiles = ['amplitude-min.js.map'];
-if (isAnalyticsBrowser) {
-  sourceMapFiles.push('amplitude-gtm-min.js.map', 'amplitude-lite-min.js.map');
-}
-
-let deployedCount = 0;
-let totalFiles = 0;
-
-/**
- * Upload a file to S3 if it doesn't already exist
- */
-async function uploadFile(file, contentType, contentEncoding) {
-  const filePath = path.join(location, file);
-
-  if (!fs.existsSync(filePath)) {
-    console.log(`[Publish to AWS S3] ${file} not found. Skipping.`);
-    return;
+function publishConfig(name, version) {
+  if (name === 'gtm-snippet') {
+    // GTM publishes the Browser version, independently of its own manifest.
+    const browser = require(path.join(process.cwd(), '..', 'analytics-browser', 'package.json'));
+    return {
+      version: browser.version,
+      dryRun: Boolean(process.env.DRY_RUN),
+      files: [
+        artifact(
+          'analytics-browser-gtm-wrapper.min.js.br',
+          `libs/analytics-browser-gtm-wrapper-${browser.version}.min.js.br`,
+          'br',
+        ),
+      ],
+    };
   }
 
-  totalFiles++;
-  const body = fs.readFileSync(filePath);
-  const suffix = file.includes('-gtm-') ? '-gtm' : file.includes('-lite-') ? '-lite' : '';
-  const replacement = `amplitude${suffix}`;
-  const key = `libs/${file.replace(replacement, `${getName()}${suffix}-${getVersion()}`)}`;
-  const uploaded = await uploadArtifact({
-    Body: body,
-    Bucket: bucket,
-    CacheControl: 'max-age=31536000',
-    ContentType: contentType,
-    ...(contentEncoding ? { ContentEncoding: contentEncoding } : {}),
-    Key: key,
+  const replay = replayPackages[name];
+  if (replay) {
+    return {
+      files: replay.files.map((file) => artifact(file, `libs/${file.replace(replay.prefix, `${name}-${version}`)}`)),
+    };
+  }
+
+  const jsFiles = ['amplitude-min.js.gz', 'amplitude-min.umd.js.gz'];
+  const sourceMapFiles = ['amplitude-min.js.map'];
+  if (name === 'analytics-browser') {
+    jsFiles.push('amplitude-gtm-min.js.gz', 'amplitude-lite-min.js.gz');
+    sourceMapFiles.push('amplitude-gtm-min.js.map', 'amplitude-lite-min.js.map');
+  }
+  const key = (file) => {
+    const suffix = file.includes('-gtm-') ? '-gtm' : file.includes('-lite-') ? '-lite' : '';
+    return `libs/${file.replace(`amplitude${suffix}`, `${name}${suffix}-${version}`)}`;
+  };
+  return {
+    // Generic packages produce different subsets of these bundles/maps.
+    optionalFiles: true,
+    files: [
+      ...jsFiles.map((file) => artifact(file, key(file))),
+      ...sourceMapFiles.map((file) => artifact(file, key(file), null, 'application/json')),
+    ],
+  };
+}
+
+async function uploadArtifact(client, params) {
+  const mutable = mutableKeys.has(params.Key);
+  const command = new PutObjectCommand({
+    ...params,
+    // Conditional PUT is atomic and needs no HeadObject/GetObject permission.
+    ...(mutable ? {} : { IfNoneMatch: '*' }),
   });
-  if (uploaded) {
-    deployedCount++;
+  try {
+    await client.send(command);
+    console.log(`[Publish to AWS S3] Upload success for ${params.Key}.`);
+    return true;
+  } catch (err) {
+    // Recovery runs may encounter earlier uploads. Only a failed create-only
+    // precondition is an expected skip, not access/network errors or conflicts.
+    if (!mutable && err.$metadata?.httpStatusCode === 412) {
+      console.log(`[Publish to AWS S3] ${params.Key} already exists. Skipping upload.`);
+      return false;
+    }
+    throw err;
   }
 }
 
 async function main() {
+  const name = getName();
+  const version = getVersion();
+  const config = publishConfig(name, version);
+  const location = path.join(process.cwd(), 'lib', 'scripts');
+  const bucket = process.env.S3_BUCKET_NAME;
+  let client;
+  let deployedCount = 0;
+  let totalFiles = 0;
+
   console.log('[Publish to AWS S3] START');
-  console.log(`[Publish to AWS S3] Package: ${getName()} v${getVersion()}`);
-
-  // Upload minified JS files (gzipped)
-  for (const file of jsFiles) {
-    await uploadFile(file, 'application/javascript', 'gzip');
+  console.log(`[Publish to AWS S3] Package: ${name} v${config.version ?? version}`);
+  for (const { file, key, contentType, contentEncoding } of config.files) {
+    const filePath = path.join(location, file);
+    if (config.optionalFiles && !fs.existsSync(filePath)) {
+      console.log(`[Publish to AWS S3] ${file} not found. Skipping.`);
+      continue;
+    }
+    // Required Replay/GTM artifacts must exist, including during GTM dry runs.
+    const body = fs.readFileSync(filePath);
+    totalFiles++;
+    if (config.dryRun) {
+      console.log(`[Publish to AWS S3] Dry run. Publishing ${key} to ${bucket}...`);
+      continue;
+    }
+    client ??= new S3Client();
+    if (
+      await uploadArtifact(client, {
+        Body: body,
+        Bucket: bucket,
+        CacheControl: 'max-age=31536000',
+        ContentType: contentType,
+        ...(contentEncoding ? { ContentEncoding: contentEncoding } : {}),
+        Key: key,
+      })
+    ) {
+      deployedCount++;
+    }
   }
 
-  // Upload source map files (for stack trace unminification)
-  for (const file of sourceMapFiles) {
-    await uploadFile(file, 'application/json', null);
-  }
-
-  if (deployedCount === 0) {
-    console.log(`[Publish to AWS S3] Complete! Nothing to deploy.`);
+  if (config.dryRun) {
+    console.log('[Publish to AWS S3] Dry run. Skipping upload job.');
+  } else if (deployedCount === 0) {
+    console.log('[Publish to AWS S3] Complete! Nothing to deploy.');
   } else {
     console.log(`[Publish to AWS S3] Success! Deployed ${deployedCount}/${totalFiles} files.`);
   }
@@ -75,5 +161,5 @@ async function main() {
 
 main().catch((err) => {
   console.error('[Publish to AWS S3] Error:', err);
-  process.exit(1);
+  process.exitCode = 1;
 });

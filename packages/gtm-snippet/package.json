@@ -11,7 +11,7 @@
     "build:bundle": "rollup --config rollup.config.js",
     "build:template": "node ./scripts/build-snippet.js",
     "prepublishOnly": "pnpm build",
-    "publish:s3": "node ./scripts/upload-to-s3.js",
+    "publish:s3": "node ../../scripts/publish/upload-to-s3.js",
     "version": "node ./scripts/version.js"
   },
   "repository": {
