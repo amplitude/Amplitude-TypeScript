@@ -594,6 +594,9 @@ importers:
         specifier: workspace:*
         version: link:../plugin-session-replay-browser
     devDependencies:
+      '@amplitude/analytics-core':
+        specifier: workspace:*
+        version: link:../analytics-core
       '@aws-sdk/client-s3':
         specifier: ^3.229.0
         version: 3.932.0
