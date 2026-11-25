@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Case 09 — Web component MFE</title>
+    <link rel="stylesheet" href="./mfe-parent-styles.css" />
+  </head>
+  <body>
+    <header class="shell-header">
+      <span class="tag">Case 09</span>
+      <h1>In-page microfrontend via custom element + shadow root</h1>
+    </header>
+    <main class="shell-main">
+      <div class="parent-panel">
+        <button type="button" id="upgrade-shadow">Mutate shadow content</button>
+      </div>
+      <div class="mfe-slot">
+        <mfe-widget id="wc-mfe"></mfe-widget>
+      </div>
+      <div id="status">loading</div>
+    </main>
+    <script type="module">
+      import * as sessionReplay from '@amplitude/session-replay-browser';
+
+      class MfeWidget extends HTMLElement {
+        connectedCallback() {
+          if (this.shadowRoot) return;
+          const shadow = this.attachShadow({ mode: 'open' });
+          const sheet = new CSSStyleSheet();
+          sheet.replaceSync(
+            ':host { display: block; padding: 16px; background: #be185d; color: #fff; border-radius: 8px; } button { margin-top: 8px; }'
+          );
+          shadow.adoptedStyleSheets = [sheet];
+          shadow.innerHTML =
+            '<h2 id="wc-title">Shadow MFE</h2><p id="wc-body">Rendered inside open shadow DOM.</p><button type="button" id="wc-btn">Shadow button</button>';
+          shadow.getElementById('wc-btn').addEventListener('click', () => {
+            shadow.getElementById('wc-body').textContent = 'Shadow clicked at ' + Date.now();
+          });
+        }
+      }
+      customElements.define('mfe-widget', MfeWidget);
+
+      const params = new URLSearchParams(location.search);
+      const sessionId = params.has('sessionId') ? Number(params.get('sessionId')) : Date.now();
+      const deviceId = params.get('deviceId') ?? 'mfe-parent-device';
+      const apiKey =
+        params.get('apiKey') || import.meta.env.VITE_AMPLITUDE_API_KEY || 'd90c5cf09ca2546a1626272906b99a76';
+
+      document.getElementById('upgrade-shadow').addEventListener('click', () => {
+        const host = document.getElementById('wc-mfe');
+        const p = document.createElement('p');
+        p.textContent = 'Light DOM sibling ' + Date.now();
+        host.parentElement.appendChild(p);
+      });
+
+      void (async () => {
+        const statusEl = document.getElementById('status');
+        try {
+          await sessionReplay.init(apiKey, { deviceId, sessionId, sampleRate: 1, captureAdoptedStyleSheets: true })
+            .promise;
+        } catch (err) {
+          statusEl.textContent = 'error: ' + err.message;
+          return;
+        }
+        window.srReady = true;
+        statusEl.textContent = 'ready — web component MFE in same document';
+      })();
+    </script>
+  </body>
+</html>
