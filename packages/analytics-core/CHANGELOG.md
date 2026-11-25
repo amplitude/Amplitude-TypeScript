@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.63.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.63.0...@amplitude/analytics-core@2.63.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* **analytics-core:** save the restored event queue once ([#2158](https://github.com/amplitude/Amplitude-TypeScript/issues/2158)) ([c29b8d7](https://github.com/amplitude/Amplitude-TypeScript/commit/c29b8d7aa1b7ed44f50bf9e1d867fc6ea483a4fb))
+
+
+
+
+
 # [2.63.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.62.2...@amplitude/analytics-core@2.63.0) (2026-11-23)
 
 

@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.17](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.5.16...@amplitude/plugin-session-replay-react-native@0.5.17) (2026-11-25)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-react-native
+
+
+
+
+
 ## [0.5.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.5.15...@amplitude/plugin-session-replay-react-native@0.5.16) (2026-11-23)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-react-native
