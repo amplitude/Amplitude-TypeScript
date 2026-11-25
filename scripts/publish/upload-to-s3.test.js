@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { test } = require('node:test');
+const { gzipSync, gunzipSync } = require('node:zlib');
 
 const repo = path.resolve(__dirname, '../..');
 const publishers = [
@@ -46,38 +47,12 @@ const publishers = [
     files: ['analytics-browser-gtm-wrapper.min.js.br'],
     keys: ['analytics-browser-gtm-wrapper-2.0.0.min.js.br'],
   },
-  {
-    name: 'session-replay-browser',
-    files: [
-      'session-replay-browser-esm.js.gz',
-      'session-replay-browser-min.js.gz',
-      'console-plugin-min.js.gz',
-      'rrweb-record-min.js.gz',
-      'targeting-min.js.gz',
-    ],
-    keys: [
-      'session-replay-browser-2.0.0-esm.js.gz',
-      'session-replay-browser-2.0.0-min.js.gz',
-      'console-plugin-min.js.gz',
-      'rrweb-record-min.js.gz',
-      'targeting-min.js.gz',
-    ],
-  },
-  {
-    name: 'plugin-session-replay-browser',
-    files: [
-      'plugin-session-replay-browser-esm.js.gz',
-      'plugin-session-replay-browser-min.js.gz',
-      'console-plugin-min.js.gz',
-      'rrweb-record-min.js.gz',
-    ],
-    keys: [
-      'plugin-session-replay-browser-2.0.0-esm.js.gz',
-      'plugin-session-replay-browser-2.0.0-min.js.gz',
-      'console-plugin-min.js.gz',
-      'rrweb-record-min.js.gz',
-    ],
-  },
+  ...['session-replay-browser', 'plugin-session-replay-browser'].map((name) => ({
+    name,
+    esmGraph: true,
+    files: [`${name}-esm.js`, `${name}-2.0.0-index-min.js`, `${name}-min.js.gz`],
+    keys: [`${name}-2.0.0-esm.js.gz`, `${name}-2.0.0-index-min.js.gz`, `${name}-2.0.0-min.js.gz`],
+  })),
   {
     name: 'segment-session-replay-plugin',
     files: ['segment-session-replay-wrapper-esm.js.gz'],
@@ -104,7 +79,13 @@ function fixture(t, publisher) {
     fs.mkdirSync(path.join(root, 'analytics-browser'));
     fs.writeFileSync(path.join(root, 'analytics-browser/package.json'), '{"version":"2.0.0"}');
   }
-  for (const file of publisher.files) fs.writeFileSync(path.join(artifacts, file), `artifact:${file}`);
+  for (const file of publisher.files) {
+    const source = file.endsWith('-esm.js')
+      ? `export { init } from "./${publisher.name}-2.0.0-index-min.js";`
+      : 'export const init = () => {};';
+    const body = publisher.esmGraph ? (file.endsWith('.gz') ? gzipSync(`artifact:${file}`) : source) : `artifact:${file}`;
+    fs.writeFileSync(path.join(artifacts, file), body);
+  }
   // Execute the command actually wired into each package, so stale paths fail.
   const manifest = require(path.join(repo, 'packages', publisher.name, 'package.json'));
   const command = manifest.scripts['publish:s3'] || manifest.scripts.publish;
@@ -133,7 +114,7 @@ s3.S3Client = class extends RealClient {
         async handle(request) {
           fs.appendFileSync(process.env.TEST_REQUESTS, JSON.stringify({
             method: request.method, path: request.path, headers: request.headers,
-            body: Buffer.from(request.body).toString(),
+            body: Buffer.from(request.body).toString('base64'),
           }) + '\\n');
           const mode = process.env.TEST_RESPONSE;
           if (mode === 'network') throw new Error('simulated network failure');
@@ -196,7 +177,18 @@ for (const publisher of publishers) {
         call.headers['content-encoding'],
         file.endsWith('.map') ? undefined : file.endsWith('.br') ? 'br' : 'gzip',
       );
-      assert.equal(call.body, `artifact:${file}`);
+      const body = Buffer.from(call.body, 'base64');
+      if (publisher.esmGraph) {
+        const source = gunzipSync(body).toString();
+        assert.equal(call.headers['if-none-match'], '*');
+        if (file.endsWith('-esm.js')) {
+          assert.equal(source, `export { init } from "./${publisher.name}-2.0.0-index-min.js.gz";`);
+        } else {
+          assert.equal(source, file.endsWith('.gz') ? `artifact:${file}` : 'export const init = () => {};');
+        }
+      } else {
+        assert.equal(body.toString(), `artifact:${file}`);
+      }
     }
   });
 
@@ -235,7 +227,7 @@ for (const publisher of publishers) {
       f.removeFile(publisher.files[0]);
       const result = f.execute();
       assert.equal(result.status, 1, result.stderr);
-      assert.match(result.stderr, /ENOENT/);
+      assert.match(result.stderr, publisher.esmGraph ? /Missing.*Build the package/ : /ENOENT/);
       assert.equal(result.calls.length, 0);
       assert.doesNotMatch(result.stdout, /Success!|Nothing to deploy/);
     });
