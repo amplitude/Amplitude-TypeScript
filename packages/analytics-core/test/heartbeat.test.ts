@@ -467,7 +467,7 @@ describe('heartbeat', () => {
       });
     });
 
-    test('should call client.flush after tracking events when flushClient is true', async () => {
+    test('flushes queued events before waiting for their delivery', async () => {
       const event = {
         insert_id: '1',
         event_type: 'test',
@@ -477,18 +477,27 @@ describe('heartbeat', () => {
       jest.clearAllMocks();
 
       const callOrder: string[] = [];
+      const result = { event: { insert_id: '1' }, code: 200, message: 'success' };
+      let finishDelivery: () => void = () => undefined;
       trackMock.mockImplementation(() => {
         callOrder.push('track');
-        return { promise: Promise.resolve({ event: { insert_id: '1' }, code: 200, message: 'success' }) };
+        return {
+          promise: new Promise<typeof result>((resolve) => {
+            finishDelivery = () => resolve(result);
+          }),
+        };
       });
-      flushMock.mockImplementation(() => callOrder.push('flush'));
+      flushMock.mockImplementation(() => {
+        callOrder.push('flush');
+        finishDelivery();
+      });
 
-      const result = await heartbeat.heartbeat(true);
+      const delivery = heartbeat.heartbeat(true);
 
       expect(trackMock).toHaveBeenCalledTimes(1);
       expect(flushMock).toHaveBeenCalledTimes(1);
       expect(callOrder).toEqual(['track', 'flush']);
-      expect(result).toEqual([{ event: { insert_id: '1' }, code: 200, message: 'success' }]);
+      await expect(delivery).resolves.toEqual([result]);
     });
 
     test('should not call client.flush when flushClient is omitted', async () => {
