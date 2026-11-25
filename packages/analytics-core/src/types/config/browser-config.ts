@@ -18,7 +18,10 @@ export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserCon
 export interface ExternalBrowserConfig extends IConfig {
   /**
    * Custom HTTP client for event uploads, remote config, and diagnostics.
-   * Takes precedence over the built-in transport selection and is shared with Session Replay.
+   * When provided, event uploads use FetchTransport regardless of transport.type,
+   * preserving any supplied transport headers, enableKeepalive, and referrerPolicy.
+   * FetchTransport prepares the request and delegates sending to this client.
+   * Shared with Session Replay unless Replay provides its own override.
    */
   httpClient?: HttpClient;
   /**
