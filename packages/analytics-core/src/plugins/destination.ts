@@ -94,6 +94,9 @@ export class Destination implements DestinationPlugin {
   // When flush resolves, set `flushId` to null
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
+  // True while unsent events read from storage are being added back to the queue in setup().
+  // saveEvents() is skipped meanwhile, so the whole queue is saved once afterwards instead of once per event.
+  isRestoringUnsentEvents = false;
   diagnosticsClient: IDiagnosticsClient | undefined;
 
   constructor(context?: { diagnosticsClient: IDiagnosticsClient | undefined }) {
@@ -106,7 +109,15 @@ export class Destination implements DestinationPlugin {
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider?.get(this.storageKey);
     if (unsent && unsent.length > 0) {
-      void Promise.all(unsent.map((event: Event) => this.execute(event))).catch();
+      this.isRestoringUnsentEvents = true;
+      let results: Promise<Result>[];
+      try {
+        results = unsent.map((event: Event) => this.execute(event));
+      } finally {
+        this.isRestoringUnsentEvents = false;
+      }
+      this.saveEvents();
+      void Promise.all(results).catch();
     }
 
     return Promise.resolve(undefined);
@@ -425,7 +436,7 @@ export class Destination implements DestinationPlugin {
    * Update the event storage based on the queue
    */
   saveEvents() {
-    if (!this.config.storageProvider) {
+    if (!this.config.storageProvider || this.isRestoringUnsentEvents) {
       return;
     }
 
