@@ -1128,7 +1128,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !config) {
-      if (this.semanticAdapter && this.recordCancelCallback) this.stopRecordingEvents();
+      // Stop any recorder left running from a previous session. Its emit
+      // callback holds the previous session id, so it would otherwise keep
+      // uploading events under that id.
+      if (this.recordCancelCallback) this.stopRecordingEvents();
       return;
     }
     this.markRecordingStarted(sessionId, config.apiKey);
