@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.13.0-video-analytics-12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.11.24...@amplitude/plugin-page-view-tracking-browser@2.13.0-video-analytics-12.0) (2026-11-25)
+
+
+### Bug Fixes
+
+* **browser:** preserve page context on engagement replays (SDK-692) ([#2168](https://github.com/amplitude/Amplitude-TypeScript/issues/2168)) ([857b3f6](https://github.com/amplitude/Amplitude-TypeScript/commit/857b3f602f739898117bf624c4fede5a432db405))
+* **page-view-tracking:** throttle background snapshot sends ([#2097](https://github.com/amplitude/Amplitude-TypeScript/issues/2097)) ([8ab0307](https://github.com/amplitude/Amplitude-TypeScript/commit/8ab03075e91c2bcb830cae8daad108db83fa517a))
+
+
+### Features
+
+* **analytics-browser:** add page context and SDK initialization offset ([#2067](https://github.com/amplitude/Amplitude-TypeScript/issues/2067)) ([cc7389f](https://github.com/amplitude/Amplitude-TypeScript/commit/cc7389fd5a3547f46d078ebd7971134f1c9f2411))
+* **browser-analytics:** add engaged-time tracking ([#2062](https://github.com/amplitude/Amplitude-TypeScript/issues/2062)) ([25e7804](https://github.com/amplitude/Amplitude-TypeScript/commit/25e7804721d65be5c564c7341fab1d3199f37fe3))
+* **engagement:** add independent engaged-time plugin (SDK-692) ([#2166](https://github.com/amplitude/Amplitude-TypeScript/issues/2166)) ([1d3c573](https://github.com/amplitude/Amplitude-TypeScript/commit/1d3c573561388a35ce4dd7654594c6f659116ae7))
+
+
+
+
+
 ## [2.12.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.12.0...@amplitude/plugin-page-view-tracking-browser@2.12.1) (2026-11-06)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
