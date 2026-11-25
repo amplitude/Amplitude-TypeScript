@@ -8,6 +8,17 @@ import {
 } from '@amplitude/analytics-core';
 import { collectOpenShadowRoots, segmentWalk, walkComposedAncestors } from '@amplitude/element-selector';
 import { SHADOW_OFF, type ShadowMode } from './shadow-mode';
+import {
+  AMPLITUDE_EVENT_PROP_ELEMENT_CLICK_CELL,
+  AMPLITUDE_EVENT_PROP_ELEMENT_CLICK_CELL_MAX_PER_AXIS,
+  AMPLITUDE_EVENT_PROP_ELEMENT_CLICK_CELL_MIN_SIZE,
+  AMPLITUDE_EVENT_PROP_ELEMENT_HEIGHT,
+  AMPLITUDE_EVENT_PROP_ELEMENT_WIDTH,
+  AMPLITUDE_EVENT_PROP_PAGE_X,
+  AMPLITUDE_EVENT_PROP_PAGE_Y,
+  DEFAULT_CLICK_CELL_MAX_PER_AXIS,
+  DEFAULT_CLICK_CELL_MIN_SIZE_PX,
+} from './constants';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
@@ -352,6 +363,121 @@ export function generateUniqueId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && isFinite(value);
+
+/**
+ * Whether a click came from a pointer. Keyboard activations and programmatic
+ * `element.click()` calls dispatch a click with `detail === 0`, and plain
+ * `Event`s have no `detail`; neither has a real pointer position.
+ */
+const isPointerClick = (event: Event | MouseEvent | null | undefined): event is MouseEvent =>
+  !!event && typeof (event as MouseEvent).detail === 'number' && (event as MouseEvent).detail !== 0;
+
+/**
+ * Returns the pointer's page coordinates for a click event, keyed by the
+ * `[Amplitude] Page X` / `[Amplitude] Page Y` event property names.
+ *
+ * Returns an empty object when the click has no pointer position:
+ * - keyboard activations (Enter/Space on a button) and programmatic
+ *   `element.click()` calls dispatch a click with `detail === 0`
+ * - plain `Event`s (e.g. `dispatchEvent(new Event('click'))`) have no coordinates
+ */
+export const getClickPageCoordinates = (event: Event | MouseEvent | null | undefined): Record<string, number> => {
+  if (!isPointerClick(event)) {
+    return {};
+  }
+  const { pageX, pageY } = event;
+  if (!isFiniteNumber(pageX) || !isFiniteNumber(pageY)) {
+    return {};
+  }
+  return {
+    [AMPLITUDE_EVENT_PROP_PAGE_X]: Math.round(pageX),
+    [AMPLITUDE_EVENT_PROP_PAGE_Y]: Math.round(pageY),
+  };
+};
+
+/** Grid parameters for the click cell, with defaults applied. */
+export type ClickCellConfig = {
+  /** Minimum width and height of a grid cell, in CSS pixels. */
+  minCellSizePx: number;
+  /** Largest number of cells along one axis. */
+  maxCellsPerAxis: number;
+};
+
+/**
+ * Resolves the `clickCell` option into the grid parameters to use, or `null`
+ * when the click cell is disabled. Unusable values fall back to the defaults.
+ */
+export const resolveClickCellConfig = (options: ElementInteractionsOptions['clickCell']): ClickCellConfig | null => {
+  if (options?.enabled === false) {
+    return null;
+  }
+  const minCellSizePx = options?.minCellSizePx;
+  const maxCellsPerAxis = options?.maxCellsPerAxis;
+  return {
+    minCellSizePx: isFiniteNumber(minCellSizePx) && minCellSizePx > 0 ? minCellSizePx : DEFAULT_CLICK_CELL_MIN_SIZE_PX,
+    maxCellsPerAxis:
+      isFiniteNumber(maxCellsPerAxis) && maxCellsPerAxis >= 1
+        ? Math.floor(maxCellsPerAxis)
+        : DEFAULT_CLICK_CELL_MAX_PER_AXIS,
+  };
+};
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+/**
+ * Returns where inside `element` a pointer click landed, keyed by the click
+ * cell event property names.
+ *
+ * A grid is laid over the element's bounding box, sized per axis as
+ * `clamp(floor(size / minCellSizePx), 1, maxCellsPerAxis)`, and the cell under
+ * the pointer is reported as `<cols>x<rows>:<col>,<row>` (zero-based from the
+ * top-left). The value carries its own grid so it stays readable when the grid
+ * parameters change. A click outside the box (a descendant that overflows it)
+ * is assigned to the nearest edge cell.
+ *
+ * Must be called while the element is still laid out as it was when the click
+ * happened: it reads the element's current bounding box.
+ *
+ * Returns an empty object when the click cell is disabled (`config` is null),
+ * the click has no pointer position (see `getClickPageCoordinates`), or the
+ * element has no size. It never throws: it runs in the click capture path, where
+ * an error would end click tracking for the page.
+ */
+export const getClickCellProperties = (
+  event: Event | MouseEvent | null | undefined,
+  element: Element | null | undefined,
+  config: ClickCellConfig | null,
+): Record<string, string | number> => {
+  if (!config || !isPointerClick(event) || typeof element?.getBoundingClientRect !== 'function') {
+    return {};
+  }
+  const { clientX, clientY } = event;
+  if (!isFiniteNumber(clientX) || !isFiniteNumber(clientY)) {
+    return {};
+  }
+  try {
+    const rect = element.getBoundingClientRect();
+    if (!isFiniteNumber(rect.width) || !isFiniteNumber(rect.height) || rect.width <= 0 || rect.height <= 0) {
+      return {};
+    }
+    const { minCellSizePx, maxCellsPerAxis } = config;
+    const cols = clamp(Math.floor(rect.width / minCellSizePx), 1, maxCellsPerAxis);
+    const rows = clamp(Math.floor(rect.height / minCellSizePx), 1, maxCellsPerAxis);
+    const col = clamp(Math.floor(((clientX - rect.left) / rect.width) * cols), 0, cols - 1);
+    const row = clamp(Math.floor(((clientY - rect.top) / rect.height) * rows), 0, rows - 1);
+    return {
+      [AMPLITUDE_EVENT_PROP_ELEMENT_CLICK_CELL]: `${cols}x${rows}:${col},${row}`,
+      [AMPLITUDE_EVENT_PROP_ELEMENT_CLICK_CELL_MIN_SIZE]: minCellSizePx,
+      [AMPLITUDE_EVENT_PROP_ELEMENT_CLICK_CELL_MAX_PER_AXIS]: maxCellsPerAxis,
+      [AMPLITUDE_EVENT_PROP_ELEMENT_WIDTH]: Math.round(rect.width),
+      [AMPLITUDE_EVENT_PROP_ELEMENT_HEIGHT]: Math.round(rect.height),
+    };
+  } catch {
+    return {};
+  }
+};
+
 export const filterOutNonTrackableEvents = (event: ElementBasedTimestampedEvent<ElementBasedEvent>): boolean => {
   // Filter out changeEvent events with no target
   // This could happen when change events are triggered programmatically
@@ -381,6 +507,12 @@ export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
   type: 'click' | 'change';
   closestTrackedAncestor: Element;
   targetElementProperties: Record<string, any>;
+  /**
+   * Click cell properties of `closestTrackedAncestor`, read when the click was
+   * captured. Kept apart from `targetElementProperties` because action clicks
+   * are tracked later, after the element may have moved or resized.
+   */
+  clickCellProperties?: Record<string, string | number>;
 };
 
 export type evaluateTriggersFn = (

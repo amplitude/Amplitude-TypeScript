@@ -496,6 +496,142 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
+    test('should add page coordinates to element clicked event for a pointer click', async () => {
+      await plugin?.setup?.({ defaultTracking: false, loggerProvider } as BrowserConfig, instance);
+
+      const click = new MouseEvent('click', { detail: 1, clientX: 12, clientY: 34 });
+      Object.defineProperty(click, 'pageX', { value: 12.3 });
+      Object.defineProperty(click, 'pageY', { value: 2034.7 });
+      document.getElementById('my-link-id')?.dispatchEvent(click);
+
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.objectContaining({
+          '[Amplitude] Element ID': 'my-link-id',
+          '[Amplitude] Page X': 12,
+          '[Amplitude] Page Y': 2035,
+        }),
+      );
+    });
+
+    test('should not add page coordinates to element clicked event for a keyboard activation', async () => {
+      await plugin?.setup?.({ defaultTracking: false, loggerProvider } as BrowserConfig, instance);
+
+      // keyboard activations dispatch a click with detail === 0 and no pointer position
+      document.getElementById('my-link-id')?.dispatchEvent(new MouseEvent('click', { detail: 0 }));
+
+      jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+      expect(track).toHaveBeenCalledTimes(1);
+      const properties = track.mock.calls[0][1] as Record<string, unknown>;
+      expect(properties['[Amplitude] Element ID']).toBe('my-link-id');
+      expect(properties).not.toHaveProperty('[Amplitude] Page X');
+      expect(properties).not.toHaveProperty('[Amplitude] Page Y');
+    });
+
+    describe('click cell', () => {
+      const CLICK_CELL_PROPERTIES = [
+        '[Amplitude] Element Click Cell',
+        '[Amplitude] Element Click Cell Min Size',
+        '[Amplitude] Element Click Cell Max Per Axis',
+        '[Amplitude] Element Width',
+        '[Amplitude] Element Height',
+      ];
+
+      const mockLinkRect = (rect: { left: number; top: number; width: number; height: number }) => {
+        const link = document.getElementById('my-link-id') as HTMLElement;
+        link.getBoundingClientRect = () => rect as DOMRect;
+        return link;
+      };
+
+      test('should add the click cell to element clicked event for a pointer click', async () => {
+        await plugin?.setup?.({ defaultTracking: false, loggerProvider } as BrowserConfig, instance);
+
+        // 300x200 at the default 64px minimum is a 4x3 grid
+        const link = mockLinkRect({ left: 100, top: 200, width: 300, height: 200 });
+        link.dispatchEvent(new MouseEvent('click', { detail: 1, clientX: 250, clientY: 300 }));
+
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'my-link-id',
+            '[Amplitude] Element Click Cell': '4x3:2,1',
+            '[Amplitude] Element Click Cell Min Size': 64,
+            '[Amplitude] Element Click Cell Max Per Axis': 10,
+            '[Amplitude] Element Width': 300,
+            '[Amplitude] Element Height': 200,
+          }),
+        );
+      });
+
+      test('should use the clickCell grid options', async () => {
+        plugin = autocapturePlugin({
+          debounceTime: TESTING_DEBOUNCE_TIME,
+          clickCell: { minCellSizePx: 100, maxCellsPerAxis: 2 },
+        });
+        await plugin?.setup?.({ defaultTracking: false, loggerProvider } as BrowserConfig, instance);
+
+        // 300 / 100 = 3 columns, capped at 2; 200 / 100 = 2 rows
+        const link = mockLinkRect({ left: 0, top: 0, width: 300, height: 200 });
+        link.dispatchEvent(new MouseEvent('click', { detail: 1, clientX: 299, clientY: 10 }));
+
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element Click Cell': '2x2:1,0',
+            '[Amplitude] Element Click Cell Min Size': 100,
+            '[Amplitude] Element Click Cell Max Per Axis': 2,
+          }),
+        );
+      });
+
+      test('should not add the click cell for a keyboard activation', async () => {
+        await plugin?.setup?.({ defaultTracking: false, loggerProvider } as BrowserConfig, instance);
+
+        const link = mockLinkRect({ left: 100, top: 200, width: 300, height: 200 });
+        link.dispatchEvent(new MouseEvent('click', { detail: 0 }));
+
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+        expect(track).toHaveBeenCalledTimes(1);
+        const properties = track.mock.calls[0][1] as Record<string, unknown>;
+        expect(properties['[Amplitude] Element ID']).toBe('my-link-id');
+        CLICK_CELL_PROPERTIES.forEach((property) => expect(properties).not.toHaveProperty(property));
+      });
+
+      test('should not add the click cell when clickCell is disabled', async () => {
+        plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME, clickCell: { enabled: false } });
+        await plugin?.setup?.({ defaultTracking: false, loggerProvider } as BrowserConfig, instance);
+
+        const link = mockLinkRect({ left: 100, top: 200, width: 300, height: 200 });
+        const click = new MouseEvent('click', { detail: 1, clientX: 250, clientY: 300 });
+        Object.defineProperty(click, 'pageX', { value: 250 });
+        Object.defineProperty(click, 'pageY', { value: 2300 });
+        link.dispatchEvent(click);
+
+        jest.advanceTimersByTime(TESTING_DEBOUNCE_TIME + 3);
+
+        expect(track).toHaveBeenCalledTimes(1);
+        const properties = track.mock.calls[0][1] as Record<string, unknown>;
+        CLICK_CELL_PROPERTIES.forEach((property) => expect(properties).not.toHaveProperty(property));
+        // page coordinates do not depend on the click cell option
+        expect(properties['[Amplitude] Page X']).toBe(250);
+        expect(properties['[Amplitude] Page Y']).toBe(2300);
+      });
+    });
+
     test('should only collect element hierarchy once', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
