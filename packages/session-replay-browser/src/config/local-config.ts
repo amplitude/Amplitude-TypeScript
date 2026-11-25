@@ -167,8 +167,11 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
         maxIntervalMs: DEFAULT_FLUSH_MAX_INTERVAL_MS,
       };
     }
-    this.handleSendEvents = options.handleSendEvents;
-    this.handleFetchConfig = options.handleFetchConfig;
+    const httpClient = options.httpClient;
+    this.handleSendEvents =
+      options.handleSendEvents ?? (httpClient ? (request) => httpClient.send(request) : undefined);
+    this.handleFetchConfig =
+      options.handleFetchConfig ?? (httpClient ? (request) => httpClient.send(request) : undefined);
   }
 }
 

@@ -178,6 +178,37 @@ describe('browser-client', () => {
       expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
     });
 
+    test('shares the HTTP client with remote config, diagnostics, and transport changes', async () => {
+      const httpClient = {
+        send: jest.fn().mockResolvedValue({ status: 200, ok: true, text: async () => '{"code":200}' }),
+      };
+      await client.init(apiKey, { httpClient, autocapture: false }).promise;
+      const customFetch = MockedRemoteConfigClient.mock.calls[0][4] as core.RemoteConfigCustomFetch;
+      const request: core.RemoteConfigFetchRequest = {
+        url: 'https://example.com/config',
+        method: 'GET',
+        headers: {},
+        signal: new AbortController().signal,
+      };
+      await customFetch(request);
+      expect(httpClient.send).toHaveBeenLastCalledWith(request);
+      await (client.config.diagnosticsClient as DiagnosticsClient).fetch({
+        tags: {},
+        histogram: {},
+        counters: {},
+        events: [],
+      });
+      expect(httpClient.send).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          url: expect.stringContaining('diagnostics.'),
+          method: 'POST',
+        }),
+      );
+      client.setTransport('beacon');
+      await client.config.transportProvider.send('https://example.com/events', { api_key: apiKey, events: [] });
+      expect(httpClient.send).toHaveBeenLastCalledWith(expect.objectContaining({ url: 'https://example.com/events' }));
+    });
+
     test('should pass remoteConfig.serverUrl to RemoteConfigClient when provided', async () => {
       const customServerUrl = 'https://my-proxy.com/remote-config';
 
@@ -192,6 +223,7 @@ describe('browser-client', () => {
         expect.anything(), // loggerProvider
         'US', // default serverZone
         customServerUrl, // our custom URL
+        undefined, // default config transport
       );
     });
 
@@ -423,6 +455,8 @@ describe('browser-client', () => {
             enabled: expectedEnabled,
             sampleRate: expectedSampleRate,
           },
+          undefined,
+          undefined,
         );
 
         // Verify that the diagnostics config was applied
@@ -2408,7 +2442,7 @@ describe('browser-client', () => {
       createTransport.mockClear();
       client.setTransport('xhr');
 
-      expect(createTransport).toHaveBeenCalledWith('xhr');
+      expect(createTransport).toHaveBeenCalledWith('xhr', undefined);
     });
 
     test('should keep custom endpoint compression setting when switching transport', async () => {
@@ -2422,7 +2456,7 @@ describe('browser-client', () => {
       createTransport.mockClear();
       client.setTransport('xhr');
 
-      expect(createTransport).toHaveBeenCalledWith('xhr');
+      expect(createTransport).toHaveBeenCalledWith('xhr', undefined);
     });
 
     test('should defer set transport', () => {

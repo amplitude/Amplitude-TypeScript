@@ -1,6 +1,6 @@
 import { UserSession } from '../user-session';
 import { IdentityStorageType, Storage } from '../storage';
-import { Transport, TransportTypeOrOptions } from '../transport';
+import { HttpClient, Transport, TransportTypeOrOptions } from '../transport';
 import { IConfig } from './core-config';
 import { ElementInteractionsOptions } from '../element-interactions';
 import { FormInteractionsOptions } from '../form-interactions';
@@ -16,6 +16,11 @@ import { CustomEnrichmentOptions } from '../custom-enrichment';
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
 export interface ExternalBrowserConfig extends IConfig {
+  /**
+   * Custom HTTP client for event uploads, remote config, and diagnostics.
+   * Takes precedence over the built-in transport selection and is shared with Session Replay.
+   */
+  httpClient?: HttpClient;
   /**
    * An app version for events tracked. This can be the version of your application.
    * @defaultValue `undefined`

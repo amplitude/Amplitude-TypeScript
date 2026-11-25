@@ -801,6 +801,22 @@ describe('DiagnosticsClient', () => {
       jest.clearAllMocks();
     });
 
+    test('uses the custom HTTP client without requiring the built-in fetch path', async () => {
+      (getGlobalScope as jest.Mock).mockReturnValue(undefined);
+      const httpClient = { send: jest.fn().mockResolvedValue({ ok: true }) };
+      const client = new DiagnosticsClient(apiKey, mockLogger, 'US', undefined, undefined, httpClient);
+
+      await client.fetch(TEST_PAYLOAD);
+
+      expect(httpClient.send).toHaveBeenCalledWith({
+        url: DIAGNOSTICS_US_SERVER_URL,
+        method: 'POST',
+        headers: { 'X-ApiKey': apiKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify(TEST_PAYLOAD),
+      });
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
     test('should early return if fetch is not supported', async () => {
       (getGlobalScope as jest.Mock).mockReturnValue(undefined);
       const client = new DiagnosticsClient(apiKey, mockLogger);

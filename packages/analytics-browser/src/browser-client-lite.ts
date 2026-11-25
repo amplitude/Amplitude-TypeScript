@@ -435,7 +435,7 @@ export class AmplitudeBrowserLite extends AmplitudeCore implements BrowserClient
       this.q.push(this.setTransport.bind(this, transport));
       return;
     }
-    this.config.transportProvider = createTransport(transport);
+    this.config.transportProvider = createTransport(transport, this.config.httpClient);
   }
 
   identify(identify: IIdentify, eventOptions?: EventOptions) {

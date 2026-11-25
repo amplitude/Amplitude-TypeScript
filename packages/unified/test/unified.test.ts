@@ -27,6 +27,35 @@ describe('AmplitudeUnified', () => {
 
   describe('initAll', () => {
     test.each([
+      [false, false, false],
+      [true, false, false],
+      [true, true, false],
+      [true, false, true],
+      [true, true, true],
+      [false, true, true],
+    ])('resolves child HTTP clients before the shared fallback (%s, %s, %s)', async (shared, analytics, replay) => {
+      const httpClient = shared ? { send: jest.fn() } : undefined;
+      const analyticsClient = analytics ? { send: jest.fn() } : undefined;
+      const replayClient = replay ? { send: jest.fn() } : undefined;
+      const init = jest.spyOn(AmplitudeBrowser.prototype, 'init').mockReturnValue({ promise: Promise.resolve() });
+      const add = jest.spyOn(AmplitudeBrowser.prototype, 'add').mockReturnValue({ promise: Promise.resolve() });
+      const client = new AmplitudeUnified();
+      jest.spyOn(client, 'plugin').mockReturnValue(new SessionReplayPlugin());
+
+      await client.initAll('key', {
+        httpClient,
+        analytics: { httpClient: analyticsClient },
+        sessionReplay: { httpClient: replayClient },
+      });
+
+      expect(init).toHaveBeenCalledWith('key', expect.objectContaining({ httpClient: analyticsClient ?? httpClient }));
+      const replayPlugin = add.mock.calls
+        .map(([plugin]) => plugin)
+        .find((plugin): plugin is SessionReplayPlugin => plugin instanceof SessionReplayPlugin);
+      expect(replayPlugin?.options.httpClient).toBe(replayClient ?? httpClient);
+    });
+
+    test.each([
       {
         analytics: {
           loggerProvider: mockLoggerProvider,

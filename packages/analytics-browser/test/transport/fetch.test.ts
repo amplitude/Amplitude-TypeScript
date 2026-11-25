@@ -11,6 +11,60 @@ if (typeof global.TextEncoder === 'undefined') {
 
 describe('fetch transport', () => {
   describe('send', () => {
+    test('passes serialized requests to a stateful HTTP client and parses HTTP failures', async () => {
+      const httpClient = {
+        response: new Response('{"code":429}', { status: 429 }),
+        send: jest.fn(function (this: { response: Response }, _request: analyticsCore.HttpRequest) {
+          return Promise.resolve(this.response);
+        }),
+      };
+      const fetchSpy = jest.spyOn(window, 'fetch');
+      const transport = new FetchTransport({ Authorization: 'token' }, false, 'no-referrer', httpClient);
+      const payload = { api_key: 'key', events: [] };
+
+      const response = await transport.send('https://example.com/events', payload);
+
+      expect(httpClient.send).toHaveBeenCalledWith({
+        url: 'https://example.com/events',
+        method: 'POST',
+        headers: { Authorization: 'token', 'Content-Type': 'application/json', Accept: '*/*' },
+        body: JSON.stringify(payload),
+        keepalive: false,
+        referrerPolicy: 'no-referrer',
+      });
+      expect(response?.statusCode).toBe(429);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    test('passes compressed bytes to the custom client', async () => {
+      const compressed = new ArrayBuffer(2);
+      jest.spyOn(analyticsCore, 'isCompressionStreamAvailable').mockReturnValue(true);
+      jest.spyOn(analyticsCore, 'compressToGzipArrayBuffer').mockResolvedValue(compressed);
+      const httpClient = { send: jest.fn().mockResolvedValue(new Response('{"code":200}')) };
+      const transport = new FetchTransport({}, undefined, undefined, httpClient);
+      const payload = { api_key: 'key', events: [{ event_type: 'x'.repeat(MIN_GZIP_UPLOAD_BODY_SIZE_BYTES) }] };
+
+      await transport.send('https://example.com/events', payload, true);
+
+      expect(httpClient.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: compressed,
+          headers: expect.objectContaining({ 'Content-Encoding': 'gzip' }),
+        }),
+      );
+    });
+
+    test('propagates custom client network failures without bypassing the client', async () => {
+      const error = new Error('offline');
+      const httpClient = { send: jest.fn().mockRejectedValue(error) };
+      const fetchSpy = jest.spyOn(window, 'fetch');
+      const transport = new FetchTransport({}, undefined, undefined, httpClient);
+
+      await expect(transport.send('https://example.com/events', { api_key: 'key', events: [] })).rejects.toBe(error);
+      expect(httpClient.send).toHaveBeenCalledTimes(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
     test.each([['{}'], [''], ['<']])('should resolve with response', async (body) => {
       const transport = new FetchTransport();
       const url = 'http://localhost:3000';

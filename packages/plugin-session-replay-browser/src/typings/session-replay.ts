@@ -1,4 +1,4 @@
-import { Event } from '@amplitude/analytics-core';
+import { Event, HttpClient } from '@amplitude/analytics-core';
 import {
   StoreType,
   type SessionReplaySendEventsHandler,
@@ -234,6 +234,8 @@ export interface SessionReplayOptions {
    * @see {@link StandaloneSessionReplayOptions.sendTimeoutMs}
    */
   sendTimeoutMs?: number;
+  /** Overrides the Analytics HTTP client for Replay. Individual request handlers take precedence. */
+  httpClient?: HttpClient;
   /**
    * Optional custom transport for replay event uploads. Use to attach custom auth (e.g. a JWT
    * `Authorization` header) and route through an authenticated proxy.
