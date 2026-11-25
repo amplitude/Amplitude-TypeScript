@@ -2352,6 +2352,35 @@ describe('SessionReplay', () => {
   });
 
   describe('setSessionId', () => {
+    test('should stop the previous recorder when the new session is not in sample', async () => {
+      // Session 123 is in sample, session 456 is not.
+      jest.spyOn(Sampling, 'isSessionInSample').mockImplementation((sessionId) => String(sessionId) === '123');
+      await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5 }).promise;
+      await jest.runAllTimersAsync();
+
+      expect(sessionReplay.identifiers?.sessionId).toEqual(123);
+      expect(mockRecordFunction).toHaveBeenCalled();
+      const lastCall = mockRecordFunction.mock.results.length - 1;
+      const cancelRecording = mockRecordFunction.mock.results[lastCall].value as jest.Mock;
+      expect(sessionReplay.recordCancelCallback).toBe(cancelRecording);
+
+      if (!sessionReplay.joinedConfigGenerator || !sessionReplay.config) {
+        throw new Error('Init not called');
+      }
+      const config = sessionReplay.config;
+      jest
+        .spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig')
+        .mockResolvedValue({ joinedConfig: config, localConfig: config, remoteConfig: undefined });
+
+      await sessionReplay.setSessionId(456).promise;
+      await jest.runAllTimersAsync();
+
+      expect(sessionReplay.identifiers?.sessionId).toEqual(456);
+      expect(sessionReplay.getShouldRecord()).toBe(false);
+      expect(cancelRecording).toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toBeNull();
+    });
+
     test('should stop recording events for current session', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const stopRecordingMock = jest.fn();
