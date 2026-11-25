@@ -852,11 +852,11 @@ importers:
         specifier: workspace:*
         version: link:../analytics-types
       '@amplitude/rrweb-plugin-console-record':
-        specifier: 2.1.5
-        version: 2.1.5(@amplitude/rrweb@2.1.5)
+        specifier: 2.1.8
+        version: 2.1.8(@amplitude/rrweb@2.1.8)
       '@amplitude/rrweb-record':
-        specifier: 2.1.5
-        version: 2.1.5
+        specifier: 2.1.8
+        version: 2.1.8
       '@amplitude/session-replay-browser':
         specifier: workspace:*
         version: link:../session-replay-browser
@@ -1077,11 +1077,11 @@ importers:
         specifier: workspace:*
         version: link:../analytics-types
       '@amplitude/rrweb-plugin-console-record':
-        specifier: 2.1.5
-        version: 2.1.5(@amplitude/rrweb@2.1.5)
+        specifier: 2.1.8
+        version: 2.1.8(@amplitude/rrweb@2.1.8)
       '@amplitude/rrweb-record':
-        specifier: 2.1.5
-        version: 2.1.5
+        specifier: 2.1.8
+        version: 2.1.8
       '@amplitude/rrweb-types':
         specifier: 2.1.5
         version: 2.1.5
@@ -1371,6 +1371,10 @@ packages:
     resolution:
       { integrity: sha512-dKDxmjLiJ/J5cCOv65ux84qrJ5XnNPvR/5FnbNHI795fz6vqXjwrYWjZM9G0xmsCRldDvKBvdZwd9oZDSbZW8g== }
 
+  '@amplitude/rrdom@2.1.7':
+    resolution:
+      { integrity: sha512-+YqO/cCb6coB1oVn9bVn6mioOm/ghrhkL0D+zRWCoYEVbIL0P2ga03fgoTBIxiN0MKJbQ7FSmN/hgAS9g7qycw== }
+
   '@amplitude/rrweb-packer@2.0.0-alpha.40':
     resolution:
       { integrity: sha512-Btb6b9pS1IvDMbvyYxpUdTk9NRJugSoJjRCl7R6jP/iSlPWXoveJIwHaNFAS9ZmWUEK7HhyBJ8bKGFN3giUsDg== }
@@ -1381,9 +1385,9 @@ packages:
     peerDependencies:
       '@amplitude/rrweb': ^2.0.0-alpha.40
 
-  '@amplitude/rrweb-plugin-console-record@2.1.5':
+  '@amplitude/rrweb-plugin-console-record@2.1.8':
     resolution:
-      { integrity: sha512-VpnisarxAu8a4qfWHPdPgwXuJlPTPpLYoprWTPA6O8IlgmB4qOvNKcJYyXskAWdVzQlje5sawZv1iALo0mt7mg== }
+      { integrity: sha512-Gbt7Gtm478hpcnw8n5f2d9Cbyop4cFWA01oM0QOCLgCqR5xY5Ne0ctNuv5hKo49UOlR5NNUweRNDe91zFYdR0Q== }
     peerDependencies:
       '@amplitude/rrweb': ^2.1.0
 
@@ -1391,13 +1395,17 @@ packages:
     resolution:
       { integrity: sha512-5cJhQwzhymJWX5/XOtpWK0h2NLq9+t2YiO6ub0cdZ9F5AZizaRbsVH88int07DfX0YiXTKWbISezVuduCLqgSQ== }
 
-  '@amplitude/rrweb-record@2.1.5':
+  '@amplitude/rrweb-record@2.1.8':
     resolution:
-      { integrity: sha512-e+atJA8T8POwb2X7hOZYXmB8QOo96kXtbdOgiF5DZh/louNVsHvTGRPIW6GoQacxJSh2vvzmkNEHpUpv8p4TGA== }
+      { integrity: sha512-6zern3HFkIzQXUgInrtqNVaS+K+eb5QbBOubHi9ZajytXGwg70sQmHcKtAQ6HFHam3MVAJFFEP2zIXlj0CX/ng== }
 
   '@amplitude/rrweb-snapshot@2.1.5':
     resolution:
       { integrity: sha512-6X/4JpSDRQZ0klB9Xg1g89/0Kd234pAg3lHexYhc7VgjJ9/FBXU5xKLzUd3sKfvZb9fv0yz8N+4R0+kRNwGX+w== }
+
+  '@amplitude/rrweb-snapshot@2.1.6':
+    resolution:
+      { integrity: sha512-5PXSDEUKRiekXT3PkPXWkWwwbC5UXEc6re3wY+BN/E3c/uyU0V2YLhezZwHPbH+gf+KTMGKLyJRP/n+ToK0NVg== }
 
   '@amplitude/rrweb-types@2.0.0-alpha.40':
     resolution:
@@ -1418,6 +1426,10 @@ packages:
   '@amplitude/rrweb@2.1.5':
     resolution:
       { integrity: sha512-TRUxRSojYKM3k4ejWDUt20t5OW/KLr+Dd10eKtHZq7q12BdVoFEQdC88VvWCkoKvoSEbRiLcLU6CX/ilmf1SIQ== }
+
+  '@amplitude/rrweb@2.1.8':
+    resolution:
+      { integrity: sha512-5Er20QyshpCKYE9hstRZqgUEEF7NCVxgJnHGwa9B/NGofckVyGdWrtv0U0mi1IyZEb3q2QNV61w/e5mNOD29iA== }
 
   '@amplitude/session-replay-browser@1.46.1-publish-sr-targeting.0':
     resolution:
@@ -12789,6 +12801,10 @@ snapshots:
     dependencies:
       '@amplitude/rrweb-snapshot': 2.1.5
 
+  '@amplitude/rrdom@2.1.7':
+    dependencies:
+      '@amplitude/rrweb-snapshot': 2.1.6
+
   '@amplitude/rrweb-packer@2.0.0-alpha.40':
     dependencies:
       '@amplitude/rrweb-types': 2.1.5
@@ -12798,23 +12814,27 @@ snapshots:
     dependencies:
       '@amplitude/rrweb': 2.1.5
 
-  '@amplitude/rrweb-plugin-console-record@2.1.5(@amplitude/rrweb@2.1.5)':
+  '@amplitude/rrweb-plugin-console-record@2.1.8(@amplitude/rrweb@2.1.8)':
     dependencies:
-      '@amplitude/rrweb': 2.1.5
+      '@amplitude/rrweb': 2.1.8
 
   '@amplitude/rrweb-record@2.0.0-alpha.40':
     dependencies:
       '@amplitude/rrweb': 2.1.5
       '@amplitude/rrweb-types': 2.1.5
 
-  '@amplitude/rrweb-record@2.1.5':
+  '@amplitude/rrweb-record@2.1.8':
     dependencies:
-      '@amplitude/rrweb': 2.1.5
+      '@amplitude/rrweb': 2.1.8
       '@amplitude/rrweb-types': 2.1.5
 
   '@amplitude/rrweb-snapshot@2.1.5':
     dependencies:
       postcss: 8.5.13
+
+  '@amplitude/rrweb-snapshot@2.1.6':
+    dependencies:
+      postcss: 8.5.32
 
   '@amplitude/rrweb-types@2.0.0-alpha.40': {}
 
@@ -12828,6 +12848,17 @@ snapshots:
     dependencies:
       '@amplitude/rrdom': 2.1.5
       '@amplitude/rrweb-snapshot': 2.1.5
+      '@amplitude/rrweb-types': 2.1.5
+      '@amplitude/rrweb-utils': 2.1.2
+      '@types/css-font-loading-module': 0.0.7
+      '@xstate/fsm': 1.6.5
+      base64-arraybuffer: 1.0.2
+      mitt: 3.0.1
+
+  '@amplitude/rrweb@2.1.8':
+    dependencies:
+      '@amplitude/rrdom': 2.1.7
+      '@amplitude/rrweb-snapshot': 2.1.6
       '@amplitude/rrweb-types': 2.1.5
       '@amplitude/rrweb-utils': 2.1.2
       '@types/css-font-loading-module': 0.0.7
