@@ -113,6 +113,21 @@ const sessionReplayTracking = sessionReplayPlugin({
 });
 ```
 
+#### Customize how masked text is recorded
+Set `privacyConfig.maskTextFn` (and optionally `maskInputFn`) to control what is recorded for text or inputs the SDK would otherwise mask, for example with `defaultMaskLevel: 'conservative'`. The callback receives the original text and its element, and returns the text to record.
+```typescript
+const sessionReplayTracking = sessionReplayPlugin({
+  privacyConfig: {
+    defaultMaskLevel: 'conservative',
+    maskTextFn: (text, element) => (isStaticCopy(text, element) ? text : text.replace(/[^\s]/g, '*')),
+  },
+});
+```
+- The callback only runs for content the SDK masks because of the mask level. It does not run for blocked elements, elements masked with `amp-mask` / `data-amp-mask` / `maskSelector`, content that is not masked, or password inputs.
+- If the callback throws or returns a non-string, the text is fully masked.
+- The callback is local-only and can't be set through remote config. Remote mask levels still decide whether content is masked at all.
+- The callback runs synchronously on the main thread for each masked text node, so keep it fast. You are responsible for not returning sensitive data.
+
 ## Debugging 
 
 ### Using debugMode when developing locally

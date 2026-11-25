@@ -30,6 +30,15 @@ export interface SessionReplayPrivacyConfig {
   maskAttributes?: string[];
   maskSelector?: string[];
   unmaskSelector?: string[];
+  /**
+   * Local-only callback that replaces the default `*` redaction for text the SDK would
+   * otherwise mask (for example with `defaultMaskLevel: 'conservative'`). Return the text to record.
+   * Not called for blocked elements or elements masked explicitly via `amp-mask` / `maskSelector`.
+   * If it throws or returns a non-string, the text is fully redacted.
+   */
+  maskTextFn?: (text: string, element: HTMLElement | null) => string;
+  /** Same as `maskTextFn`, for input values. Never called for password inputs. */
+  maskInputFn?: (text: string, element: HTMLElement | null) => string;
 }
 
 /**

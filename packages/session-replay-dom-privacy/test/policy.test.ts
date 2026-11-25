@@ -208,6 +208,88 @@ describe('DOM privacy policy', () => {
     });
   });
 
+  describe('custom mask callbacks', () => {
+    const keepStatic = (text: string) => (text.startsWith('static:') ? text : text.replace(/[^\s]/g, '#'));
+
+    test('maskTextFn replaces default redaction for level-based masking', () => {
+      const el = document.createElement('div');
+      const fn = maskFn('text', { defaultMaskLevel: 'conservative', maskTextFn: keepStatic });
+      expect(fn('static:Hello', el)).toEqual('static:Hello');
+      expect(fn('user data', el)).toEqual('#### ####');
+    });
+
+    test('maskTextFn is not called when text is not masked', () => {
+      const spy = jest.fn(() => 'x');
+      const el = document.createElement('div');
+      expect(maskFn('text', { defaultMaskLevel: 'medium', maskTextFn: spy })('hello', el)).toEqual('hello');
+      expect(
+        maskFn('text', { defaultMaskLevel: 'conservative', unmaskSelector: ['div'], maskTextFn: spy })('hello', el),
+      ).toEqual('hello');
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    test('maskTextFn is not called for explicit amp-mask or maskSelector masking', () => {
+      const spy = jest.fn(() => 'visible');
+      const ampMask = document.createElement('div');
+      ampMask.classList.add(MASK_TEXT_CLASS);
+      expect(maskFn('text', { defaultMaskLevel: 'conservative', maskTextFn: spy })('abc', ampMask)).toEqual('***');
+      const selected = document.createElement('div');
+      selected.classList.add('secret');
+      expect(
+        maskFn('text', { defaultMaskLevel: 'conservative', maskSelector: ['.secret'], maskTextFn: spy })(
+          'abc',
+          selected,
+        ),
+      ).toEqual('***');
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    test('maskTextFn receives text and element', () => {
+      const spy = jest.fn(() => 'out');
+      const el = document.createElement('div');
+      expect(maskFn('text', { defaultMaskLevel: 'conservative', maskTextFn: spy })('abc', el)).toEqual('out');
+      expect(spy).toHaveBeenCalledWith('abc', el);
+    });
+
+    test('fails closed when the callback throws or returns a non-string', () => {
+      const el = document.createElement('div');
+      const throwing = maskFn('text', {
+        defaultMaskLevel: 'conservative',
+        maskTextFn: () => {
+          throw new Error('boom');
+        },
+      });
+      expect(throwing('a b', el)).toEqual('* *');
+      const bad = maskFn('text', {
+        defaultMaskLevel: 'conservative',
+        maskTextFn: (() => undefined) as unknown as (text: string) => string,
+      });
+      expect(bad('a b', el)).toEqual('* *');
+    });
+
+    test('maskInputFn applies to level-masked inputs but never to password inputs', () => {
+      const spy = jest.fn(() => 'custom');
+      const text = document.createElement('input');
+      text.type = 'text';
+      const password = document.createElement('input');
+      password.type = 'password';
+      const fn = maskFn('input', { defaultMaskLevel: 'medium', maskInputFn: spy });
+      expect(fn('abc', text)).toEqual('custom');
+      expect(fn('abc', password)).toEqual('***');
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    test('isMasked falls back to the default mask level without a config', () => {
+      expect(isMasked('input', undefined, document.createElement('input'))).toBe(true);
+      expect(isMasked('text', undefined, document.createElement('div'))).toBe(false);
+    });
+
+    test('maskTextFn does not affect input masking and vice versa', () => {
+      const input = document.createElement('input');
+      expect(maskFn('input', { defaultMaskLevel: 'medium', maskTextFn: () => 'x' })('abc', input)).toEqual('***');
+    });
+  });
+
   describe('maskAttributeFn', () => {
     const element = document.createElement('input');
 

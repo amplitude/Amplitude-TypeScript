@@ -25,7 +25,7 @@ const samplingConfig = {
   sample_rate: 0.4,
   capture_enabled: true,
 };
-const privacyConfig: Required<PrivacyConfig> = {
+const privacyConfig: Required<Omit<PrivacyConfig, 'maskTextFn' | 'maskInputFn'>> = {
   defaultMaskLevel: 'medium',
   blockSelector: ['.anotherClassName'],
   maskSelector: [],
@@ -380,6 +380,21 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             blockSelector: ['.className', '.anotherClassName'],
           },
         });
+      });
+
+      test('should preserve local maskTextFn and maskInputFn when joining remote privacy config', async () => {
+        const maskTextFn = jest.fn();
+        const maskInputFn = jest.fn();
+        const config = await privacySelectorTest(
+          { defaultMaskLevel: 'conservative' },
+          await createSessionReplayJoinedConfigGenerator('static_key', {
+            ...mockOptions,
+            privacyConfig: { maskTextFn, maskInputFn },
+          }),
+        );
+        expect(config.privacyConfig?.maskTextFn).toBe(maskTextFn);
+        expect(config.privacyConfig?.maskInputFn).toBe(maskInputFn);
+        expect(config.privacyConfig?.defaultMaskLevel).toBe('conservative');
       });
 
       test.each(['block', 'mask'])('should join %p selector from API', async (selectorType) => {
