@@ -1809,7 +1809,8 @@ describe('SessionReplay', () => {
       });
 
       test('a tab return does not checkout again when focus follows visibility', async () => {
-        await sessionReplay.init(apiKey, mockOptions).promise;
+        // Recording stays on while hidden here, so the tab return takes a checkout.
+        await sessionReplay.init(apiKey, { ...mockOptions, stopRecordingWhenHidden: false }).promise;
         const takeFullSnapshotMock = jest.fn();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (sessionReplay as any).recordCancelCallback = jest.fn();
@@ -1957,7 +1958,8 @@ describe('SessionReplay', () => {
       });
 
       test('showing the tab cancels the deferred hide upload and sends with the snapshot', async () => {
-        await sessionReplay.init(apiKey, mockOptions).promise;
+        // Recording stays on while hidden here, so the tab return takes a checkout.
+        await sessionReplay.init(apiKey, { ...mockOptions, stopRecordingWhenHidden: false }).promise;
         const order: string[] = [];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (sessionReplay as any).recordCancelCallback = jest.fn();
@@ -1982,6 +1984,202 @@ describe('SessionReplay', () => {
         expect(order).toEqual(['flush', 'flush', 'snapshot', 'send']);
         jest.runOnlyPendingTimers();
         expect(order).toEqual(['flush', 'flush', 'snapshot', 'send']);
+      });
+
+      describe('stopRecordingWhenHidden', () => {
+        test('hiding the tab stops capture after flushing the queue', async () => {
+          await sessionReplay.init(apiKey, mockOptions).promise;
+          const order: string[] = [];
+          const cancelCapture = jest.fn(() => {
+            order.push('stop');
+          });
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (sessionReplay as any).recordCancelCallback = cancelCapture;
+          sessionReplay.eventCompressor!.flushQueue = jest.fn(() => {
+            order.push('flush');
+          });
+          sessionReplay.sendEvents = jest.fn(() => {
+            order.push('send');
+          });
+          mockDocument.visibilityState = 'hidden';
+
+          sessionReplay.visibilityListener();
+
+          expect(order).toEqual(['flush', 'stop']);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect((sessionReplay as any).recordCancelCallback).toBeNull();
+          jest.runOnlyPendingTimers();
+          expect(order).toEqual(['flush', 'stop', 'send']);
+        });
+
+        test('showing the tab restarts capture instead of taking a checkout', async () => {
+          await sessionReplay.init(apiKey, mockOptions).promise;
+          const takeFullSnapshotMock = jest.fn();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (sessionReplay as any).recordCancelCallback = jest.fn();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (sessionReplay as any).recordFunction = { takeFullSnapshot: takeFullSnapshotMock };
+          const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => undefined);
+          const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+          // A start is still in flight; the restart must not be skipped because of it.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (sessionReplay as any).recordEventsInFlight = true;
+          mockDocument.visibilityState = 'hidden';
+          sessionReplay.visibilityListener();
+
+          mockDocument.visibilityState = 'visible';
+          sessionReplay.visibilityListener();
+
+          expect(takeFullSnapshotMock).not.toHaveBeenCalled();
+          expect(sendEventsSpy).toHaveBeenCalledTimes(1);
+          expect(recordEventsSpy).toHaveBeenCalledTimes(1);
+          expect(recordEventsSpy).toHaveBeenCalledWith(false);
+        });
+
+        test('a restarted start that was in flight still records once the tab is visible', async () => {
+          await sessionReplay.init(apiKey, mockOptions).promise;
+          await jest.runAllTimersAsync();
+          sessionReplay.stopRecordingEvents();
+          mockRecordFunction.mockClear();
+          let resolveRecordFunction: (value: unknown) => void = () => undefined;
+          jest
+            .spyOn(SessionReplay.prototype, 'getRecordFunction' as any)
+            .mockImplementationOnce(() => new Promise((resolve) => (resolveRecordFunction = resolve)));
+          const inFlight = sessionReplay.recordEvents();
+          mockDocument.visibilityState = 'hidden';
+          sessionReplay.visibilityListener();
+          mockDocument.visibilityState = 'visible';
+          sessionReplay.visibilityListener();
+
+          resolveRecordFunction(mockRecordFunction);
+          await inFlight;
+          await jest.runAllTimersAsync();
+
+          // Capture is running again. The queued rerun may restart it once more; that only
+          // costs an extra snapshot, while skipping it could leave the tab unrecorded.
+          expect(mockRecordFunction).toHaveBeenCalled();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect((sessionReplay as any).recordCancelCallback).not.toBeNull();
+        });
+
+        test('sends the restart snapshot as soon as capture is running again', async () => {
+          await sessionReplay.init(apiKey, mockOptions).promise;
+          await jest.runAllTimersAsync();
+          mockDocument.visibilityState = 'hidden';
+          sessionReplay.visibilityListener();
+          await jest.runAllTimersAsync();
+          mockRecordFunction.mockClear();
+          const order: string[] = [];
+          mockRecordFunction.mockImplementation(() => {
+            order.push('record');
+            return jest.fn();
+          });
+          jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => {
+            order.push('send');
+          });
+
+          mockDocument.visibilityState = 'visible';
+          sessionReplay.visibilityListener();
+          await jest.runAllTimersAsync();
+
+          // First send ships what the hide flushed; the second carries the new snapshot.
+          expect(order).toEqual(['send', 'record', 'send']);
+        });
+
+        test('a start that is not a tab return keeps the normal send cadence', async () => {
+          await sessionReplay.init(apiKey, mockOptions).promise;
+          await jest.runAllTimersAsync();
+          const sendEventsSpy = jest.spyOn(sessionReplay, 'sendEvents').mockImplementation(() => undefined);
+          mockRecordFunction.mockClear();
+
+          await sessionReplay.recordEvents();
+
+          expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+          expect(sendEventsSpy).not.toHaveBeenCalled();
+        });
+
+        test('does not restart on show after recording was stopped', async () => {
+          await sessionReplay.init(apiKey, mockOptions).promise;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (sessionReplay as any).recordCancelCallback = jest.fn();
+          sessionReplay.sendEvents = jest.fn();
+          const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents').mockResolvedValue(undefined);
+          mockDocument.visibilityState = 'hidden';
+          sessionReplay.visibilityListener();
+          sessionReplay.stop();
+
+          mockDocument.visibilityState = 'visible';
+          sessionReplay.visibilityListener();
+
+          expect(recordEventsSpy).not.toHaveBeenCalled();
+        });
+
+        test('does not start capture while the tab is hidden', async () => {
+          await sessionReplay.init(apiKey, mockOptions).promise;
+          await jest.runAllTimersAsync();
+          sessionReplay.stopRecordingEvents();
+          mockRecordFunction.mockClear();
+          mockDocument.visibilityState = 'hidden';
+
+          await sessionReplay.recordEvents();
+
+          expect(mockRecordFunction).not.toHaveBeenCalled();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect((sessionReplay as any).recordCancelCallback).toBeNull();
+
+          mockDocument.visibilityState = 'visible';
+          await sessionReplay.recordEvents();
+
+          expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+        });
+
+        test('abandons a capture start when the tab is hidden before it finishes', async () => {
+          await sessionReplay.init(apiKey, mockOptions).promise;
+          await jest.runAllTimersAsync();
+          sessionReplay.stopRecordingEvents();
+          mockRecordFunction.mockClear();
+          jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockImplementation(async () => {
+            mockDocument.visibilityState = 'hidden';
+            return Promise.resolve(mockRecordFunction);
+          });
+
+          await sessionReplay.recordEvents();
+
+          expect(mockRecordFunction).not.toHaveBeenCalled();
+        });
+
+        test('keeps capturing while hidden when the option is off', async () => {
+          await sessionReplay.init(apiKey, { ...mockOptions, stopRecordingWhenHidden: false }).promise;
+          const cancelCapture = jest.fn();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (sessionReplay as any).recordCancelCallback = cancelCapture;
+          sessionReplay.sendEvents = jest.fn();
+          mockDocument.visibilityState = 'hidden';
+
+          sessionReplay.visibilityListener();
+
+          expect(cancelCapture).not.toHaveBeenCalled();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          expect((sessionReplay as any).recordCancelCallback).toBe(cancelCapture);
+        });
+
+        test('keeps capturing while hidden when semantic capture is enabled', async () => {
+          await sessionReplay.init(apiKey, { ...mockOptions, semanticCapture: { enabled: true } }).promise;
+          await jest.runAllTimersAsync();
+          const cancelCapture = jest.fn();
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (sessionReplay as any).recordCancelCallback = cancelCapture;
+          sessionReplay.sendEvents = jest.fn();
+          mockDocument.visibilityState = 'hidden';
+
+          sessionReplay.visibilityListener();
+
+          expect(cancelCapture).not.toHaveBeenCalled();
+          sessionReplay.stopRecordingEvents();
+          mockRecordFunction.mockClear();
+          await sessionReplay.recordEvents();
+          expect(mockRecordFunction).toHaveBeenCalledTimes(1);
+        });
       });
 
       test('a second hide while a send is already deferred only flushes', async () => {
