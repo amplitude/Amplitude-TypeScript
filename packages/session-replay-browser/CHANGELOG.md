@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.54.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.53.2...@amplitude/session-replay-browser@1.54.0) (2026-11-25)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** publish a loadable ESM CDN bundle ([#2185](https://github.com/amplitude/Amplitude-TypeScript/issues/2185)) ([e0ba1fb](https://github.com/amplitude/Amplitude-TypeScript/commit/e0ba1fb9b3b0d87f7fa3e38422a5ab637c056bfe))
+
+
+### Features
+
+* **session-replay:** support local maskTextFn and maskInputFn in privacyConfig ([#2200](https://github.com/amplitude/Amplitude-TypeScript/issues/2200)) ([aea8485](https://github.com/amplitude/Amplitude-TypeScript/commit/aea8485c537b4a5820202ab574c6743b63a808a2))
+
+
+
+
+
 ## [1.53.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.53.1...@amplitude/session-replay-browser@1.53.2) (2026-11-24)
 
 
