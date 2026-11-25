@@ -1,7 +1,7 @@
 import type { SemanticAnalyticsContext, SemanticCaptureConfig, SemanticCaptureOptions } from '../semantic-types';
 import type { PrivacyConfig } from '@amplitude/session-replay-dom-privacy';
 export type { PrivacyConfig, MaskLevel } from '@amplitude/session-replay-dom-privacy';
-import { IConfig, LogLevel, ILogger } from '@amplitude/analytics-core';
+import { IConfig, LogLevel, ILogger, HttpClient } from '@amplitude/analytics-core';
 import { StoreType, ConsoleLogLevel } from '../typings/session-replay';
 import { TargetingFlag } from '@amplitude/targeting';
 import type { BodyCaptureRuleConfig } from '../network-body-capture';
@@ -150,6 +150,8 @@ export interface CrossOriginIframesConfig {
 }
 
 export interface SessionReplayLocalConfig extends IConfig {
+  /** Custom HTTP client for Replay uploads and remote config. Individual request handlers take precedence. */
+  httpClient?: HttpClient;
   apiKey: string;
   loggerProvider: ILogger;
   /**

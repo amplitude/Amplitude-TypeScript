@@ -11,6 +11,7 @@ import {
   Plan,
   IdentityStorageType,
   TransportTypeOrOptions,
+  HttpClient,
   MemoryStorage,
   UUID,
   CookieStorage,
@@ -111,8 +112,9 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public topLevelDomain?: string,
     public enableRequestBodyCompression: boolean = false,
     public customEnrichment?: boolean | CustomEnrichmentOptions,
+    public httpClient?: HttpClient,
   ) {
-    super({ apiKey, instanceName, storageProvider, transportProvider: createTransport(transport) });
+    super({ apiKey, instanceName, storageProvider, transportProvider: createTransport(transport, httpClient) });
     this._cookieStorage = cookieStorage;
     this.deviceId = deviceId;
     this.lastEventId = lastEventId;
@@ -420,6 +422,7 @@ export const useBrowserConfig = async (
     defaultCookieDomain,
     options.enableRequestBodyCompression,
     options.customEnrichment,
+    options.httpClient,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
@@ -473,22 +476,22 @@ export const shouldFetchRemoteConfig = (options: BrowserOptions = {}): boolean =
   }
 };
 
-export const createTransport = (transport?: TransportTypeOrOptions) => {
+export const createTransport = (transport?: TransportTypeOrOptions, httpClient?: HttpClient) => {
   const type = typeof transport === 'object' ? transport.type : transport;
   const headers = typeof transport === 'object' ? transport.headers : undefined;
   const enableKeepalive = typeof transport === 'object' ? transport.enableKeepalive : undefined;
   const referrerPolicy = typeof transport === 'object' ? transport.referrerPolicy : undefined;
 
-  if (type === 'xhr') {
+  if (!httpClient && type === 'xhr') {
     return new XHRTransport(headers);
   }
-  if (type === 'beacon') {
+  if (!httpClient && type === 'beacon') {
     // SendBeacon does not support custom headers
     return new SendBeaconTransport();
   }
   // Keep a browser-local fetch transport for gzip support.
   // TODO: Merge back to core FetchTransport after React Native supports gzip.
-  return new FetchTransport(headers, enableKeepalive, referrerPolicy);
+  return new FetchTransport(headers, enableKeepalive, referrerPolicy, httpClient);
 };
 
 export const getTopLevelDomain = async (url?: string, diagnosticsClient?: IDiagnosticsClient) => {

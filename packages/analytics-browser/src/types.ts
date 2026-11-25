@@ -29,6 +29,8 @@ export {
   IdentityStorageType,
   Storage,
   TransportType,
+  HttpClient,
+  HttpRequest,
   OfflineDisabled,
   Messenger,
   ElementInteractionsOptions,

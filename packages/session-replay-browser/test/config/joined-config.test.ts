@@ -958,6 +958,20 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       );
     });
 
+    test('uses the shared HTTP client for the remote config request', async () => {
+      const httpClient = { send: jest.fn().mockResolvedValue({ status: 200 }) };
+      await createSessionReplayJoinedConfigGenerator('static_key', { ...mockOptions, httpClient });
+      const customFetch = MockedRemoteConfigClient.mock.calls[0][4] as core.RemoteConfigCustomFetch;
+      const request: core.RemoteConfigFetchRequest = {
+        url: 'https://example.com/config',
+        method: 'GET',
+        headers: {},
+        signal: new AbortController().signal,
+      };
+      await customFetch(request);
+      expect(httpClient.send).toHaveBeenCalledWith(request);
+    });
+
     test('should pass handleFetchConfig through to RemoteConfigClient as the custom transport', async () => {
       const handleFetchConfig = jest.fn(() =>
         Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response),

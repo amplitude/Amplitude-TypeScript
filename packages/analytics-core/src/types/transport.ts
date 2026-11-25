@@ -1,8 +1,8 @@
 import { Payload } from './payload';
-import { Response } from './response';
+import { Response as AnalyticsResponse } from './response';
 
 export interface Transport {
-  send(serverUrl: string, payload: Payload, enableRequestBodyCompression?: boolean): Promise<Response | null>;
+  send(serverUrl: string, payload: Payload, enableRequestBodyCompression?: boolean): Promise<AnalyticsResponse | null>;
 }
 
 export type TransportType = 'xhr' | 'beacon' | 'fetch';
@@ -19,3 +19,17 @@ export interface TransportOptions {
 }
 
 export type TransportTypeOrOptions = TransportType | TransportOptions;
+
+/** A fully serialized HTTP request, including SDK headers and fetch options. */
+export interface HttpRequest extends RequestInit {
+  url: string;
+}
+
+/**
+ * Sends one HTTP request attempt. The SDK owns response parsing and retries.
+ * Implementations may modify or reroute requests and must preserve abort signals and
+ * keepalive behavior where supported. Reject on network errors; return HTTP error responses.
+ */
+export interface HttpClient {
+  send(request: HttpRequest): Promise<Response>;
+}

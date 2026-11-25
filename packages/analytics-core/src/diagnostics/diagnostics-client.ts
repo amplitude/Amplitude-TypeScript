@@ -1,3 +1,4 @@
+import { HttpClient } from '../types/transport';
 import { ILogger } from '../logger';
 import { DiagnosticsStorage, IDiagnosticsStorage } from './diagnostics-storage';
 import { ServerZoneType } from '../types/server-zone';
@@ -200,6 +201,7 @@ export class DiagnosticsClient implements IDiagnosticsClient {
      * not a public config option.
      */
     storage?: IDiagnosticsStorage,
+    private readonly httpClient?: HttpClient,
   ) {
     this.apiKey = apiKey;
     this.logger = logger;
@@ -427,18 +429,21 @@ export class DiagnosticsClient implements IDiagnosticsClient {
    */
   async fetch(payload: FlushPayload) {
     try {
-      if (!getGlobalScope()) {
+      if (!this.httpClient && !getGlobalScope()) {
         throw new Error('DiagnosticsClient: Fetch is not supported');
       }
 
-      const response = await fetch(this.serverUrl, {
+      const options: RequestInit = {
         method: 'POST',
         headers: {
           'X-ApiKey': this.apiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      });
+      };
+      const response = this.httpClient
+        ? await this.httpClient.send({ url: this.serverUrl, ...options })
+        : await fetch(this.serverUrl, options);
 
       if (!response.ok) {
         this.logger.debug('DiagnosticsClient: Failed to send diagnostics data.');

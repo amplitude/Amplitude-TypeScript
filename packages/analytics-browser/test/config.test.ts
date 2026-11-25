@@ -23,6 +23,13 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import { VERSION } from '../src/version';
 
 describe('config', () => {
+  test.each(['fetch', 'xhr', 'beacon'] as const)('custom HTTP client overrides %s transport', async (type) => {
+    const httpClient = { send: jest.fn().mockResolvedValue({ status: 200, text: async () => '{"code":200}' }) };
+    const transport = createTransport(type, httpClient);
+    await transport.send('https://example.com/events', { api_key: 'key', events: [] });
+    expect(httpClient.send).toHaveBeenCalledTimes(1);
+  });
+
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
   const someCookieStorage: BrowserUtils.CookieStorage<UserSession> = expect.any(
     BrowserUtils.CookieStorage,

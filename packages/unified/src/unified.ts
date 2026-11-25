@@ -12,7 +12,7 @@ import {
   experimentPlugin,
 } from '@amplitude/plugin-experiment-browser';
 import { InitOptions, plugin as EngagementPlugin } from '@amplitude/engagement-browser';
-import { BrowserClient, BrowserOptions } from '@amplitude/analytics-core';
+import { BrowserClient, BrowserOptions, HttpClient } from '@amplitude/analytics-core';
 import { libraryPlugin } from './library';
 
 export interface UnifiedSharedOptions {
@@ -21,6 +21,8 @@ export interface UnifiedSharedOptions {
 }
 
 export type UnifiedOptions = UnifiedSharedOptions & {
+  /** Shared HTTP client for Analytics and Session Replay. Does not apply to Experiment or Engagement. */
+  httpClient?: HttpClient;
   /**
    * Analytics Browser SDK configuration options.
    * See {@link https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2#configure-the-sdk | Configure the SDK}.
@@ -87,9 +89,19 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
 
       super.add(libraryPlugin());
 
-      await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
+      await super.init(apiKey, {
+        ...unifiedOptions?.analytics,
+        ...sharedOptions,
+        httpClient: unifiedOptions?.analytics?.httpClient ?? unifiedOptions?.httpClient,
+      }).promise;
 
-      await super.add(sessionReplayPlugin({ ...unifiedOptions?.sessionReplay, ...sharedOptions })).promise;
+      await super.add(
+        sessionReplayPlugin({
+          ...unifiedOptions?.sessionReplay,
+          ...sharedOptions,
+          httpClient: unifiedOptions?.sessionReplay?.httpClient ?? unifiedOptions?.httpClient,
+        }),
+      ).promise;
 
       await super.add(experimentPlugin({ ...unifiedOptions?.experiment, ...sharedOptions })).promise;
 

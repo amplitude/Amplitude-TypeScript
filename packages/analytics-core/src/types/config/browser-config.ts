@@ -1,6 +1,6 @@
 import { UserSession } from '../user-session';
 import { IdentityStorageType, Storage } from '../storage';
-import { Transport, TransportTypeOrOptions } from '../transport';
+import { HttpClient, Transport, TransportTypeOrOptions } from '../transport';
 import { IConfig } from './core-config';
 import { ElementInteractionsOptions } from '../element-interactions';
 import { FormInteractionsOptions } from '../form-interactions';
@@ -16,6 +16,14 @@ import { CustomEnrichmentOptions } from '../custom-enrichment';
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
 export interface ExternalBrowserConfig extends IConfig {
+  /**
+   * Custom HTTP client for event uploads, remote config, and diagnostics.
+   * When provided, event uploads use FetchTransport regardless of transport.type,
+   * preserving any supplied transport headers, enableKeepalive, and referrerPolicy.
+   * FetchTransport prepares the request and delegates sending to this client.
+   * Shared with Session Replay unless Replay provides its own override.
+   */
+  httpClient?: HttpClient;
   /**
    * An app version for events tracked. This can be the version of your application.
    * @defaultValue `undefined`

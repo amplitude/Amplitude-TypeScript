@@ -27,3 +27,4 @@ export type {
   SemanticCaptureHost,
   SemanticCaptureController,
 } from './semantic-types';
+export type { HttpClient, HttpRequest } from '@amplitude/analytics-core';

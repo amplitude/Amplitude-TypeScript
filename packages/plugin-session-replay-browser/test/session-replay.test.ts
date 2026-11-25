@@ -108,6 +108,17 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('setup', () => {
+    test.each([false, true])('shares the Analytics HTTP client unless Replay overrides it: %s', async (override) => {
+      const httpClient = { send: jest.fn() };
+      const replayClient = override ? { send: jest.fn() } : undefined;
+      const plugin = new SessionReplayPlugin({ httpClient: replayClient });
+      await plugin.setup({ ...mockConfig, httpClient }, mockAmplitude);
+      expect(init).toHaveBeenCalledWith(
+        'static_key',
+        expect.objectContaining({ httpClient: replayClient ?? httpClient }),
+      );
+    });
+
     test('should setup plugin', async () => {
       const customDeviceId = randomUUID();
       const sessionReplay = new SessionReplayPlugin({

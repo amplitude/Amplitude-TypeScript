@@ -6,6 +6,7 @@ import {
   Payload,
   Response,
   Transport,
+  HttpClient,
 } from '@amplitude/analytics-core';
 
 // Conservative 1/4 of the shared 64 KiB keepalive budget. Why 16K: https://github.com/amplitude/Amplitude-TypeScript/pull/1781
@@ -19,7 +20,12 @@ export class FetchTransport extends BaseTransport implements Transport {
   private enableKeepalive: boolean;
   private referrerPolicy?: ReferrerPolicy;
 
-  constructor(customHeaders: Record<string, string> = {}, enableKeepalive?: boolean, referrerPolicy?: ReferrerPolicy) {
+  constructor(
+    customHeaders: Record<string, string> = {},
+    enableKeepalive?: boolean,
+    referrerPolicy?: ReferrerPolicy,
+    private readonly httpClient?: HttpClient,
+  ) {
     super();
     this.customHeaders = customHeaders;
     // Enabled unless explicitly disabled.
@@ -31,7 +37,7 @@ export class FetchTransport extends BaseTransport implements Transport {
 
   async send(serverUrl: string, payload: Payload, shouldCompressUploadBody = false): Promise<Response | null> {
     /* istanbul ignore if */
-    if (typeof fetch === 'undefined') {
+    if (!this.httpClient && typeof fetch === 'undefined') {
       throw new Error('FetchTransport is not supported');
     }
 
@@ -72,7 +78,9 @@ export class FetchTransport extends BaseTransport implements Transport {
       options.referrerPolicy = this.referrerPolicy;
     }
 
-    const response = await fetch(serverUrl, options);
+    const response = this.httpClient
+      ? await this.httpClient.send({ url: serverUrl, ...options })
+      : await fetch(serverUrl, options);
     const responseText = await response.text();
     try {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument

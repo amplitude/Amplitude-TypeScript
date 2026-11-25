@@ -3,6 +3,7 @@ import { ILogger, ServerZone } from '@amplitude/analytics-core';
 import { SessionReplayDestinationContext } from 'src/typings/session-replay';
 import { SessionReplayTrackDestination } from '../src/track-destination';
 import { VERSION } from '../src/version';
+import { SessionReplayLocalConfig } from '../src/config/local-config';
 
 type MockedLogger = jest.Mocked<ILogger>;
 
@@ -53,6 +54,40 @@ describe('custom transport (handleSendEvents)', () => {
   });
 
   describe('main-thread send', () => {
+    test('adapts the shared HTTP client to Replay uploads and config without losing this', async () => {
+      const httpClient = {
+        response: { status: 200 } as Response,
+        send: jest.fn(function (this: { response: Response }, _request: AnalyticsCore.HttpRequest) {
+          return Promise.resolve(this.response);
+        }),
+      };
+      const config = new SessionReplayLocalConfig(apiKey, { httpClient });
+      const destination = new SessionReplayTrackDestination({
+        loggerProvider: mockLoggerProvider,
+        handleSendEvents: config.handleSendEvents,
+      });
+      await destination.send(baseContext());
+      expect(httpClient.send).toHaveBeenLastCalledWith(expect.objectContaining({ method: 'POST', keepalive: true }));
+      const request = {
+        url: 'https://example.com/config',
+        method: 'GET' as const,
+        headers: {},
+        signal: new AbortController().signal,
+      };
+      await expect(config.handleFetchConfig?.(request)).resolves.toBe(httpClient.response);
+      expect(httpClient.send).toHaveBeenLastCalledWith(request);
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
+    test('preserves explicit per-request handlers over the shared HTTP client', () => {
+      const httpClient = { send: jest.fn() };
+      const handleSendEvents = jest.fn();
+      const handleFetchConfig = jest.fn();
+      const config = new SessionReplayLocalConfig(apiKey, { httpClient, handleSendEvents, handleFetchConfig });
+      expect(config.handleSendEvents).toBe(handleSendEvents);
+      expect(config.handleFetchConfig).toBe(handleFetchConfig);
+    });
+
     test('invokes the callback with a fully-formed request and does NOT call fetch', async () => {
       const handleSendEvents = jest.fn(() => Promise.resolve({ status: 200 } as Response));
       const trackDestination = new SessionReplayTrackDestination({

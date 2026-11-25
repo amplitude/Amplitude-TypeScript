@@ -201,10 +201,14 @@ export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserCli
         enableDiagnostics: boolean,
         diagnosticsSampleRate: number,
       ): Promise<DiagnosticsClient> => {
-        const diagnosticsClient = new DiagnosticsClient(options.apiKey, loggerProvider, serverZone, {
-          enabled: enableDiagnostics,
-          sampleRate: diagnosticsSampleRate,
-        });
+        const diagnosticsClient = new DiagnosticsClient(
+          options.apiKey,
+          loggerProvider,
+          serverZone,
+          { enabled: enableDiagnostics, sampleRate: diagnosticsSampleRate },
+          undefined,
+          options.httpClient,
+        );
         this.diagnosticsClient = diagnosticsClient;
         diagnosticsClient.setTag('library', `${LIBPREFIX}/${VERSION}`);
         diagnosticsClient.setTag('platform', BROWSER_PLATFORM);
@@ -220,11 +224,13 @@ export class AmplitudeBrowser extends AmplitudeBrowserLite implements BrowserCli
         loggerProvider: ILogger,
         serverZone: ServerZoneType,
       ): Promise<IRemoteConfigClient> => {
+        const httpClient = options.httpClient;
         const remoteConfigClient = new RemoteConfigClient(
           options.apiKey,
           loggerProvider,
           serverZone,
           /* istanbul ignore next */ options.remoteConfig?.serverUrl,
+          httpClient ? (request) => httpClient.send(request) : undefined,
         );
 
         // Fetch diagnostics config first to get sample rate
