@@ -31,6 +31,10 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
   const type = 'enrichment';
 
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
     const initializeFileDownloadTracking = () => {
       /* istanbul ignore if */
       if (!amplitude) {
