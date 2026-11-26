@@ -123,7 +123,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       isTracking = true;
       // Freeze the navigation-to-init offset now, including when the first page view is deferred.
       getSdkInitializationOffset(localConfig.apiKey);
-      if (globalScope) {
+      if (typeof globalScope?.addEventListener === 'function' && globalScope.history) {
         // init session storage
         try {
           sessionStorage = new BrowserStorage<PageViewSessionStorage>(globalScope.sessionStorage);
@@ -198,7 +198,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     },
 
     teardown: async () => {
-      if (globalScope) {
+      if (typeof globalScope?.removeEventListener === 'function') {
         globalScope.removeEventListener('popstate', handlePageChange);
         isTracking = false;
       }

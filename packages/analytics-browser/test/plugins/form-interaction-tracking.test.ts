@@ -27,6 +27,34 @@ if (typeof SubmitEvent === 'undefined') {
 describe('formInteractionTracking', () => {
   let amplitude = createAmplitudeMock();
 
+  test('does not throw when a server-like global has no addEventListener', async () => {
+    const originalReadyState = document.readyState;
+    const originalAddEventListener = window.addEventListener;
+
+    Object.defineProperty(document, 'readyState', {
+      configurable: true,
+      value: 'loading',
+    });
+    Object.defineProperty(window, 'addEventListener', {
+      configurable: true,
+      value: undefined,
+    });
+
+    try {
+      const plugin = formInteractionTracking();
+      await expect(plugin.setup?.(createConfigurationMock(), amplitude)).resolves.toBeUndefined();
+    } finally {
+      Object.defineProperty(window, 'addEventListener', {
+        configurable: true,
+        value: originalAddEventListener,
+      });
+      Object.defineProperty(document, 'readyState', {
+        configurable: true,
+        value: originalReadyState,
+      });
+    }
+  });
+
   beforeEach(() => {
     amplitude = createAmplitudeMock();
 

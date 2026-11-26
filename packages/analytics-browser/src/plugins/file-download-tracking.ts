@@ -31,6 +31,10 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
   const type = 'enrichment';
 
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
     const initializeFileDownloadTracking = () => {
       /* istanbul ignore if */
       if (!amplitude) {
@@ -121,7 +125,7 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
       // Otherwise, wait for the load event.
       const window = getGlobalScope();
       /* istanbul ignore else*/
-      if (window) {
+      if (typeof window?.addEventListener === 'function') {
         window.addEventListener('load', initializeFileDownloadTracking);
       } else {
         config.loggerProvider.debug('File download tracking is not installed because global is undefined.');
