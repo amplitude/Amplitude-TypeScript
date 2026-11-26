@@ -155,6 +155,16 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
               }
             });
           });
+          // Listener records must not keep removed forms (or their subtrees)
+          // alive until SDK teardown. Connected moves keep their existing state.
+          eventListeners = eventListeners.filter(({ element, type, handler }) => {
+            if (element.isConnected) {
+              return true;
+            }
+            element.removeEventListener(type, handler);
+            addedFormNodes.delete(element);
+            return false;
+          });
         });
 
         observer.observe(document.body, {

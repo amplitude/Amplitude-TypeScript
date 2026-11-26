@@ -30,6 +30,7 @@ export class CrossOriginIframeCoordinator {
 
   start() {
     this.mutationObserver?.disconnect(); // guard against double-start
+    this.clearPendingLoadListeners();
     const globalScope = getGlobalScope();
     if (!globalScope) {
       return;
@@ -54,16 +55,15 @@ export class CrossOriginIframeCoordinator {
             });
           }
         }
-        for (const node of Array.from(mutation.removedNodes)) {
-          if (node instanceof HTMLIFrameElement) {
-            const listener = this.pendingLoadListeners.get(node);
-            if (listener) {
-              node.removeEventListener('load', listener);
-              this.pendingLoadListeners.delete(node);
-            }
-          }
-        }
       }
+      // A removed container may own pending iframes, too. Check connectivity at
+      // the end of the batch so moving a connected iframe preserves its listener.
+      this.pendingLoadListeners.forEach((listener, iframe) => {
+        if (!iframe.isConnected) {
+          iframe.removeEventListener('load', listener);
+          this.pendingLoadListeners.delete(iframe);
+        }
+      });
     });
     this.mutationObserver.observe(document.documentElement, { childList: true, subtree: true });
   }
@@ -72,20 +72,27 @@ export class CrossOriginIframeCoordinator {
     this.mutationObserver?.disconnect();
     this.mutationObserver = undefined;
     // Cancel any start signals that were waiting for a pending iframe load.
-    this.pendingLoadListeners.forEach((listener, iframe) => {
-      iframe.removeEventListener('load', listener);
-    });
-    this.pendingLoadListeners.clear();
+    this.clearPendingLoadListeners();
     this.sendToAllIframes({ type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'stop' });
   }
 
   private sendToIframeAfterLoad(iframe: HTMLIFrameElement) {
+    if (this.pendingLoadListeners.has(iframe)) {
+      return;
+    }
     const sendStart = () => {
       this.pendingLoadListeners.delete(iframe);
       this.sendToIframe(iframe, { type: CROSS_ORIGIN_IFRAME_MESSAGE_TYPE, action: 'start' });
     };
     this.pendingLoadListeners.set(iframe, sendStart);
     iframe.addEventListener('load', sendStart, { once: true });
+  }
+
+  private clearPendingLoadListeners() {
+    this.pendingLoadListeners.forEach((listener, iframe) => {
+      iframe.removeEventListener('load', listener);
+    });
+    this.pendingLoadListeners.clear();
   }
 
   private sendToAllIframes(message: IframeMessage) {

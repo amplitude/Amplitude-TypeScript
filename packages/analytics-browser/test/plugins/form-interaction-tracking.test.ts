@@ -25,6 +25,32 @@ if (typeof SubmitEvent === 'undefined') {
 }
 
 describe('formInteractionTracking', () => {
+  test('releases removed subtree listeners and tracks reinserted forms once', async () => {
+    const amplitude = createAmplitudeMock();
+    const wrapper = document.createElement('div');
+    const form = document.createElement('form');
+    wrapper.appendChild(form);
+    document.body.appendChild(wrapper);
+    const plugin = formInteractionTracking();
+    await plugin.setup?.(createConfigurationMock(), amplitude);
+    window.dispatchEvent(new Event('load'));
+    const removeListener = jest.spyOn(form, 'removeEventListener');
+
+    wrapper.remove();
+    await Promise.resolve();
+    expect(removeListener).toHaveBeenCalledWith('change', expect.any(Function));
+    expect(removeListener).toHaveBeenCalledWith('submit', expect.any(Function));
+    form.dispatchEvent(new Event('change'));
+    expect(amplitude.track).not.toHaveBeenCalled();
+
+    document.body.appendChild(wrapper);
+    await Promise.resolve();
+    form.dispatchEvent(new Event('change'));
+    form.dispatchEvent(new Event('submit'));
+    expect(amplitude.track).toHaveBeenCalledTimes(2);
+    await plugin.teardown?.();
+    wrapper.remove();
+  });
   let amplitude = createAmplitudeMock();
 
   beforeEach(() => {
