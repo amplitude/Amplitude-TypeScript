@@ -47,6 +47,10 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
   const name = '@amplitude/plugin-form-interaction-tracking-browser';
   const type = 'enrichment';
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
     formInteractionsConfig = getFormInteractionsConfig(config);
 
     const initializeFormTracking = () => {
