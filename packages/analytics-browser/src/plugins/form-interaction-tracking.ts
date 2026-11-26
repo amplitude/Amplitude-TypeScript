@@ -174,7 +174,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       // only after the window is loaded
       const window = getGlobalScope();
       /* istanbul ignore else*/
-      if (window) {
+      if (typeof window?.addEventListener === 'function') {
         window.addEventListener('load', initializeFormTracking);
       } else {
         config.loggerProvider.debug('Form interaction tracking is not installed because global is undefined.');
