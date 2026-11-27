@@ -22,6 +22,21 @@ import {
 // otherwise win the synchronous race in 'all' mode.
 const REMOTE_CONFIG_TIMEOUT_MS = 1500;
 
+// Maximum age of a cached remote config that Session Replay will still use when the
+// remote fetch misses the timeout. The cache has no expiry of its own, so without this a
+// device that hasn't fetched successfully in a long time keeps using whatever config it
+// cached last, e.g. a broken config from an incident that has since been fixed. When the
+// cache is older than this, it is treated as missing and capture is disabled for the session.
+export const MAX_CACHED_REMOTE_CONFIG_AGE_MS = 24 * 60 * 60 * 1000;
+
+export const isCachedRemoteConfigStale = (lastFetch: Date | undefined, now = Date.now()): boolean => {
+  const lastFetchTime = lastFetch?.getTime();
+  if (lastFetchTime === undefined || Number.isNaN(lastFetchTime)) {
+    return true;
+  }
+  return now - lastFetchTime > MAX_CACHED_REMOTE_CONFIG_AGE_MS;
+};
+
 export const removeInvalidSelectorsFromPrivacyConfig = (privacyConfig: PrivacyConfig, loggerProvider: ILogger) => {
   const fragment = document.createDocumentFragment();
   return validatePrivacySelectors(
@@ -61,7 +76,7 @@ export class SessionReplayJoinedConfigGenerator {
         this.remoteConfigClient.subscribe(
           'configs.sessionReplay',
           { timeout: REMOTE_CONFIG_TIMEOUT_MS },
-          (remoteConfig: RemoteConfig | null, source: Source) => {
+          (remoteConfig: RemoteConfig | null, source: Source, lastFetch?: Date) => {
             this.localConfig.loggerProvider.debug(
               `Session Replay remote configuration received from ${source}:`,
               JSON.stringify(remoteConfig, null, 2),
@@ -69,6 +84,11 @@ export class SessionReplayJoinedConfigGenerator {
 
             if (!remoteConfig) {
               reject(new Error('No remote config received'));
+              return;
+            }
+
+            if (source === 'cache' && isCachedRemoteConfigStale(lastFetch)) {
+              reject(new Error('Cached remote config is too old to use'));
               return;
             }
 

@@ -6,6 +6,8 @@ import {
   SessionReplayJoinedConfigGenerator,
   createSessionReplayJoinedConfigGenerator,
   removeInvalidSelectorsFromPrivacyConfig,
+  isCachedRemoteConfigStale,
+  MAX_CACHED_REMOTE_CONFIG_AGE_MS,
 } from '../../src/config/joined-config';
 import { SessionReplayLocalConfig } from '../../src/config/local-config';
 import { PrivacyConfig, UGCFilterRule } from '../../src/config/types';
@@ -13,6 +15,8 @@ import { DEFAULT_URL_CHANGE_POLLING_INTERVAL } from '../../src/constants';
 
 // Mock remote config storage
 let mockRemoteConfig: RemoteConfig | null = null;
+let mockRemoteConfigSource: Source = 'cache';
+let mockRemoteConfigLastFetch: Date = new Date();
 
 // Mock RemoteConfigClient - will be recreated for each test
 let mockRemoteConfigClient: any;
@@ -65,6 +69,8 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       sr_sampling_config: samplingConfig,
       sr_privacy_config: {},
     };
+    mockRemoteConfigSource = 'cache';
+    mockRemoteConfigLastFetch = new Date();
 
     // Create a fresh mock client for each test
     mockRemoteConfigClient = {
@@ -77,7 +83,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             callback: (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => void,
           ) => {
             // Call the callback synchronously with the mock remote config
-            callback(mockRemoteConfig, 'cache', new Date());
+            callback(mockRemoteConfig, mockRemoteConfigSource, mockRemoteConfigLastFetch);
             return 'mock-subscription-id';
           },
         ),
@@ -136,6 +142,46 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         const deliveryMode = mockRemoteConfigClient.subscribe.mock.calls[0][1];
         expect(deliveryMode).not.toBe('all');
         expect(deliveryMode.timeout).toBeGreaterThan(0);
+      });
+    });
+
+    describe('stale cached remote config', () => {
+      test('disables capture when the cached config is older than the max age', async () => {
+        mockRemoteConfigSource = 'cache';
+        mockRemoteConfigLastFetch = new Date(Date.now() - MAX_CACHED_REMOTE_CONFIG_AGE_MS - 1000);
+        jest.spyOn(mockLoggerProvider, 'error').mockImplementationOnce(() => {
+          return;
+        });
+
+        const { joinedConfig, remoteConfig } = await joinedConfigGenerator.generateJoinedConfig();
+
+        expect(joinedConfig.captureEnabled).toBe(false);
+        expect(remoteConfig).toBeUndefined();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.error).toHaveBeenCalledWith(
+          'Failed to generate joined config: ',
+          expect.objectContaining({ message: 'Cached remote config is too old to use' }),
+        );
+      });
+
+      test('uses a cached config that is within the max age', async () => {
+        mockRemoteConfigSource = 'cache';
+        mockRemoteConfigLastFetch = new Date(Date.now() - MAX_CACHED_REMOTE_CONFIG_AGE_MS + 60 * 1000);
+
+        const { joinedConfig, remoteConfig } = await joinedConfigGenerator.generateJoinedConfig();
+
+        expect(joinedConfig.captureEnabled).toBe(true);
+        expect(remoteConfig?.sr_sampling_config).toEqual(samplingConfig);
+      });
+
+      test('does not apply the max age to a config fetched from remote', async () => {
+        mockRemoteConfigSource = 'remote';
+        mockRemoteConfigLastFetch = new Date(0);
+
+        const { joinedConfig, remoteConfig } = await joinedConfigGenerator.generateJoinedConfig();
+
+        expect(joinedConfig.captureEnabled).toBe(true);
+        expect(remoteConfig?.sr_sampling_config).toEqual(samplingConfig);
       });
     });
 
@@ -974,5 +1020,26 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         handleFetchConfig,
       );
     });
+  });
+});
+
+describe('isCachedRemoteConfigStale', () => {
+  const now = 1_800_000_000_000;
+
+  test('is not stale within the max age', () => {
+    expect(isCachedRemoteConfigStale(new Date(now - MAX_CACHED_REMOTE_CONFIG_AGE_MS), now)).toBe(false);
+  });
+
+  test('is stale past the max age', () => {
+    expect(isCachedRemoteConfigStale(new Date(now - MAX_CACHED_REMOTE_CONFIG_AGE_MS - 1), now)).toBe(true);
+  });
+
+  test('is stale when lastFetch is missing or invalid', () => {
+    expect(isCachedRemoteConfigStale(undefined, now)).toBe(true);
+    expect(isCachedRemoteConfigStale(new Date('not a date'), now)).toBe(true);
+  });
+
+  test('defaults to the current time', () => {
+    expect(isCachedRemoteConfigStale(new Date())).toBe(false);
   });
 });
